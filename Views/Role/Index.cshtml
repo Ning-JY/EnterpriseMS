@@ -1,0 +1,271 @@
+@using EnterpriseMS.Common
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Services.DTOs.System
+@model PagedResult<RoleListDto>
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "角色管理";
+    var userId = User.GetUserId();
+    bool canAdd  = await PermSvc.HasPermAsync(userId, "sys:role:add");
+    bool canEdit = await PermSvc.HasPermAsync(userId, "sys:role:edit");
+    bool canDel  = await PermSvc.HasPermAsync(userId, "sys:role:delete");
+    bool canPerm = await PermSvc.HasPermAsync(userId, "sys:role:perm");
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">角色管理</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item active">角色管理</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">角色列表（共 @Model.Total 条）</h3>
+        <div class="card-tools">
+            <form method="get" class="d-inline-flex mr-2">
+                <input name="keyword" class="form-control form-control-sm mr-1"
+                       placeholder="角色名称/编码" value="@ViewBag.Keyword" style="width:180px">
+                <button class="btn btn-sm btn-primary">搜索</button>
+            </form>
+            @if (canAdd)
+            {
+                <button class="btn btn-sm btn-success" onclick="openAddModal()">
+                    <i class="fas fa-plus"></i> 新增角色
+                </button>
+            }
+        </div>
+    </div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-hover table-sm">
+            <thead class="thead-light">
+                <tr><th>角色名称</th><th>角色编码</th><th>数据范围</th><th>排序</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Items)
+                {
+                    <tr>
+                        <td><strong>@r.RoleName</strong></td>
+                        <td><code>@r.RoleCode</code></td>
+                        <td>@(r.DataScope switch { 1=>"全部数据", 2=>"本部门", 3=>"本部门及子部门", 4=>"仅本人", _=>"未知" })</td>
+                        <td>@r.Sort</td>
+                        <td>
+                            @if (r.Status == 1) { <span class="badge badge-success">正常</span> }
+                            else { <span class="badge badge-danger">禁用</span> }
+                        </td>
+                        <td class="text-muted small">@r.CreatedAt.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            @if (canPerm)
+                            {
+                                <button class="btn btn-xs btn-warning" onclick="openPermModal(@r.Id, '@r.RoleName')">
+                                    <i class="fas fa-key"></i> 分配权限
+                                </button>
+                            }
+                            @if (canEdit)
+                            {
+                                <button class="btn btn-xs btn-info" onclick="openEditModal(@r.Id)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            }
+                            @if (canDel && r.RoleCode != "superadmin")
+                            {
+                                <button class="btn btn-xs btn-danger" onclick="deleteRole(@r.Id, '@r.RoleName')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Items.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">暂无数据</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div></section>
+
+<!-- 新增/编辑弹窗 -->
+<div class="modal fade" id="roleModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="roleModalTitle">新增角色</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="roleId">
+            <div class="form-group">
+                <label>角色名称 <span class="text-danger">*</span></label>
+                <input type="text" id="roleName" class="form-control" maxlength="50">
+            </div>
+            <div class="form-group">
+                <label>角色编码 <span class="text-danger">*</span></label>
+                <input type="text" id="roleCode" class="form-control" maxlength="50">
+                <small class="text-muted">英文标识，如 admin、editor</small>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group">
+                        <label>数据范围</label>
+                        <select id="dataScope" class="form-control">
+                            <option value="1">全部数据</option>
+                            <option value="2">本部门数据</option>
+                            <option value="3">本部门及子部门</option>
+                            <option value="4">仅本人数据</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label>排序</label>
+                        <input type="number" id="roleSort" class="form-control" value="10">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="roleRemark" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveRole()">保存</button>
+        </div>
+    </div></div>
+</div>
+
+<!-- 权限分配弹窗 -->
+<div class="modal fade" id="permModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">分配菜单权限 - <span id="permRoleName"></span></h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div id="menuTreeWrap" style="max-height:400px;overflow-y:auto;border:1px solid #eee;padding:12px;border-radius:4px;">
+                <div class="text-center text-muted py-3">加载中...</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="savePerms()">保存权限</button>
+        </div>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+var currentPermRoleId = null;
+
+function openAddModal() {
+    $('#roleModalTitle').text('新增角色');
+    $('#roleId').val('');
+    $('#roleName,#roleCode,#roleRemark').val('');
+    $('#roleSort').val(10); $('#dataScope').val(1);
+    $('#roleCode').prop('disabled', false);
+    $('#roleModal').modal('show');
+}
+
+function openEditModal(id) {
+    $.get('/system/role/detail/' + id, function(r) {
+        if (!r.success) { layer.msg(r.message, {icon:2}); return; }
+        var d = r.data.role;
+        $('#roleModalTitle').text('编辑角色');
+        $('#roleId').val(d.Id); $('#roleName').val(d.RoleName);
+        $('#roleCode').val(d.RoleCode).prop('disabled', true);
+        $('#dataScope').val(d.DataScope); $('#roleSort').val(d.Sort);
+        $('#roleRemark').val(d.Remark || '');
+        $('#roleModal').modal('show');
+    });
+}
+
+function saveRole() {
+    var id = $('#roleId').val();
+    var data = {
+        Id: id, RoleName: $('#roleName').val(), RoleCode: $('#roleCode').val(),
+        DataScope: parseInt($('#dataScope').val()), Sort: parseInt($('#roleSort').val()),
+        Remark: $('#roleRemark').val(), MenuIds: []
+    };
+    if (!data.RoleName || !data.RoleCode) { layer.msg('请填写角色名称和编码', {icon:2}); return; }
+    var url = id ? '/system/role/update' : '/system/role/create';
+    var load = layer.load(1);
+    $.ajax({ url, type:'POST', contentType:'application/json',
+        headers:{'RequestVerificationToken': antiForgery},
+        data: JSON.stringify(data),
+        success: function(r) {
+            layer.close(load);
+            if (r.success) { $('#roleModal').modal('hide'); layer.msg(r.message, {icon:1, time:1500}, ()=>location.reload()); }
+            else layer.msg(r.message, {icon:2});
+        }
+    });
+}
+
+function deleteRole(id, name) {
+    layer.confirm('确认删除角色 <b>' + name + '</b>？', {icon:3, btn:['确认','取消']}, function(i) {
+        layer.close(i);
+        $.post('/system/role/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
+        });
+    });
+}
+
+function openPermModal(roleId, roleName) {
+    currentPermRoleId = roleId;
+    $('#permRoleName').text(roleName);
+    $('#menuTreeWrap').html('<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>');
+    $('#permModal').modal('show');
+
+    // 同时加载菜单树和已有权限
+    var p1 = $.get('/system/role/menutree');
+    var p2 = $.get('/system/role/detail/' + roleId);
+    $.when(p1, p2).done(function(r1, r2) {
+        var tree = r1[0].data;
+        var checkedIds = r2[0].data.menuIds || [];
+        $('#menuTreeWrap').html(renderMenuTree(tree, checkedIds));
+    });
+}
+
+function renderMenuTree(nodes, checkedIds) {
+    if (!nodes || !nodes.length) return '';
+    var html = '<ul class="list-unstyled mb-0">';
+    nodes.forEach(function(n) {
+        var checked = checkedIds.includes(n.Id) ? 'checked' : '';
+        var icon = n.MenuType==='M' ? 'fa-folder text-warning' : n.MenuType==='C' ? 'fa-file text-info' : 'fa-circle text-muted';
+        html += '<li style="margin-left:'+(n.MenuType==='F'?'32px':'16px')+';padding:3px 0">';
+        html += '<label class="mb-0"><input type="checkbox" class="mr-2 menu-chk" value="'+n.Id+'" '+checked+'>';
+        html += '<i class="fas '+icon+' mr-1" style="font-size:12px"></i>'+n.MenuName+'</label>';
+        if (n.Children && n.Children.length) html += renderMenuTree(n.Children, checkedIds);
+        html += '</li>';
+    });
+    return html + '</ul>';
+}
+
+function savePerms() {
+    var menuIds = [];
+    $('.menu-chk:checked').each(function() { menuIds.push(parseInt($(this).val())); });
+    var load = layer.load(1);
+    $.ajax({ url: '/system/role/assignmenus?roleId='+currentPermRoleId,
+        type:'POST', contentType:'application/json',
+        headers:{'RequestVerificationToken': antiForgery},
+        data: JSON.stringify(menuIds),
+        success: function(r) {
+            layer.close(load);
+            if (r.success) { $('#permModal').modal('hide'); layer.msg('权限分配成功', {icon:1}); }
+            else layer.msg(r.message, {icon:2});
+        }
+    });
+}
+</script>
+}

@@ -1,0 +1,473 @@
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Domain.Entities.Budget
+@model BudgetTask
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = Model.TaskName;
+    var userId    = User.GetUserId();
+    bool canEdit  = await PermSvc.HasPermAsync(userId, "budget:task:edit");
+    bool canOpinion = await PermSvc.HasPermAsync(userId, "budget:opinion:add");
+    string[] typeText  = new[]{"概算编制","预算编制","结算编制","概算评审","预算评审","结算评审"};
+    string[] statusText = new[]{"草稿","进行中","内审中","评审中","已完成"};
+    bool isReview = Model.TaskType >= 3; // 评审类任务
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-7">
+                <h1 class="m-0">
+                    <a href="/budget" class="text-muted mr-2">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    @Model.TaskName
+                    <span class="badge badge-info ml-2">@typeText[Model.TaskType]</span>
+                    <span class="badge badge-secondary ml-1">@statusText[Model.Status]</span>
+                </h1>
+            </div>
+            <div class="col-sm-5 text-right">
+                @if (canEdit && Model.Status < 4)
+                {
+                    <button class="btn btn-sm btn-warning mr-1" onclick="openEditModal()">
+                        <i class="fas fa-edit"></i> 编辑
+                    </button>
+                }
+                @if (canEdit && Model.Status == 1)
+                {
+                    <button class="btn btn-sm btn-primary" onclick="submitTask()">
+                        <i class="fas fa-paper-plane"></i> 提交内审
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<div class="row">
+    <!-- 基本信息 + 金额统计 -->
+    <div class="col-md-5">
+        <div class="card card-primary card-outline">
+            <div class="card-header"><h3 class="card-title">任务信息</h3></div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-borderless">
+                    <tr><td class="text-muted" width="35%">任务编号</td><td><code>@Model.TaskNo</code></td></tr>
+                    <tr><td class="text-muted">委托单位</td><td><strong>@Model.OwnerName</strong></td></tr>
+                    <tr><td class="text-muted">联系人</td><td>@(Model.OwnerContact ?? "-") @Model.OwnerPhone</td></tr>
+                    @if (!string.IsNullOrEmpty(Model.ContractorName))
+                    {
+                        <tr><td class="text-muted">施工方</td><td>@Model.ContractorName</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.BuildingScale))
+                    {
+                        <tr><td class="text-muted">建设规模</td><td>@Model.BuildingScale</td></tr>
+                    }
+                    <tr><td class="text-muted">定额依据</td><td>@(Model.QuotaBasis ?? "-")</td></tr>
+                    <tr><td class="text-muted">取费标准</td><td>@(Model.FeeStandard ?? "-")</td></tr>
+                    <tr><td class="text-muted">技术负责人</td><td>@(Model.TechLeader?.RealName ?? "-")</td></tr>
+                    <tr><td class="text-muted">商务负责人</td><td>@(Model.BizLeader?.RealName ?? "-")</td></tr>
+                    <tr><td class="text-muted">计划提交</td><td>@(Model.PlanDate?.ToString("yyyy-MM-dd") ?? "-")</td></tr>
+                    @if (!string.IsNullOrEmpty(Model.Remark))
+                    {
+                        <tr><td class="text-muted">备注</td><td>@Model.Remark</td></tr>
+                    }
+                </table>
+            </div>
+        </div>
+
+        <!-- 金额摘要 -->
+        <div class="card card-success card-outline">
+            <div class="card-header"><h3 class="card-title">金额摘要</h3></div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="text-muted small">送审金额</div>
+                        <div class="font-weight-bold text-primary">
+                            @(Model.SubmitAmount.HasValue ? $"¥{Model.SubmitAmount:N2}万" : "-")
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-muted small">审定金额</div>
+                        <div class="font-weight-bold text-success">
+                            @(Model.ApprovedAmount.HasValue ? $"¥{Model.ApprovedAmount:N2}万" : "-")
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="text-muted small">核减率</div>
+                        <div class="font-weight-bold @(Model.ReductionRate > 10 ? "text-danger" : "text-info")">
+                            @(Model.ReductionRate.HasValue ? $"{Model.ReductionRate:N2}%" : "-")
+                        </div>
+                    </div>
+                </div>
+                @if (Model.Sections.Any())
+                {
+                    <hr>
+                    <div class="text-muted small mb-1">各分部送审合计：
+                        ¥@(Model.Sections.Sum(s => s.SubmitAmount ?? 0).ToString("N2")) 万
+                    </div>
+                    <div class="text-muted small">各分部审定合计：
+                        ¥@(Model.Sections.Sum(s => s.ApprovedAmount ?? 0).ToString("N2")) 万
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <!-- 费用分部明细 -->
+        <div class="card card-warning card-outline">
+            <div class="card-header">
+                <h3 class="card-title">费用分部明细</h3>
+                <div class="card-tools">
+                    @if (canEdit && Model.Status < 4)
+                    {
+                        <button class="btn btn-sm btn-warning" onclick="openSectionModal()">
+                            <i class="fas fa-plus"></i> 新增分部
+                        </button>
+                    }
+                </div>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Sections.Any())
+                {
+                    <table class="table table-sm">
+                        <thead class="thead-light">
+                            <tr><th>编号</th><th>分部名称</th><th>类别</th><th>送审金额</th><th>审定金额</th><th>操作</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in Model.Sections.OrderBy(x => x.SectionNo))
+                            {
+                                <tr>
+                                    <td>@s.SectionNo</td>
+                                    <td>@s.SectionName</td>
+                                    <td><span class="badge badge-light">@s.Category</span></td>
+                                    <td>@(s.SubmitAmount.HasValue ? $"¥{s.SubmitAmount:N2}万" : "-")</td>
+                                    <td class="text-success">
+                                        @(s.ApprovedAmount.HasValue ? $"¥{s.ApprovedAmount:N2}万" : "-")
+                                    </td>
+                                    <td>
+                                        @if (canEdit && s.Status < 2)
+                                        {
+                                            <button class="btn btn-xs btn-success"
+                                                    onclick="approveSection(@s.Id)">
+                                                录入审定
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-3">暂无费用分部数据</div>
+                }
+            </div>
+        </div>
+
+        <!-- 评审意见（评审类任务专用） -->
+        @if (isReview)
+        {
+            <div class="card card-danger card-outline">
+                <div class="card-header">
+                    <h3 class="card-title">评审意见</h3>
+                    <div class="card-tools">
+                        @if (canOpinion && Model.Status < 4)
+                        {
+                            <button class="btn btn-sm btn-danger" onclick="openOpinionModal()">
+                                <i class="fas fa-plus"></i> 录入意见
+                            </button>
+                        }
+                        @{
+                            var totalReduce = Model.Opinions.Sum(o => o.Amount);
+                            var confirmed   = Model.Opinions.Count(o => o.ConfirmStatus == 1);
+                        }
+                        <span class="badge badge-light ml-2">
+                            核减合计：<strong class="text-danger">¥@totalReduce.ToString("N2")万</strong>
+                        </span>
+                        <span class="badge badge-light ml-1">
+                            已确认 @confirmed/@Model.Opinions.Count
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Opinions.Any())
+                    {
+                        <table class="table table-sm">
+                            <thead class="thead-light">
+                                <tr><th>编号</th><th>类型</th><th>内容摘要</th><th>金额（万）</th><th>状态</th><th>操作</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var op in Model.Opinions)
+                                {
+                                    string[] opTypes  = new[]{"核减","调整","确认","说明"};
+                                    string[] opBadges = new[]{"badge-danger","badge-warning","badge-success","badge-info"};
+                                    <tr>
+                                        <td><code class="small">@op.OpinionNo</code></td>
+                                        <td>
+                                            <span class="badge @opBadges[op.OpinionType]">
+                                                @opTypes[op.OpinionType]
+                                            </span>
+                                        </td>
+                                        <td class="small" title="@op.Content">
+                                            @(op.Content.Length > 30 ? op.Content[..30] + "…" : op.Content)
+                                        </td>
+                                        <td class="@(op.Amount < 0 ? "text-success" : "text-danger") font-weight-bold">
+                                            @op.Amount.ToString("N2")
+                                        </td>
+                                        <td>
+                                            @if (op.ConfirmStatus == 0)
+                                            { <span class="badge badge-secondary">待确认</span> }
+                                            else
+                                            { <span class="badge badge-success">已确认</span> }
+                                        </td>
+                                        <td>
+                                            @if (op.ConfirmStatus == 0 && canOpinion)
+                                            {
+                                                <button class="btn btn-xs btn-success"
+                                                        onclick="confirmOpinion(@op.Id)">
+                                                    确认
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-3">暂无评审意见</div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+</div></section>
+
+<!-- 新增分部弹窗 -->
+<div class="modal fade" id="sectionModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">新增费用分部</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-4">
+                    <div class="form-group">
+                        <label>序号</label>
+                        <input type="number" id="sNo" class="form-control" value="1">
+                    </div>
+                </div>
+                <div class="col-8">
+                    <div class="form-group">
+                        <label>分部名称 <span class="text-danger">*</span></label>
+                        <input type="text" id="sName" class="form-control" placeholder="如：建筑工程">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>费用类别</label>
+                <select id="sCategory" class="form-control">
+                    <option>土建工程</option>
+                    <option>安装工程</option>
+                    <option>市政管道</option>
+                    <option>专项工程</option>
+                    <option>绿化景观</option>
+                    <option>变更签证</option>
+                    <option>其他</option>
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group">
+                        <label>送审金额（万元）</label>
+                        <input type="number" id="sSubmit" class="form-control" step="0.01">
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label>合同金额（万元）</label>
+                        <input type="number" id="sContract" class="form-control" step="0.01">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveSection()">保存</button>
+        </div>
+    </div></div>
+</div>
+
+<!-- 评审意见弹窗 -->
+@if (isReview)
+{
+    <div class="modal fade" id="opinionModal" tabindex="-1">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">录入评审意见</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="form-group">
+                            <label>意见类型</label>
+                            <select id="opType" class="form-control">
+                                <option value="0">核减</option>
+                                <option value="1">调整</option>
+                                <option value="2">确认</option>
+                                <option value="3">说明</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="form-group">
+                            <label>金额（万元，核减为负数）</label>
+                            <input type="number" id="opAmount" class="form-control" step="0.01" value="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>费用类别</label>
+                    <input type="text" id="opCategory" class="form-control" placeholder="如：土建工程">
+                </div>
+                <div class="form-group">
+                    <label>意见内容 <span class="text-danger">*</span></label>
+                    <textarea id="opContent" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>依据</label>
+                    <input type="text" id="opBasis" class="form-control" placeholder="如：定额XX规定">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-danger" onclick="saveOpinion()">录入</button>
+            </div>
+        </div></div>
+    </div>
+}
+
+<!-- 录入审定金额弹窗 -->
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog modal-sm"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">录入审定金额</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="approveSectionId">
+            <div class="form-group">
+                <label>审定金额（万元）<span class="text-danger">*</span></label>
+                <input type="number" id="approveAmount" class="form-control" step="0.01">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-success" onclick="doApprove()">保存</button>
+        </div>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+var taskId = @Model.Id;
+
+function submitTask() {
+    layer.confirm('确认提交内审？', { icon: 3, btn: ['确认提交', '取消'] }, function(i) {
+        layer.close(i);
+        $.post('/budget/submit/' + taskId, { __RequestVerificationToken: antiForgery }, function(r) {
+            layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                function() { if (r.success) location.reload(); });
+        });
+    });
+}
+
+function openSectionModal() { $('#sectionModal').modal('show'); }
+
+function saveSection() {
+    var data = {
+        SectionNo:      parseInt($('#sNo').val()) || 1,
+        SectionName:    $('#sName').val(),
+        Category:       $('#sCategory').val(),
+        SubmitAmount:   parseFloat($('#sSubmit').val()) || null,
+        ContractAmount: parseFloat($('#sContract').val()) || null,
+    };
+    if (!data.SectionName) { layer.msg('请填写分部名称', { icon: 2 }); return; }
+    $.ajax({
+        url: '/budget/' + taskId + '/sections', type: 'POST',
+        contentType: 'application/json',
+        headers: { 'RequestVerificationToken': antiForgery },
+        data: JSON.stringify(data),
+        success: function(r) {
+            if (r.success) {
+                $('#sectionModal').modal('hide');
+                layer.msg(r.message, { icon: 1, time: 1500 }, function() { location.reload(); });
+            } else { layer.msg(r.message, { icon: 2 }); }
+        }
+    });
+}
+
+function approveSection(sectionId) {
+    $('#approveSectionId').val(sectionId);
+    $('#approveAmount').val('');
+    $('#approveModal').modal('show');
+}
+
+function doApprove() {
+    var sId = $('#approveSectionId').val();
+    var amt = parseFloat($('#approveAmount').val());
+    if (!amt) { layer.msg('请输入审定金额', { icon: 2 }); return; }
+    $.post('/budget/sections/' + sId + '/approve',
+        { approvedAmount: amt, __RequestVerificationToken: antiForgery },
+        function(r) {
+            if (r.success) {
+                $('#approveModal').modal('hide');
+                layer.msg(r.message, { icon: 1, time: 1500 }, function() { location.reload(); });
+            } else { layer.msg(r.message, { icon: 2 }); }
+        });
+}
+
+function openOpinionModal() { $('#opinionModal').modal('show'); }
+
+function saveOpinion() {
+    var data = {
+        OpinionType: parseInt($('#opType').val()),
+        Amount:      parseFloat($('#opAmount').val()) || 0,
+        Category:    $('#opCategory').val(),
+        Content:     $('#opContent').val(),
+        Basis:       $('#opBasis').val(),
+    };
+    if (!data.Content) { layer.msg('请填写意见内容', { icon: 2 }); return; }
+    $.ajax({
+        url: '/budget/' + taskId + '/opinions', type: 'POST',
+        contentType: 'application/json',
+        headers: { 'RequestVerificationToken': antiForgery },
+        data: JSON.stringify(data),
+        success: function(r) {
+            if (r.success) {
+                $('#opinionModal').modal('hide');
+                layer.msg(r.message, { icon: 1, time: 1500 }, function() { location.reload(); });
+            } else { layer.msg(r.message, { icon: 2 }); }
+        }
+    });
+}
+
+function confirmOpinion(opId) {
+    layer.confirm('确认该评审意见？', { icon: 3 }, function(i) {
+        layer.close(i);
+        $.post('/budget/opinions/' + opId + '/confirm',
+            { __RequestVerificationToken: antiForgery }, function(r) {
+            layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                function() { if (r.success) location.reload(); });
+        });
+    });
+}
+</script>
+}

@@ -1,0 +1,192 @@
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Services.DTOs.System
+@model List<DeptTreeDto>
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "部门管理";
+    var userId = User.GetUserId();
+    bool canAdd  = await PermSvc.HasPermAsync(userId, "sys:dept:add");
+    bool canEdit = await PermSvc.HasPermAsync(userId, "sys:dept:edit");
+    bool canDel  = await PermSvc.HasPermAsync(userId, "sys:dept:delete");
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">部门管理</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item active">部门管理</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">部门树形结构</h3>
+        <div class="card-tools">
+            @if (canAdd)
+            {
+                <button class="btn btn-sm btn-success" onclick="openAddModal(0, '顶级部门')">
+                    <i class="fas fa-plus"></i> 新增顶级部门
+                </button>
+            }
+        </div>
+    </div>
+    <div class="card-body">
+        <table class="table table-hover table-sm">
+            <thead class="thead-light">
+                <tr><th>部门名称</th><th>负责人</th><th>联系电话</th><th>排序</th><th>状态</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var dept in Model)
+                {
+                    <tr class="table-light">
+                        <td><strong><i class="fas fa-building text-warning mr-2"></i>@dept.DeptName</strong></td>
+                        <td>@(dept.Leader ?? "-")</td>
+                        <td>@(dept.Phone ?? "-")</td>
+                        <td>@dept.Sort</td>
+                        <td><span class="badge badge-@(dept.Status==1?"success":"danger")">@(dept.Status==1?"正常":"停用")</span></td>
+                        <td>
+                            @if (canAdd)
+                            {
+                                <button class="btn btn-xs btn-outline-success" onclick="openAddModal(@dept.Id, '@dept.DeptName')">
+                                    <i class="fas fa-plus"></i> 新增子部门
+                                </button>
+                            }
+                            @if (canEdit)
+                            {
+                                <button class="btn btn-xs btn-info" onclick="openEditModal(@dept.Id, '@dept.DeptName', @dept.ParentId, '@dept.Leader', '@dept.Phone', @dept.Sort)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                    @foreach (var child in dept.Children)
+                    {
+                        <tr>
+                            <td style="padding-left:36px"><i class="fas fa-angle-right text-muted mr-1"></i>@child.DeptName</td>
+                            <td>@(child.Leader ?? "-")</td>
+                            <td>@(child.Phone ?? "-")</td>
+                            <td>@child.Sort</td>
+                            <td><span class="badge badge-@(child.Status==1?"success":"danger")">@(child.Status==1?"正常":"停用")</span></td>
+                            <td>
+                                @if (canEdit)
+                                {
+                                    <button class="btn btn-xs btn-info" onclick="openEditModal(@child.Id, '@child.DeptName', @child.ParentId, '@child.Leader', '@child.Phone', @child.Sort)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                }
+                                @if (canDel)
+                                {
+                                    <button class="btn btn-xs btn-danger" onclick="deleteDept(@child.Id, '@child.DeptName')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+</div></section>
+
+<div class="modal fade" id="deptModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="deptModalTitle">新增部门</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="deptId">
+            <input type="hidden" id="deptParentId">
+            <div class="form-group">
+                <label>上级部门</label>
+                <input type="text" id="parentName" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+                <label>部门名称 <span class="text-danger">*</span></label>
+                <input type="text" id="deptName" class="form-control" maxlength="50">
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group">
+                        <label>负责人</label>
+                        <input type="text" id="deptLeader" class="form-control">
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group">
+                        <label>联系电话</label>
+                        <input type="text" id="deptPhone" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>排序</label>
+                <input type="number" id="deptSort" class="form-control" value="10">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveDept()">保存</button>
+        </div>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+
+function openAddModal(parentId, parentName) {
+    $('#deptModalTitle').text('新增部门');
+    $('#deptId').val(''); $('#deptParentId').val(parentId);
+    $('#parentName').val(parentName || '顶级');
+    $('#deptName,#deptLeader,#deptPhone').val(''); $('#deptSort').val(10);
+    $('#deptModal').modal('show');
+}
+
+function openEditModal(id, name, parentId, leader, phone, sort) {
+    $('#deptModalTitle').text('编辑部门');
+    $('#deptId').val(id); $('#deptParentId').val(parentId);
+    $('#deptName').val(name); $('#deptLeader').val(leader === 'null' ? '' : leader);
+    $('#deptPhone').val(phone === 'null' ? '' : phone); $('#deptSort').val(sort);
+    $('#deptModal').modal('show');
+}
+
+function saveDept() {
+    var id = $('#deptId').val();
+    var data = {
+        Id: id, DeptName: $('#deptName').val(),
+        ParentId: parseInt($('#deptParentId').val()) || 0,
+        Leader: $('#deptLeader').val(), Phone: $('#deptPhone').val(),
+        Sort: parseInt($('#deptSort').val()) || 10
+    };
+    if (!data.DeptName) { layer.msg('请填写部门名称', {icon:2}); return; }
+    var url = id ? '/system/dept/update' : '/system/dept/create';
+    $.ajax({ url, type:'POST', contentType:'application/json',
+        headers:{'RequestVerificationToken': antiForgery},
+        data: JSON.stringify(data),
+        success: function(r) {
+            if (r.success) { $('#deptModal').modal('hide'); layer.msg('保存成功', {icon:1, time:1200}, ()=>location.reload()); }
+            else layer.msg(r.message, {icon:2});
+        }
+    });
+}
+
+function deleteDept(id, name) {
+    layer.confirm('确认删除部门 <b>' + name + '</b>？', {icon:3, btn:['确认','取消']}, function(i) {
+        layer.close(i);
+        $.post('/system/dept/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1200}, function() { if(r.success) location.reload(); });
+        });
+    });
+}
+</script>
+}

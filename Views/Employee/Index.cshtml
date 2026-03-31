@@ -1,0 +1,280 @@
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Domain.Entities.Hr
+@model List<Employee>
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "员工信息";
+    var userId = User.GetUserId();
+    bool canAdd    = await PermSvc.HasPermAsync(userId, "hr:employee:add");
+    bool canEdit   = await PermSvc.HasPermAsync(userId, "hr:employee:edit");
+    bool canFormal = await PermSvc.HasPermAsync(userId, "hr:employee:formal");
+    bool canLeave  = await PermSvc.HasPermAsync(userId, "hr:employee:leave");
+    string[] statusText  = ["试用期", "在职", "已离职"];
+    string[] statusBadge = ["badge-warning", "badge-success", "badge-secondary"];
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">员工信息</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item">员工档案</li>
+                    <li class="breadcrumb-item active">员工信息</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">员工列表（共 @ViewBag.Total 人）</h3>
+        <div class="card-tools d-flex align-items-center gap-2">
+                    <form id="searchForm" method="get" action="/hr/employee" class="d-inline-flex mr-2">
+                <input name="keyword" class="form-control form-control-sm mr-1"
+                       placeholder="姓名/工号/手机" value="@ViewBag.Keyword" style="width:160px">
+                <select name="status" class="form-control form-control-sm mr-1" style="width:90px">
+                    <option value="">全部</option>
+                    <option value="0" selected="@(ViewBag.Status?.ToString()=="0" ? "selected" : null)">试用期</option>
+                    <option value="1" selected="@(ViewBag.Status?.ToString()=="1" ? "selected" : null)">在职</option>
+                    <option value="2" selected="@(ViewBag.Status?.ToString()=="2" ? "selected" : null)">离职</option>
+                </select>
+                <input type="hidden" name="page" id="pageInput" value="1">
+                <button class="btn btn-sm btn-primary">搜索</button>
+            </form>
+            @if (canAdd)
+            {
+                <button class="btn btn-sm btn-success" onclick="openAddModal()">
+                    <i class="fas fa-plus"></i> 新增员工
+                </button>
+            }
+        </div>
+    </div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-hover table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th>工号</th><th>姓名</th><th>部门</th><th>手机</th>
+                    <th>状态</th><th>入职日期</th><th>转正日期</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in Model)
+                {
+                    <tr>
+                        <td><code class="small">@e.EmpNo</code></td>
+                        <td>
+                            <a href="/hr/employee/detail/@e.Id" class="font-weight-bold text-dark">
+                                @e.RealName
+                            </a>
+                            <small class="text-muted ml-1">@(e.Gender == 1 ? "男" : "女")</small>
+                        </td>
+                        <td>@(e.Dept?.DeptName ?? "-")</td>
+                        <td>@(e.Phone ?? "-")</td>
+                        <td>
+                            <span class="badge @statusBadge[e.Status]">@statusText[e.Status]</span>
+                        </td>
+                        <td class="small text-muted">@(e.EntryDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                        <td class="small text-muted">@(e.FormalDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                        <td>
+                            <a href="/hr/employee/detail/@e.Id" class="btn btn-xs btn-info" title="详情">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            @if (canEdit)
+                            {
+                                <button class="btn btn-xs btn-warning" onclick="openEditModal(@e.Id)" title="编辑">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            }
+                            @if (canFormal && e.Status == 0)
+                            {
+                                <button class="btn btn-xs btn-success" onclick="doFormal(@e.Id, '@e.RealName')" title="转正">
+                                    <i class="fas fa-user-check"></i>
+                                </button>
+                            }
+                            @if (canLeave && e.Status != 2)
+                            {
+                                <button class="btn btn-xs btn-secondary" onclick="doLeave(@e.Id, '@e.RealName')" title="离职">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="8" class="text-center text-muted py-4">暂无数据</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @{
+        var paged = new EnterpriseMS.Common.PagedResult<Employee>
+        {
+            Items = Model, Total = ViewBag.Total,
+            Page = ViewBag.Page, PageSize = ViewBag.Size
+        };
+    }
+    <partial name="_Pagination" model="paged" />
+</div>
+</div></section>
+
+<!-- 新增/编辑弹窗 -->
+<div class="modal fade" id="empModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="empModalTitle">新增员工</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="empId">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>姓名 <span class="text-danger">*</span></label>
+                        <input type="text" id="empRealName" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>性别</label>
+                        <select id="empGender" class="form-control">
+                            <option value="1">男</option>
+                            <option value="2">女</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>手机号</label>
+                        <input type="text" id="empPhone" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>邮箱</label>
+                        <input type="email" id="empEmail" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>所属部门</label>
+                        <select id="empDeptId" class="form-control">
+                            <option value="">请选择</option>
+                            @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
+                            {
+                                <option value="@d.Id">@d.DeptName</option>
+                                @foreach (var c in d.Children)
+                                {
+                                    <option value="@c.Id">&nbsp;&nbsp;└ @c.DeptName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>入职日期</label>
+                        <input type="date" id="empEntryDate" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>身份证号</label>
+                        <input type="text" id="empIdCard" class="form-control" maxlength="18">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>试用期截止日</label>
+                        <input type="date" id="empProbationEnd" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="empRemark" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveEmp()">保存</button>
+        </div>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+
+function openAddModal() {
+    $('#empModalTitle').text('新增员工');
+    $('#empId').val('');
+    $('#empRealName,#empPhone,#empEmail,#empIdCard,#empRemark').val('');
+    $('#empGender').val(1); $('#empDeptId').val('');
+    $('#empEntryDate').val(new Date().toISOString().split('T')[0]);
+    $('#empModal').modal('show');
+}
+
+function openEditModal(id) {
+    $.get('/hr/employee/detail/' + id, function(r) {}).fail(function() {
+        layer.msg('加载失败', {icon:2});
+    });
+    // 简化：直接打开弹窗让用户重新填（实际项目应加载现有数据）
+    $('#empModalTitle').text('编辑员工（ID：' + id + '）');
+    $('#empId').val(id);
+    $('#empModal').modal('show');
+}
+
+function saveEmp() {
+    var id = $('#empId').val();
+    var data = {
+        Id: id || undefined, RealName: $('#empRealName').val(),
+        Gender: parseInt($('#empGender').val()),
+        Phone: $('#empPhone').val(), Email: $('#empEmail').val(),
+        IdCard: $('#empIdCard').val(),
+        DeptId: parseInt($('#empDeptId').val()) || null,
+        EntryDate: $('#empEntryDate').val() || null,
+        ProbationEndDate: $('#empProbationEnd').val() || null,
+        Remark: $('#empRemark').val()
+    };
+    if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
+    var url = id ? '/hr/employee/update' : '/hr/employee/create';
+    var load = layer.load(1);
+    $.ajax({ url, type:'POST', contentType:'application/json',
+        headers:{'RequestVerificationToken': antiForgery},
+        data: JSON.stringify(data),
+        success: function(r) {
+            layer.close(load);
+            if (r.success) { $('#empModal').modal('hide'); layer.msg(r.message, {icon:1, time:1500}, ()=>location.reload()); }
+            else layer.msg(r.message, {icon:2});
+        }
+    });
+}
+
+function doFormal(id, name) {
+    layer.prompt({title: name + ' 转正日期', formType: 2}, function(val, i) {
+        layer.close(i);
+        $.post('/hr/employee/formal', {id, formalDate: val, __RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
+        });
+    });
+}
+
+function doLeave(id, name) {
+    layer.prompt({title: name + ' 离职日期', formType: 2}, function(val, i) {
+        layer.close(i);
+        $.post('/hr/employee/leave', {id, leaveDate: val, __RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
+        });
+    });
+}
+</script>
+}

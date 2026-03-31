@@ -1,0 +1,220 @@
+@using EnterpriseMS.Services.DTOs.System
+@using EnterpriseMS.Services.DTOs.User
+@{
+    ViewData["Title"] = "新建概预算任务";
+    var depts   = ViewBag.Depts   as List<DeptTreeDto>   ?? new();
+    var members = ViewBag.Members as List<EnterpriseMS.Services.DTOs.Hr.EmployeeSimpleDto> ?? new();
+    string[] typeText = ["概算编制","预算编制","结算编制","概算评审","预算评审","结算评审"];
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">
+                    <a href="/budget" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
+                    新建概预算结算任务
+                </h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<form id="createForm">
+@Html.AntiForgeryToken()
+
+<div class="card card-primary card-outline">
+    <div class="card-header"><h3 class="card-title">任务基本信息</h3></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>任务名称 <span class="text-danger">*</span></label>
+                    <input type="text" id="taskName" class="form-control" placeholder="完整任务名称">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>任务类型 <span class="text-danger">*</span></label>
+                    <select id="taskType" class="form-control">
+                        @for (int i = 0; i < typeText.Length; i++)
+                        {
+                            <option value="@i">@typeText[i]</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>承接部门</label>
+                    <select id="deptId" class="form-control">
+                        <option value="">请选择</option>
+                        @foreach (var d in depts)
+                        {
+                            <option value="@d.Id">@d.DeptName</option>
+                            @foreach (var c in d.Children)
+                            {
+                                <option value="@c.Id">&nbsp;&nbsp;└ @c.DeptName</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-primary card-outline">
+    <div class="card-header"><h3 class="card-title">委托方信息</h3></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>委托单位 <span class="text-danger">*</span></label>
+                    <input type="text" id="ownerName" class="form-control">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>联系人</label>
+                    <input type="text" id="ownerContact" class="form-control">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>联系电话</label>
+                    <input type="text" id="ownerPhone" class="form-control">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>施工方（结算类必填）</label>
+                    <input type="text" id="contractorName" class="form-control">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>建设规模</label>
+                    <input type="text" id="buildingScale" class="form-control" placeholder="如：住宅12栋，建面8.6万㎡">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-primary card-outline">
+    <div class="card-header"><h3 class="card-title">金额与技术信息</h3></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>送审金额（万元）</label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
+                        <input type="number" id="submitAmount" class="form-control" step="0.01">
+                        <div class="input-group-append"><span class="input-group-text">万</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>定额依据</label>
+                    <input type="text" id="quotaBasis" class="form-control" placeholder="如：四川省2020定额">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>取费标准</label>
+                    <input type="text" id="feeStandard" class="form-control" placeholder="如：市政工程费率">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>计划提交日期</label>
+                    <input type="date" id="planDate" class="form-control">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>技术负责人</label>
+                    <select id="techLeaderId" class="form-control">
+                        <option value="">请选择</option>
+                        @foreach (var m in members)
+                        {
+                            <option value="@m.Id">@m.Display</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>商务负责人</label>
+                    <select id="bizLeaderId" class="form-control">
+                        <option value="">请选择</option>
+                        @foreach (var m in members)
+                        {
+                            <option value="@m.Id">@m.Display</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="remark" class="form-control" rows="1"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end mb-4">
+    <a href="/budget" class="btn btn-default mr-2">取消</a>
+    <button type="button" class="btn btn-primary" onclick="submitCreate()">
+        <i class="fas fa-save mr-1"></i> 保存
+    </button>
+</div>
+
+</form>
+</div></section>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+function submitCreate() {
+    var data = {
+        TaskName: $('#taskName').val(), TaskType: parseInt($('#taskType').val()),
+        DeptId: parseInt($('#deptId').val()) || null,
+        OwnerName: $('#ownerName').val(), OwnerContact: $('#ownerContact').val(),
+        OwnerPhone: $('#ownerPhone').val(), ContractorName: $('#contractorName').val(),
+        BuildingScale: $('#buildingScale').val(),
+        SubmitAmount: parseFloat($('#submitAmount').val()) || null,
+        QuotaBasis: $('#quotaBasis').val(), FeeStandard: $('#feeStandard').val(),
+        TechLeaderId: parseInt($('#techLeaderId').val()) || null,
+        BizLeaderId: parseInt($('#bizLeaderId').val()) || null,
+        PlanDate: $('#planDate').val() || null, Remark: $('#remark').val()
+    };
+    if (!data.TaskName || !data.OwnerName) {
+        layer.msg('请填写任务名称和委托单位', {icon:2}); return;
+    }
+    var load = layer.load(1);
+    $.ajax({ url:'/budget/create', type:'POST', contentType:'application/json',
+        headers:{'RequestVerificationToken': antiForgery},
+        data: JSON.stringify(data),
+        success: function(r) {
+            layer.close(load);
+            if (r.success) {
+                layer.msg('任务已创建', {icon:1, time:1500}, function() {
+                    window.location.href = '/budget/' + r.data.id;
+                });
+            } else layer.msg(r.message, {icon:2});
+        }
+    });
+}
+</script>
+}

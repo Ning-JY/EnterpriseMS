@@ -1,0 +1,296 @@
+@using EnterpriseMS.Domain.Entities.Hr
+@using EnterpriseMS.Services.DTOs.System
+@using EnterpriseMS.Services.DTOs.Hr
+@model List<EmployeeCertificate>
+@{
+    ViewData["Title"] = "证书管理";
+    var warnDate  = DateTime.Today.AddDays(60);
+    var employees = ViewBag.Employees as List<EmployeeSimpleDto> ?? new();
+    var certTypes = ViewBag.CertTypes as List<DictDataDto>       ?? new();
+}
+
+<div class="content-header"><div class="container-fluid">
+    <div class="row mb-2">
+        <div class="col-sm-6"><h1 class="m-0">证书管理</h1></div>
+        <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item">员工档案</li>
+                <li class="breadcrumb-item active">证书管理</li>
+            </ol>
+        </div>
+    </div>
+</div></div>
+
+<section class="content"><div class="container-fluid">
+
+@if ((int)(ViewBag.WarnCount ?? 0) > 0)
+{
+    <div class="alert alert-warning alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        <i class="fas fa-medal mr-2"></i>
+        <strong>到期提醒：</strong>有 <strong>@ViewBag.WarnCount</strong> 张证书将在 60 天内到期。
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">证书列表（共 @ViewBag.Total 条）</h3>
+        <div class="card-tools">
+            <form id="searchForm" method="get" action="/hr/cert" class="d-inline-flex mr-2">
+                <input name="keyword" class="form-control form-control-sm mr-1"
+                       placeholder="员工/证书名称/编号" value="@ViewBag.Keyword" style="width:190px">
+                <select name="status" class="form-control form-control-sm mr-1" style="width:90px">
+                    <option value="">全部</option>
+                    <option value="0" selected="@(ViewBag.Status?.ToString()=="0"?"selected":null)">有效</option>
+                    <option value="1" selected="@(ViewBag.Status?.ToString()=="1"?"selected":null)">已过期</option>
+                </select>
+                <input type="hidden" name="page" value="1">
+                <button class="btn btn-sm btn-primary">搜索</button>
+            </form>
+            <button class="btn btn-sm btn-success" onclick="openAddModal()">
+                <i class="fas fa-plus"></i> 新增证书
+            </button>
+        </div>
+    </div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-hover table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th>员工</th><th>证书名称</th><th>类型</th>
+                    <th>证书编号</th><th>发证机构</th><th>有效期至</th><th>状态</th><th>附件</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cert in Model)
+                {
+                    var isExpiring = cert.Status == 0 && cert.ExpireDate.HasValue && cert.ExpireDate <= warnDate;
+                    <tr class="@(isExpiring ? "table-warning" : "")">
+                        <td><strong>@(cert.Employee?.RealName ?? "-")</strong></td>
+                        <td>@cert.CertName</td>
+                        <td><span class="badge badge-light">@cert.CertType</span></td>
+                        <td><code class="small">@(cert.CertNo ?? "-")</code></td>
+                        <td class="small text-muted">@(cert.IssueOrg ?? "-")</td>
+                        <td class="small @(isExpiring ? "text-danger font-weight-bold" : "")">
+                            @(cert.ExpireDate.HasValue ? cert.ExpireDate.Value.ToString("yyyy-MM-dd") : "长期有效")
+                            @if (isExpiring) { <span class="badge badge-warning ml-1">即将到期</span> }
+                        </td>
+                        <td>
+                            @if (cert.Status == 0) { <span class="badge badge-success">有效</span> }
+                            else { <span class="badge badge-danger">已过期</span> }
+                        </td>
+                        <td>
+                            @if (cert.FileName != null)
+                            {
+                                <div class="d-flex align-items-center flex-wrap gap-1">
+                                    <a href="/hr/cert/download/@cert.Id"
+                                       class="btn btn-xs btn-info" title="下载">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <label class="btn btn-xs btn-warning mb-0" title="重新上传">
+                                        <i class="fas fa-sync-alt"></i>
+                                        <input type="file" style="display:none"
+                                               onchange="uploadCert(@cert.Id, this)">
+                                    </label>
+                                    <button class="btn btn-xs btn-outline-danger"
+                                            onclick="deleteCertFile(@cert.Id)" title="删除附件">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <small class="text-muted d-block w-100 mt-1">
+                                        @(cert.FileName.Length > 14 ? cert.FileName[..14] + "…" : cert.FileName)
+                                    </small>
+                                </div>
+                            }
+                            else
+                            {
+                                <label class="btn btn-xs btn-outline-secondary mb-0" title="上传证书扫描件">
+                                    <i class="fas fa-upload"></i>
+                                    <input type="file" style="display:none"
+                                           onchange="uploadCert(@cert.Id, this)">
+                                </label>
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-xs btn-danger"
+                                    onclick="deleteCert(@cert.Id,'@cert.CertName')" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="9" class="text-center text-muted py-4">暂无数据</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @{
+        var paged = new EnterpriseMS.Common.PagedResult<EmployeeCertificate>
+        {
+            Items = Model, Total = (int)(ViewBag.Total ?? 0),
+            Page = (int)(ViewBag.Page ?? 1), PageSize = (int)(ViewBag.Size ?? 15)
+        };
+    }
+    <partial name="_Pagination" model="paged" />
+</div>
+</div></section>
+
+<!-- 新增证书弹窗 -->
+<div class="modal fade" id="certModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">新增证书</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>员工 <span class="text-danger">*</span></label>
+                <select id="certEmpId" class="form-control">
+                    <option value="">-- 请选择员工 --</option>
+                    @foreach (var e in employees)
+                    {
+                        <option value="@e.Id">@e.Display</option>
+                    }
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>证书名称 <span class="text-danger">*</span></label>
+                        <input type="text" id="certName" class="form-control" placeholder="如：注册城乡规划师">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>证书类型</label>
+                        <select id="certType" class="form-control">
+                            @foreach (var t in certTypes)
+                            {
+                                <option value="@t.DictValue">@t.DictLabel</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>证书编号</label>
+                        <input type="text" id="certNo" class="form-control" placeholder="证书编号">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>发证机构</label>
+                        <input type="text" id="certOrg" class="form-control" placeholder="如：住房和城乡建设部">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>发证日期</label>
+                        <input type="date" id="certIssue" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>有效期至</label>
+                        <input type="date" id="certExpire" class="form-control">
+                        <small class="text-muted">留空表示长期有效</small>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>证书扫描件 <small class="text-muted">（可选，PDF/图片，最大 20MB）</small></label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="certFile"
+                           accept=".pdf,.jpg,.jpeg,.png">
+                    <label class="custom-file-label" for="certFile">点击选择文件</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" id="certSaveBtn" onclick="saveCert()">
+                <i class="fas fa-save mr-1"></i> 保存
+            </button>
+        </div>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+
+document.getElementById('certFile')?.addEventListener('change', function() {
+    this.nextElementSibling.textContent = this.files[0]?.name ?? '点击选择文件';
+});
+
+function openAddModal() {
+    ['certEmpId','certName','certNo','certOrg','certIssue','certExpire'].forEach(id => {
+        document.getElementById(id).value = '';
+    });
+    document.getElementById('certFile').value = '';
+    document.querySelector('label[for="certFile"]').textContent = '点击选择文件';
+    $('#certModal').modal('show');
+}
+
+function saveCert() {
+    var empId = $('#certEmpId').val(), name = $('#certName').val();
+    if (!empId || !name) { layer.msg('请填写员工和证书名称', {icon:2}); return; }
+
+    var fd = new FormData();
+    fd.append('EmployeeId', empId);
+    fd.append('CertName',   name);
+    fd.append('CertType',   $('#certType').val());
+    if ($('#certNo').val())     fd.append('CertNo',    $('#certNo').val());
+    if ($('#certOrg').val())    fd.append('IssueOrg',  $('#certOrg').val());
+    if ($('#certIssue').val())  fd.append('IssueDate', $('#certIssue').val());
+    if ($('#certExpire').val()) fd.append('ExpireDate', $('#certExpire').val());
+    var file = document.getElementById('certFile').files[0];
+    if (file) fd.append('file', file);
+
+    $('#certSaveBtn').prop('disabled', true);
+    var load = layer.load(1);
+    $.ajax({ url: '/hr/cert/create-with-file', type: 'POST',
+        data: fd, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) {
+            layer.close(load); $('#certSaveBtn').prop('disabled', false);
+            if (r.success) { $('#certModal').modal('hide'); handleResult(r, ()=>location.reload()); }
+            else layer.msg(r.message, {icon:2});
+        },
+        error: function() { layer.close(load); $('#certSaveBtn').prop('disabled', false); layer.msg('请求失败', {icon:2}); }
+    });
+}
+
+function deleteCert(id, name) {
+    layer.confirm('确认删除证书 <b>' + name + '</b>？', {icon:3, btn:['确认删除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/hr/cert/delete/' + id, {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, ()=>location.reload()); });
+    });
+}
+
+function uploadCert(id, input) {
+    if (!input.files[0]) return;
+    var fd = new FormData(); fd.append('file', input.files[0]);
+    var load = layer.load(1);
+    $.ajax({ url: '/hr/cert/upload/' + id, type: 'POST',
+        data: fd, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) { layer.close(load); handleResult(r, ()=>location.reload()); }
+    });
+}
+
+function deleteCertFile(id) {
+    layer.confirm('确认删除该证书附件？证书记录将保留。', {icon:3, btn:['确认删除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/hr/cert/file/delete/' + id, {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, ()=>location.reload()); });
+    });
+}
+</script>
+}

@@ -1,0 +1,99 @@
+@using EnterpriseMS.Services.DTOs.System
+@model List<MenuTreeDto>
+@{ ViewData["Title"] = "菜单管理"; }
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">菜单管理</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item active">菜单管理</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">菜单树（仅查看，修改请直接操作数据库或迁移文件）</h3>
+        <div class="card-tools">
+            <span class="badge badge-info mr-2">M=目录</span>
+            <span class="badge badge-primary mr-2">C=页面</span>
+            <span class="badge badge-secondary">F=按钮</span>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover">
+            <thead class="thead-light">
+                <tr>
+                    <th width="260">菜单名称</th>
+                    <th width="60">类型</th>
+                    <th>路由/权限标识</th>
+                    <th width="50">排序</th>
+                    <th width="60">图标</th>
+                    <th width="60">状态</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{
+                    string[] typeBadge = { "badge-info", "badge-primary", "badge-secondary" };
+                    string[] typeText  = { "M", "C", "F" };
+                    void RenderRow(MenuTreeDto menu, int depth)
+                    {
+                        var typeIdx  = menu.MenuType == "M" ? 0 : menu.MenuType == "C" ? 1 : 2;
+                        var padding  = depth * 20;
+                        <tr>
+                            <td style="padding-left:@(padding + 12)px">
+                                @if (menu.MenuType == "M")
+                                { <i class="fas fa-folder text-warning mr-1"></i> }
+                                else if (menu.MenuType == "C")
+                                { <i class="fas fa-file-alt text-primary mr-1"></i> }
+                                else
+                                { <i class="fas fa-dot-circle text-muted mr-1"></i> }
+                                <strong>@menu.MenuName</strong>
+                            </td>
+                            <td>
+                                <span class="badge @typeBadge[typeIdx]">@typeText[typeIdx]</span>
+                            </td>
+                            <td class="small text-muted">
+                                @if (!string.IsNullOrEmpty(menu.Path))
+                                { <code>@menu.Path</code> }
+                                @if (!string.IsNullOrEmpty(menu.Perms))
+                                { <span class="badge badge-light ml-1">@menu.Perms</span> }
+                            </td>
+                            <td class="text-center">@menu.Sort</td>
+                            <td class="small">
+                                @if (!string.IsNullOrEmpty(menu.Icon))
+                                { <i class="fas @menu.Icon mr-1"></i><code class="small">@menu.Icon</code> }
+                            </td>
+                            <td>
+                                @if (menu.Status == 1)
+                                { <span class="badge badge-success">正常</span> }
+                                else
+                                { <span class="badge badge-danger">禁用</span> }
+                            </td>
+                        </tr>
+                        @foreach (var child in menu.Children)
+                        {
+                            RenderRow(child, depth + 1);
+                        }
+                    }
+
+                    foreach (var menu in Model)
+                    {
+                        RenderRow(menu, 0);
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer text-muted small">
+        <i class="fas fa-info-circle mr-1"></i>
+        菜单结构通过种子数据（AppDbContext.cs）和数据库迁移进行管理，如需调整请修改后重新迁移。
+    </div>
+</div>
+</div></section>

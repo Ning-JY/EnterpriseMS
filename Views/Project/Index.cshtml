@@ -1,0 +1,174 @@
+@using EnterpriseMS.Common
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Services.DTOs.Project
+@model PagedResult<ProjectListDto>
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "项目台账";
+    Layout = "_Layout";
+    var query  = ViewBag.Query  as ProjectQueryDto ?? new ProjectQueryDto();
+    var userId = User.GetUserId();
+    bool canAdd = await PermSvc.HasPermAsync(userId, "proj:project:add");
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">项目台账</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item active">项目管理</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+<div class="container-fluid">
+
+    <!-- 搜索 -->
+    <div class="card card-default">
+        <div class="card-body">
+            <form id="searchForm" method="get" action="/project">
+                <div class="row">
+                    <div class="col-md-3">
+                        <input type="text" name="Keyword" class="form-control form-control-sm"
+                               placeholder="项目名称 / 业主 / 编号" value="@query.Keyword">
+                    </div>
+                    <div class="col-md-2">
+                        <select name="ProgressStatus" class="form-control form-control-sm">
+                            <option value="">全部状态</option>
+                            @for (int i = 0; i <= 9; i++)
+                            {
+                                <option value="@i" selected="@(query.ProgressStatus == i ? "selected" : null)">
+                                    @EnterpriseMS.Services.Impl.ProjectService.GetProgressText(i)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm mr-1">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <a href="/project" class="btn btn-default btn-sm">
+                            <i class="fas fa-redo"></i> 重置
+                        </a>
+                    </div>
+                    <div class="col-md-5 text-right">
+                        @if (canAdd)
+                        {
+                            <a href="/project/create" class="btn btn-success btn-sm">
+                                <i class="fas fa-plus"></i> 新建项目
+                            </a>
+                            <a href="/project/import" class="btn btn-info btn-sm">
+                                <i class="fas fa-file-import"></i> 批量导入
+                            </a>
+                        }
+                    </div>
+                </div>
+                <input type="hidden" name="Page" id="pageInput" value="1">
+                <input type="hidden" name="Size" value="@query.Size">
+            </form>
+        </div>
+    </div>
+
+    <!-- 列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">共 @Model.Total 个项目</h3>
+        </div>
+        <div class="card-body table-responsive p-0">
+            <table class="table table-hover table-sm">
+                <thead class="thead-light">
+                    <tr>
+                        <th>项目编号</th>
+                        <th>项目名称</th>
+                        <th>承接部门</th>
+                        <th>项目业主</th>
+                        <th>合同金额</th>
+                        <th>进度状态</th>
+                        <th>技术负责人</th>
+                        <th>里程碑</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <small class="text-muted font-monospace">@p.ProjNo</small>
+                            </td>
+                            <td>
+                                <a href="/project/@p.Id" class="text-dark font-weight-bold">
+                                    @p.ProjName
+                                </a>
+                            </td>
+                            <td>@(p.DeptName ?? "-")</td>
+                            <td>
+                                @p.OwnerName
+                                @if (!string.IsNullOrEmpty(p.OwnerPhone))
+                                {
+                                    <br><small class="text-muted">@p.OwnerPhone</small>
+                                }
+                            </td>
+                            <td class="font-weight-bold text-primary">
+                                ¥ @p.ContractAmount.ToString("N2") 万
+                                @if (p.IsJointVenture && p.OurRatio.HasValue)
+                                {
+                                        <br>
+                                
+                                        <small class="text-muted">我方 @(p.OurRatio.Value.ToString("N2"))%</small>
+                                }
+                            </td>
+                            <td>
+                                @{
+                                    var badgeClass = p.ProgressStatus switch {
+                                        0 or 1 => "badge-secondary",
+                                        2 or 3 => "badge-warning",
+                                        4 or 5 => "badge-info",
+                                        6 or 7 => "badge-primary",
+                                        8      => "badge-success",
+                                        9      => "badge-danger",
+                                        _      => "badge-light",
+                                    };
+                                }
+                                <span class="badge @badgeClass">@p.ProgressText</span>
+                            </td>
+                            <td>@(p.TechLeaderName ?? "-")</td>
+                            <td>
+                                <small>@p.MilestoneDone / @p.MilestoneTotal</small>
+                                <div class="progress progress-xs mt-1">
+                                    <div class="progress-bar bg-success"
+                                         style="width:@(p.MilestoneTotal > 0 ? (p.MilestoneDone * 100 / p.MilestoneTotal) : 0)%">
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <a href="/project/@p.Id" class="btn btn-xs btn-info" title="详情">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                @if (await PermSvc.HasPermAsync(userId, "proj:project:edit")
+                                    && p.ProgressStatus != 9)
+                                {
+                                    <a href="/project/edit/@p.Id" class="btn btn-xs btn-warning" title="编辑">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Items.Any())
+                    {
+                        <tr><td colspan="9" class="text-center text-muted py-4">暂无数据</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pagination" model="Model" />
+    </div>
+
+</div>
+</section>

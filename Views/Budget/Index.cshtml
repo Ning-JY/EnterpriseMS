@@ -1,0 +1,156 @@
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Domain.Entities.Budget
+@model List<BudgetTask>
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "概预算结算台账";
+    var userId = User.GetUserId();
+    bool canAdd  = await PermSvc.HasPermAsync(userId, "budget:task:add");
+    bool canEdit = await PermSvc.HasPermAsync(userId, "budget:task:edit");
+    string[] typeText  = ["概算编制","预算编制","结算编制","概算评审","预算评审","结算评审"];
+    string[] typeBadge = ["badge-info","badge-primary","badge-warning","badge-secondary","badge-light","badge-dark"];
+    string[] statusText  = ["草稿","进行中","内审中","评审中","已完成"];
+    string[] statusBadge = ["badge-secondary","badge-primary","badge-warning","badge-danger","badge-success"];
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">概预算结算台账</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item active">概预算结算</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">任务台账（共 @ViewBag.Total 条）</h3>
+        <div class="card-tools">
+            <form id="searchForm" method="get" class="d-inline-flex mr-2" action="/budget">
+                <input name="keyword" class="form-control form-control-sm mr-1"
+                       placeholder="任务名称/委托单位" value="@ViewBag.Keyword" style="width:160px">
+                <select name="taskType" class="form-control form-control-sm mr-1" style="width:100px">
+                    <option value="">全部类型</option>
+                    @for (int i = 0; i < typeText.Length; i++)
+                    {
+                        <option value="@i" selected="@(ViewBag.TaskType?.ToString()==i.ToString() ? "selected" : null)">@typeText[i]</option>
+                    }
+                </select>
+                <select name="status" class="form-control form-control-sm mr-1" style="width:90px">
+                    <option value="">全部状态</option>
+                    @for (int i = 0; i < statusText.Length; i++)
+                    {
+                        <option value="@i" selected="@(ViewBag.Status?.ToString()==i.ToString() ? "selected" : null)">@statusText[i]</option>
+                    }
+                </select>
+                <input type="hidden" name="page" id="pageInput" value="1">
+                <button class="btn btn-sm btn-primary">搜索</button>
+            </form>
+            @if (canAdd)
+            {
+                <a href="/budget/create" class="btn btn-sm btn-success">
+                    <i class="fas fa-plus"></i> 新建任务
+                </a>
+            }
+        </div>
+    </div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-hover table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th>任务编号</th><th>任务名称</th><th>类型</th><th>委托单位</th>
+                    <th>送审金额（万）</th><th>审定金额（万）</th><th>核减率</th>
+                    <th>技术负责人</th><th>状态</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model)
+                {
+                    <tr>
+                        <td><code class="small">@t.TaskNo</code></td>
+                        <td>
+                            <a href="/budget/@t.Id" class="font-weight-bold text-dark">@t.TaskName</a>
+                        </td>
+                        <td>
+                            <span class="badge @typeBadge[t.TaskType] text-dark" style="font-size:10px">
+                                @typeText[t.TaskType]
+                            </span>
+                        </td>
+                        <td>@t.OwnerName</td>
+                        <td class="font-weight-bold">
+                            @(t.SubmitAmount.HasValue ? $"¥ {t.SubmitAmount:N2}" : "-")
+                        </td>
+                        <td class="text-success font-weight-bold">
+                            @(t.ApprovedAmount.HasValue ? $"¥ {t.ApprovedAmount:N2}" : "-")
+                        </td>
+                        <td>
+                            @if (t.ReductionRate.HasValue)
+                            {
+                                <span class="@(t.ReductionRate > 10 ? "text-danger" : "text-success")">
+                                    @t.ReductionRate.Value.ToString("N2")%
+                                </span>
+                            }
+                            else { <span class="text-muted">-</span> }
+                        </td>
+                        <td>@(t.TechLeader?.RealName ?? "-")</td>
+                        <td>
+                            <span class="badge @statusBadge[t.Status]">@statusText[t.Status]</span>
+                        </td>
+                        <td>
+                            <a href="/budget/@t.Id" class="btn btn-xs btn-info" title="详情">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            @if (canEdit && t.Status < 4)
+                            {
+                                <a href="/budget/create?id=@t.Id" class="btn btn-xs btn-warning" title="编辑">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            }
+                            @if (canEdit && t.Status == 1)
+                            {
+                                <button class="btn btn-xs btn-primary" onclick="submitTask(@t.Id)" title="提交内审">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="10" class="text-center text-muted py-4">暂无数据</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+    @{
+        var __paged = new EnterpriseMS.Common.PagedResult<object>
+        {
+            Total    = (int)(ViewBag.Total    ?? 0),
+            Page     = (int)(ViewBag.Page     ?? 1),
+            PageSize = (int)(ViewBag.Size     ?? 15),
+            Items    = new System.Collections.Generic.List<object>()
+        };
+    }
+    <partial name="_Pagination" model="__paged" />
+</div></section>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+function submitTask(id) {
+    layer.confirm('确认提交内审？提交后进入内审状态。', {icon:3, btn:['确认提交','取消']}, function(i) {
+        layer.close(i);
+        $.post('/budget/submit/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
+        });
+    });
+}
+</script>
+}

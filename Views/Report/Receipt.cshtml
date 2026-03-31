@@ -1,0 +1,229 @@
+@using EnterpriseMS.Domain.Entities.Project
+@using EnterpriseMS.Domain.Entities.System
+@model List<EnterpriseMS.Domain.Entities.Project.ProjectInvoice>
+@{
+    ViewData["Title"] = "回款报表";
+    var depts    = ViewBag.Depts   as List<SysDept>  ?? new();
+    var byDept   = ViewBag.ByDept  as dynamic;
+    var byMonth  = ViewBag.ByMonth as dynamic;
+    int year     = (int)(ViewBag.Year ?? DateTime.Today.Year);
+    decimal totalAmt  = (decimal)(ViewBag.TotalAmount  ?? 0m);
+    decimal totalRcv  = (decimal)(ViewBag.TotalReceived ?? 0m);
+    decimal totalPend = (decimal)(ViewBag.TotalPending  ?? 0m);
+    string fmtAmt(decimal v) => $"¥{v:N2}万";
+}
+
+<div class="content-header"><div class="container-fluid">
+    <div class="row mb-2">
+        <div class="col-sm-6"><h1 class="m-0">回款报表</h1></div>
+        <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item">报表中心</li>
+                <li class="breadcrumb-item active">回款报表</li>
+            </ol>
+        </div>
+    </div>
+</div></div>
+
+<section class="content"><div class="container-fluid">
+
+<!-- 筛选栏 -->
+<div class="card card-body p-2 mb-3">
+    <form method="get" action="/report/receipt" class="form-inline">
+        <label class="mr-2">年份</label>
+        <select name="year" class="form-control form-control-sm mr-3">
+            @for (int y = DateTime.Today.Year; y >= DateTime.Today.Year - 4; y--)
+            {
+                <option value="@y" selected="@(y == year ? "selected" : null)">@y 年</option>
+            }
+        </select>
+        <label class="mr-2">部门</label>
+        <select name="deptId" class="form-control form-control-sm mr-3">
+            <option value="">全部部门</option>
+            @foreach (var d in depts)
+            {
+                <option value="@d.Id" selected="@(ViewBag.DeptId as long? == d.Id ? "selected" : null)">
+                    @d.DeptName
+                </option>
+            }
+        </select>
+        <input name="keyword" class="form-control form-control-sm mr-3"
+               placeholder="项目名称/编号" value="@ViewBag.Keyword" style="width:160px">
+        <button class="btn btn-sm btn-primary mr-2">
+            <i class="fas fa-filter mr-1"></i>筛选
+        </button>
+        <a href="/report/receipt/export?year=@year&deptId=@ViewBag.DeptId&keyword=@ViewBag.Keyword"
+           class="btn btn-sm btn-success">
+            <i class="fas fa-file-excel mr-1"></i>导出Excel
+        </a>
+    </form>
+</div>
+
+<!-- 汇总卡片 -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="info-box bg-primary">
+            <span class="info-box-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">开票总额</span>
+                <span class="info-box-number">@fmtAmt(totalAmt)</span>
+                <small>共 @Model.Count 条记录</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="info-box bg-success">
+            <span class="info-box-icon"><i class="fas fa-check-circle"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">已收款</span>
+                <span class="info-box-number">@fmtAmt(totalRcv)</span>
+                <small>@Model.Count(i => i.IsReceived) 条</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="info-box bg-warning">
+            <span class="info-box-icon"><i class="fas fa-clock"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">待收款</span>
+                <span class="info-box-number">@fmtAmt(totalPend)</span>
+                <small>@Model.Count(i => !i.IsReceived) 条</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="info-box bg-info">
+            <span class="info-box-icon"><i class="fas fa-percentage"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">回款率</span>
+                <span class="info-box-number">
+                    @(totalAmt > 0 ? $"{totalRcv/totalAmt*100:N1}%" : "0%")
+                </span>
+                <div class="progress mt-1" style="height:6px">
+                    <div class="progress-bar bg-white"
+                         style="width:@(totalAmt>0?$"{totalRcv/totalAmt*100:N1}%":"0%")"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 按部门统计 -->
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">按部门回款统计</h3></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="thead-light">
+                        <tr><th>部门</th><th>开票金额</th><th>已收款</th><th>回款率</th></tr>
+                    </thead>
+                    <tbody>
+                        @if (byDept != null)
+                        {
+                            foreach (var g in byDept)
+                            {
+                                // 用 Convert.ToDecimal 安全处理 dynamic 类型
+                                decimal gTotal    = Convert.ToDecimal(g.TotalAmount);
+                                decimal gReceived = Convert.ToDecimal(g.ReceivedAmount);
+                                decimal rate      = gTotal > 0 ? gReceived / gTotal * 100m : 0m;
+                                <tr>
+                                    <td>@g.DeptName</td>
+                                    <td class="text-primary">¥@gTotal.ToString("N2")</td>
+                                    <td class="text-success">¥@gReceived.ToString("N2")</td>
+                                    <td>
+                                        <div class="progress" style="height:4px;width:60px;display:inline-block;vertical-align:middle">
+                                            <div class="progress-bar bg-success"
+                                                 style="width:@rate.ToString("N1")%"></div>
+                                        </div>
+                                        <small class="ml-1">@rate.ToString("N0")%</small>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <!-- 月度回款分布 -->
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">@year 年月度回款分布（万元）</h3></div>
+            <div class="card-body">
+                <canvas id="monthChart" height="160"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 明细表 -->
+<div class="card">
+    <div class="card-header"><h3 class="card-title">回款明细</h3></div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-sm table-hover">
+            <thead class="thead-light">
+                <tr>
+                    <th>项目编号</th><th>项目名称</th><th>回款批次</th>
+                    <th>发票号</th><th>金额(万)</th><th>税率</th>
+                    <th>开票日期</th><th>付款方</th><th>状态</th><th>收款日期</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var i in Model)
+                {
+                    <tr class="@(i.IsReceived ? "table-success" : "")">
+                        <td><code class="small">@(i.Project?.ProjNo ?? "-")</code></td>
+                        <td class="small">@(i.Project?.ProjName ?? "-")</td>
+                        <td><strong>@i.ReceiptName</strong></td>
+                        <td class="small text-muted">@(i.InvoiceNo ?? "-")</td>
+                        <td class="text-primary font-weight-bold">¥@i.Amount.ToString("N2")</td>
+                        <td class="small">@(i.TaxRate.HasValue ? i.TaxRate.Value.ToString("N1")+"%" : "-")</td>
+                        <td class="small">@(i.InvoiceDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                        <td class="small">@(i.Payer ?? "-")</td>
+                        <td>
+                            @if (i.IsReceived)
+                            { <span class="badge badge-success">已收款</span> }
+                            else
+                            { <span class="badge badge-warning">待收款</span> }
+                        </td>
+                        <td class="small">@(i.ReceivedDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="10" class="text-center text-muted py-4">暂无数据</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div></section>
+
+@section Scripts {
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+var monthData = [@if (byMonth != null) { foreach (var m in byMonth) { @((decimal)m.Amount) @Html.Raw(",") } }];
+var ctx = document.getElementById('monthChart').getContext('2d');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
+        datasets: [{
+            label: '已收款（万元）',
+            data: monthData,
+            backgroundColor: 'rgba(40,167,69,0.7)',
+            borderColor: 'rgba(40,167,69,1)',
+            borderWidth: 1,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    }
+});
+</script>
+}

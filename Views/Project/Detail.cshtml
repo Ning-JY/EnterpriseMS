@@ -1,0 +1,1302 @@
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Services.DTOs.Project
+@using EnterpriseMS.Services.DTOs.Hr
+@model ProjectDetailDto
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = Model.ProjName;
+    var userId     = User.GetUserId();
+    bool canEdit   = await PermSvc.HasPermAsync(userId, "proj:project:edit");
+    bool canStatus = await PermSvc.HasPermAsync(userId, "proj:project:status");
+    bool canMember = await PermSvc.HasPermAsync(userId, "proj:member:add");
+    bool canMSAdd  = await PermSvc.HasPermAsync(userId, "proj:milestone:add");
+    bool canAccept = await PermSvc.HasPermAsync(userId, "proj:acceptance:add");
+    var members    = ViewBag.AllMembers as List<EmployeeSimpleDto> ?? new();
+    string[] statusText = {"前期商务","预计启动","标书制作中","投标/磋商中",
+                            "已中标·签合同中","已签回合同","执行中","成果提交","已完成","已终止"};
+    string[] statusBadge= {"secondary","info","warning","warning",
+                            "primary","primary","success","success","success","danger"};
+    var dicts = ViewBag.DictMilestoneType as List<EnterpriseMS.Services.DTOs.System.DictDataDto> ?? new();
+}
+
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-7">
+        <h1 class="m-0">
+          <a href="/project" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
+          @Model.ProjName
+          <span class="badge badge-@statusBadge[Model.ProgressStatus] ml-2">
+            @statusText[Model.ProgressStatus]
+          </span>
+        </h1>
+        <small class="text-muted ml-4">@Model.ProjNo
+          @if (Model.StatusUpdatedAt.HasValue)
+          { <span class="ml-3"><i class="fas fa-clock mr-1"></i>状态更新：@Model.StatusUpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span> }
+        </small>
+      </div>
+      <div class="col-sm-5 text-right">
+        @if (canEdit) {
+          <a href="/project/edit/@Model.Id" class="btn btn-sm btn-warning mr-1">
+            <i class="fas fa-edit"></i> 编辑
+          </a>
+        }
+        @if (canStatus && Model.ProgressStatus < 9) {
+          <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#statusModal">
+            <i class="fas fa-arrow-right"></i> 变更状态
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+
+<!-- 顶部摘要 -->
+<div class="row mb-3">
+  <div class="col-md-3">
+    <div class="info-box shadow-sm">
+      <span class="info-box-icon bg-primary"><i class="fas fa-file-contract"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text">合同金额</span>
+        <span class="info-box-number">¥@Model.ContractAmount.ToString("N2")万</span>
+        @if (Model.IsJointVenture) { <small class="text-white-50">联合体·我方@Model.OurRatio%</small> }
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="info-box shadow-sm">
+      <span class="info-box-icon bg-success"><i class="fas fa-hand-holding-usd"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text">已收款</span>
+        <span class="info-box-number">¥@Model.TotalReceived.ToString("N2")万</span>
+        @{ var rate = Model.ActualAmount > 0 ? Model.TotalReceived / Model.ActualAmount * 100 : 0; }
+        <small class="text-white-50">收款率 @rate.ToString("N1")%</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="info-box shadow-sm">
+      <span class="info-box-icon bg-warning"><i class="fas fa-tasks"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text">里程碑</span>
+        <span class="info-box-number">@Model.MilestoneDone / @Model.MilestoneTotal</span>
+        <small class="text-white-50">已完成/共计</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="info-box shadow-sm">
+      <span class="info-box-icon bg-info"><i class="fas fa-users"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text">服务团队</span>
+        <span class="info-box-number">@Model.Members.Count(m=>m.Status==0) 人</span>
+        <small class="text-white-50">合计占比 @Model.Members.Where(m=>m.Status==0).Sum(m=>m.Ratio).ToString("N1")%</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 固定卡片区 ═══ -->
+
+<!-- 固定卡片①：基本信息 + 合同管理 -->
+<div class="row">
+  <div class="col-md-7">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-info-circle mr-1"></i>基本信息</h3>
+        @if (canEdit) {
+          <div class="card-tools">
+            <a href="/project/edit/@Model.Id" class="btn btn-xs btn-warning">
+              <i class="fas fa-edit"></i> 编辑
+            </a>
+          </div>
+        }
+      </div>
+      <div class="card-body" id="tab-basic">
+
+        <div class="row">
+          <div class="col-md-6">
+            <table class="table table-sm table-borderless">
+              <tr><td class="text-muted" width="35%">业务类型</td><td>@Model.BizType</td></tr>
+              <tr><td class="text-muted">采购方式</td><td>@(Model.ProcurementType??"-")</td></tr>
+              <tr><td class="text-muted">项目业主</td><td><strong>@Model.OwnerName</strong></td></tr>
+              <tr><td class="text-muted">业主联系人</td><td>@(Model.OwnerContact??"-") @Model.OwnerPhone</td></tr>
+              <tr><td class="text-muted">限价金额</td><td>@(Model.LimitPrice.HasValue?$"¥{Model.LimitPrice:N2}万":"-")</td></tr>
+              <tr><td class="text-muted">建设规模</td><td>@(Model.BuildingScale??"-")</td></tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-sm table-borderless">
+              <tr><td class="text-muted" width="35%">承接部门</td><td>@(Model.DeptName??"-")</td></tr>
+              <tr><td class="text-muted">技术负责人</td><td>@(Model.TechLeaderName??"-")</td></tr>
+              <tr><td class="text-muted">商务负责人</td><td>@(Model.BizLeaderName??"-")</td></tr>
+              <tr><td class="text-muted">签约日期</td><td>@(Model.SignDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
+              <tr><td class="text-muted">计划完成</td><td>@(Model.PlanEndDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
+              <tr><td class="text-muted">实际完成</td><td>@(Model.ActualEndDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
+            </table>
+          </div>
+        </div>
+        @if (!string.IsNullOrEmpty(Model.Remark))
+        { <div class="alert alert-light border-left border-primary"><i class="fas fa-info-circle mr-2"></i>@Model.Remark</div> }
+      </div>
+    </div>
+  </div>
+  <!-- 固定卡片②：服务团队与产值 -->
+  <div class="col-md-5">
+    <div class="card card-success card-outline">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-users mr-1"></i>服务团队与产值</h3>
+        @{ var totalR = Model.Members.Where(m=>m.Status==0).Sum(m=>m.Ratio); }
+        <span class="ml-2 small @(Math.Abs(totalR-100)<0.1m?"text-success":"text-warning")">
+          已分配 @totalR.ToString("N1")%
+        </span>
+        @if (canMember)
+        {
+          <div class="card-tools">
+            <button class="btn btn-xs btn-success" data-toggle="modal" data-target="#addMemberModal">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        }
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="thead-light">
+            <tr><th>姓名</th><th>角色</th><th>占比</th><th>合同产值</th><th>已实现</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            @foreach (var m in Model.Members.OrderByDescending(x=>x.Status==0))
+            {
+              <tr class="@(m.Status==1?"table-secondary":"")">
+                <td>
+                  <strong>@m.EmployeeName</strong>
+                  <br><small class="text-muted">@(m.DeptName??"")</small>
+                </td>
+                <td><small>@m.Role</small></td>
+                <td><strong class="@(m.Status==0?"text-primary":"text-muted")">@m.Ratio.ToString("N1")%</strong></td>
+                <td class="text-primary small">@m.ContractValue.ToString("N2")</td>
+                <td class="text-success small">@m.ReceivedValue.ToString("N2")</td>
+                <td>
+                  @if (canMember && m.Status == 0)
+                  {
+                    <button class="btn btn-xs btn-info mr-1"
+                        onclick="openEditMember(@m.Id,'@m.Role','@(m.DutyDesc??"")',@m.Ratio)"
+                        title="编辑">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-xs btn-danger"
+                        onclick="removeMember(@m.Id,'@m.EmployeeName')"
+                        title="移除">
+                      <i class="fas fa-user-minus"></i>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+            @if (!Model.Members.Any())
+            { <tr><td colspan="6" class="text-center text-muted py-3">暂无成员</td></tr> }
+          </tbody>
+          <tfoot class="table-active">
+            <tr>
+              <td colspan="3" class="font-weight-bold">合计</td>
+              <td class="font-weight-bold text-primary">¥@Model.ActualAmount.ToString("N2")万</td>
+              <td class="font-weight-bold text-success">¥@Model.TotalReceived.ToString("N2")万</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 固定卡片③：合同管理 -->
+<div class="card card-warning card-outline">
+  <div class="card-header">
+    <h3 class="card-title"><i class="fas fa-file-contract mr-1"></i>合同管理</h3>
+    @if (canEdit)
+    {
+      <div class="card-tools">
+        <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#addContractModal">
+          <i class="fas fa-plus"></i> 新增合同
+        </button>
+      </div>
+    }
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <thead class="thead-light">
+        <tr><th>合同编号</th><th>类型</th><th>甲方</th><th>合同金额(万)</th><th>签约日期</th><th>状态</th><th>附件</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        @foreach (var ct in Model.Contracts)
+        {
+          <tr>
+            <td><code class="small">@ct.ContractNo</code></td>
+            <td><span class="badge badge-light">@ct.ContractType</span></td>
+            <td class="small">@ct.PartyA</td>
+            <td class="text-primary font-weight-bold">¥@ct.Amount.ToString("N2")</td>
+            <td class="small">@(ct.SignDate?.ToString("yyyy-MM-dd")??"-")</td>
+            <td>
+              @if (ct.Status==1) { <span class="badge badge-success">生效</span> }
+              else { <span class="badge badge-secondary">无效</span> }
+            </td>
+            <td>
+              @if (ct.FileName != null)
+              {
+                <div class="d-flex align-items-center">
+                  <a href="/project/contracts/download/@ct.Id"
+                     class="btn btn-xs btn-info mr-1" title="下载">
+                    <i class="fas fa-download"></i>
+                  </a>
+                  @if (canEdit)
+                  {
+                    <label class="btn btn-xs btn-warning mb-0 mr-1" title="重新上传">
+                      <i class="fas fa-sync-alt"></i>
+                      <input type="file" style="display:none"
+                             onchange="uploadContractFile(@ct.Id,this)">
+                    </label>
+                    <button class="btn btn-xs btn-outline-danger"
+                            onclick="delContractFile(@ct.Id)" title="删除附件">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  }
+                </div>
+                <small class="text-muted d-block" style="font-size:11px">
+                  @(ct.FileName.Length>16?ct.FileName[..16]+"…":ct.FileName)
+                </small>
+              }
+              else if (canEdit)
+              {
+                <label class="btn btn-xs btn-outline-secondary mb-0">
+                  <i class="fas fa-upload"></i>
+                  <input type="file" style="display:none"
+                         onchange="uploadContractFile(@ct.Id,this)">
+                </label>
+              }
+            </td>
+            <td>
+              @if (canEdit)
+              {
+                <button class="btn btn-xs btn-danger"
+                        onclick="delContract(@ct.Id,'@ct.ContractNo')">
+                  <i class="fas fa-trash"></i>
+                </button>
+              }
+            </td>
+          </tr>
+        }
+        @if (!Model.Contracts.Any())
+        { <tr><td colspan="8" class="text-center text-muted py-3">暂无合同记录</td></tr> }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ Tab 选项卡区 ═══ -->
+<div class="card">
+  <div class="card-header p-0">
+    <ul class="nav nav-tabs" id="projTabs" role="tablist">
+      <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-milestone">工作节点</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-receipt">回款管理</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-file">项目文件</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-log">操作日志</a></li>
+    </ul>
+  </div>
+  <div class="card-body tab-content">
+
+    <!-- ── Tab①：工作节点 ── -->
+    <div class="tab-pane fade show active" id="tab-milestone">
+      <div class="text-right mb-2">
+        @if (canMSAdd)
+        { <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#addMsModal">
+            <i class="fas fa-plus"></i> 新增节点
+          </button> }
+      </div>
+      @if (Model.Milestones.Any())
+      {
+        <div class="timeline">
+          @foreach (var ms in Model.Milestones.OrderBy(m=>m.Sort))
+          {
+            string msIcon = ms.Status==2 ? "fas fa-check bg-success"
+                          : ms.IsOverdue  ? "fas fa-exclamation bg-danger"
+                          : ms.Status==1  ? "fas fa-spinner bg-warning"
+                          : "far fa-circle bg-secondary";
+            <div>
+              <i class="@msIcon"></i>
+              <div class="timeline-item">
+                <div class="timeline-header d-flex justify-content-between">
+                  <span class="font-weight-bold">@ms.MilestoneName</span>
+                  <div>
+                    @if (ms.IsOverdue && ms.Status!=2)
+                    { <span class="badge badge-danger mr-1">已逾期</span> }
+                    @if (!string.IsNullOrEmpty(ms.MilestoneType))
+                    { <span class="badge badge-info mr-1">@ms.MilestoneType</span> }
+                    @if (canMSAdd)
+                    {
+                      <button class="btn btn-xs btn-info mr-1"
+                        onclick="openEditMs(@ms.Id,'@ms.MilestoneName','@(ms.MilestoneType??"")',
+                          '@ms.PlanDate.ToString("yyyy-MM-dd")','@ms.Sort','@(ms.Remark??"")')">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      @if (ms.Status != 2)
+                      {
+                        <button class="btn btn-xs btn-success"
+                          onclick="completeMs(@ms.Id)">完成</button>
+                      }
+                    }
+                  </div>
+                </div>
+                <div class="timeline-body small text-muted">
+                  计划：@ms.PlanDate.ToString("yyyy-MM-dd")
+                  @if (ms.ActualDate.HasValue) { <span class="ml-3 text-success">实际：@ms.ActualDate.Value.ToString("yyyy-MM-dd")</span> }
+                  @if (ms.OwnerName != null) { <span class="ml-3">负责人：@ms.OwnerName</span> }
+                  @if (ms.AcceptAmount.HasValue) { <span class="ml-3 text-warning">应收：¥@ms.AcceptAmount.Value.ToString("N2")万</span> }
+                  @if (!string.IsNullOrEmpty(ms.Remark)) { <div class="mt-1">@ms.Remark</div> }
+                </div>
+              </div>
+            </div>
+          }
+          <div><i class="fas fa-flag bg-gray"></i></div>
+        </div>
+      }
+      else { <div class="text-center text-muted py-4">暂无工作节点</div> }
+    </div>
+
+    <!-- 验收与回款 -->
+    <!-- ── Tab②：回款管理（含验收+发票合并）── -->
+    <div class="tab-pane fade" id="tab-receipt">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <span class="text-muted small mr-3">
+            开票合计：<strong class="text-primary">¥@Model.Invoices.Sum(i=>i.Amount).ToString("N2")万</strong>
+          </span>
+          <span class="text-muted small">
+            已收款：<strong class="text-success">¥@Model.Invoices.Where(i=>i.IsReceived).Sum(i=>i.Amount).ToString("N2")万</strong>
+          </span>
+        </div>
+        @if (canEdit)
+        {
+          <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#addReceiptModal">
+            <i class="fas fa-plus"></i> 新增回款记录
+          </button>
+        }
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover">
+          <thead class="thead-light">
+            <tr>
+              <th>回款批次</th><th>发票号</th><th>发票类型</th>
+              <th>金额(万)</th><th>税率</th><th>开票日期</th><th>付款方</th>
+              <th>回款状态</th><th>发票附件</th><th>付款申请</th><th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach (var inv in Model.Invoices.OrderByDescending(i=>i.CreatedAt))
+            {
+              <tr class="@(inv.IsReceived?"table-success":"")">
+                <td><strong>@inv.ReceiptName</strong></td>
+                <td><code class="small">@(inv.InvoiceNo??"-")</code></td>
+                <td><small>@inv.InvoiceType</small></td>
+                <td class="font-weight-bold text-primary">¥@inv.Amount.ToString("N2")</td>
+                <td class="small">@(inv.TaxRate.HasValue?inv.TaxRate.Value.ToString("N1")+"%":"-")</td>
+                <td class="small">@(inv.InvoiceDate?.ToString("yyyy-MM-dd")??"-")</td>
+                <td class="small">@(inv.Payer??"-")</td>
+                <td>
+                  @if (inv.IsReceived)
+                  {
+                    <span class="badge badge-success">
+                      <i class="fas fa-check mr-1"></i>已收款 @(inv.ReceivedDate?.ToString("yyyy-MM-dd"))
+                    </span>
+                  }
+                  else if (canEdit)
+                  {
+                    <button class="btn btn-xs btn-outline-success" onclick="confirmReceived(@inv.Id)">
+                      <i class="fas fa-check"></i> 确认收款
+                    </button>
+                  }
+                  else
+                  {
+                    <span class="badge badge-warning">待收款</span>
+                  }
+                </td>
+                <td>
+                  @if (inv.InvoiceFileName != null)
+                  {
+                    <a href="/project/invoices/file/@inv.Id/invoice" class="text-info small">
+                      <i class="fas fa-file-invoice"></i>
+                      @(inv.InvoiceFileName.Length>10?inv.InvoiceFileName[..10]+"…":inv.InvoiceFileName)
+                    </a>
+                  }
+                  else if (canEdit)
+                  {
+                    <label class="btn btn-xs btn-outline-secondary mb-0">
+                      <i class="fas fa-upload"></i>
+                      <input type="file" style="display:none"
+                             onchange="uploadInvoiceFile(@inv.Id,'invoice',this)">
+                    </label>
+                  }
+                </td>
+                <td>
+                  @if (inv.PaymentFileName != null)
+                  {
+                    <a href="/project/invoices/file/@inv.Id/payment" class="text-warning small">
+                      <i class="fas fa-file-alt"></i>
+                      @(inv.PaymentFileName.Length>10?inv.PaymentFileName[..10]+"…":inv.PaymentFileName)
+                    </a>
+                  }
+                  else if (canEdit)
+                  {
+                    <label class="btn btn-xs btn-outline-secondary mb-0">
+                      <i class="fas fa-upload"></i>
+                      <input type="file" style="display:none"
+                             onchange="uploadInvoiceFile(@inv.Id,'payment',this)">
+                    </label>
+                  }
+                </td>
+                <td>
+                  @if (canEdit)
+                  {
+                    <button class="btn btn-xs btn-danger" onclick="delReceipt(@inv.Id)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+            @if (!Model.Invoices.Any())
+            { <tr><td colspan="11" class="text-center text-muted py-4">暂无回款记录</td></tr> }
+          </tbody>
+          @if (Model.Invoices.Any())
+          {
+            <tfoot class="table-active">
+              <tr>
+                <td colspan="3" class="font-weight-bold">合计</td>
+                <td class="font-weight-bold text-primary">¥@Model.Invoices.Sum(i=>i.Amount).ToString("N2")</td>
+                <td colspan="3"></td>
+                <td class="font-weight-bold text-success">
+                  已收 ¥@Model.Invoices.Where(i=>i.IsReceived).Sum(i=>i.Amount).ToString("N2")
+                </td>
+                <td colspan="3"></td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Tab③：项目文件 ── -->
+    <div class="tab-pane fade" id="tab-file">
+
+      @if (canEdit)
+      {
+        <div class="mb-3 p-3 border rounded bg-light">
+          <div class="row align-items-end">
+            <div class="col-md-3">
+              <label class="small">文件类别</label>
+              <select id="uploadCategory" class="form-control form-control-sm">
+                <option value="资料收集">📁 资料收集</option>
+                <option value="过程文件">📄 过程文件</option>
+                <option value="成果文件">✅ 成果文件</option>
+                <option value="其他">📎 其他</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="small">版本号（成果文件）</label>
+              <input type="text" id="uploadVersion" class="form-control form-control-sm" placeholder="如 V1.0">
+            </div>
+            <div class="col-md-3">
+              <label class="small">说明</label>
+              <input type="text" id="uploadDesc" class="form-control form-control-sm" placeholder="文件说明">
+            </div>
+            <div class="col-md-3">
+              <label class="btn btn-sm btn-success mb-0 w-100" style="cursor:pointer">
+                <i class="fas fa-upload mr-1"></i> 选择文件上传
+                <input type="file" id="fileInput" style="display:none" onchange="uploadFile(this)">
+              </label>
+            </div>
+          </div>
+        </div>
+      }
+      @{
+        var fileGroups = Model.Files.GroupBy(f => f.FileCategory).OrderBy(g=>g.Key);
+      }
+      @foreach (var grp in fileGroups)
+      {
+        <h6 class="font-weight-bold text-muted mt-3 mb-2">
+          @(grp.Key == "资料收集" ? "📁" : grp.Key == "过程文件" ? "📄" : grp.Key == "成果文件" ? "✅" : "📎")
+          @grp.Key（@grp.Count()个）
+        </h6>
+        <table class="table table-sm table-hover">
+          <thead class="thead-light">
+            <tr><th>文件名</th><th>版本</th><th>大小</th><th>说明</th><th>上传人</th><th>上传时间</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            @foreach (var f in grp.OrderByDescending(x=>x.CreatedAt))
+            {
+              <tr>
+                <td>
+                  <i class="fas @GetFileIcon(f.FileExt) mr-1 text-muted"></i>
+                  <a href="/project/files/download/@f.Id">@f.FileName</a>
+                </td>
+                <td class="small">@(f.Version??"-")</td>
+                <td class="small text-muted">@f.FileSizeText</td>
+                <td class="small text-muted">@(f.Description??"-")</td>
+                <td class="small">@f.UploadBy</td>
+                <td class="small text-muted">@f.CreatedAt.ToString("MM-dd HH:mm")</td>
+                <td>
+                  <a href="/project/files/download/@f.Id" class="btn btn-xs btn-outline-primary">
+                    <i class="fas fa-download"></i>
+                  </a>
+                  @if (canEdit)
+                  { <button class="btn btn-xs btn-outline-danger ml-1" onclick="deleteFile(@f.Id)">
+                      <i class="fas fa-trash"></i>
+                    </button> }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      @if (!Model.Files.Any())
+      { <div class="text-center text-muted py-4">暂无文件</div> }
+    </div>
+
+    <!-- 操作日志 -->
+    <div class="tab-pane fade" id="tab-log">
+      <div class="timeline">
+        @foreach (var log in Model.Logs.OrderByDescending(l=>l.OperAt))
+        {
+          <div>
+            <i class="fas fa-history bg-secondary"></i>
+            <div class="timeline-item">
+              <span class="time text-muted small">
+                <i class="fas fa-clock mr-1"></i>@log.OperAt.ToString("yyyy-MM-dd HH:mm")
+                &nbsp;@log.OperBy
+              </span>
+              <h3 class="timeline-header font-weight-normal">@log.Title</h3>
+              @if (!string.IsNullOrEmpty(log.Content))
+              { <div class="timeline-body small text-muted">@log.Content</div> }
+            </div>
+          </div>
+        }
+        @if (!Model.Logs.Any())
+        { <div class="text-center text-muted py-4">暂无操作日志</div> }
+        <div><i class="fas fa-flag bg-gray"></i></div>
+      </div>
+    </div>
+
+  </div><!-- tab-content -->
+</div><!-- card -->
+
+</div></section>
+
+@* ── 所有弹窗 ──────────────────────────────────────────────── *@
+
+<!-- 状态变更 -->
+<div class="modal fade" id="statusModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">变更项目状态</h5>
+      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-info small">当前：<strong>@statusText[Model.ProgressStatus]</strong>
+        @if (Model.StatusUpdatedAt.HasValue) {<span class="ml-2 text-muted">上次变更：@Model.StatusUpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span>}
+      </div>
+      <div class="form-group">
+        <label>新状态 <span class="text-danger">*</span></label>
+        <select id="newStatus" class="form-control">
+          @for (int i = 0; i <= 9; i++)
+          {
+            if (i != Model.ProgressStatus)
+            { <option value="@i">@statusText[i]</option> }
+          }
+        </select>
+      </div>
+      <div class="form-group">
+        <label>变更日期</label>
+        <input type="date" id="statusDate" class="form-control"
+               value="@DateTime.Today.ToString("yyyy-MM-dd")">
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="statusRemark" class="form-control" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      <button type="button" class="btn btn-primary" onclick="saveStatus()">确认变更</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- 添加成员 -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">添加项目成员</h5>
+      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>选择员工 <span class="text-danger">*</span></label>
+        <select id="addEmpId" class="form-control">
+          <option value="">请选择</option>
+          @{
+              var activeEmpIds = Model.Members
+                  .Where(pm => pm.Status == 0)
+                  .Select(pm => pm.EmployeeId)
+                  .ToHashSet();
+          }
+          @foreach (var m in members)
+          {
+              var inProject = activeEmpIds.Contains(m.Id);
+              <option value="@m.Id" disabled="@(inProject ? "disabled" : null)">
+                  @m.Display @(inProject ? "（已在项目中）" : "")
+              </option>
+          }
+        </select>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="form-group">
+            <label>角色</label>
+            <select id="addRole" class="form-control">
+              <option>项目负责人</option><option>技术负责人</option>
+              <option>商务负责人</option><option selected>参与人员</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label>产值占比(%) <span class="text-danger">*</span></label>
+            <input type="number" id="addRatio" class="form-control" min="1" max="100" step="0.5">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>工作职责</label>
+        <textarea id="addDuty" class="form-control" rows="2"></textarea>
+      </div>
+      <div class="form-group">
+        <label>加入日期</label>
+        <input type="date" id="addJoinDate" class="form-control"
+               value="@DateTime.Today.ToString("yyyy-MM-dd")">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      <button type="button" class="btn btn-primary" onclick="saveMember()">添加</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- 编辑成员 -->
+<div class="modal fade" id="editMemberModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">编辑成员信息</h5>
+      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editMemberId">
+      <div class="form-group">
+        <label>角色</label>
+        <select id="editMemberRole" class="form-control">
+          <option>项目负责人</option><option>技术负责人</option>
+          <option>商务负责人</option><option>参与人员</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>产值占比(%) <span class="text-danger">*</span></label>
+        <input type="number" id="editMemberRatio" class="form-control" min="1" max="100" step="0.5">
+      </div>
+      <div class="form-group">
+        <label>工作职责</label>
+        <textarea id="editMemberDuty" class="form-control" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      <button type="button" class="btn btn-primary" onclick="saveEditMember()">保存</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- 新增里程碑 -->
+<div class="modal fade" id="addMsModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title" id="msModalTitle">新增工作节点</h5>
+      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editMsId">
+      <div class="form-group">
+        <label>节点名称 <span class="text-danger">*</span></label>
+        <input type="text" id="msName" class="form-control">
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="form-group">
+            <label>节点类型</label>
+            <select id="msType" class="form-control">
+              <option value="">不指定</option>
+              @foreach (var dt in dicts)
+              { <option value="@dt.DictValue">@dt.DictLabel</option> }
+            </select>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label>计划日期 <span class="text-danger">*</span></label>
+            <input type="date" id="msPlanDate" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="form-group">
+            <label>排序</label>
+            <input type="number" id="msSort" class="form-control" value="@(Model.Milestones.Count+1)">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label>应收金额（万）</label>
+            <input type="number" id="msAmount" class="form-control" step="0.01">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="msRemark" class="form-control" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      <button type="button" class="btn btn-primary" onclick="saveMs()">保存</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- 录入验收 -->
+<div class="modal fade" id="addAcceptModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">录入验收记录</h5>
+      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>批次名称 <span class="text-danger">*</span></label>
+        <input type="text" id="accBatch" class="form-control" placeholder="如：第一批（预付款30%）">
+      </div>
+      <div class="row">
+        <div class="col-6">
+          <div class="form-group">
+            <label>验收日期 <span class="text-danger">*</span></label>
+            <input type="date" id="accDate" class="form-control"
+                   value="@DateTime.Today.ToString("yyyy-MM-dd")">
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="form-group">
+            <label>验收金额（万）<span class="text-danger">*</span></label>
+            <input type="number" id="accAmount" class="form-control" step="0.01">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>发票号</label>
+        <input type="text" id="accInvoice" class="form-control">
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="accRemark" class="form-control" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      <button type="button" class="btn btn-primary" onclick="saveAccept()">保存</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- 新增合同 -->
+<div class="modal fade" id="addContractModal" tabindex="-1">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">新增合同</h5>
+      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>合同编号 <span class="text-danger">*</span></label>
+            <input type="text" id="ctNo" class="form-control">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>合同类型</label>
+            <select id="ctType" class="form-control">
+              <option>主合同</option><option>补充协议</option><option>变更合同</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>合同金额（万）<span class="text-danger">*</span></label>
+            <input type="number" id="ctAmount" class="form-control" step="0.01">
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>甲方 <span class="text-danger">*</span></label>
+            <input type="text" id="ctPartyA" class="form-control" value="@Model.OwnerName">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label>乙方</label>
+            <input type="text" id="ctPartyB" class="form-control" value="我方公司">
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>签约日期</label>
+            <input type="date" id="ctSignDate" class="form-control">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>开始日期</label>
+            <input type="date" id="ctStartDate" class="form-control">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>结束日期</label>
+            <input type="date" id="ctEndDate" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="ctRemark" class="form-control" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      <button type="button" class="btn btn-primary" onclick="saveContract()">保存</button>
+    </div>
+  </div></div>
+</div>
+
+<!-- 录入发票 -->
+<!-- 新增回款记录弹窗 -->
+<div class="modal fade" id="addReceiptModal" tabindex="-1">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title"><i class="fas fa-hand-holding-usd mr-2"></i>新增回款记录</h5>
+      <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>回款批次名称 <span class="text-danger">*</span></label>
+        <input type="text" id="rcpName" class="form-control"
+               placeholder="如：第一笔预付款、期中款、竣工款">
+      </div>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>金额（万元）<span class="text-danger">*</span></label>
+            <input type="number" id="rcpAmount" class="form-control" step="0.01" min="0">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>发票类型</label>
+            <select id="rcpType" class="form-control">
+              <option value="增值税专用发票">增值税专用发票</option>
+              <option value="增值税普通发票">增值税普通发票</option>
+              <option value="收据">收据</option>
+              <option value="无票">无票</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>税率（%）</label>
+            <input type="number" id="rcpTaxRate" class="form-control" step="0.1" placeholder="如：6">
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>发票号</label>
+            <input type="text" id="rcpInvNo" class="form-control" placeholder="发票编号">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>开票日期</label>
+            <input type="date" id="rcpDate" class="form-control">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>付款方</label>
+            <input type="text" id="rcpPayer" class="form-control" value="@Model.OwnerName">
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="rcpRemark" class="form-control" rows="2"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+      <button type="button" class="btn btn-primary" id="rcpSaveBtn" onclick="saveReceipt()">
+        <i class="fas fa-save mr-1"></i> 保存
+      </button>
+    </div>
+  </div></div>
+</div>
+
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+var projId = @Model.Id;
+
+// ── Tab 保持：用 sessionStorage 存当前 Tab，强制 reload 后恢复 ──
+$(function() {
+    // 恢复上次的 Tab（优先 sessionStorage，其次 URL hash）
+    var savedTab = sessionStorage.getItem('projDetailTab_@Model.Id');
+    var hashTab  = window.location.hash;
+    var restoreTab = savedTab || hashTab;
+    if (restoreTab) {
+        var tabLink = $('a[data-toggle="tab"][href="' + restoreTab + '"]');
+        if (tabLink.length) {
+            tabLink.tab('show');
+        }
+    }
+    // 切换时记录当前 Tab
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+        sessionStorage.setItem('projDetailTab_@Model.Id', e.target.hash);
+    });
+});
+
+function reloadWithTab() {
+    // 先把当前激活的 Tab 存入 sessionStorage，再强制刷新
+    var activeTab = $('a[data-toggle="tab"].active').attr('href');
+    if (activeTab) {
+        sessionStorage.setItem('projDetailTab_@Model.Id', activeTab);
+    }
+    location.reload(true);  // true = 强制从服务器重新加载，不走缓存
+}
+
+// ── 移除成员 ─────────────────────────────────────────────────
+function removeMember(memberId, name) {
+    layer.confirm('确认移除成员 <b>' + name + '</b>？移除后可重新添加。',
+        {icon:3, title:'移除确认', btn:['确认移除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/project/' + projId + '/members/' + memberId + '/remove',
+            {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, reloadWithTab); });
+    });
+}
+
+// ── 状态变更 ────────────────────────────────────────────────
+function saveStatus() {
+    ajaxPost('/project/status', {
+        Id: projId, NewStatus: parseInt($('#newStatus').val()),
+        StatusDate: $('#statusDate').val(), Remark: $('#statusRemark').val()
+    }, function(r) {
+        layer.msg(r.message, {icon:1, time:1500}, function() {
+            $('#statusModal').modal('hide'); reloadWithTab();
+        });
+    });
+}
+
+// ── 成员管理 ────────────────────────────────────────────────
+function saveMember() {
+    var ratio = parseFloat($('#addRatio').val());
+    if (!$('#addEmpId').val()) { layer.msg('请选择员工', {icon:2}); return; }
+    if (!ratio) { layer.msg('请填写占比', {icon:2}); return; }
+    ajaxPost('/project/@Model.Id/members', {
+        EmployeeId: parseInt($('#addEmpId').val()),
+        Role: $('#addRole').val(), DutyDesc: $('#addDuty').val(),
+        Ratio: ratio, JoinDate: $('#addJoinDate').val()
+    }, function(r) {
+        layer.msg(r.message, {icon:1, time:1500}, function() {
+            $('#addMemberModal').modal('hide'); reloadWithTab();
+        });
+    });
+}
+
+function openEditMember(id, role, duty, ratio) {
+    $('#editMemberId').val(id);
+    $('#editMemberRole').val(role);
+    $('#editMemberDuty').val(duty);
+    $('#editMemberRatio').val(ratio);
+    $('#editMemberModal').modal('show');
+}
+
+function saveEditMember() {
+    var ratio = parseFloat($('#editMemberRatio').val());
+    if (!ratio) { layer.msg('请填写占比', {icon:2}); return; }
+    ajaxPost('/project/members/update', {
+        Id: parseInt($('#editMemberId').val()),
+        Role: $('#editMemberRole').val(),
+        DutyDesc: $('#editMemberDuty').val(),
+        Ratio: ratio
+    }, function(r) {
+        layer.msg(r.message, {icon:1, time:1500}, function() {
+            $('#editMemberModal').modal('hide'); reloadWithTab();
+        });
+    });
+}
+
+// ── 里程碑 ──────────────────────────────────────────────────
+function openEditMs(id, name, type, planDate, sort, remark) {
+    $('#msModalTitle').text('编辑工作节点');
+    $('#editMsId').val(id);
+    $('#msName').val(name); $('#msType').val(type);
+    $('#msPlanDate').val(planDate); $('#msSort').val(sort);
+    $('#msRemark').val(remark); $('#msAmount').val('');
+    $('#addMsModal').modal('show');
+}
+
+function saveMs() {
+    if (!$('#msName').val()) { layer.msg('请填写节点名称', {icon:2}); return; }
+    if (!$('#msPlanDate').val()) { layer.msg('请选择计划日期', {icon:2}); return; }
+    var id = $('#editMsId').val();
+    var url = id ? '/project/milestones/update' : '/project/@Model.Id/milestones';
+    var data = {
+        MilestoneName: $('#msName').val(), MilestoneType: $('#msType').val(),
+        PlanDate: $('#msPlanDate').val(), Sort: parseInt($('#msSort').val())||1,
+        AcceptAmount: parseFloat($('#msAmount').val())||null,
+        Remark: $('#msRemark').val()
+    };
+    if (id) data.Id = parseInt(id);
+    ajaxPost(url, data, function(r) {
+        layer.msg(r.message, {icon:1, time:1500}, function() {
+            $('#addMsModal').modal('hide'); reloadWithTab();
+        });
+    });
+}
+
+function completeMs(id) {
+    layer.confirm('确认标记该节点为已完成？', {icon:3}, function(i) {
+        layer.close(i);
+        $.post('/project/milestones/' + id + '/complete',
+            {__RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+                function() { if (r.success) reloadWithTab(); });
+        });
+    });
+}
+
+// ── 验收 ────────────────────────────────────────────────────
+function saveAccept() {
+    if (!$('#accBatch').val()) { layer.msg('请填写批次名称', {icon:2}); return; }
+    var amount = parseFloat($('#accAmount').val());
+    if (!amount) { layer.msg('请填写验收金额', {icon:2}); return; }
+    ajaxPost('/project/acceptances', {
+        ProjectId: projId, AcceptBatch: $('#accBatch').val(),
+        AcceptDate: $('#accDate').val(), AcceptAmount: amount,
+        InvoiceNo: $('#accInvoice').val(), Remark: $('#accRemark').val()
+    }, function(r) {
+        layer.msg(r.message, {icon:1, time:1500}, function() {
+            $('#addAcceptModal').modal('hide'); reloadWithTab();
+        });
+    });
+}
+
+// ── 合同 ────────────────────────────────────────────────────
+function saveContract() {
+    if (!$('#ctNo').val() || !$('#ctAmount').val()) {
+        layer.msg('请填写合同编号和金额', {icon:2}); return;
+    }
+    ajaxPost('/project/' + projId + '/contracts', {
+        ProjectId: projId, ContractNo: $('#ctNo').val(),
+        ContractType: $('#ctType').val(), ContractName: '',
+        PartyA: $('#ctPartyA').val(), PartyB: $('#ctPartyB').val(),
+        Amount: parseFloat($('#ctAmount').val()),
+        SignDate: $('#ctSignDate').val()||null,
+        StartDate: $('#ctStartDate').val()||null,
+        EndDate: $('#ctEndDate').val()||null,
+        Remark: $('#ctRemark').val()
+    }, function(r) {
+        layer.msg(r.message, {icon:1, time:1500}, function() {
+            $('#addContractModal').modal('hide'); reloadWithTab();
+        });
+    });
+}
+
+function deleteContract(id) {
+    layer.confirm('确认删除该合同？', {icon:3}, function(i) {
+        layer.close(i);
+        $.post('/project/' + projId + '/contracts/delete/' + id,
+            {__RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+                function() { if (r.success) reloadWithTab(); });
+        });
+    });
+}
+
+function uploadContract(contractId, input) {
+    var formData = new FormData();
+    formData.append('file', input.files[0]);
+    $.ajax({ url: '/project/contracts/upload/' + contractId, type: 'POST',
+        data: formData, processData: false, contentType: false,
+        headers: {'RequestVerificationToken': antiForgery},
+        success: function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+                function() { if (r.success) reloadWithTab(); });
+        }
+    });
+}
+
+// ── 发票 ────────────────────────────────────────────────────
+// ── 回款管理 ────────────────────────────────────────────────
+function saveReceipt() {
+    var name   = $('#rcpName').val();
+    var amount = parseFloat($('#rcpAmount').val());
+    if (!name || !amount) { layer.msg('请填写回款批次名称和金额', {icon:2}); return; }
+    var data = {
+        ProjectId:  projId,
+        ReceiptName: name,
+        InvoiceType: $('#rcpType').val(),
+        Amount:      amount,
+        TaxRate:     parseFloat($('#rcpTaxRate').val()) || null,
+        InvoiceNo:   $('#rcpInvNo').val() || null,
+        InvoiceDate: $('#rcpDate').val() || null,
+        Payer:       $('#rcpPayer').val() || null,
+        Remark:      $('#rcpRemark').val()
+    };
+    $('#rcpSaveBtn').prop('disabled', true);
+    ajaxPost('/project/' + projId + '/invoices', data, function(r) {
+        $('#rcpSaveBtn').prop('disabled', false);
+        layer.msg(r.message, {icon:1, time:1500}, function() {
+            $('#addReceiptModal').modal('hide'); reloadWithTab();
+        });
+    });
+}
+
+function confirmReceived(invoiceId) {
+    var today = new Date().toISOString().split('T')[0];
+    layer.prompt({title:'请输入收款日期', formType:2, value:today}, function(val, i) {
+        layer.close(i);
+        if (!val) return;
+        $.post('/project/invoices/received/' + invoiceId,
+            {receivedDate: val, __RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+                function() { if (r.success) reloadWithTab(); });
+        });
+    });
+}
+
+function delReceipt(id) {
+    layer.confirm('确认删除该回款记录？', {icon:3, btn:['确认','取消']}, function(i) {
+        layer.close(i);
+        $.post('/project/invoices/delete/' + id, {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, ()=>reloadWithTab()); });
+    });
+}
+
+function uploadInvoiceFile(invId, fileType, input) {
+    if (!input.files[0]) return;
+    var fd = new FormData();
+    fd.append('file', input.files[0]);
+    var load = layer.load(1);
+    $.ajax({ url: '/project/invoices/file/' + invId + '/' + fileType,
+        type: 'POST', data: fd, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) { layer.close(load); handleResult(r, ()=>reloadWithTab()); }
+    });
+}
+
+function uploadContractFile(contractId, input) {
+    if (!input.files[0]) return;
+    var fd = new FormData();
+    fd.append('file', input.files[0]);
+    var load = layer.load(1);
+    $.ajax({ url: '/project/contracts/upload/' + contractId,
+        type: 'POST', data: fd, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) { layer.close(load); handleResult(r, ()=>reloadWithTab()); }
+    });
+}
+
+function delContractFile(contractId) {
+    layer.confirm('确认删除该合同附件？合同记录将保留。',
+        {icon:3, btn:['确认删除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/project/contracts/file/delete/' + contractId,
+            {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, reloadWithTab); });
+    });
+}
+
+function delContract(id, no) {
+    layer.confirm('确认删除合同 ' + (no||'') + '？', {icon:3}, function(i) {
+        layer.close(i);
+        $.post('/project/' + projId + '/contracts/delete/' + id,
+            {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, ()=>reloadWithTab()); });
+    });
+}
+
+// ── 文件 ────────────────────────────────────────────────────
+function uploadFile(input) {
+    if (!input.files[0]) return;
+    var formData = new FormData();
+    formData.append('file', input.files[0]);
+    formData.append('category', $('#uploadCategory').val());
+    formData.append('description', $('#uploadDesc').val());
+    formData.append('version', $('#uploadVersion').val());
+    var load = layer.load(1);
+    $.ajax({
+        url: '/project/' + projId + '/files', type: 'POST',
+        data: formData, processData: false, contentType: false,
+        headers: {'RequestVerificationToken': antiForgery},
+        success: function(r) {
+            layer.close(load);
+            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+                function() { if (r.success) reloadWithTab(); });
+        }
+    });
+}
+
+function deleteFile(fileId) {
+    layer.confirm('确认删除该文件？', {icon:3}, function(i) {
+        layer.close(i);
+        $.post('/project/files/delete/' + fileId,
+            {__RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+                function() { if (r.success) reloadWithTab(); });
+        });
+    });
+}
+</script>
+}
+
+@functions {
+    string GetFileIcon(string? ext) => ext?.ToLower() switch {
+        "pdf"  => "fa-file-pdf text-danger",
+        "doc" or "docx" => "fa-file-word text-primary",
+        "xls" or "xlsx" => "fa-file-excel text-success",
+        "jpg" or "jpeg" or "png" => "fa-file-image text-warning",
+        "zip" or "rar" => "fa-file-archive text-secondary",
+        _ => "fa-file text-muted"
+    };
+}

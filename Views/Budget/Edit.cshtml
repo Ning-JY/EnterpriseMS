@@ -1,0 +1,266 @@
+@using EnterpriseMS.Domain.Entities.Budget
+@using EnterpriseMS.Services.DTOs.System
+@using EnterpriseMS.Services.DTOs.Hr
+@model BudgetTask
+@{
+    ViewData["Title"] = "编辑任务 - " + Model.TaskName;
+    var depts   = ViewBag.Depts   as List<DeptTreeDto>       ?? new();
+    var members = ViewBag.Members as List<EmployeeSimpleDto>  ?? new();
+    string[] typeText = { "概算编制","预算编制","结算编制","概算评审","预算评审","结算评审" };
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">
+                    <a href="/budget/@Model.Id" class="text-muted mr-2">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    编辑任务
+                    <small class="text-muted font-weight-normal ml-2">@Model.TaskNo</small>
+                </h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item"><a href="/budget">概预算结算</a></li>
+                    <li class="breadcrumb-item"><a href="/budget/@Model.Id">@Model.TaskName</a></li>
+                    <li class="breadcrumb-item active">编辑</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+
+<div class="card card-primary card-outline">
+    <div class="card-header"><h3 class="card-title">任务基本信息</h3></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>任务名称 <span class="text-danger">*</span></label>
+                    <input type="text" id="taskName" class="form-control" value="@Model.TaskName">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>任务类型</label>
+                    <select id="taskType" class="form-control" disabled>
+                        @for (int i = 0; i < typeText.Length; i++)
+                        {
+                            <option value="@i" selected="@(Model.TaskType == i ? "selected" : null)">@typeText[i]</option>
+                        }
+                    </select>
+                    <small class="text-muted">任务类型创建后不可修改</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>承接部门</label>
+                    <select id="deptId" class="form-control">
+                        <option value="">请选择</option>
+                        @foreach (var d in depts)
+                        {
+                            <option value="@d.Id" selected="@(Model.DeptId == d.Id ? "selected" : null)">@d.DeptName</option>
+                            @foreach (var cd in d.Children)
+                            {
+                                <option value="@cd.Id" selected="@(Model.DeptId == cd.Id ? "selected" : null)">&nbsp;&nbsp;└ @cd.DeptName</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-primary card-outline">
+    <div class="card-header"><h3 class="card-title">委托方信息</h3></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>委托单位 <span class="text-danger">*</span></label>
+                    <input type="text" id="ownerName" class="form-control" value="@Model.OwnerName">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>联系人</label>
+                    <input type="text" id="ownerContact" class="form-control" value="@(Model.OwnerContact ?? "")">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>联系电话</label>
+                    <input type="text" id="ownerPhone" class="form-control" value="@(Model.OwnerPhone ?? "")">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>施工方</label>
+                    <input type="text" id="contractorName" class="form-control" value="@(Model.ContractorName ?? "")">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>建设规模</label>
+                    <input type="text" id="buildingScale" class="form-control" value="@(Model.BuildingScale ?? "")">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card card-primary card-outline">
+    <div class="card-header"><h3 class="card-title">金额与技术信息</h3></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>送审金额（万元）</label>
+                    <input type="number" id="submitAmount" class="form-control" step="0.01"
+                           value="@(Model.SubmitAmount?.ToString() ?? "")">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>审定金额（万元）</label>
+                    <input type="number" id="approvedAmount" class="form-control" step="0.01"
+                           value="@(Model.ApprovedAmount?.ToString() ?? "")"
+                           oninput="calcReduction()">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>核减率（自动计算）</label>
+                    <div class="input-group">
+                        <input type="text" id="reductionRate" class="form-control"
+                               readonly value="@(Model.ReductionRate?.ToString("N2") ?? "")"
+                               style="background:#f8f9fa">
+                        <div class="input-group-append"><span class="input-group-text">%</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>计划提交日期</label>
+                    <input type="date" id="planDate" class="form-control"
+                           value="@(Model.PlanDate?.ToString("yyyy-MM-dd") ?? "")">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>定额依据</label>
+                    <input type="text" id="quotaBasis" class="form-control"
+                           value="@(Model.QuotaBasis ?? "")">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>取费标准</label>
+                    <input type="text" id="feeStandard" class="form-control"
+                           value="@(Model.FeeStandard ?? "")">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>技术负责人</label>
+                    <select id="techLeaderId" class="form-control">
+                        <option value="">请选择</option>
+                        @foreach (var m in members)
+                        {
+                            <option value="@m.Id" selected="@(Model.TechLeaderId == m.Id ? "selected" : null)">@m.Display</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>商务负责人</label>
+                    <select id="bizLeaderId" class="form-control">
+                        <option value="">请选择</option>
+                        @foreach (var m in members)
+                        {
+                            <option value="@m.Id" selected="@(Model.BizLeaderId == m.Id ? "selected" : null)">@m.Display</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>备注</label>
+                    <textarea id="remark" class="form-control" rows="1">@(Model.Remark ?? "")</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between mb-4">
+    <a href="/budget/@Model.Id" class="btn btn-default">
+        <i class="fas fa-times mr-1"></i> 取消
+    </a>
+    <button type="button" class="btn btn-primary" onclick="submitUpdate()">
+        <i class="fas fa-save mr-1"></i> 保存修改
+    </button>
+</div>
+
+</div></section>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+var taskId = @Model.Id;
+
+function calcReduction() {
+    var submit   = parseFloat($('#submitAmount').val()) || 0;
+    var approved = parseFloat($('#approvedAmount').val()) || 0;
+    if (submit > 0 && approved > 0) {
+        var rate = (submit - approved) / submit * 100;
+        $('#reductionRate').val(rate.toFixed(2));
+    } else {
+        $('#reductionRate').val('');
+    }
+}
+
+function submitUpdate() {
+    var data = {
+        Id:             taskId,
+        TaskName:       $('#taskName').val(),
+        TaskType:       @Model.TaskType,
+        DeptId:         parseInt($('#deptId').val()) || null,
+        OwnerName:      $('#ownerName').val(),
+        OwnerContact:   $('#ownerContact').val(),
+        OwnerPhone:     $('#ownerPhone').val(),
+        ContractorName: $('#contractorName').val(),
+        BuildingScale:  $('#buildingScale').val(),
+        SubmitAmount:   parseFloat($('#submitAmount').val()) || null,
+        ApprovedAmount: parseFloat($('#approvedAmount').val()) || null,
+        QuotaBasis:     $('#quotaBasis').val(),
+        FeeStandard:    $('#feeStandard').val(),
+        TechLeaderId:   parseInt($('#techLeaderId').val()) || null,
+        BizLeaderId:    parseInt($('#bizLeaderId').val()) || null,
+        PlanDate:       $('#planDate').val() || null,
+        Remark:         $('#remark').val(),
+    };
+    if (!data.TaskName) { layer.msg('请填写任务名称', {icon:2}); return; }
+    if (!data.OwnerName){ layer.msg('请填写委托单位', {icon:2}); return; }
+
+    ajaxPost('/budget/update', data, function(r) {
+        layer.msg(r.message, {icon:1, time:1500}, function() {
+            window.location.href = '/budget/' + taskId;
+        });
+    });
+}
+</script>
+}

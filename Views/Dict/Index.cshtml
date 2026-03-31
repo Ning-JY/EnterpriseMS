@@ -1,0 +1,76 @@
+@using EnterpriseMS.Services.DTOs.System
+@model List<DictTypeDto>
+@{ ViewData["Title"] = "字典管理"; }
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">字典管理</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item active">字典管理</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">字典类型</h3></div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="typeList">
+                    @foreach (var t in Model)
+                    {
+                        <a href="javascript:loadData('@t.DictType', '@t.DictName')"
+                           class="list-group-item list-group-item-action py-2">
+                            <div class="d-flex justify-content-between">
+                                <span><strong>@t.DictName</strong></span>
+                                <code class="text-muted small">@t.DictType</code>
+                            </div>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title" id="dataTitle">请选择左侧字典类型</h3>
+            </div>
+            <div class="card-body table-responsive p-0" id="dataArea">
+                <div class="text-center text-muted py-5">← 点击左侧字典类型查看数据</div>
+            </div>
+        </div>
+    </div>
+</div>
+</div></section>
+
+@section Scripts {
+<script>
+function loadData(dictType, dictName) {
+    $('#dataTitle').text(dictName + '（' + dictType + '）');
+    $('#typeList a').removeClass('active');
+    $('a[href*="' + dictType + '"]').addClass('active');
+    $.get('/system/dict/data/' + dictType, function(r) {
+        if (!r.success) return;
+        var rows = r.data.map(function(d) {
+            return '<tr><td>' + d.Sort + '</td><td>' + d.DictLabel +
+                   '</td><td><code>' + d.DictValue + '</code></td>' +
+                   '<td>' + (d.IsDefault ? '<span class="badge badge-primary">默认</span>' : '') +
+                   '</td></tr>';
+        }).join('');
+        $('#dataArea').html(
+            '<table class="table table-sm"><thead class="thead-light"><tr>' +
+            '<th width="60">排序</th><th>标签</th><th>键值</th><th>默认</th>' +
+            '</tr></thead><tbody>' + (rows || '<tr><td colspan="4" class="text-center text-muted py-3">暂无数据</td></tr>') +
+            '</tbody></table>'
+        );
+    });
+}
+</script>
+}

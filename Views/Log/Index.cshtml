@@ -1,0 +1,74 @@
+@using EnterpriseMS.Domain.Entities.System
+@model List<SysOperLog>
+@{ ViewData["Title"] = "操作日志"; }
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">操作日志</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item active">操作日志</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">操作日志（共 @ViewBag.Total 条）</h3>
+        <div class="card-tools">
+            <form id="searchForm" method="get" class="d-inline-flex" action="/system/log">
+                <input name="keyword" class="form-control form-control-sm mr-1"
+                       placeholder="标题/操作人" value="@ViewBag.Keyword" style="width:180px">
+                <input type="hidden" name="page" id="pageInput" value="1">
+                <button class="btn btn-sm btn-primary">搜索</button>
+            </form>
+        </div>
+    </div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-hover table-sm">
+            <thead class="thead-light">
+                <tr><th>操作标题</th><th>操作人</th><th>操作类型</th><th>IP地址</th><th>操作时间</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var log in Model)
+                {
+                    <tr>
+                        <td>@log.Title</td>
+                        <td>@(log.OperName ?? "-")</td>
+                        <td>
+                            @switch (log.BusinessType)
+                            {
+                                case "INSERT": <span class="badge badge-success">新增</span> break;
+                                case "UPDATE": <span class="badge badge-info">修改</span> break;
+                                case "DELETE": <span class="badge badge-danger">删除</span> break;
+                                default:       <span class="badge badge-secondary">其他</span> break;
+                            }
+                        </td>
+                        <td class="text-muted small">@(log.OperIp ?? "-")</td>
+                        <td class="text-muted small">@log.OperTime.ToString("MM-dd HH:mm:ss")</td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-4">暂无日志</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @{
+        var logPaged = new EnterpriseMS.Common.PagedResult<SysOperLog>
+        {
+            Items    = Model,
+            Total    = (int)(ViewBag.Total    ?? 0),
+            Page     = (int)(ViewBag.Page     ?? 1),
+            PageSize = (int)(ViewBag.Size      ?? 20),
+        };
+    }
+    <partial name="_Pagination" model="logPaged" />
+</div>
+</div></section>

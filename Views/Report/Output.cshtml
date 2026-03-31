@@ -1,0 +1,232 @@
+@using EnterpriseMS.Domain.Entities.System
+@model dynamic
+@{
+    ViewData["Title"] = "产值报表";
+    var depts     = ViewBag.Depts as List<SysDept> ?? new();
+    int year      = (int)(ViewBag.Year ?? DateTime.Today.Year);
+    decimal totC  = (decimal)(ViewBag.TotalContract ?? 0m);
+    decimal totR  = (decimal)(ViewBag.TotalReceived  ?? 0m);
+    var byDept    = ViewBag.ByDept as dynamic;
+    var empList   = Model as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+}
+
+<div class="content-header"><div class="container-fluid">
+    <div class="row mb-2">
+        <div class="col-sm-6"><h1 class="m-0">个人产值报表</h1></div>
+        <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item">报表中心</li>
+                <li class="breadcrumb-item active">产值报表</li>
+            </ol>
+        </div>
+    </div>
+</div></div>
+
+<section class="content"><div class="container-fluid">
+
+<!-- 筛选栏 -->
+<div class="card card-body p-2 mb-3">
+    <form method="get" action="/report/output" class="form-inline">
+        <label class="mr-2">年份</label>
+        <select name="year" class="form-control form-control-sm mr-3">
+            @for (int y = DateTime.Today.Year; y >= DateTime.Today.Year - 4; y--)
+            {
+                <option value="@y" selected="@(y == year ? "selected" : null)">@y 年</option>
+            }
+        </select>
+        <label class="mr-2">部门</label>
+        <select name="deptId" class="form-control form-control-sm mr-3">
+            <option value="">全部部门</option>
+            @foreach (var d in depts)
+            {
+                <option value="@d.Id"
+                        selected="@(ViewBag.DeptId as long? == d.Id ? "selected" : null)">
+                    @d.DeptName
+                </option>
+            }
+        </select>
+        <input name="keyword" class="form-control form-control-sm mr-3"
+               placeholder="员工姓名/项目名称" value="@ViewBag.Keyword" style="width:160px">
+        <button class="btn btn-sm btn-primary mr-2">
+            <i class="fas fa-filter mr-1"></i>筛选
+        </button>
+        <a href="/report/output/export?year=@year&deptId=@ViewBag.DeptId&keyword=@ViewBag.Keyword"
+           class="btn btn-sm btn-success">
+            <i class="fas fa-file-excel mr-1"></i>导出Excel
+        </a>
+    </form>
+</div>
+
+<!-- 汇总 -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="info-box bg-primary">
+            <span class="info-box-icon"><i class="fas fa-users"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">参与人员</span>
+                <span class="info-box-number">@(empList.Count()) 人</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="info-box bg-warning">
+            <span class="info-box-icon"><i class="fas fa-file-contract"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">总合同产值（分配后）</span>
+                <span class="info-box-number">¥@totC.ToString("N2") 万</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="info-box bg-success">
+            <span class="info-box-icon"><i class="fas fa-hand-holding-usd"></i></span>
+            <div class="info-box-content">
+                <span class="info-box-text">已实现产值（@year 年）</span>
+                <span class="info-box-number">¥@totR.ToString("N2") 万</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 部门汇总 -->
+@if (byDept != null)
+{
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">部门产值汇总</h3></div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead class="thead-light">
+                    <tr><th>部门</th><th>人员数</th><th>合同产值(万)</th><th>已实现产值(万)</th><th>实现率</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in byDept)
+                    {
+                        decimal gContractVal = Convert.ToDecimal(g.ContractValue);
+                        decimal gReceivedVal = Convert.ToDecimal(g.ReceivedValue);
+                        decimal gRate = gContractVal > 0 ? gReceivedVal / gContractVal * 100m : 0m;
+                        <tr>
+                            <td><strong>@g.DeptName</strong></td>
+                            <td>@g.EmpCount 人</td>
+                            <td class="text-primary font-weight-bold">¥@gContractVal.ToString("N2")</td>
+                            <td class="text-success font-weight-bold">¥@gReceivedVal.ToString("N2")</td>
+                            <td>
+                                <div class="progress" style="height:5px;width:80px;display:inline-block;vertical-align:middle">
+                                    <div class="progress-bar bg-success" style="width:@gRate.ToString("N1")%"></div>
+                                </div>
+                                <small class="ml-1">@gRate.ToString("N0")%</small>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+<!-- 个人明细 -->
+<div class="card">
+    <div class="card-header"><h3 class="card-title">个人产值明细（@year 年）</h3></div>
+    <div class="card-body p-0">
+        <table class="table table-sm table-hover">
+            <thead class="thead-light">
+                <tr>
+                    <th>员工</th><th>部门</th><th>参与项目数</th>
+                    <th>合同产值(万)</th><th>已实现产值(万)</th><th>实现率</th><th>展开</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{int empIdx = 0;}
+                @foreach (var e in empList)
+                {
+                    empIdx++;
+                    decimal eCv   = Convert.ToDecimal(e.ContractValue);
+                    decimal eRv   = Convert.ToDecimal(e.ReceivedValue);
+                    decimal eRate = eCv > 0 ? eRv / eCv * 100m : 0m;
+                    <tr class="emp-row" style="cursor:pointer"
+                        onclick="toggleDetail('detail-@empIdx')">
+                        <td><strong>@e.EmpName</strong></td>
+                        <td><small>@e.DeptName</small></td>
+                        <td class="text-center">@e.ProjectCount</td>
+                        <td class="text-primary font-weight-bold">¥@eCv.ToString("N2")</td>
+                        <td class="text-success font-weight-bold">¥@eRv.ToString("N2")</td>
+                        <td>
+                            <div class="progress" style="height:5px;width:60px;display:inline-block;vertical-align:middle">
+                                <div class="progress-bar bg-success" style="width:@eRate.ToString("N1")%"></div>
+                            </div>
+                            <small class="ml-1">@eRate.ToString("N0")%</small>
+                        </td>
+                        <td><i class="fas fa-chevron-down text-muted" id="icon-@empIdx"></i></td>
+                    </tr>
+                    <!-- 展开项目明细 -->
+                    <tr id="detail-@empIdx" style="display:none">
+                        <td colspan="7" class="p-0">
+                            <table class="table table-xs table-bordered mb-0" style="background:#f8f9fa">
+                                <thead>
+                                    <tr class="text-muted small">
+                                        <th>项目编号</th><th>项目名称</th><th>角色</th>
+                                        <th>占比</th><th>合同产值(万)</th><th>已实现(万)</th><th>状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var pm in e.Projects)
+                                    {
+                                        // dynamic 对象不能用 ?. 和强制转换，全部用 Convert
+                                        decimal pmActual = pm.Project != null
+                                            ? Convert.ToDecimal(pm.Project.ActualContractAmount) : 0m;
+                                        decimal pmRatio  = Convert.ToDecimal(pm.Ratio);
+                                        decimal pmCv     = pmActual * pmRatio / 100m;
+                                        string  pmProjNo   = pm.Project != null ? (string)(pm.Project.ProjNo   ?? "") : "";
+                                        string  pmProjName = pm.Project != null ? (string)(pm.Project.ProjName ?? "") : "";
+                                        string  pmRole     = (string)(pm.Role ?? "");
+                                        int     pmStatus   = pm.Project != null ? Convert.ToInt32(pm.Project.ProgressStatus) : 0;
+                                        string  pmStatusText = pmStatus switch {
+                                            6 => "执行中", 7 => "成果提交",
+                                            8 => "已完成", 9 => "已终止", _ => "进行中"
+                                        };
+                                        <tr class="small">
+                                            <td><code>@pmProjNo</code></td>
+                                            <td>@pmProjName</td>
+                                            <td>@pmRole</td>
+                                            <td>@pmRatio.ToString("N1")%</td>
+                                            <td class="text-primary">¥@pmCv.ToString("N2")</td>
+                                            <td class="text-success">-</td>
+                                            <td>
+                                                <span class="badge badge-light small">
+                                                    @pmStatusText
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                }
+                @if (!empList.Any())
+                {
+                    <tr><td colspan="7" class="text-center text-muted py-4">暂无数据</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div></section>
+
+@section Scripts {
+<script>
+function toggleDetail(id) {
+    var idx = id.split('-')[1];
+    var row = document.getElementById(id);
+    var icon = document.getElementById('icon-' + idx);
+    if (row.style.display === 'none') {
+        row.style.display = '';
+        icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+    } else {
+        row.style.display = 'none';
+        icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+    }
+}
+</script>
+}

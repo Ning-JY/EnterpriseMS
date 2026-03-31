@@ -1,0 +1,280 @@
+@using EnterpriseMS.Domain.Entities.Info
+@model List<KbFile>
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "知识库管理";
+    var categories = ViewBag.Categories as List<KbCategory> ?? new();
+    var curCatId   = ViewBag.CategoryId as long?;
+    var userId     = User.GetUserId();
+    bool canUpload = await PermSvc.HasPermAsync(userId, "kb:file:upload");
+    bool canDelete = await PermSvc.HasPermAsync(userId, "kb:file:delete");
+    bool canManage = await PermSvc.HasPermAsync(userId, "kb:file:manage");
+    string FileSizeText(long s) => s < 1048576 ? $"{s/1024:N1}KB" : $"{s/1048576:N1}MB";
+}
+
+<div class="content-header"><div class="container-fluid">
+    <div class="row mb-2">
+        <div class="col-sm-6">
+            <h1 class="m-0">
+                <a href="/kb" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
+                知识库管理
+            </h1>
+        </div>
+        <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item"><a href="/kb">知识库</a></li>
+                <li class="breadcrumb-item active">文件管理</li>
+            </ol>
+        </div>
+    </div>
+</div></div>
+
+<section class="content"><div class="container-fluid">
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">全部文件（共 @ViewBag.Total 个）</h3>
+        <div class="card-tools">
+            <form id="searchForm" method="get" action="/kb/manage" class="d-inline-flex mr-2">
+                <select name="categoryId" class="form-control form-control-sm mr-1" style="width:120px"
+                        onchange="this.form.submit()">
+                    <option value="">全部分类</option>
+                    @foreach (var c in categories)
+                    {
+                        <option value="@c.Id" selected="@(curCatId == c.Id ? "selected" : null)">
+                            @c.Name
+                        </option>
+                    }
+                </select>
+                <input name="keyword" class="form-control form-control-sm mr-1"
+                       placeholder="搜索文件名" value="@ViewBag.Keyword" style="width:160px">
+                <input type="hidden" name="page" value="1">
+                <button class="btn btn-sm btn-primary">搜索</button>
+            </form>
+            @if (canUpload)
+            {
+                <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#uploadModal">
+                    <i class="fas fa-upload mr-1"></i> 上传文件
+                </button>
+            }
+        </div>
+    </div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-sm table-hover">
+            <thead class="thead-light">
+                <tr>
+                    <th>文件名称</th><th>分类</th><th>版本</th>
+                    <th>大小</th><th>上传人</th><th>上传时间</th>
+                    <th class="text-center">下载次数</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in Model)
+                {
+                    <tr class="@(f.Status==0?"table-secondary":"")">
+                        <td>
+                            @if (f.IsPinned)
+                            { <span class="badge badge-danger mr-1">置顶</span> }
+                            @if (f.Status == 0)
+                            { <span class="badge badge-secondary mr-1">已禁用</span> }
+                            <strong>@f.FileName</strong>
+                            <br><small class="text-muted">@f.OriginalName</small>
+                            @if (!string.IsNullOrEmpty(f.Description))
+                            { <br><small class="text-muted">@f.Description</small> }
+                        </td>
+                        <td><small>@(f.Category?.Name ?? "-")</small></td>
+                        <td><small>@(f.Version ?? "-")</small></td>
+                        <td><small>@FileSizeText(f.FileSize)</small></td>
+                        <td><small>@f.CreatedBy</small></td>
+                        <td><small>@f.CreatedAt.ToString("yyyy-MM-dd")</small></td>
+                        <td class="text-center">
+                            <span class="badge badge-info">@f.DownloadCount</span>
+                        </td>
+                        <td>
+                            <a href="/kb/download/@f.Id"
+                               class="btn btn-xs btn-primary mr-1" title="下载">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            @if (canManage)
+                            {
+                                <button class="btn btn-xs @(f.IsPinned?"btn-warning":"btn-outline-warning") mr-1"
+                                        onclick="togglePin(@f.Id)" title="@(f.IsPinned?"取消置顶":"置顶")">
+                                    <i class="fas fa-thumbtack"></i>
+                                </button>
+                            }
+                            @if (canDelete)
+                            {
+                                <button class="btn btn-xs btn-danger"
+                                        onclick="deleteFile(@f.Id,'@f.FileName')" title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="8" class="text-center text-muted py-4">暂无文件</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @{
+        var paged = new EnterpriseMS.Common.PagedResult<KbFile>
+        {
+            Items    = Model,
+            Total    = (int)(ViewBag.Total ?? 0),
+            Page     = (int)(ViewBag.Page  ?? 1),
+            PageSize = (int)(ViewBag.Size   ?? 20),
+        };
+    }
+    <partial name="_Pagination" model="paged" />
+</div>
+</div></section>
+
+<!-- 上传弹窗 -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-upload mr-2"></i>上传文件</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>选择文件 <span class="text-danger">*</span></label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="uploadFile"
+                           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.zip,.rar">
+                    <label class="custom-file-label" for="uploadFile">
+                        支持 PDF、Word、Excel、PPT、图片、压缩包，最大50MB
+                    </label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>显示名称</label>
+                        <input type="text" id="displayName" class="form-control"
+                               placeholder="留空则使用文件名">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>所属分类 <span class="text-danger">*</span></label>
+                        <select id="uploadCategory" class="form-control">
+                            <option value="">请选择分类</option>
+                            @foreach (var c in categories)
+                            {
+                                <option value="@c.Id">@c.Name</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>版本号</label>
+                        <input type="text" id="uploadVersion" class="form-control"
+                               placeholder="如：v1.0、2024版">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>说明</label>
+                        <input type="text" id="uploadDesc" class="form-control"
+                               placeholder="简短描述">
+                    </div>
+                </div>
+            </div>
+            <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="isPinned">
+                <label class="custom-control-label" for="isPinned">置顶显示</label>
+            </div>
+            <div id="uploadProgress" class="progress mt-3" style="display:none">
+                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                     style="width:0%" id="progressBar"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-success" id="uploadBtn" onclick="doUpload()">
+                <i class="fas fa-upload mr-1"></i> 开始上传
+            </button>
+        </div>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+
+document.getElementById('uploadFile').addEventListener('change', function() {
+    this.nextElementSibling.textContent = this.files[0]?.name ?? '点击选择文件';
+});
+
+function doUpload() {
+    var file = document.getElementById('uploadFile').files[0];
+    var catId = $('#uploadCategory').val();
+    if (!file)  { layer.msg('请选择文件', {icon:2}); return; }
+    if (!catId) { layer.msg('请选择分类', {icon:2}); return; }
+
+    var fd = new FormData();
+    fd.append('file',        file);
+    fd.append('categoryId',  catId);
+    fd.append('displayName', $('#displayName').val());
+    fd.append('description', $('#uploadDesc').val());
+    fd.append('version',     $('#uploadVersion').val());
+    fd.append('isPinned',    $('#isPinned').is(':checked') ? 'true' : 'false');
+
+    $('#uploadBtn').prop('disabled', true);
+    $('#uploadProgress').show();
+
+    $.ajax({
+        url: '/kb/upload', type: 'POST',
+        data: fd, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        xhr: function() {
+            var xhr = new XMLHttpRequest();
+            xhr.upload.addEventListener('progress', function(e) {
+                if (e.lengthComputable) {
+                    var pct = Math.round(e.loaded / e.total * 100);
+                    $('#progressBar').css('width', pct + '%').text(pct + '%');
+                }
+            });
+            return xhr;
+        },
+        success: function(r) {
+            $('#uploadBtn').prop('disabled', false);
+            if (r.success) {
+                layer.msg('上传成功', {icon:1, time:1500}, function() {
+                    $('#uploadModal').modal('hide'); location.reload();
+                });
+            } else {
+                layer.msg(r.message, {icon:2});
+                $('#uploadProgress').hide();
+            }
+        },
+        error: function() {
+            $('#uploadBtn').prop('disabled', false);
+            $('#uploadProgress').hide();
+            layer.msg('上传失败，请重试', {icon:2});
+        }
+    });
+}
+
+function togglePin(id) {
+    $.post('/kb/pin/' + id, {__RequestVerificationToken: antiForgery},
+        function(r) { handleResult(r, ()=>location.reload()); });
+}
+
+function deleteFile(id, name) {
+    layer.confirm('确认删除文件 <b>' + name + '</b>？', {icon:3, btn:['确认删除','取消']},
+        function(i) {
+            layer.close(i);
+            $.post('/kb/delete/' + id, {__RequestVerificationToken: antiForgery},
+                function(r) { handleResult(r, ()=>location.reload()); });
+        });
+}
+</script>
+}

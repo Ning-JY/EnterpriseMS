@@ -1,0 +1,491 @@
+@using EnterpriseMS.Common
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Services.DTOs.User
+@using EnterpriseMS.Services.DTOs.System
+@model PagedResult<UserListDto>
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "用户管理";
+    Layout = "_Layout";
+    var query = ViewBag.Query as UserQueryDto ?? new UserQueryDto();
+    var userId = User.GetUserId();
+    bool canAdd    = await PermSvc.HasPermAsync(userId, "sys:user:add");
+    bool canEdit   = await PermSvc.HasPermAsync(userId, "sys:user:edit");
+    bool canDel    = await PermSvc.HasPermAsync(userId, "sys:user:delete");
+    bool canReset  = await PermSvc.HasPermAsync(userId, "sys:user:reset");
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">用户管理</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item active">用户管理</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+<div class="container-fluid">
+
+    <!-- 搜索栏 -->
+    <div class="card card-default collapsed-card">
+        <div class="card-header">
+            <h3 class="card-title">搜索条件</h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body" style="display:none;">
+            <form id="searchForm" method="get" action="/system/user">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>关键词</label>
+                            <input type="text" name="Keyword" class="form-control form-control-sm"
+                                   placeholder="用户名 / 姓名 / 手机" value="@query.Keyword">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
+                            <label>状态</label>
+                            <select name="Status" class="form-control form-control-sm">
+                                <option value="">全部</option>
+                                <option value="1" selected="@(query.Status == 1 ? "selected" : null)">正常</option>
+                                <option value="0" selected="@(query.Status == 0 ? "selected" : null)">禁用</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary btn-sm mr-1">
+                                <i class="fas fa-search"></i> 搜索
+                            </button>
+                            <a href="/system/user" class="btn btn-default btn-sm">
+                                <i class="fas fa-redo"></i> 重置
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <input type="hidden" name="Page" id="pageInput" value="1">
+                <input type="hidden" name="Size" value="@query.Size">
+            </form>
+        </div>
+    </div>
+
+    <!-- 数据表格 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">用户列表（共 @Model.Total 条）</h3>
+            <div class="card-tools">
+                @if (canAdd)
+                {
+                    <button type="button" class="btn btn-success btn-sm" onclick="openAddModal()">
+                        <i class="fas fa-plus"></i> 新增用户
+                    </button>
+                }
+            </div>
+        </div>
+        <div class="card-body table-responsive p-0">
+            <table class="table table-hover table-sm">
+                <thead class="thead-light">
+                    <tr>
+                        <th>用户名</th>
+                        <th>姓名</th>
+                        <th>部门</th>
+                        <th>角色</th>
+                        <th>手机</th>
+                        <th>状态</th>
+                        <th>最后登录</th>
+                        <th width="180">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var u in Model.Items)
+                    {
+                        <tr>
+                            <td><i class="fas fa-user-circle text-muted mr-1"></i>@u.Username</td>
+                            <td>@u.RealName</td>
+                            <td>@(u.DeptName ?? "-")</td>
+                            <td>
+                                @foreach (var r in u.RoleNames)
+                                {
+                                    <span class="badge badge-info">@r</span>
+                                }
+                            </td>
+                            <td>@(u.Phone ?? "-")</td>
+                            <td>
+                                @if (u.Status == 1)
+                                { <span class="badge badge-success">正常</span> }
+                                else
+                                { <span class="badge badge-danger">禁用</span> }
+                            </td>
+                            <td class="text-muted small">
+                                @(u.LastLoginTime?.ToString("MM-dd HH:mm") ?? "从未登录")
+                            </td>
+                            <td>
+                                @if (canEdit)
+                                {
+                                    <button class="btn btn-xs btn-info" onclick="openEditModal(@u.Id)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    if (u.Status == 1)
+                                    {
+                                        <button class="btn btn-xs btn-warning"
+                                                onclick="setStatus(@u.Id, 0)"
+                                                title="禁用">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-xs btn-success"
+                                                onclick="setStatus(@u.Id, 1)"
+                                                title="启用">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    }
+                                }
+                                @if (canReset)
+                                {
+                                    <button class="btn btn-xs btn-secondary"
+                                            onclick="resetPwd(@u.Id)"
+                                            title="重置密码">
+                                        <i class="fas fa-key"></i>
+                                    </button>
+                                }
+                                @if (canDel)
+                                {
+                                    <button class="btn btn-xs btn-danger"
+                                            onclick="deleteUser(@u.Id, '@u.RealName')"
+                                            title="删除">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Items.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">暂无数据</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pagination" model="Model" />
+    </div>
+
+</div>
+</section>
+
+<!-- 新增/编辑用户弹窗 -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">新增用户</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>用户名 <span class="text-danger">*</span></label>
+                                <input type="text" id="username" class="form-control"
+                                       placeholder="登录账号" maxlength="50">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>姓名 <span class="text-danger">*</span></label>
+                                <input type="text" id="realName" class="form-control"
+                                       placeholder="真实姓名" maxlength="50">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>密码 <span class="text-danger" id="pwdRequired">*</span></label>
+                                <input type="password" id="password" class="form-control"
+                                       placeholder="登录密码（最少6位）">
+                                <small class="text-muted" id="pwdHint" style="display:none">
+                                    留空则不修改密码
+                                </small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>手机号</label>
+                                <input type="text" id="phone" class="form-control"
+                                       placeholder="手机号码">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>邮箱</label>
+                                <input type="email" id="email" class="form-control"
+                                       placeholder="电子邮箱">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>角色</label>
+                                <select id="roleIds" class="form-control" multiple>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>所属部门</label>
+                                <select id="deptId" class="form-control">
+                                    <option value="">请选择部门</option>
+                                    @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
+                                    {
+                                        <option value="@d.Id">@d.DeptName</option>
+                                        @foreach (var cd in d.Children)
+                                        {
+                                            <option value="@cd.Id">&nbsp;&nbsp;└ @cd.DeptName</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>岗位</label>
+                                <select id="postId" class="form-control">
+                                    <option value="">请选择岗位</option>
+                                    @foreach (var p in ViewBag.Posts as List<EnterpriseMS.Domain.Entities.System.SysPost> ?? new())
+                                    {
+                                        <option value="@p.Id">@p.PostName</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="employeeBindRow">
+                        <label>绑定员工档案</label>
+                        <select id="bindEmployeeId" class="form-control">
+                            <option value="">不绑定（系统账号）</option>
+                        </select>
+                        <small class="text-muted">
+                            绑定后该账号与员工档案关联，项目/HR模块可识别操作人身份。
+                            一名员工只能绑定一个账号。
+                        </small>
+                        <div id="empSyncHint" class="alert alert-info alert-sm py-1 mt-1" style="display:none">
+                            <i class="fas fa-sync-alt mr-1"></i>
+                            姓名、部门、手机、邮箱已从员工档案同步，修改请前往员工详情编辑。
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>备注</label>
+                        <textarea id="remark" class="form-control" rows="2"
+                                  placeholder="备注信息"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+
+// 加载角色列表
+function loadRoles(selectedIds) {
+    $.get('/system/user/roles', function(r) {
+        if (!r.success) return;
+        var sel = $('#roleIds');
+        sel.empty();
+        r.data.forEach(function(role) {
+            var opt = $('<option>').val(role.Id).text(role.RoleName);
+            if (selectedIds && selectedIds.includes(role.Id)) opt.prop('selected', true);
+            sel.append(opt);
+        });
+    });
+}
+
+function openAddModal() {
+    $('#userModalTitle').text('新增用户');
+    $('#userForm')[0].reset();
+    $('#userId').val('');
+    $('#username').prop('disabled', false);
+    $('#pwdRequired').show();
+    $('#pwdHint').hide();
+    $('#employeeBindRow').hide();
+    loadRoles([]);
+    $('#userModal').modal('show');
+}
+
+function openEditModal(id) {
+    $.get('/system/user/detail/' + id, function(r) {
+        if (!r.success) { layer.msg(r.message, {icon:2}); return; }
+        var u = r.data;
+        $('#userModalTitle').text('编辑用户');
+        $('#userId').val(u.Id);
+        $('#username').val(u.Username).prop('disabled', true);
+        $('#realName').val(u.RealName);
+        $('#password').val('');
+        $('#phone').val(u.Phone || '');
+        $('#email').val(u.Email || '');
+        $('#remark').val(u.Remark || '');
+        $('#deptId').val(u.DeptId || '');
+        $('#postId').val(u.PostId || '');
+        $('#pwdRequired').hide();
+        $('#pwdHint').show();
+        $('#deptId').val(u.DeptId || '');
+        $('#postId').val(u.PostId || '');
+        loadRoles(u.RoleIds || []);
+        // 加载员工列表并回填当前绑定
+        $('#employeeBindRow').show();
+        loadEmployeeOptions(u.EmployeeId);
+        $('#userModal').modal('show');
+    });
+}
+
+function saveUser() {
+    var id = $('#userId').val();
+    var isEdit = !!id;
+    var data = {
+        Id:       id,
+        Username: $('#username').val(),
+        RealName: $('#realName').val(),
+        Password: $('#password').val(),
+        Phone:    $('#phone').val(),
+        Email:    $('#email').val(),
+        Remark:   $('#remark').val(),
+        RoleIds:    $('#roleIds').val() ? $('#roleIds').val().map(Number) : [],
+        DeptId:     parseInt($('#deptId').val()) || null,
+        PostId:     parseInt($('#postId').val()) || null,
+        EmployeeId: parseInt($('#bindEmployeeId').val()) || null,
+    };
+
+    if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
+    if (!isEdit && !data.Password) { layer.msg('请填写密码', {icon:2}); return; }
+    if (data.Password && data.Password.length < 6) {
+        layer.msg('密码长度不能少于6位', {icon:2}); return;
+    }
+
+    var url = isEdit ? '/system/user/update' : '/system/user/create';
+    var load = layer.load(1);
+    $.ajax({
+        url: url, type: 'POST', contentType: 'application/json',
+        headers: { 'RequestVerificationToken': antiForgery },
+        data: JSON.stringify(data),
+        success: function(r) {
+            layer.close(load);
+            if (r.success) {
+                $('#userModal').modal('hide');
+                layer.msg(r.message, {icon:1, time:1500}, function() {
+                    location.reload();
+                });
+            } else {
+                layer.msg(r.message, {icon:2});
+            }
+        },
+        error: function() { layer.close(load); layer.msg('请求失败', {icon:2}); }
+    });
+}
+
+function setStatus(id, status) {
+    var msg = status == 1 ? '确定启用该用户？' : '确定禁用该用户？';
+    layer.confirm(msg, {icon:3, title:'确认操作'}, function(i) {
+        layer.close(i);
+        $.post('/system/user/status', {id: id, status: status,
+            __RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success ? 1 : 2, time:1500}, function() {
+                if (r.success) location.reload();
+            });
+        });
+    });
+}
+
+function resetPwd(id) {
+    layer.prompt({title:'请输入新密码（最少6位）', formType:1}, function(val, i) {
+        if (val.length < 6) { layer.msg('密码长度不能少于6位', {icon:2}); return; }
+        layer.close(i);
+        $.post('/system/user/resetpwd', {id: id, newPwd: val,
+            __RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success ? 1 : 2});
+        });
+    });
+}
+
+function deleteUser(id, name) {
+    layer.confirm('确认删除用户 <b>' + name + '</b>？此操作不可恢复！',
+        {icon:3, title:'警告', btn:['确认删除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/system/user/delete/' + id,
+            {__RequestVerificationToken: antiForgery}, function(r) {
+            layer.msg(r.message, {icon: r.success ? 1 : 2, time:1500}, function() {
+                if (r.success) location.reload();
+            });
+        });
+    });
+}
+
+// 加载员工下拉（含已绑定提示）
+function loadEmployeeOptions(currentEmpId) {
+    $.get('/hr/employee/options', function(r) {
+        if (!r.success) return;
+        var opts = '<option value="">不绑定（系统账号）</option>';
+        r.data.forEach(function(e) {
+            var sel = (currentEmpId && e.Id == currentEmpId) ? ' selected' : '';
+            var label = e.Display + (e.IsBound ? ' [已绑定其他账号]' : '');
+            var disabled = e.IsBound && e.Id != currentEmpId ? ' disabled' : '';
+            opts += '<option value="' + e.Id + '"' + sel + disabled + '>' + label + '</option>';
+        });
+        $('#bindEmployeeId').html(opts);
+        // 触发一次change，回填当前员工信息
+        if (currentEmpId) syncEmployeeFields();
+    });
+}
+
+// 当员工下拉变更时，自动同步员工档案信息到用户字段并锁定
+$('#bindEmployeeId').on('change', function() { syncEmployeeFields(); });
+
+function syncEmployeeFields() {
+    var empId = $('#bindEmployeeId').val();
+    if (!empId) {
+        // 解绑：恢复编辑能力
+        $('#realName, #phone, #email, #deptId, #postId').prop('readonly', false)
+            .prop('disabled', false).removeClass('bg-light');
+        $('#empSyncHint').hide();
+        return;
+    }
+    // 绑定员工：从员工档案拉取信息
+    $.get('/hr/employee/json/' + empId, function(r) {
+        if (!r.success) return;
+        var e = r.data;
+        $('#realName').val(e.RealName).prop('readonly', true).addClass('bg-light');
+        $('#phone').val(e.Phone || '').prop('readonly', true).addClass('bg-light');
+        $('#email').val(e.Email || '').prop('readonly', true).addClass('bg-light');
+        $('#deptId').val(e.DeptId || '').prop('disabled', true);
+        $('#postId').val(e.PostId || '').prop('disabled', true);
+        $('#empSyncHint').show();
+    });
+}
+</script>
+}

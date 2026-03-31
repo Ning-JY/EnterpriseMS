@@ -1,0 +1,56 @@
+@using EnterpriseMS.Common
+@model dynamic
+
+@{
+    // 安全读取分页字段，dynamic 访问不存在属性会抛 RuntimeBinderException
+    int total, curPage, pageSize, totalPages;
+    try { total      = (int)(Model.Total     ?? 0); } catch { total      = 0; }
+    try { curPage    = (int)(Model.Page      ?? 1); } catch { curPage    = 1; }
+    try { pageSize   = (int)(Model.PageSize  ?? 10);} catch { pageSize   = 10; }
+    try { totalPages = (int)(Model.TotalPages ?? 0); } catch { totalPages = 0; }
+    if (total == 0) { return; }
+    bool hasPrev = curPage > 1;
+    bool hasNext = curPage < totalPages;
+}
+
+<div class="card-footer clearfix">
+    <small class="text-muted">
+        共 <strong>@total</strong> 条，
+        第 <strong>@curPage</strong> / <strong>@totalPages</strong> 页
+    </small>
+    <ul class="pagination pagination-sm m-0 float-right">
+        <li class="page-item @(!hasPrev ? "disabled" : "")">
+            <a class="page-link" href="javascript:goPage(@(curPage - 1))">«</a>
+        </li>
+        @for (int i = Math.Max(1, curPage - 2); i <= Math.Min(totalPages, curPage + 2); i++)
+        {
+            <li class="page-item @(i == curPage ? "active" : "")">
+                <a class="page-link" href="javascript:goPage(@i)">@i</a>
+            </li>
+        }
+        <li class="page-item @(!hasNext ? "disabled" : "")">
+            <a class="page-link" href="javascript:goPage(@(curPage + 1))">»</a>
+        </li>
+    </ul>
+</div>
+
+<script>
+// 防止多次引入同一个 goPage 函数（多个分页组件时只定义一次）
+if (typeof goPage === 'undefined') {
+    function goPage(p) {
+        if (p < 1) return;
+        var form = document.getElementById('searchForm');
+        if (!form) { console.warn('[Pagination] 找不到 id=searchForm 的表单'); return; }
+        // 找 name="page" 的隐藏域（Controller 参数名约定为 page，小写）
+        var input = form.querySelector('input[name="page"]');
+        if (!input) {
+            input = document.createElement('input');
+            input.type  = 'hidden';
+            input.name  = 'page';
+            form.appendChild(input);
+        }
+        input.value = p;
+        form.submit();
+    }
+}
+</script>

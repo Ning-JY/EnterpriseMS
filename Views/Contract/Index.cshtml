@@ -1,0 +1,313 @@
+@using EnterpriseMS.Domain.Entities.Hr
+@using EnterpriseMS.Services.DTOs.System
+@using EnterpriseMS.Services.DTOs.Hr
+@model List<EmployeeContract>
+@{
+    ViewData["Title"] = "合同管理";
+    var warnDate = DateTime.Today.AddDays(30);
+    var employees  = ViewBag.Employees  as List<EmployeeSimpleDto>  ?? new();
+    var ctTypes    = ViewBag.ContractTypes as List<DictDataDto>     ?? new();
+}
+
+<div class="content-header"><div class="container-fluid">
+    <div class="row mb-2">
+        <div class="col-sm-6"><h1 class="m-0">合同管理</h1></div>
+        <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item">员工档案</li>
+                <li class="breadcrumb-item active">合同管理</li>
+            </ol>
+        </div>
+    </div>
+</div></div>
+
+<section class="content"><div class="container-fluid">
+
+@if ((int)(ViewBag.WarnCount ?? 0) > 0)
+{
+    <div class="alert alert-warning alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        <strong>到期提醒：</strong>有 <strong>@ViewBag.WarnCount</strong> 份合同将在 30 天内到期。
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">合同列表（共 @ViewBag.Total 条）</h3>
+        <div class="card-tools">
+            <form id="searchForm" method="get" action="/hr/contract" class="d-inline-flex mr-2">
+                <input name="keyword" class="form-control form-control-sm mr-1"
+                       placeholder="员工姓名/合同编号" value="@ViewBag.Keyword" style="width:180px">
+                <select name="status" class="form-control form-control-sm mr-1" style="width:90px">
+                    <option value="">全部</option>
+                    <option value="0" selected="@(ViewBag.Status?.ToString()=="0"?"selected":null)">生效中</option>
+                    <option value="1" selected="@(ViewBag.Status?.ToString()=="1"?"selected":null)">已终止</option>
+                    <option value="2" selected="@(ViewBag.Status?.ToString()=="2"?"selected":null)">已到期</option>
+                </select>
+                <input type="hidden" name="page" value="1">
+                <button class="btn btn-sm btn-primary">搜索</button>
+            </form>
+            <button class="btn btn-sm btn-success" onclick="openAddModal()">
+                <i class="fas fa-plus"></i> 新增合同
+            </button>
+        </div>
+    </div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-hover table-sm">
+            <thead class="thead-light">
+                <tr>
+                    <th>员工</th><th>合同编号</th><th>类型</th>
+                    <th>开始日期</th><th>到期日期</th><th>状态</th><th>附件</th><th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ct in Model)
+                {
+                    var isExpiring = ct.Status == 0 && ct.EndDate <= warnDate;
+                    <tr class="@(isExpiring ? "table-warning" : "")">
+                        <td><strong>@(ct.Employee?.RealName ?? "-")</strong></td>
+                        <td><code class="small">@ct.ContractNo</code></td>
+                        <td>@ct.ContractType</td>
+                        <td class="small">@ct.StartDate.ToString("yyyy-MM-dd")</td>
+                        <td class="small @(isExpiring ? "text-danger font-weight-bold" : "")">
+                            @ct.EndDate.ToString("yyyy-MM-dd")
+                            @if (isExpiring) { <span class="badge badge-warning ml-1">即将到期</span> }
+                        </td>
+                        <td>
+                            @switch (ct.Status)
+                            {
+                                case 0: <span class="badge badge-success">生效中</span> break;
+                                case 1: <span class="badge badge-secondary">已终止</span> break;
+                                default:<span class="badge badge-danger">已到期</span> break;
+                            }
+                        </td>
+                        <td>
+                            @if (ct.FileName != null)
+                            {
+                                <div class="d-flex align-items-center flex-wrap gap-1">
+                                    <a href="/hr/contract/download/@ct.Id"
+                                       class="btn btn-xs btn-info" title="下载">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <label class="btn btn-xs btn-warning mb-0" title="重新上传">
+                                        <i class="fas fa-sync-alt"></i>
+                                        <input type="file" style="display:none"
+                                               onchange="uploadContract(@ct.Id, this)">
+                                    </label>
+                                    <button class="btn btn-xs btn-outline-danger"
+                                            onclick="deleteContractFile(@ct.Id)" title="删除附件">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <small class="text-muted d-block w-100 mt-1">
+                                        @(ct.FileName.Length > 16 ? ct.FileName[..16] + "…" : ct.FileName)
+                                    </small>
+                                </div>
+                            }
+                            else
+                            {
+                                <label class="btn btn-xs btn-outline-secondary mb-0" title="上传附件">
+                                    <i class="fas fa-upload"></i> 上传
+                                    <input type="file" style="display:none"
+                                           onchange="uploadContract(@ct.Id, this)">
+                                </label>
+                            }
+                        </td>
+                        <td>
+                            @if (ct.Status == 0)
+                            {
+                                <button class="btn btn-xs btn-warning"
+                                        onclick="terminate(@ct.Id)" title="终止">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                            }
+                            <button class="btn btn-xs btn-danger"
+                                    onclick="deleteContract(@ct.Id,'@ct.ContractNo')" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="8" class="text-center text-muted py-4">暂无数据</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @{
+        var paged = new EnterpriseMS.Common.PagedResult<EmployeeContract>
+        {
+            Items = Model, Total = (int)(ViewBag.Total ?? 0),
+            Page = (int)(ViewBag.Page ?? 1), PageSize = (int)(ViewBag.Size ?? 15)
+        };
+    }
+    <partial name="_Pagination" model="paged" />
+</div>
+</div></section>
+
+<!-- 新增合同弹窗 -->
+<div class="modal fade" id="contractModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">新增合同</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>员工 <span class="text-danger">*</span></label>
+                <select id="cEmpId" class="form-control">
+                    <option value="">-- 请选择员工 --</option>
+                    @foreach (var e in employees)
+                    {
+                        <option value="@e.Id">@e.Display</option>
+                    }
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>合同编号 <span class="text-danger">*</span></label>
+                        <input type="text" id="cNo" class="form-control" placeholder="如 HT2024-001">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>合同类型</label>
+                        <select id="cType" class="form-control">
+                            @foreach (var t in ctTypes)
+                            {
+                                <option value="@t.DictValue">@t.DictLabel</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>开始日期 <span class="text-danger">*</span></label>
+                        <input type="date" id="cStart" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>结束日期 <span class="text-danger">*</span></label>
+                        <input type="date" id="cEnd" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>签订日期</label>
+                        <input type="date" id="cSign" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>合同附件 <small class="text-muted">（可选，PDF/Word/图片，最大20MB）</small></label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="cFile"
+                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <label class="custom-file-label" for="cFile">点击选择文件</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="cRemark" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" id="saveBtn" onclick="saveContract()">
+                <i class="fas fa-save mr-1"></i> 保存
+            </button>
+        </div>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+
+document.getElementById('cFile')?.addEventListener('change', function() {
+    this.nextElementSibling.textContent = this.files[0]?.name ?? '点击选择文件';
+});
+
+function openAddModal() {
+    ['cEmpId','cNo','cSign','cRemark'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('cStart').value = new Date().toISOString().split('T')[0];
+    var d = new Date(); d.setFullYear(d.getFullYear()+1);
+    document.getElementById('cEnd').value = d.toISOString().split('T')[0];
+    document.getElementById('cFile').value = '';
+    document.querySelector('label[for="cFile"]').textContent = '点击选择文件';
+    $('#contractModal').modal('show');
+}
+
+function saveContract() {
+    var empId = $('#cEmpId').val(), no = $('#cNo').val();
+    var start = $('#cStart').val(), end = $('#cEnd').val();
+    if (!empId || !no || !start || !end) {
+        layer.msg('请填写员工、合同编号、起止日期', {icon:2}); return;
+    }
+    var file = document.getElementById('cFile').files[0];
+    var fd   = new FormData();
+    fd.append('EmployeeId',   empId);
+    fd.append('ContractNo',   no);
+    fd.append('ContractType', $('#cType').val());
+    fd.append('StartDate',    start);
+    fd.append('EndDate',      end);
+    if ($('#cSign').val()) fd.append('SignDate', $('#cSign').val());
+    fd.append('Remark', $('#cRemark').val());
+    if (file) fd.append('file', file);
+
+    $('#saveBtn').prop('disabled', true);
+    var load = layer.load(1);
+    $.ajax({ url: '/hr/contract/create-with-file', type: 'POST',
+        data: fd, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) {
+            layer.close(load); $('#saveBtn').prop('disabled', false);
+            if (r.success) { $('#contractModal').modal('hide'); handleResult(r, ()=>location.reload()); }
+            else layer.msg(r.message, {icon:2});
+        },
+        error: function() { layer.close(load); $('#saveBtn').prop('disabled', false); layer.msg('请求失败', {icon:2}); }
+    });
+}
+
+function terminate(id) {
+    layer.confirm('确认终止该合同？', {icon:3, btn:['确认','取消']}, function(i) {
+        layer.close(i);
+        $.post('/hr/contract/terminate', {id, __RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, ()=>location.reload()); });
+    });
+}
+
+function deleteContract(id, no) {
+    layer.confirm('确认永久删除合同 <b>' + no + '</b>？', {icon:3, btn:['确认删除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/hr/contract/delete/' + id, {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, ()=>location.reload()); });
+    });
+}
+
+function uploadContract(id, input) {
+    if (!input.files[0]) return;
+    var fd = new FormData(); fd.append('file', input.files[0]);
+    var load = layer.load(1);
+    $.ajax({ url: '/hr/contract/upload/' + id, type: 'POST',
+        data: fd, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) { layer.close(load); handleResult(r, ()=>location.reload()); }
+    });
+}
+
+function deleteContractFile(id) {
+    layer.confirm('确认删除该合同附件？合同记录将保留。', {icon:3, btn:['确认删除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/hr/contract/file/delete/' + id, {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, ()=>location.reload()); });
+    });
+}
+</script>
+}

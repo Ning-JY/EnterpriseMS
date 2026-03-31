@@ -1,0 +1,659 @@
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Domain.Entities.Hr
+@using EnterpriseMS.Services.DTOs.System
+@model Employee
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = Model.RealName + " - 员工详情";
+    var userId     = User.GetUserId();
+    bool canEdit   = await PermSvc.HasPermAsync(userId, "hr:employee:edit");
+    bool canFormal = await PermSvc.HasPermAsync(userId, "hr:employee:formal");
+    bool canLeave  = await PermSvc.HasPermAsync(userId, "hr:employee:leave");
+    string[] statusText  = new[]{"试用期","在职","已离职"};
+    string[] statusBadge = new[]{"badge-warning","badge-success","badge-secondary"};
+    var depts = ViewBag.Depts as List<DeptTreeDto> ?? new();
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">
+                    <a href="/hr/employee" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
+                    @Model.RealName
+                    <span class="badge @statusBadge[Model.Status] ml-2">@statusText[Model.Status]</span>
+                </h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item"><a href="/hr/employee">员工信息</a></li>
+                    <li class="breadcrumb-item active">员工详情</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<div class="row">
+    <!-- 基本信息卡片 -->
+    <div class="col-md-4">
+        <div class="card card-primary card-outline">
+            <div class="card-body text-center">
+                <i class="fas fa-user-circle fa-5x text-muted mb-3"></i>
+                <h4 class="mb-1">@Model.RealName</h4>
+                <p class="text-muted mb-0">@(Model.Dept?.DeptName ?? "暂无部门")</p>
+            </div>
+            <div class="card-footer p-0">
+                <table class="table table-sm table-borderless mb-0">
+                    <tr><td class="text-muted pl-3">工号</td><td><code>@Model.EmpNo</code></td></tr>
+                    <tr><td class="text-muted pl-3">性别</td><td>@(Model.Gender==1?"男":"女")</td></tr>
+                    <tr><td class="text-muted pl-3">手机</td><td>@(Model.Phone??"-")</td></tr>
+                    <tr><td class="text-muted pl-3">邮箱</td><td class="small">@(Model.Email??"-")</td></tr>
+                    <tr><td class="text-muted pl-3">入职</td><td>@(Model.EntryDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
+                    <tr><td class="text-muted pl-3">转正</td><td>@(Model.FormalDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
+                    @if (Model.Status==2)
+                    {
+                        <tr><td class="text-muted pl-3">离职</td><td class="text-danger">@(Model.LeaveDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Remark))
+                    {
+                        <tr><td class="text-muted pl-3">备注</td><td class="small">@Model.Remark</td></tr>
+                    }
+                </table>
+            </div>
+            <div class="card-footer">
+                @if (canEdit && Model.Status != 2)
+                {
+                    <a href="/hr/employee/edit/@Model.Id" class="btn btn-sm btn-warning btn-block">
+                        <i class="fas fa-edit mr-1"></i> 编辑信息
+                    </a>
+                }
+                @if (canFormal && Model.Status == 0)
+                {
+                    <button class="btn btn-sm btn-success btn-block mt-1" onclick="doFormal()">
+                        <i class="fas fa-user-check mr-1"></i>办理转正
+                    </button>
+                }
+                @if (canLeave && Model.Status != 2)
+                {
+                    <button class="btn btn-sm btn-secondary btn-block mt-1" onclick="doLeave()">
+                        <i class="fas fa-sign-out-alt mr-1"></i>办理离职
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <!-- 合同记录 -->
+        <div class="card card-success card-outline">
+            <div class="card-header">
+                <h3 class="card-title">劳动合同</h3>
+                <div class="card-tools">
+                    @if (canEdit)
+                    {
+                        <button class="btn btn-sm btn-success mr-1"
+                                onclick="openAddContractModal()" title="新增合同">
+                            <i class="fas fa-plus"></i> 新增
+                        </button>
+                    }
+                    <a href="/hr/contract" class="btn btn-sm btn-outline-success">查看全部</a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Contracts.Any())
+                {
+                    <table class="table table-sm">
+                        <thead class="thead-light">
+                            <tr><th>合同编号</th><th>类型</th><th>开始</th><th>到期</th><th>状态</th><th>附件</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cont in Model.Contracts.OrderByDescending(x => x.StartDate))
+                            {
+                                var warn = cont.Status==0 && cont.EndDate <= DateTime.Today.AddDays(30);
+                                <tr class="@(warn?"table-warning":"")">
+                                    <td><code class="small">@cont.ContractNo</code></td>
+                                    <td>@cont.ContractType</td>
+                                    <td class="small">@cont.StartDate.ToString("yyyy-MM-dd")</td>
+                                    <td class="small @(warn?"text-danger font-weight-bold":"")">
+                                        @cont.EndDate.ToString("yyyy-MM-dd")
+                                        @if(warn){<span class="badge badge-warning ml-1">即将到期</span>}
+                                    </td>
+                                    <td>
+                                        @if(cont.Status==0){<span class="badge badge-success">生效</span>}
+                                        else{<span class="badge badge-secondary">已终止/到期</span>}
+                                    </td>
+                                    <td>
+                                        @if(!string.IsNullOrEmpty(cont.FileName))
+                                        {
+                                            <a href="/hr/contract/download/@cont.Id"
+                                               class="btn btn-xs btn-info" title="下载">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            @if(canEdit){
+                                            <label class="btn btn-xs btn-warning mb-0" title="重新上传">
+                                                <i class="fas fa-sync-alt"></i>
+                                                <input type="file" style="display:none"
+                                                       onchange="uploadContractFile(@cont.Id, this)">
+                                            </label>
+                                            <button class="btn btn-xs btn-outline-danger"
+                                                    onclick="deleteAttachment('contract',@cont.Id)"
+                                                    title="删除附件">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            }
+                                        }
+                                        else if(canEdit)
+                                        {
+                                            <label class="btn btn-xs btn-outline-secondary mb-0">
+                                                <i class="fas fa-upload"></i> 上传
+                                                <input type="file" style="display:none"
+                                                       onchange="uploadContractFile(@cont.Id, this)">
+                                            </label>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-3">暂无合同记录</div>
+                }
+            </div>
+        </div>
+
+        <!-- 证书记录 -->
+        <div class="card card-info card-outline">
+            <div class="card-header">
+                <h3 class="card-title">持有证书</h3>
+                <div class="card-tools">
+                    @if (canEdit)
+                    {
+                        <button class="btn btn-sm btn-info mr-1"
+                                onclick="openAddCertModal()" title="新增证书">
+                            <i class="fas fa-plus"></i> 新增
+                        </button>
+                    }
+                    <a href="/hr/cert" class="btn btn-sm btn-outline-info">查看全部</a>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Certificates.Any())
+                {
+                    <table class="table table-sm">
+                        <thead class="thead-light">
+                            <tr><th>证书名称</th><th>类型</th><th>证书编号</th><th>有效期至</th><th>状态</th><th>附件</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var cert in Model.Certificates)
+                            {
+                                var warn = cert.Status==0 && cert.ExpireDate.HasValue
+                                        && cert.ExpireDate <= DateTime.Today.AddDays(60);
+                                <tr class="@(warn?"table-warning":"")">
+                                    <td>@cert.CertName</td>
+                                    <td><span class="badge badge-light">@cert.CertType</span></td>
+                                    <td><code class="small">@(cert.CertNo??"-")</code></td>
+                                    <td class="small @(warn?"text-danger font-weight-bold":"")">
+                                        @(cert.ExpireDate?.ToString("yyyy-MM-dd")??"长期")
+                                        @if(warn){<span class="badge badge-warning ml-1">即将到期</span>}
+                                    </td>
+                                    <td>
+                                        @if(cert.Status==0){<span class="badge badge-success">有效</span>}
+                                        else{<span class="badge badge-danger">已过期</span>}
+                                    </td>
+                                    <td>
+                                        @if(!string.IsNullOrEmpty(cert.FileName))
+                                        {
+                                            <a href="/hr/cert/download/@cert.Id"
+                                               class="btn btn-xs btn-info" title="下载">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            @if(canEdit){
+                                            <label class="btn btn-xs btn-warning mb-0" title="重新上传">
+                                                <i class="fas fa-sync-alt"></i>
+                                                <input type="file" style="display:none"
+                                                       onchange="uploadCertFile(@cert.Id, this)">
+                                            </label>
+                                            <button class="btn btn-xs btn-outline-danger"
+                                                    onclick="deleteAttachment('cert',@cert.Id)"
+                                                    title="删除附件">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            }
+                                        }
+                                        else if(canEdit)
+                                        {
+                                            <label class="btn btn-xs btn-outline-secondary mb-0">
+                                                <i class="fas fa-upload"></i> 上传
+                                                <input type="file" style="display:none"
+                                                       onchange="uploadCertFile(@cert.Id, this)">
+                                            </label>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-3">暂无证书记录</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+</div></section>
+
+<!-- 编辑员工弹窗 -->
+<div class="modal fade" id="editEmpModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">编辑员工信息 - @Model.RealName</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>姓名 <span class="text-danger">*</span></label>
+                        <input type="text" id="editRealName" class="form-control" value="@Model.RealName">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>性别</label>
+                        <select id="editGender" class="form-control">
+                            <option value="1" selected="@(Model.Gender==1?"selected":null)">男</option>
+                            <option value="2" selected="@(Model.Gender==2?"selected":null)">女</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>手机号</label>
+                        <input type="text" id="editPhone" class="form-control" value="@(Model.Phone??"")">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>邮箱</label>
+                        <input type="email" id="editEmail" class="form-control" value="@(Model.Email??"")">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>身份证号</label>
+                        <input type="text" id="editIdCard" class="form-control" value="@(Model.IdCard??"")" maxlength="18">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>所属部门</label>
+                        <select id="editDeptId" class="form-control">
+                            <option value="">请选择</option>
+                            @foreach (var d in depts)
+                            {
+                                <option value="@d.Id" selected="@(Model.DeptId==d.Id?"selected":null)">@d.DeptName</option>
+                                @foreach (var child in d.Children)
+                                {
+                                    <option value="@child.Id" selected="@(Model.DeptId==child.Id?"selected":null)">&nbsp;&nbsp;└ @child.DeptName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>入职日期</label>
+                        <input type="date" id="editEntryDate" class="form-control"
+                               value="@(Model.EntryDate?.ToString("yyyy-MM-dd")??"")">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="editRemark" class="form-control" rows="2">@(Model.Remark??"")</textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveEdit()">保存</button>
+        </div>
+    </div></div>
+</div>
+
+<!-- ── 新增合同弹窗 ── -->
+<div class="modal fade" id="addContractModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">新增劳动合同</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>合同编号 <span class="text-danger">*</span></label>
+                        <input type="text" id="ctNo" class="form-control" placeholder="如 HT2024-001">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>合同类型</label>
+                        <select id="ctType" class="form-control">
+                            @foreach (var t in ViewBag.ContractTypes as List<EnterpriseMS.Services.DTOs.System.DictDataDto> ?? new())
+                            { <option value="@t.DictValue">@t.DictLabel</option> }
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>开始日期 <span class="text-danger">*</span></label>
+                        <input type="date" id="ctStart" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>结束日期 <span class="text-danger">*</span></label>
+                        <input type="date" id="ctEnd" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>签订日期</label>
+                        <input type="date" id="ctSign" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>合同附件 <small class="text-muted">（可选）</small></label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="ctFile"
+                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+                    <label class="custom-file-label" for="ctFile">选择文件（可选）</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="ctRemark" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-success" id="ctSaveBtn" onclick="saveEmpContract()">
+                <i class="fas fa-save mr-1"></i> 保存
+            </button>
+        </div>
+    </div></div>
+</div>
+
+<!-- ── 新增证书弹窗 ── -->
+<div class="modal fade" id="addCertModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">新增证书</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>证书名称 <span class="text-danger">*</span></label>
+                        <input type="text" id="certName2" class="form-control"
+                               placeholder="如：注册城乡规划师">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>证书类型</label>
+                        <select id="certType2" class="form-control">
+                            @foreach (var t in ViewBag.CertTypes as List<EnterpriseMS.Services.DTOs.System.DictDataDto> ?? new())
+                            { <option value="@t.DictValue">@t.DictLabel</option> }
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>证书编号</label>
+                        <input type="text" id="certNo2" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>发证机构</label>
+                        <input type="text" id="certOrg2" class="form-control"
+                               placeholder="如：住房和城乡建设部">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>发证日期</label>
+                        <input type="date" id="certIssue2" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>有效期至 <small class="text-muted">（留空=长期有效）</small></label>
+                        <input type="date" id="certExpire2" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>证书扫描件 <small class="text-muted">（可选）</small></label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="certFile2"
+                           accept=".pdf,.jpg,.jpeg,.png">
+                    <label class="custom-file-label" for="certFile2">选择文件（可选）</label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-info" id="certSaveBtn2" onclick="saveEmpCert()">
+                <i class="fas fa-save mr-1"></i> 保存
+            </button>
+        </div>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+var empId = @Model.Id;
+
+// custom-file-input 显示文件名
+document.addEventListener('change', function(e) {
+    if (e.target.classList.contains('custom-file-input')) {
+        var label = e.target.nextElementSibling;
+        if (label) label.textContent = e.target.files[0]?.name ?? '选择文件';
+    }
+});
+
+function openEditModal() {
+    $('#editEmpModal').modal('show');
+}
+
+function saveEdit() {
+    var data = {
+        Id:       empId,
+        RealName: $('#editRealName').val(),
+        Gender:   parseInt($('#editGender').val()),
+        Phone:    $('#editPhone').val(),
+        Email:    $('#editEmail').val(),
+        IdCard:   $('#editIdCard').val(),
+        DeptId:   parseInt($('#editDeptId').val()) || null,
+        EntryDate: $('#editEntryDate').val() || null,
+        Remark:   $('#editRemark').val(),
+    };
+    if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
+    ajaxPost('/hr/employee/update', data, function(r) {
+        layer.msg(r.message, {icon:1, time:1500}, function() { location.reload(); });
+    });
+}
+
+function doFormal() {
+    var today = new Date().toISOString().split('T')[0];
+    layer.prompt({ title: '请选择转正日期', formType: 2, value: today }, function(val, i) {
+        layer.close(i);
+        $.post('/hr/employee/formal', { id: empId, formalDate: val, __RequestVerificationToken: antiForgery },
+            function(r) {
+                layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                    function() { if (r.success) location.reload(); });
+            });
+    });
+}
+
+function doLeave() {
+    var today = new Date().toISOString().split('T')[0];
+    layer.prompt({ title: '请输入离职日期', formType: 2, value: today }, function(val, i) {
+        layer.close(i);
+        $.post('/hr/employee/leave', { id: empId, leaveDate: val, __RequestVerificationToken: antiForgery },
+            function(r) {
+                layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                    function() { if (r.success) location.reload(); });
+            });
+    });
+}
+
+function uploadContractFile(contractId, input) {
+    if (!input.files[0]) return;
+    var formData = new FormData();
+    formData.append('file', input.files[0]);
+    var load = layer.load(1);
+    $.ajax({
+        url: '/hr/contract/upload/' + contractId, type: 'POST',
+        data: formData, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) {
+            layer.close(load);
+            layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                function() { if (r.success) location.reload(); });
+        }
+    });
+}
+
+function uploadCertFile(certId, input) {
+    if (!input.files[0]) return;
+    var formData = new FormData();
+    formData.append('file', input.files[0]);
+    var load = layer.load(1);
+    $.ajax({
+        url: '/hr/cert/upload/' + certId, type: 'POST',
+        data: formData, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) {
+            layer.close(load);
+            layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                function() { if (r.success) location.reload(); });
+        }
+    });
+}
+
+// 统一删除附件（合同/证书）
+function deleteAttachment(type, id) {
+    var url = type === "contract"
+        ? "/hr/contract/file/delete/" + id
+        : "/hr/cert/file/delete/" + id;
+    layer.confirm("确认删除附件？记录本身将保留。",
+        {icon:3, btn:["确认删除","取消"]}, function(i) {
+        layer.close(i);
+        $.post(url, {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, ()=>location.reload()); });
+    });
+}
+
+// ── 新增合同 ────────────────────────────────────────────────
+function openAddContractModal() {
+    $('#ctNo,#ctRemark').val('');
+    var today = new Date().toISOString().split('T')[0];
+    $('#ctStart').val(today);
+    var next = new Date(); next.setFullYear(next.getFullYear()+1);
+    $('#ctEnd').val(next.toISOString().split('T')[0]);
+    $('#ctSign').val(today);
+    document.getElementById('ctFile').value = '';
+    document.querySelector('label[for="ctFile"]').textContent = '选择文件（可选）';
+    $('#addContractModal').modal('show');
+}
+
+function saveEmpContract() {
+    var no = $('#ctNo').val(), start = $('#ctStart').val(), end = $('#ctEnd').val();
+    if (!no || !start || !end) { layer.msg('请填写合同编号和起止日期', {icon:2}); return; }
+    var fd = new FormData();
+    fd.append('EmployeeId', empId);
+    fd.append('ContractNo', no);
+    fd.append('ContractType', $('#ctType').val());
+    fd.append('StartDate', start);
+    fd.append('EndDate', end);
+    if ($('#ctSign').val()) fd.append('SignDate', $('#ctSign').val());
+    fd.append('Remark', $('#ctRemark').val());
+    var file = document.getElementById('ctFile').files[0];
+    if (file) fd.append('file', file);
+
+    $('#ctSaveBtn').prop('disabled', true);
+    var load = layer.load(1);
+    $.ajax({ url: '/hr/contract/create-with-file', type: 'POST',
+        data: fd, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) {
+            layer.close(load); $('#ctSaveBtn').prop('disabled', false);
+            if (r.success) { $('#addContractModal').modal('hide'); location.reload(); }
+            else layer.msg(r.message, {icon:2});
+        }
+    });
+}
+
+// ── 新增证书 ────────────────────────────────────────────────
+function openAddCertModal() {
+    ['#certName2,#certNo2,#certOrg2,#certIssue2,#certExpire2'].forEach(function(s){
+        $(s).val('');
+    });
+    $('#certName2,#certNo2,#certOrg2').val('');
+    $('#certIssue2,#certExpire2').val('');
+    document.getElementById('certFile2').value = '';
+    document.querySelector('label[for="certFile2"]').textContent = '选择文件（可选）';
+    $('#addCertModal').modal('show');
+}
+
+function saveEmpCert() {
+    var name = $('#certName2').val();
+    if (!name) { layer.msg('请填写证书名称', {icon:2}); return; }
+    var fd = new FormData();
+    fd.append('EmployeeId', empId);
+    fd.append('CertName', name);
+    fd.append('CertType', $('#certType2').val());
+    if ($('#certNo2').val())     fd.append('CertNo',    $('#certNo2').val());
+    if ($('#certOrg2').val())    fd.append('IssueOrg',  $('#certOrg2').val());
+    if ($('#certIssue2').val())  fd.append('IssueDate', $('#certIssue2').val());
+    if ($('#certExpire2').val()) fd.append('ExpireDate', $('#certExpire2').val());
+    var file = document.getElementById('certFile2').files[0];
+    if (file) fd.append('file', file);
+
+    $('#certSaveBtn2').prop('disabled', true);
+    var load = layer.load(1);
+    $.ajax({ url: '/hr/cert/create-with-file', type: 'POST',
+        data: fd, processData: false, contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) {
+            layer.close(load); $('#certSaveBtn2').prop('disabled', false);
+            if (r.success) { $('#addCertModal').modal('hide'); location.reload(); }
+            else layer.msg(r.message, {icon:2});
+        }
+    });
+}
+</script>
+}

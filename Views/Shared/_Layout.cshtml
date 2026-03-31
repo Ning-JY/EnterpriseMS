@@ -1,0 +1,150 @@
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Services.DTOs.System
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@(ViewData["Title"] ?? "企业管理系统") - 企业管理系统</title>
+    <link rel="stylesheet" href="~/lib/adminlte/css/adminlte.min.css">
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="~/css/site.css">
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+<div class="wrapper">
+
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+        <ul class="navbar-nav">
+            <li class="nav-item">
+                <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
+            </li>
+            <li class="nav-item d-none d-sm-inline-block">
+                <a href="/" class="nav-link">首页</a>
+            </li>
+        </ul>
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="/my-stats" title="个人产值统计">
+                    <i class="fas fa-chart-line"></i>
+                </a>
+            </li>
+            <li class="nav-item dropdown">
+                <a class="nav-link" data-toggle="dropdown" href="#">
+                    <i class="far fa-user"></i> @User.GetRealName()
+                </a>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <a href="/profile" class="dropdown-item">
+                        <i class="fas fa-user-circle mr-2"></i>个人资料
+                    </a>
+                    <a href="/my-stats" class="dropdown-item">
+                        <i class="fas fa-chart-bar mr-2"></i>我的产值
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <form asp-action="Logout" asp-controller="Account" method="post" style="display:inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt mr-2"></i>退出登录
+                        </button>
+                    </form>
+                </div>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Sidebar -->
+    <aside class="main-sidebar sidebar-dark-primary elevation-4">
+        <a href="/" class="brand-link">
+            <span class="brand-text font-weight-light"><strong>企业</strong>管理系统</span>
+        </a>
+        <div class="sidebar">
+            <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+                <div class="image"><i class="fas fa-user-circle fa-2x text-white"></i></div>
+                <div class="info">
+                    <a href="#" class="d-block text-white">@User.GetRealName()</a>
+                </div>
+            </div>
+            <nav class="mt-2">
+                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview"
+                    role="menu" data-accordion="false">
+
+                    @{
+                        var menuTree = ViewBag.MenuTree as List<MenuTreeDto>
+                            ?? new List<MenuTreeDto>();
+                        var currentPath = Context.Request.Path.Value ?? "";
+                    }
+
+                    @foreach (var menu in menuTree)
+                    {
+                        if (menu.MenuType == "M" && menu.Children.Any())
+                        {
+                            <li class="nav-item has-treeview @(currentPath.StartsWith(menu.Path ?? "§") ? "menu-open" : "")">
+                                <a href="#" class="nav-link @(currentPath.StartsWith(menu.Path ?? "§") ? "active" : "")">
+                                    <i class="nav-icon fas @(menu.Icon ?? "fa-circle")"></i>
+                                    <p>@menu.MenuName<i class="right fas fa-angle-left"></i></p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    @foreach (var child in menu.Children.Where(c => c.MenuType == "C"))
+                                    {
+                                        <li class="nav-item">
+                                            <a href="@child.Path" class="nav-link pl-4 @(child.Path != null && currentPath.StartsWith(child.Path) ? "active" : "")">
+                                                <i class="far fa-circle nav-icon"></i>
+                                                <p>@child.MenuName</p>
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </li>
+                        }
+                        else if (menu.MenuType == "C")
+                        {
+                            <li class="nav-item">
+                                <a href="@menu.Path" class="nav-link @(menu.Path != null && currentPath.StartsWith(menu.Path) ? "active" : "")">
+                                    <i class="nav-icon fas @(menu.Icon ?? "fa-circle")"></i>
+                                    <p>@menu.MenuName</p>
+                                </a>
+                            </li>
+                        }
+                    }
+                </ul>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- Content Wrapper -->
+    <div class="content-wrapper">
+        @RenderBody()
+    </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <strong>企业管理系统 v2.0</strong>
+        <div class="float-right d-none d-sm-inline-block">
+            <b>Version</b> 2.0.0
+        </div>
+    </footer>
+</div>
+
+<script src="~/lib/jquery/jquery.min.js"></script>
+<script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="~/lib/adminlte/js/adminlte.min.js"></script>
+<script src="~/lib/layer/layer.js"></script>
+<script src="~/js/site.js"></script>
+<script>
+// layer未加载时降级为原生弹窗，避免页面无任何反馈
+if (typeof layer === 'undefined') {
+    window.layer = {
+        msg: function(m, o, cb)    { setTimeout(function(){ if(cb) cb(); }, 1500); alert(m); },
+        confirm: function(m, o, yes, no) { if(confirm(m)){ if(yes) yes(0); } else { if(no) no(0); } },
+        open:  function(o)  { return 0; },
+        close: function(i)  { },
+        load:  function(t)  { return 0; },
+        prompt: function(o, cb) { var v=prompt(o.title||'请输入'); if(v!==null && cb) cb(v,0); }
+    };
+}
+</script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

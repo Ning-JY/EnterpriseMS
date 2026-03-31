@@ -1,0 +1,104 @@
+@{
+    ViewData["Title"] = "仪表盘";
+    Layout = "_Layout";
+    dynamic stats = ViewBag.Stats ?? new { total = 0, executing = 0, completed = 0, overdue = 0 };
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">仪表盘</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item active">首页</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+<div class="container-fluid">
+
+    <!-- 统计卡片 -->
+    <div class="row">
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>@stats.total</h3>
+                    <p>项目总数</p>
+                </div>
+                <div class="icon"><i class="fas fa-project-diagram"></i></div>
+                <a href="/project" class="small-box-footer">查看详情 <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>@stats.executing</h3>
+                    <p>执行中项目</p>
+                </div>
+                <div class="icon"><i class="fas fa-tasks"></i></div>
+                <a href="/project?ProgressStatus=6" class="small-box-footer">查看详情 <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>@stats.overdue</h3>
+                    <p>里程碑逾期</p>
+                </div>
+                <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <a href="/project" class="small-box-footer">查看详情 <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-secondary">
+                <div class="inner">
+                    <h3>@stats.completed</h3>
+                    <p>已完成项目</p>
+                </div>
+                <div class="icon"><i class="fas fa-check-circle"></i></div>
+                <a href="/project?ProgressStatus=8" class="small-box-footer">查看详情 <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 快捷入口 -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">快捷入口</h3></div>
+                <div class="card-body">
+                    <a href="/project/create" class="btn btn-outline-primary m-1">
+                        <i class="fas fa-plus"></i> 新建项目
+                    </a>
+                    <a href="/hr/employee" class="btn btn-outline-info m-1">
+                        <i class="fas fa-users"></i> 员工管理
+                    </a>
+                    <a href="/system/user" class="btn btn-outline-secondary m-1">
+                        <i class="fas fa-user-cog"></i> 用户管理
+                    </a>
+                    <a href="/budget" class="btn btn-outline-success m-1">
+                        <i class="fas fa-file-invoice-dollar"></i> 概预算结算
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">系统信息</h3></div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr><td class="text-muted">系统名称</td><td>企业管理系统 v2.0</td></tr>
+                        <tr><td class="text-muted">框架版本</td><td>.NET 9.0 + EF Core 9</td></tr>
+                        <tr><td class="text-muted">当前用户</td><td>@User.Identity?.Name</td></tr>
+                        <tr><td class="text-muted">服务器时间</td><td>@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")</td></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</section>
