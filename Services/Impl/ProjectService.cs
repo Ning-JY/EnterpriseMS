@@ -15,11 +15,12 @@ public class ProjectService : IProjectService
     private readonly IUnitOfWork _uow;
     private readonly IMapper _mapper;
     private readonly AppDbContext _db;
+    private readonly IPermissionService _permSvc;
     private readonly ILogger<ProjectService> _logger;
 
     public ProjectService(IUnitOfWork uow, IMapper mapper,
-        AppDbContext db, ILogger<ProjectService> logger)
-    { _uow = uow; _mapper = mapper; _db = db; _logger = logger; }
+        AppDbContext db, IPermissionService permSvc, ILogger<ProjectService> logger)
+    { _uow = uow; _mapper = mapper; _db = db; _permSvc = permSvc; _logger = logger; }
 
     public async Task<PagedResult<ProjectListDto>> GetPagedAsync(ProjectQueryDto query, long operUserId)
     {
@@ -29,17 +30,53 @@ public class ProjectService : IProjectService
             .Include(p => p.BizLeader)
             .Include(p => p.Milestones)
             .AsQueryable();
+        // ── 数据权限过滤 ─────────────────────────────────────────
+        var (dataScope, userDeptId) = await _permSvc.GetUserDataScopeAsync(operUserId);
 
+        if (dataScope == 1)
+        {
+            // 全部数据，不过滤
+        }
+        else if (dataScope == 3 && userDeptId.HasValue)
+        {
+            // 本部门及子部门：查出所有子部门ID
+            var dept = await _db.SysDepts
+                .Where(d => !d.IsDeleted)
+                .ToListAsync();
+            var deptIds = GetSelfAndChildDeptIds(dept, userDeptId.Value);
+            q = q.Where(p => p.DeptId.HasValue && deptIds.Contains(p.DeptId.Value));
+        }
+        else if (dataScope == 2 && userDeptId.HasValue)
+        {
+            // 仅本部门
+            q = q.Where(p => p.DeptId == userDeptId);
+        }
+        //  else if (dataScope == 4)
+        else
+        {
+            // 仅本人参与的项目
+            var empId = await _db.SysUsers
+                .Where(u => u.Id == operUserId)
+                .Select(u => u.EmployeeId)
+                .FirstOrDefaultAsync();
+            if (empId.HasValue)
+                q = q.Where(p => _db.ProjMembers.Any(m =>
+                    m.ProjectId == p.Id && m.EmployeeId == empId && m.Status == 0));
+            else
+                q = q.Where(p => false);  // 未绑定员工：看不到任何项目
+        }
         if (!string.IsNullOrWhiteSpace(query.Keyword))
             q = q.Where(p => p.ProjName.Contains(query.Keyword) ||
                              p.OwnerName.Contains(query.Keyword) ||
                              p.ProjNo.Contains(query.Keyword));
-        if (query.DeptId.HasValue)         q = q.Where(p => p.DeptId == query.DeptId);
-        if (query.ProgressStatus.HasValue) q = q.Where(p => p.ProgressStatus == query.ProgressStatus);
+        if (query.DeptId.HasValue)
+            q = q.Where(p => p.DeptId == query.DeptId);
+        if (query.ProgressStatus.HasValue)
+            q = q.Where(p => p.ProgressStatus == query.ProgressStatus);
 
         var total = await q.CountAsync();
-        var list  = await q.OrderByDescending(p => p.CreatedAt)
-                           .Skip((query.Page-1)*query.Size).Take(query.Size)
+        var list = await q.OrderByDescending(p => p.CreatedAt)
+                           .Skip((query.Page - 1) * query.Size).Take(query.Size)
                            .ToListAsync();
 
         var items = _mapper.Map<List<ProjectListDto>>(list);
@@ -47,7 +84,12 @@ public class ProjectService : IProjectService
             item.ProgressText = GetProgressText(item.ProgressStatus);
 
         return new PagedResult<ProjectListDto>
-            { Items = items, Total = total, Page = query.Page, PageSize = query.Size };
+        {
+            Items = items,
+            Total = total,
+            Page = query.Page,
+            PageSize = query.Size
+        };
     }
 
     public async Task<ProjectDetailDto?> GetDetailAsync(long id)
@@ -67,15 +109,15 @@ public class ProjectService : IProjectService
         if (proj == null) return null;
 
         var dto = _mapper.Map<ProjectDetailDto>(proj);
-        dto.ProgressText   = GetProgressText(proj.ProgressStatus);
-        dto.TotalReceived  = await GetTotalReceivedAsync(id);
-        dto.StatusUpdatedAt= proj.StatusUpdatedAt;
-        dto.Contracts      = _mapper.Map<List<ProjectContractDto>>(
-                                proj.Contracts.OrderByDescending(x=>x.CreatedAt).ToList());
-        dto.Invoices       = _mapper.Map<List<ProjectInvoiceDto>>(
-                                proj.Invoices.OrderByDescending(x=>x.InvoiceDate).ToList());
-        dto.Files          = _mapper.Map<List<ProjectFileDto>>(
-                                proj.Files.OrderByDescending(x=>x.CreatedAt).ToList());
+        dto.ProgressText = GetProgressText(proj.ProgressStatus);
+        dto.TotalReceived = await GetTotalReceivedAsync(id);
+        dto.StatusUpdatedAt = proj.StatusUpdatedAt;
+        dto.Contracts = _mapper.Map<List<ProjectContractDto>>(
+                                proj.Contracts.OrderByDescending(x => x.CreatedAt).ToList());
+        dto.Invoices = _mapper.Map<List<ProjectInvoiceDto>>(
+                                proj.Invoices.OrderByDescending(x => x.InvoiceDate).ToList());
+        dto.Files = _mapper.Map<List<ProjectFileDto>>(
+                                proj.Files.OrderByDescending(x => x.CreatedAt).ToList());
 
         // 计算成员产值
         var actualAmt = proj.ActualContractAmount;
@@ -93,7 +135,7 @@ public class ProjectService : IProjectService
             throw new BusinessException("联合体项目须填写我方占比");
 
         var proj = _mapper.Map<Project>(dto);
-        proj.ProjNo    = string.IsNullOrWhiteSpace(dto.ProjNo)
+        proj.ProjNo = string.IsNullOrWhiteSpace(dto.ProjNo)
                          ? await GenerateProjNoAsync() : dto.ProjNo;
         proj.CreatedBy = operBy;
 
@@ -157,7 +199,7 @@ public class ProjectService : IProjectService
             throw new BusinessException("状态只能向前推进，不可回退");
 
         var oldStatus = GetProgressText(proj.ProgressStatus);
-        proj.ProgressStatus  = dto.NewStatus;
+        proj.ProgressStatus = dto.NewStatus;
         proj.StatusUpdatedAt = DateTime.Now;
         if (dto.NewStatus == 8) proj.ActualEndDate = dto.StatusDate ?? DateTime.Today;
         proj.UpdatedBy = operBy;
@@ -176,7 +218,7 @@ public class ProjectService : IProjectService
         if (proj.ProgressStatus == 8)
             throw new BusinessException("已完成项目不可终止");
         proj.ProgressStatus = 9;
-        proj.UpdatedBy      = operBy;
+        proj.UpdatedBy = operBy;
         _uow.Projects.Update(proj);
         await _uow.SaveChangesAsync();
         await WriteLogAsync(id, "项目终止", $"原因：{reason}", operBy);
@@ -184,7 +226,7 @@ public class ProjectService : IProjectService
 
     public async Task<string> GenerateProjNoAsync()
     {
-        var year  = DateTime.Now.Year;
+        var year = DateTime.Now.Year;
         var count = await _uow.Projects.CountAsync(
             p => p.CreatedAt.Year == year);
         return $"PRJ-{year}-{(count + 1):D3}";
@@ -202,7 +244,7 @@ public class ProjectService : IProjectService
 
         var totalRatio = existing.Sum(m => m.Ratio) + dto.Ratio;
         if (totalRatio > 100)
-            throw new BusinessException($"占比总和将超过100%，当前已分配{existing.Sum(m=>m.Ratio):N1}%");
+            throw new BusinessException($"占比总和将超过100%，当前已分配{existing.Sum(m => m.Ratio):N1}%");
 
         var member = _mapper.Map<ProjectMember>(dto);
         member.ProjectId = projectId;
@@ -225,9 +267,9 @@ public class ProjectService : IProjectService
         if (others.Sum(m => m.Ratio) + dto.Ratio > 100)
             throw new BusinessException("占比总和将超过100%");
 
-        member.Role      = dto.Role;
-        member.DutyDesc  = dto.DutyDesc;
-        member.Ratio     = dto.Ratio;
+        member.Role = dto.Role;
+        member.DutyDesc = dto.DutyDesc;
+        member.Ratio = dto.Ratio;
         member.UpdatedBy = operBy;
         _uow.ProjMembers.Update(member);
         await _uow.SaveChangesAsync();
@@ -237,7 +279,7 @@ public class ProjectService : IProjectService
     {
         var member = await _uow.ProjMembers.GetByIdAsync(memberId)
             ?? throw new NotFoundException("成员记录不存在");
-        member.Status    = 1;
+        member.Status = 1;
         member.LeaveDate = DateTime.Today;
         member.UpdatedBy = operBy;
         _uow.ProjMembers.Update(member);
@@ -261,12 +303,12 @@ public class ProjectService : IProjectService
             ?? throw new NotFoundException("里程碑不存在");
         ms.MilestoneName = dto.MilestoneName;
         ms.MilestoneType = dto.MilestoneType;
-        ms.PlanDate      = dto.PlanDate;
-        ms.OwnerId       = dto.OwnerId;
-        ms.AcceptAmount  = dto.AcceptAmount;
-        ms.Sort          = dto.Sort;
-        ms.Remark        = dto.Remark;
-        ms.UpdatedBy     = operBy;
+        ms.PlanDate = dto.PlanDate;
+        ms.OwnerId = dto.OwnerId;
+        ms.AcceptAmount = dto.AcceptAmount;
+        ms.Sort = dto.Sort;
+        ms.Remark = dto.Remark;
+        ms.UpdatedBy = operBy;
         _uow.Milestones.Update(ms);
         await _uow.SaveChangesAsync();
     }
@@ -283,10 +325,10 @@ public class ProjectService : IProjectService
     {
         var ms = await _uow.Milestones.GetByIdAsync(milestoneId)
             ?? throw new NotFoundException("里程碑不存在");
-        ms.Status     = 2;
+        ms.Status = 2;
         ms.ActualDate = DateTime.Today;
-        ms.IsOverdue  = DateTime.Today > ms.PlanDate;
-        ms.UpdatedBy  = operBy;
+        ms.IsOverdue = DateTime.Today > ms.PlanDate;
+        ms.UpdatedBy = operBy;
         _uow.Milestones.Update(ms);
         await _uow.SaveChangesAsync();
         await WriteLogAsync(ms.ProjectId, "里程碑完成",
@@ -324,11 +366,19 @@ public class ProjectService : IProjectService
     {
         var contract = new ProjectContract
         {
-            ProjectId    = dto.ProjectId, ContractNo = dto.ContractNo,
-            ContractType = dto.ContractType, ContractName = dto.ContractName,
-            PartyA = dto.PartyA, PartyB = dto.PartyB, Amount = dto.Amount,
-            SignDate = dto.SignDate, StartDate = dto.StartDate, EndDate = dto.EndDate,
-            Remark = dto.Remark, Status = 1, CreatedBy = operBy,
+            ProjectId = dto.ProjectId,
+            ContractNo = dto.ContractNo,
+            ContractType = dto.ContractType,
+            ContractName = dto.ContractName,
+            PartyA = dto.PartyA,
+            PartyB = dto.PartyB,
+            Amount = dto.Amount,
+            SignDate = dto.SignDate,
+            StartDate = dto.StartDate,
+            EndDate = dto.EndDate,
+            Remark = dto.Remark,
+            Status = 1,
+            CreatedBy = operBy,
         };
         await _uow.ProjContracts.AddAsync(contract);
         await _uow.SaveChangesAsync();
@@ -350,11 +400,16 @@ public class ProjectService : IProjectService
     {
         var invoice = new ProjectInvoice
         {
-            ProjectId = dto.ProjectId, InvoiceNo = dto.InvoiceNo,
-            InvoiceType = dto.InvoiceType, Amount = dto.Amount,
-            TaxRate = dto.TaxRate, InvoiceDate = dto.InvoiceDate,
-            Payer = dto.Payer, Remark = dto.Remark,
-            IsReceived = false, CreatedBy = operBy,
+            ProjectId = dto.ProjectId,
+            InvoiceNo = dto.InvoiceNo,
+            InvoiceType = dto.InvoiceType,
+            Amount = dto.Amount,
+            TaxRate = dto.TaxRate,
+            InvoiceDate = dto.InvoiceDate,
+            Payer = dto.Payer,
+            Remark = dto.Remark,
+            IsReceived = false,
+            CreatedBy = operBy,
         };
         await _uow.ProjInvoices.AddAsync(invoice);
         await _uow.SaveChangesAsync();
@@ -378,11 +433,16 @@ public class ProjectService : IProjectService
     {
         var file = new ProjectFile
         {
-            ProjectId = projectId, FileCategory = category, FileName = fileName,
-            FilePath = filePath, FileSize = fileSize,
+            ProjectId = projectId,
+            FileCategory = category,
+            FileName = fileName,
+            FilePath = filePath,
+            FileSize = fileSize,
             FileExt = Path.GetExtension(fileName).TrimStart('.').ToLower(),
-            Description = description, Version = version,
-            UploadBy = operBy, CreatedBy = operBy,
+            Description = description,
+            Version = version,
+            UploadBy = operBy,
+            CreatedBy = operBy,
         };
         await _uow.ProjFiles.AddAsync(file);
         await _uow.SaveChangesAsync();
@@ -412,32 +472,34 @@ public class ProjectService : IProjectService
         foreach (var ms in memberships)
         {
             if (ms.Project == null) continue;
-            var proj    = ms.Project;
+            var proj = ms.Project;
             var received = await GetTotalReceivedAsync(proj.Id);
-            var actual   = proj.ActualContractAmount;
+            var actual = proj.ActualContractAmount;
             stats.Add(new
             {
-                proj.Id, proj.ProjNo, proj.ProjName,
+                proj.Id,
+                proj.ProjNo,
+                proj.ProjName,
                 proj.ProgressStatus,
-                ProgressText  = GetProgressText(proj.ProgressStatus),
-                ContractAmount= proj.ContractAmount,
-                ActualAmount  = actual,
-                IsJoint       = proj.IsJointVenture,
-                OurRatio      = proj.OurRatio,
-                MyRatio       = ms.Ratio,
-                Role          = ms.Role,
-                DutyDesc      = ms.DutyDesc,
-                JoinDate      = ms.JoinDate,
+                ProgressText = GetProgressText(proj.ProgressStatus),
+                ContractAmount = proj.ContractAmount,
+                ActualAmount = actual,
+                IsJoint = proj.IsJointVenture,
+                OurRatio = proj.OurRatio,
+                MyRatio = ms.Ratio,
+                Role = ms.Role,
+                DutyDesc = ms.DutyDesc,
+                JoinDate = ms.JoinDate,
                 // 我的应得合同产值 = 我的占比 × 项目实际合同金额
                 MyContractValue = Math.Round(actual * ms.Ratio / 100, 2),
                 // 我的已实现产值 = 我的占比 × 项目已收款金额
                 MyReceivedValue = Math.Round(received * ms.Ratio / 100, 2),
-                TotalReceived   = received,
+                TotalReceived = received,
             });
         }
         return new
         {
-            list  = stats,
+            list = stats,
             total = stats.Count,
             // 汇总
             totalContractValue = memberships
@@ -448,10 +510,10 @@ public class ProjectService : IProjectService
 
     public async Task<object> GetDashboardStatsAsync()
     {
-        var total     = await _uow.Projects.CountAsync();
+        var total = await _uow.Projects.CountAsync();
         var executing = await _uow.Projects.CountAsync(p => p.ProgressStatus == 6);
         var completed = await _uow.Projects.CountAsync(p => p.ProgressStatus == 8);
-        var overdue   = await _uow.Milestones.CountAsync(
+        var overdue = await _uow.Milestones.CountAsync(
             m => m.IsOverdue && m.Status != 2);
         return new { total, executing, completed, overdue };
     }
@@ -471,12 +533,12 @@ public class ProjectService : IProjectService
     {
         var log = new ProjectOperLog
         {
-            Id        = SnowflakeId.Next(),
+            Id = SnowflakeId.Next(),
             ProjectId = projectId,
-            Title     = title,
-            Content   = content,
-            OperBy    = operBy,
-            OperAt    = DateTime.Now,
+            Title = title,
+            Content = content,
+            OperBy = operBy,
+            OperAt = DateTime.Now,
         };
         await _uow.ProjLogs.AddAsync(log);
         await _uow.SaveChangesAsync();

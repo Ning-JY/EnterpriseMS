@@ -1,0 +1,60 @@
+/* EnterpriseMS 全局样式 */
+
+/* ── 通用 ───────────────────────────────────── */
+body { font-size: 14px; }
+.font-monospace { font-family: 'Courier New', monospace; }
+.progress-xs { height: 4px; border-radius: 2px; }
+
+/* ── 表格优化 ───────────────────────────────── */
+.table-sm td, .table-sm th { padding: .35rem .5rem; }
+.table thead th { white-space: nowrap; font-size: 12px; }
+
+/* ── 卡片优化 ───────────────────────────────── */
+.card-outline .card-header { border-bottom: 1px solid rgba(0,0,0,.125); }
+.card .card-title { font-size: 15px; font-weight: 600; }
+
+/* ── 徽章颜色补充 ───────────────────────────── */
+.badge { font-size: 11px; font-weight: 500; }
+
+/* ── 按钮组 ─────────────────────────────────── */
+.btn-xs { padding: 2px 8px; font-size: 11px; border-radius: 3px; }
+
+/* ── 侧边栏激活状态 ─────────────────────────── */
+.nav-sidebar .nav-item > .nav-link.active {
+    background-color: rgba(255,255,255,.1);
+}
+
+/* ── 登录页 ─────────────────────────────────── */
+.login-page .login-box { width: 380px; }
+.login-card-body .login-box-msg { color: #6c757d; font-size: 13px; }
+
+/* ── 信息框 ─────────────────────────────────── */
+.info-box { min-height: 70px; padding: 8px 10px; }
+.info-box-icon { width: 70px; font-size: 24px; display: flex; align-items: center; justify-content: center; }
+.info-box-content { padding: 5px 10px; }
+.info-box-number { font-size: 22px; font-weight: 700; }
+
+/* ── 时间线 ─────────────────────────────────── */
+.timeline .time-label span { font-size: 11px; }
+
+/* ── 步骤条（新建项目） ─────────────────────── */
+#step-tab-1, #step-tab-2, #step-tab-3 { cursor: default; }
+
+/* ── 表单优化 ───────────────────────────────── */
+.form-control:focus { border-color: #80bdff; box-shadow: 0 0 0 .15rem rgba(0,123,255,.15); }
+.custom-switch .custom-control-label { cursor: pointer; }
+
+/* ── 分页 ───────────────────────────────────── */
+.pagination .page-link { font-size: 12px; padding: .25rem .6rem; }
+
+/* ── 仪表盘快捷按钮 ─────────────────────────── */
+.btn-outline-primary:hover, .btn-outline-info:hover,
+.btn-outline-secondary:hover, .btn-outline-success:hover {
+    color: #fff;
+}
+
+/* ── 可折叠卡片 ─────────────────────────────── */
+.collapsed-card .card-body { display: none; }
+
+/* ── 逾期行高亮 ─────────────────────────────── */
+tr.table-warning td { background-color: rgba(255, 193, 7, 0.1) !important; }

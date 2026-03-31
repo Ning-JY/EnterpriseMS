@@ -30,3 +30,12 @@ packages/
 # Windows
 Thumbs.db
 Desktop.ini
+
+# 日志文件
+logs/
+
+# 用户上传文件（服务器独立维护）
+wwwroot/uploads/
+
+# 静态库文件（体积大，可通过 npm/bower 还原）
+wwwroot/lib/

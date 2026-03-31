@@ -32,7 +32,7 @@ public class ProjectController : BaseAuthController
     }  [HasPermission("proj:project:list")]
     public async Task<IActionResult> Index(ProjectQueryDto query)
     {
-        var result  = await _projSvc.GetPagedAsync(query);
+        var result  = await _projSvc.GetPagedAsync(query, User.GetUserId());
         var depts   = await _deptSvc.GetTreeAsync();
         var members = await _empQrySvc.GetAllOnJobAsync();
         ViewBag.Depts   = depts;

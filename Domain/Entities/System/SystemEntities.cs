@@ -97,7 +97,7 @@ public class SysDictType : BaseEntity
 {
     [Column("dict_name")] public string  DictName { get; set; } = "";
     [Column("dict_type")] public string  DictType { get; set; } = "";
-    [Column("status")]    public int     Status   { get; set; } = 1;
+    [Column("status")]    public int     Status   { get; set; } = 1;    //1:全部数据，2：本部门数据，3：本部门及子部门数据，4：仅本人数据
     [Column("remark")]    public string? Remark   { get; set; }
     public ICollection<SysDictData> DictDatas { get; set; } = new List<SysDictData>();
 }
