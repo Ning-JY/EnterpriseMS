@@ -39,3 +39,6 @@ wwwroot/uploads/
 
 # 静态库文件（体积大，可通过 npm/bower 还原）
 wwwroot/lib/
+
+# 数据库迁移文件
+Migrations/
