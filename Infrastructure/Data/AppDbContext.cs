@@ -174,11 +174,11 @@ public class AppDbContext : DbContext
         // ── 用户 ──────────────────────────────────────────────
         mb.Entity<SysUser>().HasData(
             new SysUser { Id=1, Username="admin",   PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="超级管理员",  DeptId=1, PostId=1, Status=1, EmployeeId=null, CreatedAt=dt, CreatedBy="system" },
-            new SysUser { Id=2, Username="zhangsan",PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="张三",       DeptId=2, PostId=3, Status=1, EmployeeId=101,  CreatedAt=dt, CreatedBy="system" },                                                
-            new SysUser { Id=3, Username="lisi",    PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="李四",       DeptId=2, PostId=4, Status=1, EmployeeId=102,  CreatedAt=dt, CreatedBy="system" },                                                
-            new SysUser { Id=4, Username="wangwu",  PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="王五",       DeptId=3, PostId=3, Status=1, EmployeeId=103,  CreatedAt=dt, CreatedBy="system" },                                                
-            new SysUser { Id=5, Username="zhaoliu", PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="赵六",       DeptId=4, PostId=6, Status=1, EmployeeId=104,  CreatedAt=dt, CreatedBy="system" },                                                
-            new SysUser { Id=6, Username="sunqi",   PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="孙七",       DeptId=2, PostId=7, Status=1, EmployeeId=105,  CreatedAt=dt, CreatedBy="system" }
+            new SysUser { Id=2, Username="ningjinyuan",PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="甯金元",       DeptId=2, PostId=3, Status=1, EmployeeId=101,  CreatedAt=dt, CreatedBy="system" },                                                
+            new SysUser { Id=3, Username="caolijun",    PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="曹丽君",       DeptId=2, PostId=4, Status=1, EmployeeId=102,  CreatedAt=dt, CreatedBy="system" },                                                
+            new SysUser { Id=4, Username="liurunze",  PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="刘润泽",       DeptId=3, PostId=3, Status=1, EmployeeId=103,  CreatedAt=dt, CreatedBy="system" },                                                
+            new SysUser { Id=5, Username="wangshuaiwei", PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="王帅伟",       DeptId=4, PostId=6, Status=1, EmployeeId=104,  CreatedAt=dt, CreatedBy="system" },                                                
+            new SysUser { Id=6, Username="yangtong",   PasswordHash=BCrypt.Net.BCrypt.HashPassword("123456",12), RealName="杨通",       DeptId=2, PostId=7, Status=1, EmployeeId=105,  CreatedAt=dt, CreatedBy="system" }
         );
 
         // ── 用户角色 ──────────────────────────────────────────
@@ -193,16 +193,16 @@ public class AppDbContext : DbContext
 
         // ── 员工档案 ──────────────────────────────────────────
         mb.Entity<Employee>().HasData(
-            new Employee { Id=101, EmpNo="EMP20230001", RealName="张三",   Gender=1, Phone="13800000001", Email="zhangsan@company.com", DeptId=2, PostId=3, Status=1, EntryDate=new DateTime(2020,3,1),  FormalDate=new DateTime(2020,6,1),  CreatedAt=dt, CreatedBy="system" },
-            new Employee { Id=102, EmpNo="EMP20230002", RealName="李四",   Gender=1, Phone="13800000002", Email="lisi@company.com",     DeptId=2, PostId=4, Status=1, EntryDate=new DateTime(2019,7,1),  FormalDate=new DateTime(2019,10,1), CreatedAt=dt, CreatedBy="system" },
-            new Employee { Id=103, EmpNo="EMP20230003", RealName="王五",   Gender=1, Phone="13800000003", Email="wangwu@company.com",   DeptId=3, PostId=3, Status=1, EntryDate=new DateTime(2021,1,1),  FormalDate=new DateTime(2021,4,1),  CreatedAt=dt, CreatedBy="system" },
-            new Employee { Id=104, EmpNo="EMP20230004", RealName="赵六",   Gender=2, Phone="13800000004", Email="zhaoliu@company.com",  DeptId=4, PostId=6, Status=1, EntryDate=new DateTime(2018,5,1),  FormalDate=new DateTime(2018,8,1),  CreatedAt=dt, CreatedBy="system" },
-            new Employee { Id=105, EmpNo="EMP20230005", RealName="孙七",   Gender=1, Phone="13800000005", Email="sunqi@company.com",    DeptId=2, PostId=7, Status=1, EntryDate=new DateTime(2022,3,1),  FormalDate=new DateTime(2022,6,1),  CreatedAt=dt, CreatedBy="system" },
-            new Employee { Id=106, EmpNo="EMP20230006", RealName="周八",   Gender=2, Phone="13800000006", Email="zhouba@company.com",   DeptId=3, PostId=7, Status=1, EntryDate=new DateTime(2021,9,1),  FormalDate=new DateTime(2021,12,1), CreatedAt=dt, CreatedBy="system" },
-            new Employee { Id=107, EmpNo="EMP20230007", RealName="吴九",   Gender=1, Phone="13800000007", Email="wujiu@company.com",    DeptId=5, PostId=4, Status=1, EntryDate=new DateTime(2020,6,1),  FormalDate=new DateTime(2020,9,1),  CreatedAt=dt, CreatedBy="system" },
-            new Employee { Id=108, EmpNo="EMP20230008", RealName="郑十",   Gender=1, Phone="13800000008", Email="zhengshi@company.com", DeptId=4, PostId=3, Status=1, EntryDate=new DateTime(2017,4,1),  FormalDate=new DateTime(2017,7,1),  CreatedAt=dt, CreatedBy="system" },
-            new Employee { Id=109, EmpNo="EMP20230009", RealName="陈晓明", Gender=1, Phone="13800000009", Email="chenxm@company.com",   DeptId=2, PostId=8, Status=0, EntryDate=new DateTime(2026,1,1),  ProbationEndDate=new DateTime(2026,4,1), CreatedAt=dt, CreatedBy="system" },
-            new Employee { Id=110, EmpNo="EMP20230010", RealName="林小燕", Gender=2, Phone="13800000010", Email="linxy@company.com",    DeptId=6, PostId=9, Status=1, EntryDate=new DateTime(2023,5,1),  FormalDate=new DateTime(2023,8,1),  CreatedAt=dt, CreatedBy="system" }
+            new Employee { Id=101, EmpNo="EMP20230001", RealName="甯金元",   Gender=1, Phone="13800000001", Email="zhangsan@company.com", DeptId=2, PostId=3, Status=1, EntryDate=new DateTime(2020,3,1),  FormalDate=new DateTime(2020,6,1),  CreatedAt=dt, CreatedBy="system" },
+            new Employee { Id=102, EmpNo="EMP20230002", RealName="曹丽君",   Gender=2, Phone="13800000002", Email="lisi@company.com",     DeptId=2, PostId=4, Status=1, EntryDate=new DateTime(2019,7,1),  FormalDate=new DateTime(2019,10,1), CreatedAt=dt, CreatedBy="system" },
+            new Employee { Id=103, EmpNo="EMP20230003", RealName="刘润泽",   Gender=1, Phone="13800000003", Email="wangwu@company.com",   DeptId=3, PostId=3, Status=1, EntryDate=new DateTime(2021,1,1),  FormalDate=new DateTime(2021,4,1),  CreatedAt=dt, CreatedBy="system" },
+            new Employee { Id=104, EmpNo="EMP20230004", RealName="王帅伟",   Gender=1, Phone="13800000004", Email="zhaoliu@company.com",  DeptId=4, PostId=6, Status=1, EntryDate=new DateTime(2018,5,1),  FormalDate=new DateTime(2018,8,1),  CreatedAt=dt, CreatedBy="system" },
+            new Employee { Id=105, EmpNo="EMP20230005", RealName="杨通",   Gender=1, Phone="13800000005", Email="sunqi@company.com",    DeptId=2, PostId=7, Status=1, EntryDate=new DateTime(2022,3,1),  FormalDate=new DateTime(2022,6,1),  CreatedAt=dt, CreatedBy="system" },
+            new Employee { Id=106, EmpNo="EMP20230006", RealName="郭家松",   Gender=1, Phone="13800000006", Email="zhouba@company.com",   DeptId=3, PostId=7, Status=1, EntryDate=new DateTime(2021,9,1),  FormalDate=new DateTime(2021,12,1), CreatedAt=dt, CreatedBy="system" },
+            new Employee { Id=107, EmpNo="EMP20230007", RealName="陈俊童",   Gender=1, Phone="13800000007", Email="wujiu@company.com",    DeptId=5, PostId=4, Status=1, EntryDate=new DateTime(2020,6,1),  FormalDate=new DateTime(2020,9,1),  CreatedAt=dt, CreatedBy="system" },
+            new Employee { Id=108, EmpNo="EMP20230008", RealName="舒影",   Gender=2, Phone="13800000008", Email="zhengshi@company.com", DeptId=4, PostId=3, Status=1, EntryDate=new DateTime(2017,4,1),  FormalDate=new DateTime(2017,7,1),  CreatedAt=dt, CreatedBy="system" },
+            new Employee { Id=109, EmpNo="EMP20230009", RealName="肖玲", Gender=2, Phone="13800000009", Email="chenxm@company.com",   DeptId=2, PostId=8, Status=0, EntryDate=new DateTime(2026,1,1),  ProbationEndDate=new DateTime(2026,4,1), CreatedAt=dt, CreatedBy="system" },
+            new Employee { Id=110, EmpNo="EMP20230010", RealName="魏利", Gender=2, Phone="13800000010", Email="linxy@company.com",    DeptId=6, PostId=9, Status=1, EntryDate=new DateTime(2023,5,1),  FormalDate=new DateTime(2023,8,1),  CreatedAt=dt, CreatedBy="system" }
         );
 
         // ── 用户与员工绑定（一对一）──────────────────────────
@@ -469,7 +469,8 @@ public class AppDbContext : DbContext
             new SysMenu { Id=4, MenuName="概预算结算", ParentId=0, MenuType="M", Icon="fa-file-invoice-dollar", Path="/budget",  Sort=4, Visible=1, Status=1, CreatedAt=dt, CreatedBy="system" },
             new SysMenu { Id=5, MenuName="个人中心",   ParentId=0, MenuType="M", Icon="fa-user-circle",         Path="/profile",  Sort=5, Visible=1, Status=1, CreatedAt=dt, CreatedBy="system" },
             new SysMenu { Id=6, MenuName="知识库",     ParentId=0, MenuType="M", Icon="fa-database",          Path="/kb",        Sort=6, Visible=1, Status=1, CreatedAt=dt, CreatedBy="system" },
-            new SysMenu { Id=7, MenuName="报表中心",   ParentId=0, MenuType="M", Icon="fa-chart-bar",          Path="/report",    Sort=7, Visible=1, Status=1, CreatedAt=dt, CreatedBy="system" },            
+            new SysMenu { Id=7, MenuName="报表中心",   ParentId=0, MenuType="M", Icon="fa-chart-bar",          Path="/report",    Sort=7, Visible=1, Status=1, CreatedAt=dt, CreatedBy="system" },
+            new SysMenu {Id = 8,MenuName = "造价小工具",ParentId = 0,MenuType = "M",Icon = "fa-calculator",Path = "/tool",Sort = 8,Visible = 1,Status = 1,CreatedAt = dt,CreatedBy = "system"},
             // ── 系统管理子菜单 ────────────────────────────────
             new SysMenu { Id=11, MenuName="用户管理", ParentId=1, MenuType="C", Icon="fa-user",      Path="/system/user", Sort=1, Visible=1, Status=1, Perms="sys:user:list", CreatedAt=dt, CreatedBy="system" },
             new SysMenu { Id=12, MenuName="角色管理", ParentId=1, MenuType="C", Icon="fa-user-tag",  Path="/system/role", Sort=2, Visible=1, Status=1, Perms="sys:role:list", CreatedAt=dt, CreatedBy="system" },
@@ -519,6 +520,8 @@ public class AppDbContext : DbContext
             // 报表中心子菜单
             new SysMenu { Id=71, MenuName="回款报表", ParentId=7, MenuType="C", Icon="fa-hand-holding-usd", Path="/report/receipt", Sort=1, Visible=1, Status=1, Perms="report:receipt", CreatedAt=dt, CreatedBy="system" },
             new SysMenu { Id=72, MenuName="产值报表", ParentId=7, MenuType="C", Icon="fa-user-chart",      Path="/report/output",  Sort=2, Visible=1, Status=1, Perms="report:output",  CreatedAt=dt, CreatedBy="system" },
+            new SysMenu
+            {Id = 81,MenuName = "报告生成",ParentId = 8,MenuType = "C",Icon = "fa-file-word",Path = "/tool/report",Sort = 1,Visible = 1,Status = 1,Perms = null,CreatedAt = dt,CreatedBy = "system"},
             // 个人中心子菜单
             new SysMenu { Id=51, MenuName="个人资料", ParentId=5, MenuType="C", Icon="fa-id-card",   Path="/profile",   Sort=1, Visible=1, Status=1, CreatedAt=dt, CreatedBy="system" },
             new SysMenu { Id=52, MenuName="产值统计", ParentId=5, MenuType="C", Icon="fa-chart-bar", Path="/my-stats", Sort=2, Visible=1, Status=1, CreatedAt=dt, CreatedBy="system" },
@@ -553,7 +556,7 @@ public class AppDbContext : DbContext
         // ── 超管拥有全部权限 ──────────────────────────────────
         var allMenuIds = new long[]
         {
-            1,2,3,4,5,6,7,
+            1,2,3,4,5,6,7,8,
             11,12,13,14,15,16,17,
             111,112,113,114,
             121,122,123,124,
@@ -564,6 +567,7 @@ public class AppDbContext : DbContext
             51,52,
             61,62,621,622,
             71,72,
+            81,
             21,22,23,
             211,212,213,214,
             31, 311,312,313,314,315,316,317,318,319,320,

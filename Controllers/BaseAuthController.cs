@@ -20,13 +20,10 @@ public abstract class BaseAuthController : Controller
     public override async Task OnActionExecutionAsync(
         ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        // 仅对 ViewResult 类型的 Action 注入菜单（跳过 JsonResult/文件下载等）
+        // userId == 0 表示匿名用户，GetUserMenuTreeAsync 内部会返回公开菜单
         var userId = User.GetUserId();
-        if (userId > 0)
-        {
-            var menuTree = await _permSvc.GetUserMenuTreeAsync(userId);
-            ViewBag.MenuTree = menuTree;
-        }
+        var menuTree = await _permSvc.GetUserMenuTreeAsync(userId);
+        ViewBag.MenuTree = menuTree;
 
         await next();
     }

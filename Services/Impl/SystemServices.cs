@@ -43,12 +43,24 @@ public class PermissionService : IPermissionService
     {
         // 超级管理员获取全部菜单
         // IgnoreQueryFilters 确保即使Role被软删除也能正确判断（理论上superadmin不会被删除）
+
+        List<SysMenu> menus;
+
+        // ── 匿名用户：只返回 Perms 为 null 的公开菜单 ──────────
+        if (userId == 0)
+        {
+            menus = await _db.SysMenus
+                .Where(m => m.MenuType != "F" && m.Visible == 1 && m.Status == 1
+                         && !m.IsDeleted && m.Perms == null)
+                .OrderBy(m => m.Sort).ToListAsync();
+            return BuildMenuTree(menus, 0);
+        }
+
         var isAdmin = await _db.SysUserRoles
             .AnyAsync(ur => ur.UserId == userId &&
                 _db.SysRoles.IgnoreQueryFilters()
                     .Any(r => r.Id == ur.RoleId && r.RoleCode == "superadmin" && !r.IsDeleted));
 
-        List<SysMenu> menus;
         if (isAdmin)
         {
             menus = await _db.SysMenus
@@ -57,13 +69,17 @@ public class PermissionService : IPermissionService
         }
         else
         {
-            menus = await _db.SysUserRoles
+            // 已登录用户：角色菜单 + 公开菜单（Perms==null）取并集
+            var roleMenuIds = await _db.SysUserRoles
                 .Where(ur => ur.UserId == userId)
                 .Join(_db.SysRoleMenus, ur => ur.RoleId, rm => rm.RoleId, (ur, rm) => rm.MenuId)
-                .Join(_db.SysMenus.Where(m => m.MenuType != "F" && m.Visible == 1
-                       && m.Status == 1 && !m.IsDeleted),
-                      mid => mid, m => m.Id, (mid, m) => m)
-                .Distinct().OrderBy(m => m.Sort).ToListAsync();
+                .Distinct()
+                .ToListAsync();
+
+            menus = await _db.SysMenus
+                .Where(m => m.MenuType != "F" && m.Visible == 1 && m.Status == 1 && !m.IsDeleted
+                         && (m.Perms == null || roleMenuIds.Contains(m.Id)))
+                .OrderBy(m => m.Sort).ToListAsync();
         }
         return BuildMenuTree(menus, 0);
     }

@@ -1,0 +1,998 @@
+﻿@{
+    ViewData["Title"] = "报告生成";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <style>
+        /* ── 映射卡片：固定高度，内部滚动，表头冻结 ── */
+        .mapping-scroll {
+            max-height: 360px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .mapping-scroll table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+
+        .mapping-scroll th,
+        .mapping-scroll td {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mapping-scroll th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fc;
+            z-index: 10;
+            box-shadow: inset 0 -1px 0 #dee2e6;
+            min-width: 150px;
+        }
+
+        .mapping-scroll select {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            padding: 4px 2px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .mapping-scroll td.highlight-col,
+        .mapping-scroll th.highlight-col {
+            background-color: #fff3cd;
+        }
+
+        /* ── 审核数据表格 ── */
+        .data-table td {
+            max-height: 2.6em;
+            line-height: 1.3em;
+            overflow: hidden;
+            word-break: break-word;
+            vertical-align: middle;
+        }
+
+        .reason-box {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .reason-box select,
+        .reason-box input {
+            width: 110px;
+            font-size: 12px;
+        }
+
+        .auto-reason {
+            background-color: #fff3cd;
+        }
+
+        /* ── 树形结构 ── */
+        .tree-ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+
+        .tree-li {
+            margin: 6px 0;
+        }
+
+        .parent-li {
+            margin-top: 12px;
+            border-left: 2px solid #17a2b8;
+            padding-left: 8px;
+        }
+
+        .child-ul {
+            list-style: none;
+            padding-left: 28px;
+            margin: 4px 0 8px 0;
+        }
+
+        .tree-label {
+            cursor: pointer;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tree-label span:hover {
+            color: #007bff;
+            text-decoration: underline;
+        }
+
+        .tree-scroll {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        /* ── 映射卡片折叠图标动画 ── */
+        .collapse-icon {
+            transition: transform 0.2s;
+        }
+
+        .collapsed .collapse-icon {
+            transform: rotate(-90deg);
+        }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">报告生成</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item">造价小工具</li>
+                    <li class="breadcrumb-item active">报告生成</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @** ── 顶部工具栏 ── *@
+        <div class="card card-outline card-primary mb-3">
+            <div class="card-body py-2">
+                <input type="file" id="upload" accept=".xlsx,.xls" style="display:none">
+                <button class="btn btn-sm btn-primary mr-1" onclick="document.getElementById('upload').click()">
+                    <i class="fas fa-folder-open mr-1"></i>导入 Excel
+                </button>
+                <button class="btn btn-sm btn-warning" onclick="previewReport()">
+                    <i class="fas fa-file-alt mr-1"></i>生成报告
+                </button>
+                <small class="text-muted ml-3">
+                    <i class="fas fa-info-circle mr-1"></i>导入后请在下方字段映射卡片中完成映射，再点击"确认映射"
+                </small>
+            </div>
+        </div>
+
+        @** ── 操作说明（默认折叠，按钮初始状态与内容同步） ── *@
+        <div class="card mb-3" style="border-left: 4px solid #17a2b8;">
+            <div class="card-header py-2" style="cursor:pointer;" id="helpHeader" onclick="toggleHelp()">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-book-open mr-1 text-info"></i><strong>操作说明(点击展开)</strong></span>
+                    @** 初始折叠，图标朝右 ── *@
+                    <i class="fas fa-chevron-right text-muted" id="helpIcon"></i>
+                </div>
+            </div>
+            @** 初始隐藏 ── *@
+            <div id="helpContent" class="card-body pt-2 pb-2" style="display:none;">
+                <ol class="mb-1 pl-3" style="font-size:13px;">
+                    <li>点击 <strong>"导入 Excel"</strong> 上传工作簿（支持多 Sheet）。</li>
+                    <li>点击左侧树形结构中的<strong>子节点</strong>，右侧将自动显示该 Sheet 的字段映射预览表。</li>
+                    <li>在映射预览表中为每列选择正确的字段类型（项目编码、项目名称、送审金额等），<strong>同一字段只能映射到一列</strong>，已映射列高亮显示。</li>
+                    <li>点击映射卡片底部的 <strong>"确认映射"</strong>，系统将解析所有 Sheet 数据并自动折叠映射卡片。</li>
+                    <li>勾选左侧项目（父节点可批量全选/全不选子节点），用于后续生成报告。</li>
+                    <li>使用筛选栏（审增/减、差额条件）过滤审核明细，表格支持分页（默认每页 10 条）。</li>
+                    <li>点击 <strong>"生成报告"</strong> 预览选中项目的审核结果，可导出 Word 文档。</li>
+                    <li>审核原因可下拉选择或手动输入，修改后实时保存。</li>
+                </ol>
+                <div class="text-muted" style="font-size:12px;">
+                    <i class="fas fa-lightbulb mr-1 text-warning"></i>
+                    提示：A2 单元格支持"父\子"格式，将自动生成两级树结构。
+                </div>
+            </div>
+        </div>
+
+        @** ── 主体：左树 + 右内容 ── *@
+        <div class="row">
+            @** 左：项目结构树 ── *@
+            <div class="col-md-3 col-lg-2">
+                <div class="card">
+                    <div class="card-header bg-info text-white py-2">
+                        <i class="fas fa-folder-open mr-1"></i>项目结构
+                    </div>
+                    <div class="card-body p-2 tree-scroll" id="treeContainer">
+                        <div class="text-muted small">请先导入 Excel</div>
+                    </div>
+                    <div class="card-footer py-1">
+                        <small class="text-muted">
+                            <i class="fas fa-check-square mr-1"></i>勾选后生成报告包含数据
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            @** 右：筛选 + 映射 + 明细 ── *@
+            <div class="col-md-9 col-lg-10">
+
+                @** 筛选栏 ── *@
+                <div class="card mb-3">
+                    <div class="card-body py-2">
+                        <div class="d-flex flex-wrap align-items-center" style="gap:10px;">
+                            <label class="mb-0">审增/减:</label>
+                            <select id="type" class="form-control form-control-sm" style="width:85px">
+                                <option value="">全部</option>
+                                <option value="inc">审增</option>
+                                <option value="dec">审减</option>
+                            </select>
+                            <label class="mb-0">条件:</label>
+                            <select id="mode" class="form-control form-control-sm" style="width:110px">
+                                <option value="all">无限制</option>
+                                <option value="gt">差额 &gt;</option>
+                                <option value="lt">差额 &lt;</option>
+                                <option value="between">介于</option>
+                                <option value="abs">|差额| &gt;</option>
+                            </select>
+                            <input id="min" placeholder="数值1" class="form-control form-control-sm" style="width:90px" type="number">
+                            <input id="max" placeholder="数值2" class="form-control form-control-sm" style="width:90px" type="number">
+                            <button class="btn btn-sm btn-primary" onclick="applyFilters()">
+                                <i class="fas fa-filter mr-1"></i>筛选
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">
+                                <i class="fas fa-undo mr-1"></i>重置
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                @** 字段映射卡片（可折叠，确认映射按钮移至底部） ── *@
+                <div class="card mb-3" id="mappingCard">
+                    <div class="card-header bg-light font-weight-bold d-flex justify-content-between align-items-center py-2"
+                         style="cursor:pointer;" onclick="toggleMappingCard()">
+                        <span><i class="fas fa-map mr-1"></i>字段映射（点击展开）</span>
+                        <i class="fas fa-chevron-down text-muted collapse-icon" id="mappingCollapseIcon"></i>
+                    </div>
+                    <div id="mappingBody">
+                        <div class="card-body">
+                            <div class="alert alert-info small mb-0">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                请先导入 Excel，然后点击左侧子节点切换预览
+                            </div>
+                        </div>
+                    </div>
+                    @** 确认映射按钮固定在映射卡片底部 ── *@
+                    <div class="card-footer text-right py-2" id="mappingFooter">
+                        <button class="btn btn-sm btn-success" onclick="confirmMapping()">
+                            <i class="fas fa-check mr-1"></i>确认映射
+                        </button>
+                    </div>
+                </div>
+
+                @** 审核明细表格 + 分页 ── *@
+                <div class="card">
+                    <div class="card-header bg-info text-white d-flex justify-content-between py-2">
+                        <span>
+                            <i class="fas fa-table mr-1"></i>审核明细
+                            <span class="text-white-50 ml-1">（当前：<span id="currentProjectLabel">未选择</span>）</span>
+                        </span>
+                        <span class="badge badge-light text-dark" id="rowCountBadge">0</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-hover table-sm data-table mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="width:15%">编码</th>
+                                    <th style="width:25%">项目名称</th>
+                                    <th style="width:10%">送审工程量</th>
+                                    <th style="width:10%">送审单价(元)</th>
+                                    <th style="width:10%">审定工程量</th>
+                                    <th style="width:10%">审定单价(元)</th>
+                                    <th style="width:10%">送审金额(元)</th>
+                                    <th style="width:10%">审定金额(元)</th>
+                                    <th style="width:10%">差额(元)</th>
+                                    <th>审核原因</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                    </div>
+                    @** 分页栏 ── *@
+                    <div class="card-footer clearfix" id="paginationBar" style="display:none;">
+                        <div class="float-left d-flex align-items-center" style="gap:8px;">
+                            <span id="pageInfo" class="text-muted small"></span>
+                            <select id="pageSizeSelect" class="form-control form-control-sm" style="width:70px;">
+                                <option value="10" selected>10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                            <small class="text-muted">条/页</small>
+                        </div>
+                        <ul class="pagination pagination-sm m-0 float-right">
+                            <li class="page-item" id="prevPageItem">
+                                <a class="page-link" href="javascript:void(0)" id="prevPageBtn">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            <li class="page-item" id="nextPageItem">
+                                <a class="page-link" href="javascript:void(0)" id="nextPageBtn">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>@** /col-right ── *@
+        </div>@** /row ── *@
+
+    </div>
+</section>
+
+@** ── 报告预览 Modal ── *@
+<div class="modal fade" id="previewModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-alt mr-2"></i>工程审核报告预览
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="previewContent" style="max-height:65vh;overflow-y:auto;">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-success" onclick="exportWordReport()">
+                    <i class="fas fa-download mr-1"></i>导出 Word
+                </button>
+                <button class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @** 第三方库 ── *@
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@7.7.0/build/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <script>
+        // ═══════════════════════════════════════════════════════
+        //  全局状态
+        // ═══════════════════════════════════════════════════════
+        let workbookSheets = [];
+        let sheetsStore = [];
+        let currentMapping = {项目编码: -1, 项目名称: -1, 计量单位: -1, 送审金额: -1, 审定金额: -1, 审核差额: -1, 审核原因: -1,
+            送审工程量: -1, 审定工程量: -1, 工程量差额: -1,
+            送审单价: -1, 审定单价: -1, 单价差额: -1};
+        let isMapped = false;
+        let currentChildNode = null;
+        let currentDisplayData = [];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        let parentNodes = [];
+        let childNodes = [];
+        let nodeChecked = new Map();
+        let currentFilter = { type: "", mode: "all", min: 0, max: 0 };
+
+        const REASON_OPTIONS = [
+            "工程量调整", "综合单价调整", "工程量及综合单价调整",
+            "送审清单漏项", "图纸无该项内容",
+            "设计变更", "材料调整", "其他"];
+
+        // ═══════════════════════════════════════════════════════
+        //  工具函数
+        // ═══════════════════════════════════════════════════════
+        function parseMoney(v) {
+            let n = parseFloat(String(v).replace(/,/g, "").replace(/￥/g, ""));
+            return isNaN(n) ? 0 : n;
+        }
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[m]);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  操作说明折叠（默认折叠，图标初始朝右）
+        // ═══════════════════════════════════════════════════════
+        function toggleHelp() {
+            let content = document.getElementById('helpContent');
+            let icon = document.getElementById('helpIcon');
+            let collapsed = content.style.display === 'none';
+            content.style.display = collapsed ? 'block' : 'none';
+            icon.className = collapsed
+                ? 'fas fa-chevron-down text-muted'
+                : 'fas fa-chevron-right text-muted';
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  A2 父\子格式解析
+        // ═══════════════════════════════════════════════════════
+        function parseParentChild(a2) {
+            if (!a2) return null;
+            let s = String(a2).trim();
+            if (s.includes('\\')) {
+                let parts = s.split('\\');
+                return { parent: parts[0].trim(), child: parts.slice(1).join('\\').trim() || parts[parts.length - 1].trim() };
+            }
+            return { parent: null, child: s };
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  构建树
+        // ═══════════════════════════════════════════════════════
+        function buildTree() {
+            if (!workbookSheets.length) {
+                document.getElementById("treeContainer").innerHTML = '<div class="text-muted small">请先导入 Excel</div>';
+                return;
+            }
+            let parentMap = new Map();
+            childNodes = [];
+            let childId = 0;
+            for (let sIdx = 0; sIdx < workbookSheets.length; sIdx++) {
+                let sheet = workbookSheets[sIdx];
+                let a2Val = sheet.data[1]?.[0] || "";
+                let parsed = parseParentChild(a2Val);
+                if (!parsed) continue;
+                let { parent, child } = parsed;
+                let cid = `child_${sIdx}_${childId++}`;
+                childNodes.push({ id: cid, label: child || "未命名", sheetIdx: sIdx, parentName: parent });
+                let pKey = parent || "未分组";
+                if (!parentMap.has(pKey)) parentMap.set(pKey, { id: `parent_${pKey}`, name: pKey, childrenIds: [] });
+                parentMap.get(pKey).childrenIds.push(cid);
+            }
+            parentNodes = Array.from(parentMap.values());
+            let html = '<ul class="tree-ul">';
+            for (let p of parentNodes) {
+                html += `<li class="parent-li">
+                    <div class="tree-label">
+                        <input type="checkbox" class="parent-check" data-id="${p.id}" onchange="onParentCheck('${p.id}', this)">
+                        <span style="font-weight:bold;">
+                            <i class="fas fa-folder text-warning mr-1"></i>${escapeHtml(p.name)}
+                        </span>
+                    </div>
+                    <ul class="child-ul">`;
+                for (let cid of p.childrenIds) {
+                    let ch = childNodes.find(c => c.id === cid);
+                    if (!ch) continue;
+                    let cChecked = nodeChecked.get(ch.id) || false;
+                    html += `<li>
+                        <div class="tree-label">
+                            <input type="checkbox" class="child-check" data-id="${ch.id}"
+                                ${cChecked ? 'checked' : ''}
+                                onchange="onChildCheck('${ch.id}', this)">
+                            <span onclick="onChildClick('${ch.id}')">
+                                <i class="fas fa-file-alt text-info mr-1"></i>${escapeHtml(ch.label)}
+                            </span>
+                        </div>
+                    </li>`;
+                }
+                html += `</ul></li>`;
+            }
+            html += '</ul>';
+            document.getElementById("treeContainer").innerHTML = html;
+            // 半选状态
+            parentNodes.forEach(p => {
+                let all = p.childrenIds.every(cid => nodeChecked.get(cid));
+                let some = p.childrenIds.some(cid => nodeChecked.get(cid));
+                let chk = document.querySelector(`.parent-check[data-id="${p.id}"]`);
+                if (chk && some && !all) chk.indeterminate = true;
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  树操作
+        // ═══════════════════════════════════════════════════════
+        function onParentCheck(pid, chk) {
+            let parent = parentNodes.find(p => p.id === pid);
+            if (!parent) return;
+            for (let cid of parent.childrenIds) {
+                nodeChecked.set(cid, chk.checked);
+                let cChk = document.querySelector(`.child-check[data-id="${cid}"]`);
+                if (cChk) cChk.checked = chk.checked;
+            }
+            nodeChecked.set(pid, chk.checked);
+            chk.indeterminate = false;
+        }
+        function onChildCheck(cid, chk) {
+            nodeChecked.set(cid, chk.checked);
+            let parent = parentNodes.find(p => p.childrenIds.includes(cid));
+            if (parent) {
+                let all = parent.childrenIds.every(id => nodeChecked.get(id));
+                let any = parent.childrenIds.some(id => nodeChecked.get(id));
+                let pChk = document.querySelector(`.parent-check[data-id="${parent.id}"]`);
+                if (pChk) {
+                    if (all)       { pChk.checked = true;  pChk.indeterminate = false; nodeChecked.set(parent.id, true); }
+                    else if (any)  { pChk.checked = false; pChk.indeterminate = true;  nodeChecked.set(parent.id, false); }
+                    else           { pChk.checked = false; pChk.indeterminate = false; nodeChecked.set(parent.id, false); }
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  点击子节点：切换映射预览 + 加载明细
+        // ═══════════════════════════════════════════════════════
+        function onChildClick(cid) {
+            let child = childNodes.find(c => c.id === cid);
+            if (!child) return;
+            currentChildNode = cid;
+            let sheet = workbookSheets[child.sheetIdx];
+            if (sheet) {
+                let headerRow = sheet.data[2] || [];
+                renderMappingPreview(headerRow, sheet.data.slice(3, 13));
+            }
+            document.getElementById("currentProjectLabel").innerHTML = escapeHtml(child.label);
+            if (isMapped && sheetsStore[child.sheetIdx]) {
+                applyFiltersToDataset(sheetsStore[child.sheetIdx].parsedRows);
+            } else {
+                currentDisplayData = [];
+                renderTableWithPagination();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  渲染字段映射预览
+        // ═══════════════════════════════════════════════════════
+        function renderMappingPreview(headers, sampleRows) {
+            let fieldList = [ "项目编码", "项目名称", "计量单位","送审金额", "审定金额", "审核差额", "审核原因",
+                "送审工程量", "审定工程量", "工程量差额",
+                "送审单价", "审定单价", "单价差额"];
+            let defaultMap = { 1: "项目编码",
+            2: "项目名称",
+            4: "计量单位",
+            5: "送审工程量",
+            6: "送审单价",
+            8: "送审金额",
+            9: "审定工程量",
+            10: "审定单价",
+            11: "审定金额",
+            12: "工程量差额",
+            13: "审核差额", 
+            14: "审核原因" };
+            let html = `<div class="card-body p-2"><div class="mapping-scroll"><table><thead><tr>`;
+            for (let i = 0; i < headers.length; i++) {
+                let df = defaultMap[i] || null;
+                html += `<th data-colidx="${i}"><select class="mapping-select" data-colidx="${i}">
+                    <option value="">未识别</option>`;
+                for (let f of fieldList) {
+                    html += `<option value="${f}" ${df === f ? 'selected' : ''}>${f}</option>`;
+                }
+                html += `</select></th>`;
+            }
+            html += `</tr></thead><tbody>`;
+            sampleRows.forEach(row => {
+                html += `<tr>`;
+                for (let i = 0; i < headers.length; i++) {
+                    let val = row[i] !== undefined ? String(row[i]) : "";
+                    html += `<td title="${escapeHtml(val)}">${escapeHtml(val)}</td>`;
+                }
+                html += `</tr>`;
+            });
+            html += `</tbody></table></div></div>`;
+            document.getElementById("mappingBody").innerHTML = html;
+
+            // 展开映射卡片
+            expandMappingCard();
+
+            let selects = document.querySelectorAll(".mapping-select");
+            function updateHighlights() {
+                document.querySelectorAll(".mapping-scroll th, .mapping-scroll td").forEach(el => el.classList.remove("highlight-col"));
+                let fieldToCol = new Map();
+                selects.forEach(sel => {
+                    let field = sel.value;
+                    let col = parseInt(sel.dataset.colidx);
+                    if (field) {
+                        if (fieldToCol.has(field) && fieldToCol.get(field) !== col) { sel.value = ""; }
+                        else { fieldToCol.set(field, col); }
+                    }
+                });
+                fieldToCol.forEach((col) => {
+                    let th = document.querySelector(`.mapping-scroll th[data-colidx="${col}"]`);
+                    if (th) th.classList.add("highlight-col");
+                    document.querySelectorAll(".mapping-scroll tbody tr").forEach(row => {
+                        if (row.children[col]) row.children[col].classList.add("highlight-col");
+                    });
+                });
+            }
+            selects.forEach(sel => sel.addEventListener("change", updateHighlights));
+            updateHighlights();
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  映射卡片折叠/展开（FA图标）
+        // ═══════════════════════════════════════════════════════
+        function toggleMappingCard() {
+            let body = document.getElementById("mappingBody");
+            let footer = document.getElementById("mappingFooter");
+            let icon = document.getElementById("mappingCollapseIcon");
+            let collapsed = body.style.display === "none";
+            body.style.display = collapsed ? "" : "none";
+            footer.style.display = collapsed ? "" : "none";
+            icon.className = collapsed
+                ? 'fas fa-chevron-down text-muted collapse-icon'
+                : 'fas fa-chevron-right text-muted collapse-icon';
+        }
+        function collapseMappingCard() {
+            let body = document.getElementById("mappingBody");
+            let footer = document.getElementById("mappingFooter");
+            let icon = document.getElementById("mappingCollapseIcon");
+            if (body && body.style.display !== "none") {
+                body.style.display = "none";
+                footer.style.display = "none";
+                icon.className = 'fas fa-chevron-right text-muted collapse-icon';
+            }
+        }
+        function expandMappingCard() {
+            let body = document.getElementById("mappingBody");
+            let footer = document.getElementById("mappingFooter");
+            let icon = document.getElementById("mappingCollapseIcon");
+            body.style.display = "";
+            footer.style.display = "";
+            icon.className = 'fas fa-chevron-down text-muted collapse-icon';
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  确认映射
+        // ═══════════════════════════════════════════════════════
+        function confirmMapping() {
+            let selects = document.querySelectorAll(".mapping-select");
+            if (!selects.length) {
+                layer.msg('请先导入 Excel 并点击左侧子节点', { icon: 2 });
+                return;
+            }
+            let mapping = {
+                项目编码: -1, 项目名称: -1, 计量单位: -1, 送审金额: -1, 审定金额: -1, 审核差额: -1, 审核原因: -1,
+                送审工程量: -1, 审定工程量: -1, 工程量差额: -1,
+                送审单价: -1, 审定单价: -1, 单价差额: -1
+            };
+            selects.forEach(sel => {
+                let col = parseInt(sel.dataset.colidx);
+                let field = sel.value;
+                if (field && mapping[field] !== undefined) mapping[field] = col;
+            });
+            if (mapping.项目名称 === -1 || mapping.送审金额 === -1) {
+                layer.msg('至少需要映射「项目名称」和「送审金额」', { icon: 2 });
+                return;
+            }
+            currentMapping = mapping;
+            sheetsStore = [];
+                     for (let sIdx = 0; sIdx < workbookSheets.length; sIdx++) {
+                let sheet = workbookSheets[sIdx];
+                let dataRows = sheet.data.slice(5);
+                let parsed = [];
+                for (let row of dataRows) {
+                    if (!row.length || (row.length === 1 && !row[0])) continue;
+                    let code = row[mapping.项目编码];
+                    if (code === undefined || code === null || code === "") continue;
+                    let name = (mapping.项目名称 !== -1 && row[mapping.项目名称]) ? String(row[mapping.项目名称]) : "";
+                    let unit = (mapping.计量单位 !== -1 && row[mapping.计量单位]) ? String(row[mapping.计量单位]) : "";
+                    // 工程量相关
+                    let submitQty = (mapping.送审工程量 !== -1) ? parseMoney(row[mapping.送审工程量]) : 0;
+                    let approveQty = (mapping.审定工程量 !== -1) ? parseMoney(row[mapping.审定工程量]) : 0;
+                    let volDiff = (mapping.工程量差额 !== -1) ? parseMoney(row[mapping.工程量差额]) : (approveQty - submitQty);
+                    // 单价相关
+                    let submitPrice = (mapping.送审单价 !== -1) ? parseMoney(row[mapping.送审单价]) : 0;
+                    let approvePrice = (mapping.审定单价 !== -1) ? parseMoney(row[mapping.审定单价]) : 0;
+                    let priceDiff = (mapping.单价差额 !== -1) ? parseMoney(row[mapping.单价差额]) : (approvePrice - submitPrice);
+
+                    let submit = parseMoney(row[mapping.送审金额]);
+                    let approve = (mapping.审定金额 !== -1) ? parseMoney(row[mapping.审定金额]) : 0;
+                    let diff = (mapping.审核差额 !== -1) ? parseMoney(row[mapping.审核差额]) : (approve - submit);
+
+                    let reasonRaw = (mapping.审核原因 !== -1 && row[mapping.审核原因]) ? String(row[mapping.审核原因]) : "";
+                    let auto = false;
+                    if (!reasonRaw.trim()) {
+                        auto = true;
+                        // 优先级：先判断工程量是否为0
+                        if (submitQty === 0 && submitQty !== undefined) {
+                            reasonRaw = "送审清单漏项";
+                        } else if (approveQty === 0 && approveQty !== undefined) {
+                            reasonRaw = "图纸无该项内容";
+                        } else if (priceDiff !== 0 && volDiff !== 0) {
+                            reasonRaw = "工程量及综合单价调整";
+                        } else if (priceDiff !== 0 && volDiff === 0) {
+                            reasonRaw = "综合单价调整";
+                        } else if (priceDiff === 0 && volDiff !== 0) {
+                            reasonRaw = "工程量调整";
+                        } else {
+                            reasonRaw = "无调整";
+                        }
+                    }
+                    parsed.push({
+                        code: String(code).trim(),
+                        name: name.trim(),
+                        submit, approve, diff,unit,
+                        submitQty, approveQty, volDiff,
+                        submitPrice, approvePrice, priceDiff,
+                        reason: reasonRaw,
+                        auto
+                    });
+                }
+                sheetsStore.push({ sheetIdx: sIdx, sheetName: sheet.name, parsedRows: parsed });
+            }
+            isMapped = true;
+            collapseMappingCard();
+            let totalRows = sheetsStore.reduce((s, sh) => s + sh.parsedRows.length, 0);
+            layer.msg(`映射完成！共加载 ${sheetsStore.length} 个 Sheet，共 ${totalRows} 条明细`, { icon: 1 });
+            if (currentChildNode) {
+                let child = childNodes.find(c => c.id === currentChildNode);
+                if (child && sheetsStore[child.sheetIdx]) {
+                    applyFiltersToDataset(sheetsStore[child.sheetIdx].parsedRows);
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  筛选
+        // ═══════════════════════════════════════════════════════
+        function applyFilters() {
+            if (!isMapped || !currentChildNode) {
+                layer.msg('请先确认映射并选择左侧子节点', { icon: 2 });
+                return;
+            }
+            let type = document.getElementById("type").value;
+            let mode = document.getElementById("mode").value;
+            let min  = parseFloat(document.getElementById("min").value) || 0;
+            let max  = parseFloat(document.getElementById("max").value) || 0;
+            currentFilter = { type, mode, min, max };
+            let child = childNodes.find(c => c.id === currentChildNode);
+            if (child && sheetsStore[child.sheetIdx]) {
+                applyFiltersToDataset(sheetsStore[child.sheetIdx].parsedRows);
+            }
+        }
+        function resetFilters() {
+            document.getElementById("type").value = "";
+            document.getElementById("mode").value = "all";
+            document.getElementById("min").value = "";
+            document.getElementById("max").value = "";
+            currentFilter = { type: "", mode: "all", min: 0, max: 0 };
+            if (currentChildNode) {
+                let child = childNodes.find(c => c.id === currentChildNode);
+                if (child && sheetsStore[child.sheetIdx]) applyFiltersToDataset(sheetsStore[child.sheetIdx].parsedRows);
+            }
+        }
+        function applyFiltersToDataset(sourceRows) {
+            if (!sourceRows) { currentDisplayData = []; renderTableWithPagination(); return; }
+            currentDisplayData = sourceRows.filter(d => {
+                let { type, mode, min, max } = currentFilter;
+                if (type === "inc" && d.diff <= 0) return false;
+                if (type === "dec" && d.diff >= 0) return false;
+                if (mode === "gt")      return d.diff > min;
+                if (mode === "lt")      return d.diff < min;
+                if (mode === "between") return d.diff >= min && d.diff <= max;
+                if (mode === "abs")     return Math.abs(d.diff) > min;
+                return true;
+            });
+            currentPage = 1;
+            renderTableWithPagination();
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  渲染表格 + 分页（含 disabled 状态）
+        // ═══════════════════════════════════════════════════════
+        function renderTableWithPagination() {
+            let total = currentDisplayData.length;
+            let totalPages = Math.ceil(total / pageSize) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            let start = (currentPage - 1) * pageSize;
+            let end   = start + pageSize;
+            let pageData = currentDisplayData.slice(start, end);
+            let tbody = document.getElementById("tableBody");
+
+            document.getElementById("rowCountBadge").innerText = total;
+
+            if (!total) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">暂无数据</td></tr>`;
+                document.getElementById("paginationBar").style.display = "none";
+                return;
+            }
+
+            tbody.innerHTML = "";
+            pageData.forEach((d, idx) => {
+                let globalIdx = start + idx;
+                let diffColor = d.diff > 0 ? '#dc3545' : (d.diff < 0 ? '#28a745' : '#6c757d');
+                tbody.insertAdjacentHTML('beforeend', `<tr>
+                    <td>${escapeHtml(d.code)}</td>
+                    <td>${escapeHtml(d.name)}</td>
+                    <td>${d.submitQty.toFixed(2)}</td>
+                    <td>${d.submitPrice.toFixed(2)}</td>
+                    <td>${d.approveQty.toFixed(2)}</td>
+                    <td>${d.approvePrice.toFixed(2)}</td>
+                    <td>${d.submit.toFixed(2)}</td>
+                    <td>${d.approve.toFixed(2)}</td>
+                    <td style="color:${diffColor};font-weight:bold;">${d.diff.toFixed(2)}</td>
+                    <td class="${d.auto ? 'auto-reason' : ''}">
+                        <div class="reason-box">
+                            <select class="form-control form-control-sm reason-select" data-idx="${globalIdx}" style="width:100px">
+                                ${REASON_OPTIONS.map(opt => `<option ${d.reason === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+                            </select>
+                            <input class="form-control form-control-sm reason-input" data-idx="${globalIdx}"
+                                value="${escapeHtml(d.reason)}" style="width:120px">
+                        </div>
+                    </td>
+                </tr>`);
+            });
+
+            // 绑定原因修改事件
+            document.querySelectorAll('.reason-select').forEach(sel => {
+                sel.addEventListener('change', () => {
+                    let idx = parseInt(sel.dataset.idx);
+                    if (!isNaN(idx) && currentDisplayData[idx]) {
+                        currentDisplayData[idx].reason = sel.value;
+                        currentDisplayData[idx].auto = false;
+                        let inp = sel.closest('.reason-box')?.querySelector('.reason-input');
+                        if (inp) inp.value = sel.value;
+                    }
+                });
+            });
+            document.querySelectorAll('.reason-input').forEach(inp => {
+                inp.addEventListener('input', () => {
+                    let idx = parseInt(inp.dataset.idx);
+                    if (!isNaN(idx) && currentDisplayData[idx]) {
+                        currentDisplayData[idx].reason = inp.value;
+                        currentDisplayData[idx].auto = false;
+                    }
+                });
+            });
+
+            // 分页栏
+            document.getElementById("paginationBar").style.display = "";
+            document.getElementById("pageInfo").innerHTML =
+                `第 ${currentPage} / ${totalPages} 页，共 ${total} 条`;
+
+            // 上一页 disabled 状态
+            let prevItem = document.getElementById("prevPageItem");
+            let nextItem = document.getElementById("nextPageItem");
+            prevItem.classList.toggle("disabled", currentPage <= 1);
+            nextItem.classList.toggle("disabled", currentPage >= totalPages);
+
+            document.getElementById("prevPageBtn").onclick = () => {
+                if (currentPage > 1) { currentPage--; renderTableWithPagination(); }
+            };
+            document.getElementById("nextPageBtn").onclick = () => {
+                if (currentPage < totalPages) { currentPage++; renderTableWithPagination(); }
+            };
+
+            let ps = document.getElementById("pageSizeSelect");
+            ps.value = pageSize;
+            ps.onchange = e => { pageSize = parseInt(e.target.value); currentPage = 1; renderTableWithPagination(); };
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  导入 Excel
+        // ═══════════════════════════════════════════════════════
+        document.getElementById("upload").addEventListener("change", async (e) => {
+            let file = e.target.files[0];
+            if (!file) return;
+            let buffer = await file.arrayBuffer();
+            let workbook = XLSX.read(buffer, { type: 'array' });
+            workbookSheets = [];
+            for (let name of workbook.SheetNames) {
+                let ws = workbook.Sheets[name];
+                let data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+                if (data.length >= 3) workbookSheets.push({ name, data });
+            }
+            if (!workbookSheets.length) {
+                layer.msg('无有效工作表（每个 Sheet 至少需要 3 行数据）', { icon: 2 });
+                return;
+            }
+            isMapped = false;
+            sheetsStore = [];
+            nodeChecked.clear();
+            buildTree();
+            if (childNodes.length) onChildClick(childNodes[0].id);
+            else document.getElementById("currentProjectLabel").innerHTML = "无子节点";
+            document.getElementById("mappingBody").innerHTML =
+                `<div class="card-body"><div class="alert alert-info small mb-0">
+                    <i class="fas fa-info-circle mr-1"></i>请点击左侧子节点加载映射预览
+                </div></div>`;
+            // 文件选择后清空 value，避免同名文件无法再次触发 change
+            e.target.value = "";
+        });
+
+        // ═══════════════════════════════════════════════════════
+        //  报告预览（Bootstrap Modal）
+        // ═══════════════════════════════════════════════════════
+        function previewReport() {
+            if (!isMapped) {
+                layer.msg('请先确认映射', { icon: 2 });
+                return;
+            }
+            let selected = childNodes.filter(c => nodeChecked.get(c.id) === true);
+            if (!selected.length) {
+                layer.msg('请勾选至少一个子节点', { icon: 2 });
+                return;
+            }
+            let html = '';
+            for (let child of selected) {
+                let sheet = sheetsStore[child.sheetIdx];
+                if (!sheet || !sheet.parsedRows.length) continue;
+                let filteredRows = filterRows(sheet.parsedRows);
+                if (!filteredRows.length) continue;
+                html += `<h5 class="font-weight-bold border-bottom pb-1 mb-2">
+                    <i class="fas fa-file-alt text-info mr-1"></i>${escapeHtml(child.label)}
+                </h5><ul class="mb-3">`;
+                filteredRows.forEach((item, idx) => {
+                    let diffAbs = Math.abs(item.diff);
+                    let typeText = item.diff > 0 ? "审增" : (item.diff < 0 ? "审减" : "无调整");
+                    let diffColor = item.diff > 0 ? 'text-danger' : (item.diff < 0 ? 'text-success' : 'text-muted');
+                    html += `<li class="mb-1">
+                        ${idx + 1}. ${escapeHtml(item.name)}：
+                        送审工程量 ${item.submitQty.toFixed(2)}${escapeHtml(item.unit)}，审定工程量 ${item.approveQty.toFixed(2)}${escapeHtml(item.unit)}，
+                        送审单价 ${item.submitPrice.toFixed(2)} 元/${escapeHtml(item.unit)}，审定单价 ${item.approvePrice.toFixed(2)} 元/${escapeHtml(item.unit)}，
+                        送审金额 ${item.submit.toFixed(2)} 元，审定金额 ${item.approve.toFixed(2)} 元，
+                        <span class="${diffColor}">${typeText}金额 ${diffAbs.toFixed(2)} 元</span>，
+                        ${typeText}原因：${escapeHtml(item.reason)}
+                    </li>`;
+                });
+                html += `</ul>`;
+            }
+            if (!html) {
+                layer.msg('所选节点在当前筛选条件下无数据', { icon: 3 });
+                return;
+            }
+            document.getElementById("previewContent").innerHTML = html;
+            $('#previewModal').modal('show');
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  导出 Word（复用筛选逻辑）
+        // ═══════════════════════════════════════════════════════
+        async function exportWordReport() {
+            let selected = childNodes.filter(c => nodeChecked.get(c.id) === true);
+            if (!selected.length) return;
+            const { Document, Packer, Paragraph, TextRun, HeadingLevel } = window.docx;
+            let docChildren = [new Paragraph({ text: "工程审核报告", heading: HeadingLevel.TITLE })];
+            for (let child of selected) {
+                let sheet = sheetsStore[child.sheetIdx];
+                if (!sheet) continue;
+                let filteredRows = filterRows(sheet.parsedRows);
+                if (!filteredRows.length) continue;
+                docChildren.push(new Paragraph({ text: child.label, heading: HeadingLevel.HEADING_2 }));
+                for (let idx = 0; idx < filteredRows.length; idx++) {
+                    let item = filteredRows[idx];
+                    let diffAbs = Math.abs(item.diff);
+                    let typeText = item.diff > 0 ? "审增" : (item.diff < 0 ? "审减" : "无调整");
+                    docChildren.push(new Paragraph({
+                        children: [new TextRun(                           
+                        `${idx + 1}. ${escapeHtml(item.name)}：送审工程量 ${item.submitQty.toFixed(2)}${escapeHtml(item.unit)}，审定工程量 ${item.approveQty.toFixed(2)}${escapeHtml(item.unit)}，送审单价 ${item.submitPrice.toFixed(2)} 元/${escapeHtml(item.unit)}，审定单价 ${item.approvePrice.toFixed(2)} 元/${escapeHtml(item.unit)}，送审金额 ${item.submit.toFixed(2)} 元，审定金额 ${item.approve.toFixed(2)} 元，${typeText}金额 ${diffAbs.toFixed(2)} 元，${typeText}原因：${item.reason }。`
+                        )]
+                    }));
+                }
+            }
+            let blob = await Packer.toBlob(new Document({ sections: [{ children: docChildren }] }));
+            saveAs(blob, "审核报告.docx");
+        }
+
+        // ── 共用筛选逻辑（避免重复代码）
+        function filterRows(rows) {
+            let { type, mode, min, max } = currentFilter;
+            return rows.filter(d => {
+                if (type === "inc" && d.diff <= 0) return false;
+                if (type === "dec" && d.diff >= 0) return false;
+                if (mode === "gt")      return d.diff > min;
+                if (mode === "lt")      return d.diff < min;
+                if (mode === "between") return d.diff >= min && d.diff <= max;
+                if (mode === "abs")     return Math.abs(d.diff) > min;
+                return true;
+            });
+        }
+
+        // ── 全局挂载（供内联 HTML onclick 调用）
+        window.onParentCheck     = onParentCheck;
+        window.onChildCheck      = onChildCheck;
+        window.onChildClick      = onChildClick;
+        window.confirmMapping    = confirmMapping;
+        window.toggleMappingCard = toggleMappingCard;
+        window.applyFilters      = applyFilters;
+        window.resetFilters      = resetFilters;
+        window.previewReport     = previewReport;
+        window.exportWordReport  = exportWordReport;
+        window.toggleHelp        = toggleHelp;
+    </script>
+}
