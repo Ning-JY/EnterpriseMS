@@ -11,220 +11,388 @@
     <link rel="stylesheet" href="~/lib/adminlte/css/adminlte.min.css">
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css">
     <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
         body {
-            background: #1e2d3d;
+            margin: 0;
+            min-height: 100vh;
+            background: #eef2f7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
         }
 
-        .login-box {
-            margin-top: 8vh;
+        .login-wrapper {
+            display: flex;
+            width: 880px;
+            min-height: 520px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+            background: #fff;
         }
 
-        .login-card-body {
-            border-top: 4px solid #007bff;
+        /* ── 左侧装饰面板 ── */
+        .login-panel {
+            flex: 1;
+            background: linear-gradient(150deg, #1a6db5 0%, #0d4d8a 55%, #062f5e 100%);
+            padding: 48px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
         }
 
-        /* ── Demo 账号区域 ── */
-        .demo-section {
-            margin-top: 16px;
-            padding-top: 14px;
-            border-top: 1px dashed #dee2e6;
+            .login-panel::before {
+                content: '';
+                position: absolute;
+                width: 300px;
+                height: 300px;
+                border-radius: 50%;
+                border: 1.5px solid rgba(255,255,255,0.07);
+                top: -80px;
+                right: -90px;
+            }
+
+            .login-panel::after {
+                content: '';
+                position: absolute;
+                width: 200px;
+                height: 200px;
+                border-radius: 50%;
+                border: 1.5px solid rgba(255,255,255,0.05);
+                bottom: 30px;
+                left: -60px;
+            }
+
+        .panel-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .demo-section-label {
-            font-size: 11px;
-            color: #adb5bd;
-            text-align: center;
-            margin-bottom: 10px;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
+        .panel-brand-icon {
+            width: 38px;
+            height: 38px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+
+            .panel-brand-icon i {
+                color: white;
+                font-size: 16px;
+            }
+
+        .panel-brand-name {
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: .3px;
+        }
+
+        .panel-content {
+            position: relative;
+            z-index: 1;
+        }
+
+            .panel-content h2 {
+                color: white;
+                font-size: 26px;
+                font-weight: 600;
+                line-height: 1.45;
+                margin-bottom: 14px;
+            }
+
+            .panel-content p {
+                color: rgba(255,255,255,0.6);
+                font-size: 14px;
+                line-height: 1.8;
+            }
+
+        .panel-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .panel-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.25);
+        }
+
+            .panel-dot.active {
+                width: 20px;
+                border-radius: 3px;
+                background: rgba(255,255,255,0.85);
+            }
+
+        /* ── 右侧表单 ── */
+        .login-form-wrap {
+            width: 380px;
+            padding: 48px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+            .login-form-wrap h1 {
+                font-size: 22px;
+                font-weight: 600;
+                color: #1a1a2e;
+                margin-bottom: 6px;
+            }
+
+            .login-form-wrap .login-subtitle {
+                font-size: 14px;
+                color: #888;
+                margin-bottom: 32px;
+            }
+
+        .form-field {
+            margin-bottom: 18px;
+        }
+
+            .form-field label {
+                display: block;
+                font-size: 13px;
+                font-weight: 500;
+                color: #555;
+                margin-bottom: 6px;
+            }
+
+        .input-group-custom {
+            position: relative;
+        }
+
+            .input-group-custom .field-icon {
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #bbb;
+                font-size: 14px;
+                pointer-events: none;
+            }
+
+            .input-group-custom input {
+                width: 100%;
+                height: 42px;
+                padding: 0 12px 0 38px;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                font-size: 14px;
+                color: #333;
+                background: #fafafa;
+                outline: none;
+                transition: border-color .15s, box-shadow .15s, background .15s;
+            }
+
+                .input-group-custom input:focus {
+                    border-color: #378ADD;
+                    background: #fff;
+                    box-shadow: 0 0 0 3px rgba(55,138,221,0.12);
+                }
+
+        .alert-login {
+            background: #fff5f5;
+            border: 1px solid #fecdcc;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #c0392b;
+            margin-bottom: 18px;
+        }
+
+        .btn-submit {
+            width: 100%;
+            height: 42px;
+            background: #185FA5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+            margin-bottom: 22px;
+            letter-spacing: .5px;
+        }
+
+            .btn-submit:hover {
+                background: #0d4d8a;
+            }
+
+            .btn-submit:active {
+                transform: scale(0.99);
+            }
+
+        .demo-divider {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+            .demo-divider::before, .demo-divider::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: #eee;
+            }
+
+            .demo-divider span {
+                font-size: 12px;
+                color: #bbb;
+                white-space: nowrap;
+            }
 
         .demo-buttons {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 8px;
         }
 
         .demo-btn {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            padding: 8px 4px;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            background: #f8f9fa;
-            cursor: pointer;
-            transition: all 0.18s ease;
+            padding: 8px 6px;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            background: #f8f8f8;
             font-size: 12px;
-            color: #495057;
-            line-height: 1.3;
+            color: #666;
+            cursor: pointer;
+            text-align: center;
+            transition: border-color .15s, background .15s;
         }
 
             .demo-btn:hover {
-                border-color: #007bff;
-                background: #e8f4ff;
-                color: #007bff;
-                transform: translateY(-2px);
-                box-shadow: 0 3px 8px rgba(0, 123, 255, 0.15);
-            }
-
-            .demo-btn:active {
-                transform: translateY(0);
-                box-shadow: none;
-            }
-
-            .demo-btn .demo-icon {
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 13px;
-                color: #fff;
-                flex-shrink: 0;
-            }
-
-            .demo-btn .demo-name {
-                font-weight: 600;
-                font-size: 12px;
-            }
-
-            .demo-btn .demo-account {
-                font-size: 10px;
-                color: #adb5bd;
-            }
-
-            .demo-btn:hover .demo-account {
-                color: #74b9ff;
-            }
-
-            /* 三个按钮各自的图标背景色 */
-            .demo-btn:nth-child(1) .demo-icon {
-                background: #007bff;
-            }
-
-            .demo-btn:nth-child(2) .demo-icon {
-                background: #28a745;
-            }
-
-            .demo-btn:nth-child(3) .demo-icon {
-                background: #6c757d;
-            }
-
-            .demo-btn:nth-child(1):hover {
-                border-color: #007bff;
-                background: #e8f4ff;
-                color: #007bff;
-            }
-
-            .demo-btn:nth-child(2):hover {
-                border-color: #28a745;
-                background: #e8f5e9;
-                color: #28a745;
-            }
-
-            .demo-btn:nth-child(3):hover {
-                border-color: #6c757d;
+                border-color: #bbb;
                 background: #f0f0f0;
-                color: #6c757d;
             }
 
-            .demo-btn:nth-child(1):hover {
-                box-shadow: 0 3px 8px rgba(0,123,255,0.15);
+            .demo-btn strong {
+                display: block;
+                font-weight: 600;
+                color: #333;
+                font-size: 12px;
+                margin-bottom: 2px;
             }
 
-            .demo-btn:nth-child(2):hover {
-                box-shadow: 0 3px 8px rgba(40,167,69,0.15);
+            .demo-btn span {
+                font-size: 11px;
+                opacity: .7;
             }
 
-            .demo-btn:nth-child(3):hover {
-                box-shadow: 0 3px 8px rgba(108,117,125,0.15);
+        .login-footer {
+            font-size: 12px;
+            color: #ccc;
+            text-align: center;
+            margin-top: 22px;
+        }
+
+        @@media (max-width: 680px) {
+            .login-panel {
+                display: none;
             }
+
+            .login-form-wrap {
+                width: 100%;
+                padding: 40px 28px;
+            }
+        }
     </style>
 </head>
-<body class="hold-transition login-page">
-    <div class="login-box">
-        
-        <div class="card">
-            <div class="login-logo">
-                <b>企业</b>管理系统
+<body>
+    <div class="login-wrapper">
+
+        <!-- 左侧装饰 -->
+        <div class="login-panel">
+            <div class="panel-brand">
+                <div class="panel-brand-icon">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <span class="panel-brand-name"><b>企业</b>管理系统</span>
             </div>
-            <div class="card-body login-card-body">
-                <p class="login-box-msg text-muted">请登录您的账号</p>
+            <div class="panel-content">
+                <h2>项目全程管控<br>人员档案一体化</h2>
+                <p>集项目管理、概预算、员工档案<br>回款报表于一体的企业运营平台</p>
+            </div>
+            <div class="panel-dots">
+                <div class="panel-dot active"></div>
+                <div class="panel-dot"></div>
+                <div class="panel-dot"></div>
+            </div>
+        </div>
 
-                @if (!ViewData.ModelState.IsValid)
-                {
-                    <div class="alert alert-danger alert-dismissible">
-                        <button type="button" class="close" data-dismiss="alert">×</button>
-                        @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                        {
-                            <span>@err.ErrorMessage</span>
-                        }
-                    </div>
-                }
+        <!-- 右侧表单 -->
+        <div class="login-form-wrap">
+            <h1>欢迎回来</h1>
+            <p class="login-subtitle">请登录您的企业账号</p>
 
-                <form asp-action="Login" asp-controller="Account" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl">
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="alert-login">
+                    <i class="fas fa-exclamation-circle mr-1"></i>
+                    @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <span>@err.ErrorMessage</span>
+                    }
+                </div>
+            }
 
-                    <div class="input-group mb-3">
-                        <input type="text" name="username" class="form-control"
-                               placeholder="用户名" required autofocus>
-                        <div class="input-group-append">
-                            <div class="input-group-text">
-                                <span class="fas fa-user"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="input-group mb-3">
-                        <input type="password" name="password" class="form-control"
-                               placeholder="密码" required>
-                        <div class="input-group-append">
-                            <div class="input-group-text">
-                                <span class="fas fa-lock"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-primary btn-block">
-                                <i class="fas fa-sign-in-alt mr-1"></i> 登 录
-                            </button>
-                        </div>
-                    </div>
-                </form>
+            <form asp-action="Login" asp-controller="Account" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl">
 
-                @* ── Demo 账号快捷登录 ──*@
-                <div class="demo-section">
-                    <div class="demo-section-label">快捷体验账号</div>
-                    <div class="demo-buttons">
-                        <button class="demo-btn" onclick="fillDemoAccount('admin','123456')">
-                            <span class="demo-icon"><i class="fas fa-shield-alt"></i></span>
-                            <span class="demo-name">管理员</span>
-                            <span class="demo-account">admin</span>
-                        </button>
-                        <button class="demo-btn" onclick="fillDemoAccount('user','password')">
-                            <span class="demo-icon"><i class="fas fa-user"></i></span>
-                            <span class="demo-name">普通用户</span>
-                            <span class="demo-account">user</span>
-                        </button>
-                        <button class="demo-btn" onclick="fillDemoAccount('test','test123')">
-                            <span class="demo-icon"><i class="fas fa-flask"></i></span>
-                            <span class="demo-name">测试用户</span>
-                            <span class="demo-account">test</span>
-                        </button>
+                <div class="form-field">
+                    <label>用户名</label>
+                    <div class="input-group-custom">
+                        <i class="fas fa-user field-icon"></i>
+                        <input type="text" name="username" placeholder="请输入用户名"
+                               required autofocus autocomplete="username">
                     </div>
                 </div>
 
+                <div class="form-field">
+                    <label>密码</label>
+                    <div class="input-group-custom">
+                        <i class="fas fa-lock field-icon"></i>
+                        <input type="password" name="password" placeholder="请输入密码"
+                               required autocomplete="current-password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    登 录
+                </button>
+            </form>
+
+            <div class="demo-divider"><span>快速填入演示账号</span></div>
+            <div class="demo-buttons">
+                <div class="demo-btn" onclick="fillDemoAccount('admin','123456')">
+                    <strong>管理员</strong><span>admin</span>
+                </div>
+                <div class="demo-btn" onclick="fillDemoAccount('user','password')">
+                    <strong>普通用户</strong><span>user</span>
+                </div>
+                <div class="demo-btn" onclick="fillDemoAccount('test','test123')">
+                    <strong>测试用户</strong><span>test</span>
+                </div>
             </div>
+
+            <p class="login-footer">v2.0 &nbsp;·&nbsp; .NET 9 + EF Core 9</p>
         </div>
     </div>
 
     <script src="~/lib/jquery/jquery.min.js"></script>
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="~/lib/adminlte/js/adminlte.min.js"></script>
     <script>
         function fillDemoAccount(username, password) {
             document.querySelector('input[name="username"]').value = username;
