@@ -17,4 +17,8 @@ public class ToolController : BaseAuthController
     /// <summary>工程审核报告生成工具</summary>
     [HttpGet("report")]
     public IActionResult Report() => View();
+
+    /// <summary>造价咨询费用计算器</summary>
+    [HttpGet("calculator")]
+    public IActionResult Calculator() => View();
 }

@@ -1,0 +1,378 @@
+﻿@{
+    ViewData["Title"] = "费用计算器";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <style>
+        .fee-table th {
+            background-color: #f4f6f9;
+        }
+
+        .result-highlight {
+            font-weight: bold;
+            color: #1e3c72;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+            .cursor-pointer:hover {
+                background-color: #f0f4ff !important;
+            }
+
+        .calculation-step {
+            background-color: #f8f9fc;
+            border-left: 3px solid #007bff;
+            padding: .5rem 1rem;
+            margin-bottom: .5rem;
+            font-size: .85rem;
+        }
+
+        .badge-rate {
+            background-color: #e9ecef;
+            color: #495057;
+            font-weight: normal;
+            font-size: 11px;
+        }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">费用计算器</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item">造价小工具</li>
+                    <li class="breadcrumb-item active">费用计算器</li>
+                </ol>
+            </div>
+        </div>
+        <p class="text-muted small mb-0">
+            依据《四川省物价局、四川省建设厅关于工程造价咨询服务收费标准的通知》川价发〔2008〕141号附件第1-9项、第11项。
+            费率单位为 <strong class="text-danger">‰（千分率）</strong>，支持下浮率、特殊系数，单击行查看详细计算式。
+        </p>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+
+            @* ── 左侧参数面板 ── *@
+            <div class="col-lg-4 col-md-12">
+                <div class="card card-primary card-outline">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-sliders-h mr-1"></i>计费参数设置</h3>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="form-group">
+                            <label><i class="fas fa-coins mr-1"></i>投资额 / 工程造价（万元）</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend"><span class="input-group-text">万元</span></div>
+                                <input type="number" id="baseAmount" class="form-control"
+                                       placeholder="例如 3000" step="any" value="3000">
+                            </div>
+                            <small class="form-text text-muted">适用于投资估算、概算、预算编制/审核、清单编制、结算编制、全过程造价控制等。</small>
+                        </div>
+
+                        <div class="form-group mt-3 pt-3 border-top">
+                            <label class="font-weight-bold">
+                                <i class="fas fa-file-signature mr-1 text-warning"></i>第9项（审核竣工结算）专用参数
+                            </label>
+                            <div class="input-group mb-2">
+                                <div class="input-group-prepend"><span class="input-group-text" style="font-size:12px">送审造价</span></div>
+                                <input type="number" id="submitAmount" class="form-control" placeholder="万元" step="any" value="3000">
+                                <div class="input-group-append"><span class="input-group-text">万元</span></div>
+                            </div>
+                            <div class="input-group">
+                                <div class="input-group-prepend"><span class="input-group-text" style="font-size:12px">审定造价</span></div>
+                                <input type="number" id="approvedAmount" class="form-control" placeholder="万元" step="any" value="2850">
+                                <div class="input-group-append"><span class="input-group-text">万元</span></div>
+                            </div>
+                            <small class="form-text text-muted">效益费按审减（或审增）金额的 5% 计算，由责任方承担（详见说明五）。</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label><i class="fas fa-percent mr-1"></i>下浮率 (%)</label>
+                            <div class="input-group">
+                                <input type="number" id="discountRate" class="form-control"
+                                       placeholder="0 ~ 100" step="any" value="0">
+                                <div class="input-group-append"><span class="input-group-text">%</span></div>
+                            </div>
+                            <small class="form-text text-muted">最终费用 = 标准收费 × (1 − 下浮率/100)。低于最低限 80% 属恶意竞争（行业自律）。</small>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="custom-control custom-switch">
+                                <input type="checkbox" class="custom-control-input" id="chkControlPriceFactor">
+                                <label class="custom-control-label" for="chkControlPriceFactor">
+                                    第6项"编制工程量清单"含预算控制价（系数×1.25，说明三）
+                                </label>
+                            </div>
+                            <div class="custom-control custom-switch mt-2">
+                                <input type="checkbox" class="custom-control-input" id="chkDecorationFactor">
+                                <label class="custom-control-label" for="chkDecorationFactor">
+                                    单独委托装饰/安装/技术改造工程（增加 20%，说明八）
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info small py-2 mb-0">
+                            <i class="fas fa-info-circle mr-1"></i>最低收费 3000 元/单项（说明九）。<br>
+                            <i class="fas fa-exclamation-triangle mr-1 text-danger"></i>
+                            <strong>费率单位为 ‰（千分率）</strong>，如 3.2‰ = 0.32%。
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            @* ── 右侧费用表格 ── *@
+            <div class="col-lg-8 col-md-12">
+                <div class="card card-primary card-outline">
+                    <div class="card-header">
+                        <h3 class="card-title"><i class="fas fa-list-ol mr-1"></i>咨询服务项目（第1~9项、第11项）</h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0 table-responsive">
+                        <table class="table table-bordered table-hover mb-0 fee-table" id="feeTable">
+                            <thead class="thead-light">
+                                <tr class="text-center">
+                                    <th style="width:8%">序号</th>
+                                    <th style="width:32%">收费项目</th>
+                                    <th style="width:18%">收费基数</th>
+                                    <th style="width:20%">标准收费(元)</th>
+                                    <th style="width:22%">最终金额(元)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="feeTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer bg-white small text-muted">
+                        <i class="fas fa-hand-pointer mr-1"></i>
+                        单击任意行可查看详细差额定率累进计算式。第9项效益费 = |审减/审增| × 5%，基本审核费按送审工程造价计算。
+                    </div>
+                </div>
+
+                @* ── 详细计算式 ──  *@
+                <div class="card card-default">
+                    <div class="card-header bg-light" id="detailHeader" style="cursor:pointer;">
+                        <h3 class="card-title">
+                            <i class="fas fa-square-root-alt mr-1"></i>详细计算式（点击展开/收起）
+                        </h3>
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" id="toggleDetailBtn">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body p-3" id="detailStepsPanel" style="display:none;">
+                        <div id="detailStepsContainer" class="bg-white p-3 rounded border">
+                            <p class="text-secondary mb-0">
+                                请在上方表格中单击任意项目，查看其详细累进计算过程及调整系数。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        // ── 费率定义 ──────────────────────────────────────────────
+        const thresholds = [0, 100, 500, 1000, 5000, 10000];
+        const feeRatesDef = {
+            1:  { name: "投资估算",                             baseType: "投资额",         rates: [1.0,  0.8,  0.6,  0.4,  0.2,  0.2]  },
+            2:  { name: "可行性经济评价",                       baseType: "投资额",         rates: [2.5,  2.3,  2.0,  1.7,  1.5,  1.5]  },
+            3:  { name: "编制工程设计概算",                     baseType: "投资额",         rates: [1.5,  1.3,  1.2,  1.0,  0.8,  0.8]  },
+            4:  { name: "编制工程预算（招标控制价或标底）",     baseType: "工程造价",       rates: [3.2,  3.0,  2.8,  2.6,  2.3,  2.3]  },
+            5:  { name: "编制竣工结算",                         baseType: "工程造价",       rates: [3.5,  3.2,  3.0,  2.7,  2.5,  2.5]  },
+            6:  { name: "编制工程量清单或审核",                 baseType: "工程造价",       rates: [4.0,  3.8,  3.6,  3.3,  3.0,  3.0]  },
+            7:  { name: "审核工程设计概算",                     baseType: "送审工程造价",   rates: [1.6,  1.4,  1.3,  1.1,  0.9,  0.9]  },
+            8:  { name: "审核工程预算（招标控制价或标底）",     baseType: "送审工程造价",   rates: [3.6,  3.4,  3.2,  3.0,  2.8,  2.8]  },
+            9:  { name: "审核竣工结算",                         baseType: "送审工程造价",   rates: [5.0,  4.8,  4.6,  4.4,  4.0,  3.5], hasBenefit: true },
+            11: { name: "施工阶段全过程造价控制",               baseType: "投资额",         rates: [13.0, 12.0, 11.0, 10.0, 9.0,  7.0]  }
+        };
+
+        // ── 差额定率累进计算 ──────────────────────────────────────
+        function calcProgressiveFee(amountWan, ratesArr) {
+            if (!ratesArr || ratesArr.length !== 6 || amountWan <= 0) return 0;
+            let feeWan = 0;
+            for (let i = 0; i < thresholds.length; i++) {
+                let lower = thresholds[i];
+                let upper = (i + 1 < thresholds.length) ? thresholds[i + 1] : Infinity;
+                if (amountWan > lower) {
+                    let seg = (amountWan > upper) ? (upper - lower) : (amountWan - lower);
+                    if (seg > 0) feeWan += seg * (ratesArr[i] / 1000);
+                }
+                if (amountWan <= upper) break;
+            }
+            return feeWan;
+        }
+
+        function getStandardFeeInYuan(seq, baseWan, submitWan) {
+            const def = feeRatesDef[seq];
+            if (!def) return 0;
+            let amtWan = (seq === 9 || def.baseType === "送审工程造价") ? submitWan : baseWan;
+            return calcProgressiveFee(amtWan, def.rates) * 10000;
+        }
+
+        function getBenefitFee(submitWan, approvedWan) {
+            return Math.abs(submitWan - approvedWan) * 10000 * 0.05;
+        }
+
+        // ── 渲染表格 ─────────────────────────────────────────────
+        function renderTable() {
+            let baseWan     = parseFloat($('#baseAmount').val())    || 0;
+            let submitWan   = parseFloat($('#submitAmount').val())  || baseWan;
+            let approvedWan = parseFloat($('#approvedAmount').val())|| submitWan;
+            let discount    = parseFloat($('#discountRate').val())  || 0;
+            let isCtrl      = $('#chkControlPriceFactor').is(':checked');
+            let isDeco      = $('#chkDecorationFactor').is(':checked');
+
+            let tbody = $('#feeTableBody').empty();
+
+            [1,2,3,4,5,6,7,8,9,11].forEach(seq => {
+                let def = feeRatesDef[seq];
+                if (!def) return;
+
+                let basicYuan = getStandardFeeInYuan(seq, baseWan, submitWan);
+                let factor    = 1.0;
+                if (seq === 6 && isCtrl) factor *= 1.25;
+                if (isDeco)              factor *= 1.20;
+
+                let finalYuan = basicYuan * factor * (1 - discount / 100);
+                let benefitYuan = 0;
+                let totalYuan   = finalYuan;
+
+                if (seq === 9) {
+                    benefitYuan = getBenefitFee(submitWan, approvedWan);
+                    totalYuan   = finalYuan + benefitYuan;
+                }
+                if (totalYuan > 0 && totalYuan < 3000) totalYuan = 3000;
+
+                let stdText   = basicYuan.toFixed(2) + ' 元';
+                if (factor !== 1.0) stdText += ' (×' + factor.toFixed(2) + ')';
+                if (seq === 9)      stdText += ' + 效益费';
+
+                let finalText = seq === 9 && benefitYuan > 0
+                    ? `基本费¥${finalYuan.toFixed(2)} + 效益费¥${benefitYuan.toFixed(2)} = ¥${totalYuan.toFixed(2)}`
+                    : `¥ ${totalYuan.toFixed(2)} 元`;
+
+                let baseInfo  = seq === 9 ? `送审造价 ${submitWan} 万元` : def.baseType;
+
+                let tr = $('<tr>').addClass('cursor-pointer').attr('data-seq', seq).html(`
+                    <td class="text-center font-weight-bold">${seq}</td>
+                    <td>${def.name} <span class="badge badge-rate ml-1">${def.baseType}</span></td>
+                    <td class="small">${baseInfo}</td>
+                    <td class="small">${stdText}</td>
+                    <td class="font-weight-bold text-success">${finalText}</td>
+                `);
+                tr.on('click', function(e) {
+                    e.stopPropagation();
+                    showDetail(seq, baseWan, submitWan, approvedWan, discount, factor, isCtrl, isDeco);
+                });
+                tbody.append(tr);
+            });
+        }
+
+        // ── 详细计算式 ────────────────────────────────────────────
+        function rangeName(i) {
+            return ['100万元以内','100-500万元','500-1000万元','1000-5000万元','5000万元-1亿元','1亿元以上'][i];
+        }
+
+        function showDetail(seq, baseWan, submitWan, approvedWan, discount, factor, isCtrl, isDeco) {
+            let def = feeRatesDef[seq];
+            if (!def) return;
+
+            let amtWan = (seq === 9 || def.baseType === "送审工程造价") ? submitWan : baseWan;
+            let html = `<h6><i class="fas fa-chart-line mr-1"></i>【${seq}】${def.name} 详细计算</h6>`;
+            html += `<div class="alert alert-warning py-1 small mb-2"><i class="fas fa-exclamation-triangle mr-1"></i>费率单位为 <strong>‰（千分率）</strong>，计算时除以 1000</div>`;
+            html += `<p class="mb-1"><strong>收费基数：</strong>${def.baseType} ${amtWan.toFixed(2)} 万元</p>`;
+            html += `<div class="calculation-step"><strong>差额定率累进计算（费率单位：‰）：</strong><br>`;
+
+            let steps = [], totalFeeWan = 0;
+            for (let i = 0; i < thresholds.length; i++) {
+                let lower = thresholds[i];
+                let upper = (i + 1 < thresholds.length) ? thresholds[i + 1] : Infinity;
+                if (amtWan > lower) {
+                    let seg = (amtWan > upper) ? (upper - lower) : (amtWan - lower);
+                    if (seg > 0) {
+                        let segFee = seg * (def.rates[i] / 1000);
+                        totalFeeWan += segFee;
+                        steps.push(`${rangeName(i)}: ${seg.toFixed(2)} 万元 × ${def.rates[i]}‰ = ${segFee.toFixed(4)} 万元`);
+                    }
+                }
+                if (amtWan <= upper) break;
+            }
+            html += steps.join('<br>');
+            html += `<br><strong>标准费用合计 = ${totalFeeWan.toFixed(4)} 万元 = ${(totalFeeWan*10000).toFixed(2)} 元</strong></div>`;
+
+            if (seq === 9) {
+                let diff    = Math.abs(submitWan - approvedWan);
+                let benefit = diff * 10000 * 0.05;
+                let adjMsg  = submitWan > approvedWan ? `审减金额 ${diff.toFixed(2)} 万元` : `审增金额 ${diff.toFixed(2)} 万元`;
+                html += `<div class="calculation-step"><strong>效益费：</strong>${adjMsg}，效益费率 5% → ${diff.toFixed(2)}×10000×5% = ${benefit.toFixed(2)} 元<br>
+                    <small class="text-muted">注：审减率5%以内由委托方承担，超过部分由编制方承担（说明五）。</small></div>`;
+                let basicAfter = totalFeeWan * 10000 * factor;
+                let finalBasic = basicAfter * (1 - discount / 100);
+                let total = finalBasic + benefit;
+                if (total < 3000) total = 3000;
+                html += `<div class="calculation-step">调整系数 ${factor} → 基本费 ${(totalFeeWan*10000).toFixed(2)} × ${factor} = ${basicAfter.toFixed(2)} 元<br>
+                    下浮 ${discount}% → 基本费下浮后 = ${finalBasic.toFixed(2)} 元<br>
+                    <strong>最终总费用 = 基本费 ${finalBasic.toFixed(2)} + 效益费 ${benefit.toFixed(2)} = ${total.toFixed(2)} 元</strong>（最低3000元已应用）</div>`;
+            } else {
+                let extraMsg = '';
+                if (seq === 6 && isCtrl) extraMsg += '×1.25（含预算控制价）';
+                if (isDeco) extraMsg += (extraMsg ? '；' : '') + '×1.20（装饰/安装工程）';
+                let afterExtra = totalFeeWan * 10000 * factor;
+                let finalYuan  = afterExtra * (1 - discount / 100);
+                if (finalYuan < 3000) finalYuan = 3000;
+                if (factor !== 1.0)
+                    html += `<div class="calculation-step"><strong>特殊系数调整：</strong>${extraMsg}<br>
+                        调整后 = ${(totalFeeWan*10000).toFixed(2)} × ${factor} = ${afterExtra.toFixed(2)} 元</div>`;
+                html += `<div class="calculation-step"><strong>下浮率 ${discount}%：</strong>最终费用 = ${afterExtra.toFixed(2)} × (1 − ${discount/100}) = ${(afterExtra*(1-discount/100)).toFixed(2)} 元<br>
+                    <strong>最低收费约束：</strong>≥ 3000 元 → 最终应收：<span class="text-success font-weight-bold">${finalYuan.toFixed(2)} 元</span></div>`;
+            }
+
+            $('#detailStepsContainer').html(html);
+            $('#detailStepsPanel').show();
+            $('#toggleDetailBtn i').attr('class', 'fas fa-minus');
+        }
+
+        // ── 详细计算式折叠 ────────────────────────────────────────
+        function initDetailToggle() {
+            function toggle() {
+                let visible = $('#detailStepsPanel').is(':visible');
+                $('#detailStepsPanel').slideToggle(200);
+                $('#toggleDetailBtn i').attr('class', visible ? 'fas fa-plus' : 'fas fa-minus');
+            }
+            $('#toggleDetailBtn').off('click').on('click', function(e) { e.stopPropagation(); toggle(); });
+            $('#detailHeader').off('click').on('click', function(e) {
+                if ($(e.target).closest('.btn-tool').length) return;
+                toggle();
+            });
+        }
+
+        $(function() {
+            $('#baseAmount, #submitAmount, #approvedAmount, #discountRate').on('input', renderTable);
+            $('#chkControlPriceFactor, #chkDecorationFactor').on('change', renderTable);
+            initDetailToggle();
+            renderTable();
+        });
+    </script>
+}
