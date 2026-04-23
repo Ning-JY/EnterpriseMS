@@ -4,10 +4,9 @@ using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Infrastructure.Cache;
-using EnterpriseMS.Infrastructure.Data;
 using EnterpriseMS.Services.DTOs.System;
 using EnterpriseMS.Services.Interfaces;
-
+using EnterpriseMS.Infrastructure.Data;
 namespace EnterpriseMS.Services.Impl;
 
 // ── PermissionService ────────────────────────────────────────
@@ -15,20 +14,19 @@ public class PermissionService : IPermissionService
 {
     private readonly IUnitOfWork _uow;
     private readonly IPermissionCache _cache;
-    private readonly AppDbContext _db;
 
-    public PermissionService(IUnitOfWork uow, IPermissionCache cache, AppDbContext db)
-    { _uow = uow; _cache = cache; _db = db; }
+    public PermissionService(IUnitOfWork uow, IPermissionCache cache)
+    { _uow = uow; _cache = cache; }
 
     public async Task<List<string>> GetUserPermissionsAsync(long userId)
     {
         var cached = await _cache.GetUserPermsAsync(userId);
         if (cached != null) return cached;
 
-        var perms = await _db.SysUserRoles
+        var perms = await _uow.UserRoles.Query()
             .Where(ur => ur.UserId == userId)
-            .Join(_db.SysRoleMenus, ur => ur.RoleId, rm => rm.RoleId, (ur, rm) => rm.MenuId)
-            .Join(_db.SysMenus.Where(m => m.Status == 1 && !m.IsDeleted),
+            .Join(_uow.RoleMenus.Query(), ur => ur.RoleId, rm => rm.RoleId, (ur, rm) => rm.MenuId)
+            .Join(_uow.Menus.Query().Where(m => m.Status == 1 && !m.IsDeleted),
                   mid => mid, m => m.Id, (mid, m) => m.Perms)
             .Where(p => p != null)
             .Distinct()
@@ -41,62 +39,61 @@ public class PermissionService : IPermissionService
 
     public async Task<List<MenuTreeDto>> GetUserMenuTreeAsync(long userId)
     {
-        // 超级管理员获取全部菜单
-        // IgnoreQueryFilters 确保即使Role被软删除也能正确判断（理论上superadmin不会被删除）
-
         List<SysMenu> menus;
 
         // ── 匿名用户：只返回 Perms 为 null 的公开菜单 ──────────
         if (userId == 0)
         {
-            menus = await _db.SysMenus
+            menus = await _uow.Menus.Query()
                 .Where(m => m.MenuType != "F" && m.Visible == 1 && m.Status == 1
                          && !m.IsDeleted && m.Perms == null)
                 .OrderBy(m => m.Sort).ToListAsync();
             return BuildMenuTree(menus, 0);
         }
-
-        var isAdmin = await _db.SysUserRoles
-            .AnyAsync(ur => ur.UserId == userId &&
-                _db.SysRoles.IgnoreQueryFilters()
-                    .Any(r => r.Id == ur.RoleId && r.RoleCode == "superadmin" && !r.IsDeleted));
-
+        var roleQuery = _uow.Roles.Query().IgnoreQueryFilters();
+        var isAdmin = await _uow.UserRoles.Query()
+            .AnyAsync(ur =>
+                ur.UserId == userId &&
+                roleQuery.Any(r =>
+                    r.Id == ur.RoleId &&
+                    r.RoleCode == "superadmin" &&
+                    !r.IsDeleted
+                )
+            );
         if (isAdmin)
         {
-            menus = await _db.SysMenus
+            menus = await _uow.Menus.Query()
                 .Where(m => m.MenuType != "F" && m.Visible == 1 && m.Status == 1 && !m.IsDeleted)
                 .OrderBy(m => m.Sort).ToListAsync();
         }
         else
         {
-            // 已登录用户：角色菜单 + 公开菜单（Perms==null）取并集
-            var roleMenuIds = await _db.SysUserRoles
+            var roleMenuIds = await _uow.UserRoles.Query()
                 .Where(ur => ur.UserId == userId)
-                .Join(_db.SysRoleMenus, ur => ur.RoleId, rm => rm.RoleId, (ur, rm) => rm.MenuId)
+                .Join(_uow.RoleMenus.Query(), ur => ur.RoleId, rm => rm.RoleId, (ur, rm) => rm.MenuId)
                 .Distinct()
                 .ToListAsync();
 
-            menus = await _db.SysMenus
+            menus = await _uow.Menus.Query()
                 .Where(m => m.MenuType != "F" && m.Visible == 1 && m.Status == 1 && !m.IsDeleted
                          && (m.Perms == null || roleMenuIds.Contains(m.Id)))
                 .OrderBy(m => m.Sort).ToListAsync();
         }
         return BuildMenuTree(menus, 0);
     }
+
     public async Task<(int DataScope, long? DeptId)> GetUserDataScopeAsync(long userId)
     {
-        // 取该用户权限最大的角色（DataScope 值越小权限越大）
-        var role = await _db.SysUserRoles
+        var role = await _uow.UserRoles.Query()
             .Where(ur => ur.UserId == userId)
-            .Join(_db.SysRoles.Where(r => r.Status == 1 && !r.IsDeleted),
+            .Join(_uow.Roles.Query().Where(r => r.Status == 1 && !r.IsDeleted),
                   ur => ur.RoleId, r => r.Id, (ur, r) => r)
-            .OrderBy(r => r.DataScope)   // 取最高权限
+            .OrderBy(r => r.DataScope)
             .FirstOrDefaultAsync();
 
-        if (role == null) return (4, null);   // 无角色：仅本人
+        if (role == null) return (4, null);
 
-        // 同时返回用户所在部门（用于部门过滤）
-        var user = await _db.SysUsers
+        var user = await _uow.Users.Query()
             .Where(u => u.Id == userId && !u.IsDeleted)
             .Select(u => new { u.DeptId })
             .FirstOrDefaultAsync();
@@ -130,7 +127,7 @@ public class PermissionService : IPermissionService
 
     public async Task ClearRoleUsersCacheAsync(long roleId)
     {
-        var userIds = await _db.SysUserRoles
+        var userIds = await _uow.UserRoles.Query()
             .Where(ur => ur.RoleId == roleId)
             .Select(ur => ur.UserId).ToListAsync();
         foreach (var uid in userIds)
@@ -143,12 +140,10 @@ public class RoleService : IRoleService
 {
     private readonly IUnitOfWork _uow;
     private readonly IMapper _mapper;
-    private readonly AppDbContext _db;
     private readonly IPermissionService _permSvc;
 
-    public RoleService(IUnitOfWork uow, IMapper mapper,
-        AppDbContext db, IPermissionService permSvc)
-    { _uow = uow; _mapper = mapper; _db = db; _permSvc = permSvc; }
+    public RoleService(IUnitOfWork uow, IMapper mapper, IPermissionService permSvc)
+    { _uow = uow; _mapper = mapper; _permSvc = permSvc; }
 
     public async Task<PagedResult<RoleListDto>> GetPagedAsync(string? keyword, int page, int size)
     {
@@ -226,17 +221,18 @@ public class RoleService : IRoleService
 
     public async Task AssignMenusAsync(long roleId, List<long> menuIds)
     {
-        var old = await _db.SysRoleMenus.Where(rm => rm.RoleId == roleId).ToListAsync();
-        _db.SysRoleMenus.RemoveRange(old);
+        var old = await _uow.RoleMenus.GetListAsync(rm => rm.RoleId == roleId);
+        _uow.RoleMenus.RemoveRange(old);
         var news = menuIds.Distinct().Select(mid => new SysRoleMenu { RoleId = roleId, MenuId = mid });
-        await _db.SysRoleMenus.AddRangeAsync(news);
-        await _db.SaveChangesAsync();
+        await _uow.RoleMenus.AddRangeAsync(news);
+        await _uow.SaveChangesAsync();
         await _permSvc.ClearRoleUsersCacheAsync(roleId);
     }
 
     public async Task<List<long>> GetRoleMenuIdsAsync(long roleId)
-        => await _db.SysRoleMenus.Where(rm => rm.RoleId == roleId)
-                                  .Select(rm => rm.MenuId).ToListAsync();
+        => await _uow.RoleMenus.Query()
+            .Where(rm => rm.RoleId == roleId)
+            .Select(rm => rm.MenuId).ToListAsync();
 }
 
 // ── MenuService ──────────────────────────────────────────────

@@ -55,6 +55,7 @@ try
     builder.Services.AddScoped<IOperLogService,       OperLogService>();
     builder.Services.AddScoped<IProjectService,       ProjectService>();
     builder.Services.AddScoped<IEmployeeQueryService, EmployeeQueryService>();
+    builder.Services.AddScoped<IHangfireService, HangfireService>();
 
     // ── 缓存：Redis 可用则 Redis，否则自动降级内存缓存 ────────
     var redisConn = builder.Configuration["Redis:Connection"] ?? "";
@@ -226,11 +227,11 @@ try
     // ── Hangfire 定时任务 ─────────────────────────────────────
     try
     {
-        RecurringJob.AddOrUpdate<HangfireJobs>("check-contract-expire",
+        RecurringJob.AddOrUpdate<IHangfireService>("check-contract-expire",
             j => j.CheckContractExpireAsync(), Cron.Daily(9));
-        RecurringJob.AddOrUpdate<HangfireJobs>("check-cert-expire",
+        RecurringJob.AddOrUpdate<IHangfireService>("check-cert-expire",
             j => j.CheckCertExpireAsync(), Cron.Daily(9));
-        RecurringJob.AddOrUpdate<HangfireJobs>("check-milestone-overdue",
+        RecurringJob.AddOrUpdate<IHangfireService>("check-milestone-overdue",
             j => j.CheckMilestoneOverdueAsync(), Cron.Daily(8));
     }
     catch (Exception ex)
@@ -259,43 +260,4 @@ public class HangfireAuthFilter : IDashboardAuthorizationFilter
     }
 }
 
-// ── Hangfire 定时任务 ─────────────────────────────────────────
-public class HangfireJobs
-{
-    private readonly AppDbContext _db;
-    private readonly IConfiguration _cfg;
-    private readonly ILogger<HangfireJobs> _log;
 
-    public HangfireJobs(AppDbContext db, IConfiguration cfg, ILogger<HangfireJobs> log)
-    { _db = db; _cfg = cfg; _log = log; }
-
-    public async Task CheckContractExpireAsync()
-    {
-        var days = _cfg.GetValue<int>("Hangfire:ContractWarningDays", 30);
-        var n    = await _db.Contracts
-            .CountAsync(c => !c.IsDeleted && c.Status == 0
-                          && c.EndDate <= DateTime.Today.AddDays(days));
-        if (n > 0) _log.LogWarning("【合同到期预警】{Count} 份将在 {Days} 天内到期", n, days);
-    }
-
-    public async Task CheckCertExpireAsync()
-    {
-        var days = _cfg.GetValue<int>("Hangfire:CertWarningDays", 60);
-        var n    = await _db.Certificates
-            .CountAsync(c => !c.IsDeleted && c.Status == 0
-                          && c.ExpireDate.HasValue && c.ExpireDate <= DateTime.Today.AddDays(days));
-        if (n > 0) _log.LogWarning("【证书到期预警】{Count} 张将在 {Days} 天内到期", n, days);
-    }
-
-    public async Task CheckMilestoneOverdueAsync()
-    {
-        var list = await _db.Milestones
-            .Where(m => !m.IsDeleted && m.Status != 2
-                     && m.PlanDate < DateTime.Today && !m.IsOverdue)
-            .ToListAsync();
-        if (!list.Any()) return;
-        foreach (var m in list) m.IsOverdue = true;
-        await _db.SaveChangesAsync();
-        _log.LogWarning("【里程碑逾期】标记 {Count} 个", list.Count);
-    }
-}

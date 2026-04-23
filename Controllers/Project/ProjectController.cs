@@ -239,12 +239,36 @@ public class ProjectController : BaseAuthController
     [HttpPost("{projectId}/contracts"), ValidateAntiForgeryToken]
     [HasPermission("proj:project:edit")]
     public async Task<IActionResult> AddContract(long projectId,
-        [FromBody] CreateContractDto dto)
+        [FromForm] CreateContractDto dto, IFormFile? file)
     {
         dto.ProjectId = projectId;
         try
         {
             var id = await _projSvc.AddContractAsync(dto, User.GetRealName());
+
+            // 一步上传附件
+            if (file != null && file.Length > 0)
+            {
+                var dir = Path.Combine(Directory.GetCurrentDirectory(),
+                    "wwwroot", "uploads", "project", "contracts");
+                Directory.CreateDirectory(dir);
+                var ext  = Path.GetExtension(file.FileName);
+                var save = $"{id}_{Guid.NewGuid():N}{ext}";
+                var fpath = Path.Combine(dir, save);
+                using (var fs = new FileStream(fpath, FileMode.Create))
+                    await file.CopyToAsync(fs);
+
+                var contract = await _uow.ProjContracts.GetByIdAsync(id);
+                if (contract != null)
+                {
+                    contract.FilePath  = fpath;
+                    contract.FileName  = file.FileName;
+                    contract.UpdatedBy = User.GetRealName();
+                    _uow.ProjContracts.Update(contract);
+                    await _uow.SaveChangesAsync();
+                }
+            }
+
             return Json(ApiResult<object>.Ok(new { id }, "合同已保存"));
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
@@ -268,11 +292,51 @@ public class ProjectController : BaseAuthController
     [HttpPost("{projectId}/invoices"), ValidateAntiForgeryToken]
     [HasPermission("proj:project:edit")]
     public async Task<IActionResult> AddInvoice(long projectId,
-        [FromBody] CreateInvoiceDto dto)
+        [FromForm] CreateInvoiceDto dto, IFormFile? invoiceFile, IFormFile? paymentFile)
     {
         dto.ProjectId = projectId;
         var id = await _projSvc.AddInvoiceAsync(dto, User.GetRealName());
-        return Json(ApiResult<object>.Ok(new { id }, "发票已录入"));
+
+        // 一步上传发票附件
+        if ((invoiceFile != null && invoiceFile.Length > 0)
+            || (paymentFile != null && paymentFile.Length > 0))
+        {
+            var inv = await _uow.ProjInvoices.GetByIdAsync(id);
+            if (inv != null)
+            {
+                var dir = Path.Combine(Directory.GetCurrentDirectory(),
+                    "wwwroot", "uploads", "project", "invoices");
+                Directory.CreateDirectory(dir);
+
+                if (invoiceFile != null && invoiceFile.Length > 0)
+                {
+                    var ext  = Path.GetExtension(invoiceFile.FileName);
+                    var save = $"{id}_invoice_{Guid.NewGuid():N}{ext}";
+                    var fpath = Path.Combine(dir, save);
+                    using (var fs = new FileStream(fpath, FileMode.Create))
+                        await invoiceFile.CopyToAsync(fs);
+                    inv.InvoiceFile     = fpath;
+                    inv.InvoiceFileName = invoiceFile.FileName;
+                }
+
+                if (paymentFile != null && paymentFile.Length > 0)
+                {
+                    var ext  = Path.GetExtension(paymentFile.FileName);
+                    var save = $"{id}_payment_{Guid.NewGuid():N}{ext}";
+                    var fpath = Path.Combine(dir, save);
+                    using (var fs = new FileStream(fpath, FileMode.Create))
+                        await paymentFile.CopyToAsync(fs);
+                    inv.PaymentFile     = fpath;
+                    inv.PaymentFileName = paymentFile.FileName;
+                }
+
+                inv.UpdatedBy = User.GetRealName();
+                _uow.ProjInvoices.Update(inv);
+                await _uow.SaveChangesAsync();
+            }
+        }
+
+        return Json(ApiResult<object>.Ok(new { id }, "回款记录已保存"));
     }
 
     [HttpPost("invoices/received/{invoiceId}")]

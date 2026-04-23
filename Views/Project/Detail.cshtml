@@ -676,18 +676,10 @@
         <label>选择员工 <span class="text-danger">*</span></label>
         <select id="addEmpId" class="form-control">
           <option value="">请选择</option>
-          @{
-              var activeEmpIds = Model.Members
-                  .Where(pm => pm.Status == 0)
-                  .Select(pm => pm.EmployeeId)
-                  .ToHashSet();
-          }
+          @* 已移除成员(IsDeleted)被全局过滤器排除，可直接重新添加 *@
           @foreach (var m in members)
           {
-              var inProject = activeEmpIds.Contains(m.Id);
-              <option value="@m.Id" disabled="@(inProject ? "disabled" : null)">
-                  @m.Display @(inProject ? "（已在项目中）" : "")
-              </option>
+              <option value="@m.Id">@m.Display</option>
           }
         </select>
       </div>
@@ -921,6 +913,15 @@
         <label>备注</label>
         <textarea id="ctRemark" class="form-control" rows="2"></textarea>
       </div>
+      <div class="form-group">
+        <label><i class="fas fa-paperclip mr-1"></i>合同附件</label>
+        <div class="custom-file">
+          <input type="file" class="custom-file-input" id="ctFile"
+                 accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar">
+          <label class="custom-file-label" for="ctFile" id="ctFileLabel">选择文件（可选）</label>
+        </div>
+        <small class="form-text text-muted">支持 PDF、Word、Excel、图片、压缩包，创建时一步上传</small>
+      </div>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
@@ -991,6 +992,29 @@
       <div class="form-group">
         <label>备注</label>
         <textarea id="rcpRemark" class="form-control" rows="2"></textarea>
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <label><i class="fas fa-file-invoice mr-1"></i>发票附件</label>
+            <div class="custom-file">
+              <input type="file" class="custom-file-input" id="rcpInvoiceFile"
+                     accept=".pdf,.jpg,.jpeg,.png">
+              <label class="custom-file-label" for="rcpInvoiceFile" id="rcpInvFileLabel">选择发票文件（可选）</label>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <label><i class="fas fa-file-alt mr-1"></i>付款申请</label>
+            <div class="custom-file">
+              <input type="file" class="custom-file-input" id="rcpPaymentFile"
+                     accept=".pdf,.doc,.docx,.xls,.xlsx">
+              <label class="custom-file-label" for="rcpPaymentFile" id="rcpPayFileLabel">选择付款申请（可选）</label>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1155,23 +1179,41 @@ function saveAccept() {
 }
 
 // ── 合同 ────────────────────────────────────────────────────
+// 文件选择显示文件名
+$('#ctFile').on('change', function() {
+    var name = this.files[0] ? this.files[0].name : '选择文件（可选）';
+    $('#ctFileLabel').text(name);
+});
+
 function saveContract() {
     if (!$('#ctNo').val() || !$('#ctAmount').val()) {
         layer.msg('请填写合同编号和金额', {icon:2}); return;
     }
-    ajaxPost('/project/' + projId + '/contracts', {
-        ProjectId: projId, ContractNo: $('#ctNo').val(),
-        ContractType: $('#ctType').val(), ContractName: '',
-        PartyA: $('#ctPartyA').val(), PartyB: $('#ctPartyB').val(),
-        Amount: parseFloat($('#ctAmount').val()),
-        SignDate: $('#ctSignDate').val()||null,
-        StartDate: $('#ctStartDate').val()||null,
-        EndDate: $('#ctEndDate').val()||null,
-        Remark: $('#ctRemark').val()
-    }, function(r) {
-        layer.msg(r.message, {icon:1, time:1500}, function() {
-            $('#addContractModal').modal('hide'); reloadWithTab();
-        });
+    var fd = new FormData();
+    fd.append('__RequestVerificationToken', antiForgery);
+    fd.append('ProjectId',  projId);
+    fd.append('ContractNo', $('#ctNo').val());
+    fd.append('ContractType', $('#ctType').val());
+    fd.append('PartyA',     $('#ctPartyA').val());
+    fd.append('PartyB',     $('#ctPartyB').val());
+    fd.append('Amount',     $('#ctAmount').val());
+    if ($('#ctSignDate').val())   fd.append('SignDate',   $('#ctSignDate').val());
+    if ($('#ctStartDate').val())  fd.append('StartDate',  $('#ctStartDate').val());
+    if ($('#ctEndDate').val())    fd.append('EndDate',    $('#ctEndDate').val());
+    if ($('#ctRemark').val())     fd.append('Remark',     $('#ctRemark').val());
+    var fileInput = document.getElementById('ctFile');
+    if (fileInput.files[0]) fd.append('file', fileInput.files[0]);
+
+    var load = layer.load(1);
+    $.ajax({ url: '/project/' + projId + '/contracts', type: 'POST',
+        data: fd, processData: false, contentType: false,
+        success: function(r) {
+            layer.close(load);
+            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() {
+                if (r.success) { $('#addContractModal').modal('hide'); reloadWithTab(); }
+            });
+        },
+        error: function() { layer.close(load); layer.msg('请求失败', {icon:2}); }
     });
 }
 
@@ -1201,27 +1243,54 @@ function uploadContract(contractId, input) {
 
 // ── 发票 ────────────────────────────────────────────────────
 // ── 回款管理 ────────────────────────────────────────────────
+// 文件选择显示文件名
+$('#rcpInvoiceFile').on('change', function() {
+    var name = this.files[0] ? this.files[0].name : '选择发票文件（可选）';
+    $('#rcpInvFileLabel').text(name);
+});
+$('#rcpPaymentFile').on('change', function() {
+    var name = this.files[0] ? this.files[0].name : '选择付款申请（可选）';
+    $('#rcpPayFileLabel').text(name);
+});
+
 function saveReceipt() {
     var name   = $('#rcpName').val();
     var amount = parseFloat($('#rcpAmount').val());
     if (!name || !amount) { layer.msg('请填写回款批次名称和金额', {icon:2}); return; }
-    var data = {
-        ProjectId:  projId,
-        ReceiptName: name,
-        InvoiceType: $('#rcpType').val(),
-        Amount:      amount,
-        TaxRate:     parseFloat($('#rcpTaxRate').val()) || null,
-        InvoiceNo:   $('#rcpInvNo').val() || null,
-        InvoiceDate: $('#rcpDate').val() || null,
-        Payer:       $('#rcpPayer').val() || null,
-        Remark:      $('#rcpRemark').val()
-    };
+
+    var fd = new FormData();
+    fd.append('__RequestVerificationToken', antiForgery);
+    fd.append('ProjectId',   projId);
+    fd.append('ReceiptName', name);
+    fd.append('InvoiceType', $('#rcpType').val());
+    fd.append('Amount',      amount);
+    if ($('#rcpTaxRate').val()) fd.append('TaxRate', $('#rcpTaxRate').val());
+    if ($('#rcpInvNo').val())   fd.append('InvoiceNo', $('#rcpInvNo').val());
+    if ($('#rcpDate').val())    fd.append('InvoiceDate', $('#rcpDate').val());
+    if ($('#rcpPayer').val())   fd.append('Payer', $('#rcpPayer').val());
+    if ($('#rcpRemark').val())  fd.append('Remark', $('#rcpRemark').val());
+
+    var invFile = document.getElementById('rcpInvoiceFile');
+    var payFile = document.getElementById('rcpPaymentFile');
+    if (invFile.files[0]) fd.append('invoiceFile', invFile.files[0]);
+    if (payFile.files[0]) fd.append('paymentFile', payFile.files[0]);
+
     $('#rcpSaveBtn').prop('disabled', true);
-    ajaxPost('/project/' + projId + '/invoices', data, function(r) {
-        $('#rcpSaveBtn').prop('disabled', false);
-        layer.msg(r.message, {icon:1, time:1500}, function() {
-            $('#addReceiptModal').modal('hide'); reloadWithTab();
-        });
+    var load = layer.load(1);
+    $.ajax({ url: '/project/' + projId + '/invoices', type: 'POST',
+        data: fd, processData: false, contentType: false,
+        success: function(r) {
+            layer.close(load);
+            $('#rcpSaveBtn').prop('disabled', false);
+            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() {
+                if (r.success) { $('#addReceiptModal').modal('hide'); reloadWithTab(); }
+            });
+        },
+        error: function() {
+            layer.close(load);
+            $('#rcpSaveBtn').prop('disabled', false);
+            layer.msg('请求失败', {icon:2});
+        }
     });
 }
 

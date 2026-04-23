@@ -1,6 +1,5 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using EnterpriseMS.Infrastructure.Data;
 using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
@@ -16,15 +15,12 @@ public class UserService : IUserService
     private readonly IMapper _mapper;
     private readonly IPermissionCache _permCache;
     private readonly ILogger<UserService> _logger;
-    private readonly AppDbContext _db;
 
     public UserService(IUnitOfWork uow, IMapper mapper,
-        IPermissionCache permCache, ILogger<UserService> logger,
-        AppDbContext db)
+        IPermissionCache permCache, ILogger<UserService> logger)
     {
         _uow = uow; _mapper = mapper;
         _permCache = permCache; _logger = logger;
-        _db = db;
     }
 
     public async Task<PagedResult<UserListDto>> GetPagedAsync(UserQueryDto query)
@@ -199,20 +195,16 @@ public class UserService : IUserService
 
     public async Task AssignRolesAsync(long userId, List<long> roleIds)
     {
-        // SysUserRole 无软删除，直接用 DbContext 操作
-        var old = await _db.SysUserRoles
-            .Where(r => r.UserId == userId)
-            .ToListAsync();
-        _db.SysUserRoles.RemoveRange(old);
+        var old = await _uow.UserRoles.GetListAsync(r => r.UserId == userId);
+        _uow.UserRoles.RemoveRange(old);
 
         if (roleIds.Any())
         {
             var newRoles = roleIds.Distinct()
-                .Select(rid => new EnterpriseMS.Domain.Entities.System.SysUserRole
-                    { UserId = userId, RoleId = rid });
-            await _db.SysUserRoles.AddRangeAsync(newRoles);
+                .Select(rid => new SysUserRole { UserId = userId, RoleId = rid });
+            await _uow.UserRoles.AddRangeAsync(newRoles);
         }
-        await _db.SaveChangesAsync();
+        await _uow.SaveChangesAsync();
         await _permCache.RemoveUserPermsAsync(userId);
         await _permCache.RemoveUserMenuIdsAsync(userId);
     }

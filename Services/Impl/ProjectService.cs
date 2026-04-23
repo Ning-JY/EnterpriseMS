@@ -3,7 +3,6 @@ using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Entities.Project;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
-using EnterpriseMS.Infrastructure.Data;
 using EnterpriseMS.Services.DTOs.Project;
 using EnterpriseMS.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +13,12 @@ public class ProjectService : IProjectService
 {
     private readonly IUnitOfWork _uow;
     private readonly IMapper _mapper;
-    private readonly AppDbContext _db;
     private readonly IPermissionService _permSvc;
     private readonly ILogger<ProjectService> _logger;
 
     public ProjectService(IUnitOfWork uow, IMapper mapper,
-        AppDbContext db, IPermissionService permSvc, ILogger<ProjectService> logger)
-    { _uow = uow; _mapper = mapper; _db = db; _permSvc = permSvc; _logger = logger; }
+        IPermissionService permSvc, ILogger<ProjectService> logger)
+    { _uow = uow; _mapper = mapper; _permSvc = permSvc; _logger = logger; }
 
     public async Task<PagedResult<ProjectListDto>> GetPagedAsync(ProjectQueryDto query, long operUserId)
     {
@@ -40,9 +38,7 @@ public class ProjectService : IProjectService
         else if (dataScope == 3 && userDeptId.HasValue)
         {
             // 本部门及子部门：查出所有子部门ID
-            var dept = await _db.SysDepts
-                .Where(d => !d.IsDeleted)
-                .ToListAsync();
+            var dept = await _uow.Depts.GetListAsync(d => !d.IsDeleted);
             var deptIds = GetSelfAndChildDeptIds(dept, userDeptId.Value);
             q = q.Where(p => p.DeptId.HasValue && deptIds.Contains(p.DeptId.Value));
         }
@@ -51,19 +47,26 @@ public class ProjectService : IProjectService
             // 仅本部门
             q = q.Where(p => p.DeptId == userDeptId);
         }
-        //  else if (dataScope == 4)
         else
         {
             // 仅本人参与的项目
-            var empId = await _db.SysUsers
+            var empId = await _uow.Users.Query()
                 .Where(u => u.Id == operUserId)
                 .Select(u => u.EmployeeId)
                 .FirstOrDefaultAsync();
-            if (empId.HasValue)
-                q = q.Where(p => _db.ProjMembers.Any(m =>
-                    m.ProjectId == p.Id && m.EmployeeId == empId && m.Status == 0));
+
+            if (!empId.HasValue)
+            {
+                q = q.Take(0); // 返回空
+            }
             else
-                q = q.Where(p => false);  // 未绑定员工：看不到任何项目
+            {
+                var memberQuery = _uow.ProjMembers.Query();
+                q = q.Where(p => memberQuery.Any(m =>
+                    m.ProjectId == p.Id
+                    && m.EmployeeId == empId.Value
+                    && m.Status == 0));
+            }
         }
         if (!string.IsNullOrWhiteSpace(query.Keyword))
             q = q.Where(p => p.ProjName.Contains(query.Keyword) ||
@@ -281,6 +284,7 @@ public class ProjectService : IProjectService
             ?? throw new NotFoundException("成员记录不存在");
         member.Status = 1;
         member.LeaveDate = DateTime.Today;
+        member.IsDeleted = true;   // 软删除：全局查询过滤器自动排除
         member.UpdatedBy = operBy;
         _uow.ProjMembers.Update(member);
         await _uow.SaveChangesAsync();

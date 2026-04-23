@@ -40,6 +40,10 @@ public interface IUnitOfWork : IDisposable
     IRepository<KbFile>     KbFiles      { get; }
     IRepository<KbCategory> KbCategories { get; }
 
+    // 联合表（非 BaseEntity，使用 BasicRepository）
+    IBasicRepository<SysUserRole> UserRoles { get; }
+    IBasicRepository<SysRoleMenu> RoleMenus { get; }
+
     Task<int> SaveChangesAsync(CancellationToken ct = default);
     Task BeginTransactionAsync();
     Task CommitAsync();

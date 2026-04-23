@@ -84,6 +84,8 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<InfoCategory>?        _infoCategories;
     private IRepository<KbFile>?              _kbFiles;
     private IRepository<KbCategory>?          _kbCategories;
+    private IBasicRepository<SysUserRole>?    _userRoles;
+    private IBasicRepository<SysRoleMenu>?    _roleMenus;
 
     public UnitOfWork(AppDbContext db) => _db = db;
 
@@ -112,6 +114,8 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<InfoCategory>        InfoCategories => _infoCategories ??= new Repository<InfoCategory>(_db);
     public IRepository<KbFile>              KbFiles        => _kbFiles        ??= new Repository<KbFile>(_db);
     public IRepository<KbCategory>          KbCategories   => _kbCategories   ??= new Repository<KbCategory>(_db);
+    public IBasicRepository<SysUserRole>    UserRoles      => _userRoles      ??= new BasicRepository<SysUserRole>(_db);
+    public IBasicRepository<SysRoleMenu>    RoleMenus      => _roleMenus      ??= new BasicRepository<SysRoleMenu>(_db);
 
     public Task<int> SaveChangesAsync(CancellationToken ct = default)
         => _db.SaveChangesAsync(ct);
