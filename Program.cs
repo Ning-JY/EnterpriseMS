@@ -119,6 +119,18 @@ try
             opt.Cookie.SecurePolicy = securePolicy;  // 由配置文件控制
         });
 
+    // ── 请求体大小限制（无限制，支持大文件上传）────────────────
+    builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(opt =>
+    {
+        opt.MultipartBodyLengthLimit = long.MaxValue;
+        opt.ValueLengthLimit = int.MaxValue;
+        opt.MultipartHeadersLengthLimit = int.MaxValue;
+    });
+    builder.WebHost.ConfigureKestrel(serverOptions =>
+    {
+        serverOptions.Limits.MaxRequestBodySize = null; // 无限制
+    });
+
     // ── MVC ───────────────────────────────────────────────────
     builder.Services.AddControllersWithViews(opt =>
     {

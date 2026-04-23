@@ -300,8 +300,8 @@
   <div class="card-header p-0">
     <ul class="nav nav-tabs" id="projTabs" role="tablist">
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-milestone">工作节点</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-receipt">回款管理</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-file">项目文件</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-receipt">回款管理</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-log">操作日志</a></li>
     </ul>
   </div>
@@ -486,84 +486,117 @@
         </table>
       </div>
     </div>
-
     <!-- ── Tab③：项目文件 ── -->
     <div class="tab-pane fade" id="tab-file">
 
-      @if (canEdit)
-      {
+    @if (canEdit)
+    {
         <div class="mb-3 p-3 border rounded bg-light">
-          <div class="row align-items-end">
-            <div class="col-md-3">
-              <label class="small">文件类别</label>
-              <select id="uploadCategory" class="form-control form-control-sm">
-                <option value="资料收集">📁 资料收集</option>
-                <option value="过程文件">📄 过程文件</option>
-                <option value="成果文件">✅ 成果文件</option>
-                <option value="其他">📎 其他</option>
-              </select>
+            <div class="row align-items-end">
+                <div class="col-md-3">
+                    <label class="small">文件类别</label>
+                    <select id="uploadCategory" class="form-control form-control-sm">
+                        <option value="资料收集">📁 资料收集</option>
+                        <option value="过程文件">📄 过程文件</option>
+                        <option value="成果文件">✅ 成果文件</option>
+                        <option value="其他">📎 其他</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="small">版本号</label>
+                    <input type="text" id="uploadVersion" class="form-control form-control-sm"
+                            placeholder="如 V04.10">
+                </div>
+                <div class="col-md-3">
+                    <label class="small">文件说明</label>
+                    <input type="text" id="uploadDesc" class="form-control form-control-sm"
+                            placeholder="默认使用文件名">
+                </div>
+                <div class="col-md-3">
+                    <label class="btn btn-sm btn-outline-secondary mb-0 w-100" style="cursor:pointer">
+                        <i class="fas fa-folder-open mr-1"></i> 选择文件
+                        <input type="file" id="fileInput" style="display:none"
+                                onchange="onFileSelected(this)">
+                    </label>
+                </div>
             </div>
-            <div class="col-md-3">
-              <label class="small">版本号（成果文件）</label>
-              <input type="text" id="uploadVersion" class="form-control form-control-sm" placeholder="如 V1.0">
+
+            <!-- 文件预览区（选择后显示） -->
+            <div id="uploadPreview" class="mt-2" style="display:none;">
+                <div class="alert alert-info py-2 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-file mr-2"></i>
+                            <strong id="previewFileName"></strong>
+                            <span class="text-muted ml-2" id="previewFileSize"></span>
+                        </div>
+                        <button type="button" class="btn btn-xs btn-outline-secondary"
+                                onclick="clearFileSelection()">
+                            <i class="fas fa-times"></i> 取消
+                        </button>
+                    </div>
+                    <div class="mt-1 small text-muted">
+                        类别：<span id="previewCategory"></span> &nbsp;|&nbsp;
+                        版本：<span id="previewVersion"></span> &nbsp;|&nbsp;
+                        说明：<span id="previewDesc"></span>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-success" id="uploadConfirmBtn"
+                        onclick="confirmUpload()">
+                    <i class="fas fa-upload mr-1"></i> 确认上传
+                </button>
             </div>
-            <div class="col-md-3">
-              <label class="small">说明</label>
-              <input type="text" id="uploadDesc" class="form-control form-control-sm" placeholder="文件说明">
-            </div>
-            <div class="col-md-3">
-              <label class="btn btn-sm btn-success mb-0 w-100" style="cursor:pointer">
-                <i class="fas fa-upload mr-1"></i> 选择文件上传
-                <input type="file" id="fileInput" style="display:none" onchange="uploadFile(this)">
-              </label>
-            </div>
-          </div>
         </div>
-      }
-      @{
-        var fileGroups = Model.Files.GroupBy(f => f.FileCategory).OrderBy(g=>g.Key);
-      }
-      @foreach (var grp in fileGroups)
-      {
+    }
+
+    @{
+        var fileGroups = Model.Files.GroupBy(f => f.FileCategory).OrderBy(g => g.Key);
+    }
+    @foreach (var grp in fileGroups)
+    {
         <h6 class="font-weight-bold text-muted mt-3 mb-2">
-          @(grp.Key == "资料收集" ? "📁" : grp.Key == "过程文件" ? "📄" : grp.Key == "成果文件" ? "✅" : "📎")
-          @grp.Key（@grp.Count()个）
+            @(grp.Key == "资料收集" ? "📁" : grp.Key == "过程文件" ? "📄" : grp.Key == "成果文件" ? "✅" : "📎")
+            @grp.Key（@grp.Count()个）
         </h6>
         <table class="table table-sm table-hover">
-          <thead class="thead-light">
-            <tr><th>文件名</th><th>版本</th><th>大小</th><th>说明</th><th>上传人</th><th>上传时间</th><th>操作</th></tr>
-          </thead>
-          <tbody>
-            @foreach (var f in grp.OrderByDescending(x=>x.CreatedAt))
-            {
-              <tr>
-                <td>
-                  <i class="fas @GetFileIcon(f.FileExt) mr-1 text-muted"></i>
-                  <a href="/project/files/download/@f.Id">@f.FileName</a>
-                </td>
-                <td class="small">@(f.Version??"-")</td>
-                <td class="small text-muted">@f.FileSizeText</td>
-                <td class="small text-muted">@(f.Description??"-")</td>
-                <td class="small">@f.UploadBy</td>
-                <td class="small text-muted">@f.CreatedAt.ToString("MM-dd HH:mm")</td>
-                <td>
-                  <a href="/project/files/download/@f.Id" class="btn btn-xs btn-outline-primary">
-                    <i class="fas fa-download"></i>
-                  </a>
-                  @if (canEdit)
-                  { <button class="btn btn-xs btn-outline-danger ml-1" onclick="deleteFile(@f.Id)">
-                      <i class="fas fa-trash"></i>
-                    </button> }
-                </td>
-              </tr>
-            }
-          </tbody>
+            <thead class="thead-light">
+                <tr><th>文件名</th><th>版本</th><th>大小</th><th>说明</th><th>上传人</th><th>上传时间</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var f in grp.OrderByDescending(x => x.CreatedAt))
+                {
+                    <tr>
+                        <td>
+                            <i class="fas @GetFileIcon(f.FileExt) mr-1 text-muted"></i>
+                            <a href="/project/files/download/@f.Id">@f.FileName</a>
+                        </td>
+                        <td class="small">@(f.Version ?? "-")</td>
+                        <td class="small text-muted">@f.FileSizeText</td>
+                        <td class="small text-muted">@(f.Description ?? "-")</td>
+                        <td class="small">@f.UploadBy</td>
+                        <td class="small text-muted">@f.CreatedAt.ToString("MM-dd HH:mm")</td>
+                        <td>
+                            <a href="/project/files/download/@f.Id" class="btn btn-xs btn-outline-primary">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            @if (canEdit)
+                            {
+                                <button class="btn btn-xs btn-outline-danger ml-1"
+                                        onclick="deleteFile(@f.Id)">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
         </table>
-      }
-      @if (!Model.Files.Any())
-      { <div class="text-center text-muted py-4">暂无文件</div> }
-    </div>
-
+    }
+    @if (!Model.Files.Any())
+    {
+        <div class="text-center text-muted py-4">暂无文件</div>
+    }
+</div>
     <!-- 操作日志 -->
     <div class="tab-pane fade" id="tab-log">
       <div class="timeline">
@@ -1256,37 +1289,117 @@ function delContract(id, no) {
     });
 }
 
-// ── 文件 ────────────────────────────────────────────────────
-function uploadFile(input) {
-    if (!input.files[0]) return;
-    var formData = new FormData();
-    formData.append('file', input.files[0]);
-    formData.append('category', $('#uploadCategory').val());
-    formData.append('description', $('#uploadDesc').val());
-    formData.append('version', $('#uploadVersion').val());
-    var load = layer.load(1);
-    $.ajax({
-        url: '/project/' + projId + '/files', type: 'POST',
-        data: formData, processData: false, contentType: false,
-        headers: {'RequestVerificationToken': antiForgery},
-        success: function(r) {
-            layer.close(load);
-            layer.msg(r.message, {icon: r.success?1:2, time:1500},
-                function() { if (r.success) reloadWithTab(); });
-        }
-    });
-}
+        // ── 文件选择（不立即上传）──────────────────────────────────
+        function onFileSelected(input) {
+            if (!input.files[0]) return;
+            var file = input.files[0];
 
-function deleteFile(fileId) {
-    layer.confirm('确认删除该文件？', {icon:3}, function(i) {
-        layer.close(i);
-        $.post('/project/files/delete/' + fileId,
-            {__RequestVerificationToken: antiForgery}, function(r) {
-            layer.msg(r.message, {icon: r.success?1:2, time:1500},
-                function() { if (r.success) reloadWithTab(); });
+            // 生成默认版本号：V月.日，如 V04.10
+            var now = new Date();
+            var month = String(now.getMonth() + 1).padStart(2, '0');
+            var day   = String(now.getDate()).padStart(2, '0');
+            var defaultVersion = 'V' + month + '.' + day;
+
+            // 默认版本号（若用户未手动填写才覆盖）
+            if (!$('#uploadVersion').val()) {
+                $('#uploadVersion').val(defaultVersion);
+            }
+
+            // 默认说明为文件名（去掉扩展名）
+            if (!$('#uploadDesc').val()) {
+                var nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+                $('#uploadDesc').val(nameWithoutExt);
+            }
+
+            // 显示预览信息
+            var sizeText = file.size < 1048576
+                ? (file.size / 1024).toFixed(1) + ' KB'
+                : (file.size / 1048576).toFixed(1) + ' MB';
+
+            $('#previewFileName').text(file.name);
+            $('#previewFileSize').text('(' + sizeText + ')');
+            $('#previewCategory').text($('#uploadCategory').val());
+            $('#previewVersion').text($('#uploadVersion').val() || '未填写');
+            $('#previewDesc').text($('#uploadDesc').val() || '未填写');
+            $('#uploadPreview').show();
+        }
+
+        // 类别/版本/说明变化时同步更新预览
+        $(function() {
+            $('#uploadCategory, #uploadVersion, #uploadDesc').on('input change', function() {
+                if ($('#uploadPreview').is(':visible')) {
+                    $('#previewCategory').text($('#uploadCategory').val());
+                    $('#previewVersion').text($('#uploadVersion').val() || '未填写');
+                    $('#previewDesc').text($('#uploadDesc').val() || '未填写');
+                }
+            });
         });
-    });
-}
+
+        // ── 取消选择 ─────────────────────────────────────────────
+        function clearFileSelection() {
+            $('#fileInput').val('');
+            $('#uploadVersion').val('');
+            $('#uploadDesc').val('');
+            $('#uploadPreview').hide();
+        }
+
+        // ── 确认上传（真正提交）───────────────────────────────────
+        function confirmUpload() {
+            var input = document.getElementById('fileInput');
+            if (!input.files[0]) {
+                layer.msg('请先选择文件', {icon: 2});
+                return;
+            }
+            var formData = new FormData();
+            formData.append('file',     input.files[0]);
+            formData.append('category', $('#uploadCategory').val());
+            formData.append('description', $('#uploadDesc').val());
+            formData.append('version',  $('#uploadVersion').val());
+
+            $('#uploadConfirmBtn').prop('disabled', true)
+                .html('<i class="fas fa-spinner fa-spin mr-1"></i> 上传中...');
+
+            var load = layer.load(1);
+            $.ajax({
+                url: '/project/' + projId + '/files',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {'RequestVerificationToken': antiForgery},
+                success: function(r) {
+                    layer.close(load);
+                    $('#uploadConfirmBtn').prop('disabled', false)
+                        .html('<i class="fas fa-upload mr-1"></i> 确认上传');
+                    if (r.success) {
+                        layer.msg('上传成功', {icon: 1, time: 1500}, function() {
+                            clearFileSelection();
+                            reloadWithTab();
+                        });
+                    } else {
+                        layer.msg(r.message || '上传失败', {icon: 2});
+                    }
+                },
+                error: function() {
+                    layer.close(load);
+                    $('#uploadConfirmBtn').prop('disabled', false)
+                        .html('<i class="fas fa-upload mr-1"></i> 确认上传');
+                    layer.msg('网络请求失败，请重试', {icon: 2});
+                }
+            });
+        }
+
+        // ── 删除文件 ─────────────────────────────────────────────
+        function deleteFile(fileId) {
+            layer.confirm('确认删除该文件？', {icon: 3}, function(i) {
+                layer.close(i);
+                $.post('/project/files/delete/' + fileId,
+                    {__RequestVerificationToken: antiForgery}, function(r) {
+                    layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500},
+                        function() { if (r.success) reloadWithTab(); });
+                });
+            });
+        }
 </script>
 }
 

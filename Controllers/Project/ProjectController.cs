@@ -403,13 +403,16 @@ public class ProjectController : BaseAuthController
     // ── 文件管理 ──────────────────────────────────────────────
     [HttpPost("{projectId}/files")]
     [HasPermission("proj:project:edit")]
+    [RequestSizeLimit(long.MaxValue)]
+    [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
+
     public async Task<IActionResult> UploadFile(long projectId, IFormFile file,
         string category, string? description, string? version)
     {
         if (file == null || file.Length == 0)
             return Json(ApiResult<object>.Fail("请选择文件"));
-        if (file.Length > 50 * 1024 * 1024)
-            return Json(ApiResult<object>.Fail("文件大小不能超过50MB"));
+        if (file.Length > 1000 * 1024 * 1024)
+            return Json(ApiResult<object>.Fail("文件大小不能超过1000MB"));
 
         var uploadDir = Path.Combine(Directory.GetCurrentDirectory(),
             "wwwroot", "uploads", "project", projectId.ToString());

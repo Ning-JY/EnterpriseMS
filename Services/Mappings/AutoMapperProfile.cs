@@ -51,7 +51,9 @@ public class AutoMapperProfile : Profile
             .ForMember(d => d.LimitPrice,   o => o.MapFrom(s => s.LimitPrice))
             .ForMember(d => d.BuildingScale,o => o.MapFrom(s => s.BuildingScale))
             .ForMember(d => d.OwnerContact, o => o.MapFrom(s => s.OwnerContact));
-        CreateMap<CreateProjectDto, Project>();
+        CreateMap<CreateProjectDto, Project>()
+            .ForMember(d => d.Members, o => o.Ignore())
+            .ForMember(d => d.Milestones, o => o.Ignore()); 
         // UpdateProjectDto -> Project（用于 ProjectService.UpdateAsync 的 Map(dto, proj)）
         CreateMap<UpdateProjectDto, Project>()
             .ForMember(d => d.Id,             o => o.Ignore())  // Id不覆盖

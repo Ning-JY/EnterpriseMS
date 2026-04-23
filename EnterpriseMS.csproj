@@ -8,7 +8,7 @@
     <UserSecretsId>enterprisems-dev-secrets</UserSecretsId>
   </PropertyGroup>
 
-  <ItemGroup>
+  <ItemGroup>    
     <!-- EF Core + MySQL -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
