@@ -133,6 +133,95 @@
     </div>
 </div>
 
+<div class="card card-info card-outline">
+    <div class="card-header"><h3 class="card-title">扩展信息</h3></div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>出生日期</label>
+                    <input type="date" id="birthDate" class="form-control"
+                           value="@(Model.BirthDate?.ToString("yyyy-MM-dd") ?? "")">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>籍贯</label>
+                    <input type="text" id="nativePlace" class="form-control"
+                           value="@(Model.NativePlace ?? "")" maxlength="50">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>学历</label>
+                    <select id="education" class="form-control">
+                        <option value="">请选择</option>
+                        @foreach (var ed in new[] { "高中", "大专", "本科", "硕士", "博士", "其他" })
+                        {
+                            <option value="@ed" selected="@(Model.Education == ed ? "selected" : null)">@ed</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>专业</label>
+                    <input type="text" id="major" class="form-control"
+                           value="@(Model.Major ?? "")" maxlength="50">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>毕业院校</label>
+                    <input type="text" id="graduateSchool" class="form-control"
+                           value="@(Model.GraduateSchool ?? "")" maxlength="100">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>现住址</label>
+                    <input type="text" id="address" class="form-control"
+                           value="@(Model.Address ?? "")" maxlength="200">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>紧急联系人</label>
+                    <input type="text" id="emergencyContact" class="form-control"
+                           value="@(Model.EmergencyContact ?? "")" maxlength="50">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="form-group">
+                    <label>紧急联系电话</label>
+                    <input type="text" id="emergencyPhone" class="form-control"
+                           value="@(Model.EmergencyPhone ?? "")" maxlength="20">
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>银行账号</label>
+                    <input type="text" id="bankAccount" class="form-control"
+                           value="@(Model.BankAccount ?? "")" maxlength="30">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>开户行</label>
+                    <input type="text" id="bankName" class="form-control"
+                           value="@(Model.BankName ?? "")" maxlength="100">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="d-flex justify-content-between mb-4">
     <a href="/hr/employee/detail/@Model.Id" class="btn btn-default">
         <i class="fas fa-times mr-1"></i> 取消
@@ -160,7 +249,17 @@ function saveEdit() {
         DeptId:           parseInt($('#deptId').val()) || null,
         EntryDate:        $('#entryDate').val() || null,
         ProbationEndDate: $('#probationEnd').val() || null,
-        Remark:           $('#remark').val()
+        Remark:           $('#remark').val(),
+        BirthDate:        $('#birthDate').val() || null,
+        NativePlace:      $('#nativePlace').val(),
+        Education:        $('#education').val(),
+        Major:            $('#major').val(),
+        GraduateSchool:   $('#graduateSchool').val(),
+        Address:          $('#address').val(),
+        EmergencyContact: $('#emergencyContact').val(),
+        EmergencyPhone:   $('#emergencyPhone').val(),
+        BankAccount:      $('#bankAccount').val(),
+        BankName:         $('#bankName').val()
     };
     if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
     ajaxPost('/hr/employee/update', data, function(r) {

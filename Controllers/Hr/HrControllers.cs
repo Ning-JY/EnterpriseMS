@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MiniExcelLibs;
 using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Filters;
 using EnterpriseMS.Domain.Entities.Hr;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Infrastructure.Data;
+using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.Interfaces;
 
 namespace EnterpriseMS.Controllers.Hr;
@@ -17,56 +19,41 @@ namespace EnterpriseMS.Controllers.Hr;
 [Authorize, Route("hr/employee")]
 public class EmployeeController : BaseAuthController
 {
-    private readonly IUnitOfWork    _uow;
-    private readonly IDeptService   _deptSvc;
-    private readonly IDictService   _dictSvc;
-    private readonly IOperLogService _logSvc;
+    private readonly IEmployeeService _empSvc;
+    private readonly IUnitOfWork      _uow;
+    private readonly IDeptService     _deptSvc;
+    private readonly IDictService     _dictSvc;
+    private readonly IOperLogService  _logSvc;
 
-    public EmployeeController(IUnitOfWork uow, IDeptService deptSvc,
-        IDictService dictSvc, IOperLogService logSvc,
+    public EmployeeController(IEmployeeService empSvc, IUnitOfWork uow,
+        IDeptService deptSvc, IDictService dictSvc, IOperLogService logSvc,
         IPermissionService permSvc)
         : base(permSvc)
     {
-        _uow = uow; _deptSvc = deptSvc; _dictSvc = dictSvc; _logSvc = logSvc;
+        _empSvc = empSvc; _uow = uow; _deptSvc = deptSvc;
+        _dictSvc = dictSvc; _logSvc = logSvc;
     }
 
     [HasPermission("hr:employee:list")]
-    public async Task<IActionResult> Index(string? keyword, long? deptId, int? status,
-        int page = 1, int size = 15)
+    public async Task<IActionResult> Index(EmployeeQueryDto query)
     {
-        var q = _uow.Employees.Query()
-            .Include(e => e.Dept).AsQueryable();
-        if (!string.IsNullOrWhiteSpace(keyword))
-            q = q.Where(e => e.RealName.Contains(keyword) ||
-                             e.EmpNo.Contains(keyword) ||
-                             (e.Phone != null && e.Phone.Contains(keyword)));
-        if (deptId.HasValue) q = q.Where(e => e.DeptId == deptId);
-        if (status.HasValue)  q = q.Where(e => e.Status == status);
-        var total = await q.CountAsync();
-        var list  = await q.OrderByDescending(e => e.CreatedAt)
-                           .Skip((page-1)*size).Take(size).ToListAsync();
-        ViewBag.Depts    = await _deptSvc.GetTreeAsync();
-        ViewBag.Keyword  = keyword; ViewBag.DeptId = deptId; ViewBag.Status = status;
-        ViewBag.Page = page; ViewBag.Size = size; ViewBag.Total = total;
-        ViewBag.TotalPages = (int)Math.Ceiling(total / (double)size);
-        return View(list);
+        var result = await _empSvc.GetPagedAsync(query);
+        ViewBag.Depts = await _deptSvc.GetTreeAsync();
+        ViewBag.Query = query;
+        return View(result);
     }
 
     [HttpGet("detail/{id}")]
     [HasPermission("hr:employee:list")]
     public async Task<IActionResult> Detail(long id)
     {
-        var emp = await _uow.Employees.Query()
-            .Include(e => e.Dept)
-            .Include(e => e.Contracts)
-            .Include(e => e.Certificates)
-            .FirstOrDefaultAsync(e => e.Id == id);
-        if (emp == null) return NotFound();
+        var dto = await _empSvc.GetDetailAsync(id);
+        if (dto == null) return NotFound();
         ViewBag.DictCertType  = await _dictSvc.GetDataByTypeAsync("cert_type");
         ViewBag.CertTypes     = await _dictSvc.GetDataByTypeAsync("cert_type");
         ViewBag.ContractTypes = await _dictSvc.GetDataByTypeAsync("contract_type");
         ViewBag.Depts         = await _deptSvc.GetTreeAsync();
-        return View(emp);
+        return View(dto);
     }
 
     // 供User/Index员工弹窗调用 - 返回JSON
@@ -78,12 +65,19 @@ public class EmployeeController : BaseAuthController
             .FirstOrDefaultAsync(e => e.Id == id);
         if (emp == null) return Json(ApiResult<object>.Fail("员工不存在"));
         return Json(ApiResult<object>.Ok(new {
-            emp.Id, emp.EmpNo, emp.RealName, emp.Gender, emp.Phone, emp.Email,
-            emp.IdCard, emp.DeptId, DeptName = emp.Dept?.DeptName,
-            emp.PostId, emp.Status, emp.Remark,
-            EntryDate = emp.EntryDate?.ToString("yyyy-MM-dd"),
-            FormalDate = emp.FormalDate?.ToString("yyyy-MM-dd"),
-            ProbationEndDate = emp.ProbationEndDate?.ToString("yyyy-MM-dd"),
+            id = emp.Id, empNo = emp.EmpNo, realName = emp.RealName,
+            gender = emp.Gender, phone = emp.Phone, email = emp.Email,
+            idCard = emp.IdCard, deptId = emp.DeptId, deptName = emp.Dept?.DeptName,
+            postId = emp.PostId, status = emp.Status, remark = emp.Remark,
+            entryDate = emp.EntryDate?.ToString("yyyy-MM-dd"),
+            formalDate = emp.FormalDate?.ToString("yyyy-MM-dd"),
+            probationEndDate = emp.ProbationEndDate?.ToString("yyyy-MM-dd"),
+            birthDate = emp.BirthDate?.ToString("yyyy-MM-dd"),
+            nativePlace = emp.NativePlace, education = emp.Education,
+            major = emp.Major, graduateSchool = emp.GraduateSchool,
+            address = emp.Address, emergencyContact = emp.EmergencyContact,
+            emergencyPhone = emp.EmergencyPhone,
+            bankAccount = emp.BankAccount, bankName = emp.BankName,
         }));
     }
 
@@ -103,84 +97,62 @@ public class EmployeeController : BaseAuthController
 
     [HttpPost("create"), ValidateAntiForgeryToken]
     [HasPermission("hr:employee:add")]
-    public async Task<IActionResult> Create([FromBody] CreateEmployeeRequest req)
+    public async Task<IActionResult> Create([FromBody] CreateEmployeeDto dto)
     {
-        if (string.IsNullOrWhiteSpace(req.RealName))
-            return Json(ApiResult<object>.Fail("姓名不能为空"));
-        var count = await _uow.Employees.CountAsync();
-        var emp   = new Employee
+        if (!ModelState.IsValid)
+            return Json(ApiResult<object>.Fail(GetErrors()));
+        try
         {
-            EmpNo    = $"EMP{DateTime.Now.Year}{(count+1):D4}",
-            RealName = req.RealName, Gender = req.Gender,
-            Phone = req.Phone, Email = req.Email, IdCard = req.IdCard,
-            DeptId = req.DeptId, PostId = req.PostId,
-            Status = 0, EntryDate = req.EntryDate,
-            ProbationEndDate = req.ProbationEndDate,
-            Remark = req.Remark, CreatedBy = User.GetRealName(),
-        };
-        await _uow.Employees.AddAsync(emp);
-        await _uow.SaveChangesAsync();
-        await _logSvc.LogAsync("新增员工", $"姓名：{emp.RealName}，工号：{emp.EmpNo}", "INSERT", emp.Id);
-        return Json(ApiResult<object>.Ok(new { id = emp.Id }, "员工信息已保存"));
+            var id = await _empSvc.CreateAsync(dto, User.GetRealName());
+            await _logSvc.LogAsync("新增员工", $"姓名：{dto.RealName}", "INSERT", id);
+            return Json(ApiResult<object>.Ok(new { id }, "员工信息已保存"));
+        }
+        catch (BusinessException ex)
+        { return Json(ApiResult<object>.Fail(ex.Message)); }
     }
 
     [HttpPost("update"), ValidateAntiForgeryToken]
     [HasPermission("hr:employee:edit")]
-    public async Task<IActionResult> Update([FromBody] UpdateEmployeeRequest req)
+    public async Task<IActionResult> Update([FromBody] UpdateEmployeeDto dto)
     {
-        var emp = await _uow.Employees.GetByIdAsync(req.Id);
-        if (emp == null) return Json(ApiResult<object>.Fail("员工不存在"));
-        emp.RealName         = req.RealName;  emp.Gender = req.Gender;
-        emp.Phone            = req.Phone;    emp.Email  = req.Email; emp.IdCard = req.IdCard;
-        emp.DeptId           = req.DeptId;   emp.PostId = req.PostId;
-        emp.EntryDate        = req.EntryDate; emp.ProbationEndDate = req.ProbationEndDate;
-        emp.Remark           = req.Remark;   emp.UpdatedBy = User.GetRealName();
-        _uow.Employees.Update(emp);
-
-        // 反向同步：若该员工已绑定登录账号，同步更新账号基本信息保持一致
-        var boundUser = await _uow.Users.Query(false)
-            .FirstOrDefaultAsync(u => u.EmployeeId == emp.Id);
-        if (boundUser != null)
+        if (!ModelState.IsValid)
+            return Json(ApiResult<object>.Fail(GetErrors()));
+        try
         {
-            boundUser.RealName  = emp.RealName;
-            boundUser.Phone     = emp.Phone;
-            boundUser.Email     = emp.Email;
-            boundUser.DeptId    = emp.DeptId;
-            boundUser.PostId    = emp.PostId;
-            boundUser.UpdatedBy = User.GetRealName();
-            _uow.Users.Update(boundUser);
+            await _empSvc.UpdateAsync(dto, User.GetRealName());
+            await _logSvc.LogAsync("修改员工", $"员工ID：{dto.Id}", "UPDATE", dto.Id);
+            return Json(ApiResult<object>.Ok("修改成功"));
         }
-
-        await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok("修改成功" + (boundUser != null ? "，已同步至登录账号" : "")));
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        { return Json(ApiResult<object>.Fail(ex.Message)); }
     }
 
     [HttpPost("formal")]
     [HasPermission("hr:employee:formal")]
     public async Task<IActionResult> Formal(long id, DateTime formalDate)
     {
-        var emp = await _uow.Employees.GetByIdAsync(id);
-        if (emp == null) return Json(ApiResult<object>.Fail("员工不存在"));
-        emp.Status = 1; emp.FormalDate = formalDate; emp.UpdatedBy = User.GetRealName();
-        _uow.Employees.Update(emp);
-        await _uow.SaveChangesAsync();
-        await _logSvc.LogAsync("员工转正", $"{emp.RealName} 转正日期：{formalDate:yyyy-MM-dd}", "UPDATE", id);
-        return Json(ApiResult<object>.Ok("转正操作成功"));
+        try
+        {
+            await _empSvc.FormalAsync(id, User.GetRealName());
+            await _logSvc.LogAsync("员工转正", $"员工ID：{id}，转正日期：{formalDate:yyyy-MM-dd}", "UPDATE", id);
+            return Json(ApiResult<object>.Ok("转正操作成功"));
+        }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        { return Json(ApiResult<object>.Fail(ex.Message)); }
     }
 
     [HttpPost("leave")]
     [HasPermission("hr:employee:leave")]
     public async Task<IActionResult> Leave(long id, DateTime leaveDate, string? reason)
     {
-        var emp = await _uow.Employees.GetByIdAsync(id);
-        if (emp == null) return Json(ApiResult<object>.Fail("员工不存在"));
-        emp.Status = 2; emp.LeaveDate = leaveDate;
-        emp.Remark = string.IsNullOrWhiteSpace(reason) ? emp.Remark : $"离职原因：{reason}";
-        emp.UpdatedBy = User.GetRealName();
-        _uow.Employees.Update(emp);
-        await _uow.SaveChangesAsync();
-        await _logSvc.LogAsync("员工离职", $"{emp.RealName} 离职日期：{leaveDate:yyyy-MM-dd}", "UPDATE", id);
-        return Json(ApiResult<object>.Ok("离职操作成功"));
+        try
+        {
+            await _empSvc.LeaveAsync(id, User.GetRealName(), reason);
+            await _logSvc.LogAsync("员工离职", $"员工ID：{id}，离职日期：{leaveDate:yyyy-MM-dd}", "UPDATE", id);
+            return Json(ApiResult<object>.Ok("离职操作成功"));
+        }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        { return Json(ApiResult<object>.Fail(ex.Message)); }
     }
 
     // 供用户管理绑定员工使用
@@ -205,6 +177,53 @@ public class EmployeeController : BaseAuthController
         });
         return Json(ApiResult<object>.Ok(result));
     }
+
+    // ── 导出员工花名册 Excel ──────────────────────────────────
+    [HttpGet("export")]
+    [HasPermission("hr:employee:list")]
+    public async Task<IActionResult> Export(string? keyword, long? deptId, int? status)
+    {
+        var q = _uow.Employees.Query()
+            .Include(e => e.Dept)
+            .Where(e => !e.IsDeleted)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+            q = q.Where(e => e.RealName.Contains(keyword)
+                           || e.EmpNo.Contains(keyword)
+                           || (e.Phone != null && e.Phone.Contains(keyword)));
+        if (deptId.HasValue) q = q.Where(e => e.DeptId == deptId);
+        if (status.HasValue) q = q.Where(e => e.Status == status.Value);
+
+        var list = await q.OrderBy(e => e.DeptId).ThenBy(e => e.EmpNo).ToListAsync();
+
+        string[] statusText = { "试用期", "在职", "离职" };
+        var rows = list.Select((e, idx) => new
+        {
+            序号     = idx + 1,
+            工号     = e.EmpNo,
+            姓名     = e.RealName,
+            性别     = e.Gender == 1 ? "男" : "女",
+            部门     = e.Dept?.DeptName ?? "",
+            手机     = e.Phone ?? "",
+            邮箱     = e.Email ?? "",
+            状态     = statusText[e.Status],
+            入职日期 = e.EntryDate?.ToString("yyyy-MM-dd") ?? "",
+            转正日期 = e.FormalDate?.ToString("yyyy-MM-dd") ?? "",
+            离职日期 = e.LeaveDate?.ToString("yyyy-MM-dd") ?? "",
+            备注     = e.Remark ?? "",
+        });
+
+        var ms = new MemoryStream();
+        await ms.SaveAsAsync(rows);
+        ms.Seek(0, SeekOrigin.Begin);
+        return File(ms.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"员工花名册_{DateTime.Now:yyyyMMdd}.xlsx");
+    }
+
+    private string GetErrors() => string.Join("；",
+        ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 }
 
 // ── 合同管理 ──────────────────────────────────────────────────
@@ -337,6 +356,45 @@ public class ContractController : BaseAuthController
         _uow.Contracts.Update(c);
         await _uow.SaveChangesAsync();
         return Json(ApiResult<object>.Ok("合同已终止"));
+    }
+
+    // ── 导出合同台账 Excel ──────────────────────────────────
+    [HttpGet("export")]
+    [HasPermission("hr:contract:list")]
+    public async Task<IActionResult> Export(string? keyword, int? status)
+    {
+        var q = _uow.Contracts.Query()
+            .Include(c => c.Employee)
+            .Where(c => !c.IsDeleted)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+            q = q.Where(c => (c.Employee != null && c.Employee.RealName.Contains(keyword))
+                           || c.ContractNo.Contains(keyword));
+        if (status.HasValue) q = q.Where(c => c.Status == status.Value);
+
+        var list = await q.OrderBy(c => c.EmployeeId).ThenBy(c => c.StartDate).ToListAsync();
+
+        var rows = list.Select((c, idx) => new
+        {
+            序号       = idx + 1,
+            员工姓名   = c.Employee?.RealName ?? "",
+            合同编号   = c.ContractNo,
+            合同类型   = c.ContractType,
+            开始日期   = c.StartDate.ToString("yyyy-MM-dd"),
+            结束日期   = c.EndDate.ToString("yyyy-MM-dd"),
+            签订日期   = c.SignDate?.ToString("yyyy-MM-dd") ?? "",
+            状态       = c.Status switch { 0 => "履行中", 1 => "已终止", 2 => "已到期", _ => "" },
+            到期预警   = c.Status == 0 && c.EndDate <= DateTime.Now.AddDays(30) ? "即将到期" : "",
+            备注       = c.Remark ?? "",
+        });
+
+        var ms = new MemoryStream();
+        await ms.SaveAsAsync(rows);
+        ms.Seek(0, SeekOrigin.Begin);
+        return File(ms.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"合同台账_{DateTime.Now:yyyyMMdd}.xlsx");
     }
 
     private async Task<(string path, string name)?> SaveUploadFile(IFormFile? file, string folder)
@@ -477,6 +535,47 @@ public class CertificateController : BaseAuthController
         return Json(ApiResult<object>.Ok("证书已删除"));
     }
 
+    // ── 导出证书台账 Excel ──────────────────────────────────
+    [HttpGet("export")]
+    [HasPermission("hr:cert:list")]
+    public async Task<IActionResult> Export(string? keyword, int? status)
+    {
+        var q = _uow.Certificates.Query()
+            .Include(c => c.Employee)
+            .Where(c => !c.IsDeleted)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+            q = q.Where(c => (c.Employee != null && c.Employee.RealName.Contains(keyword))
+                           || c.CertName.Contains(keyword));
+        if (status.HasValue) q = q.Where(c => c.Status == status.Value);
+
+        var list = await q.OrderBy(c => c.EmployeeId).ThenBy(c => c.CertName).ToListAsync();
+
+        var rows = list.Select((c, idx) => new
+        {
+            序号       = idx + 1,
+            员工姓名   = c.Employee?.RealName ?? "",
+            证书名称   = c.CertName,
+            证书类型   = c.CertType,
+            证书编号   = c.CertNo ?? "",
+            发证机构   = c.IssueOrg ?? "",
+            发证日期   = c.IssueDate?.ToString("yyyy-MM-dd") ?? "",
+            有效期至   = c.ExpireDate?.ToString("yyyy-MM-dd") ?? "长期",
+            状态       = c.Status switch { 0 => "有效", 1 => "已过期", _ => "" },
+            到期预警   = c.Status == 0 && c.ExpireDate.HasValue
+                         && c.ExpireDate.Value <= DateTime.Now.AddDays(90) ? "即将到期" : "",
+            备注       = c.Remark ?? "",
+        });
+
+        var ms = new MemoryStream();
+        await ms.SaveAsAsync(rows);
+        ms.Seek(0, SeekOrigin.Begin);
+        return File(ms.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"证书台账_{DateTime.Now:yyyyMMdd}.xlsx");
+    }
+
     private async Task<(string path, string name)?> SaveUploadFile(IFormFile? file, string folder)
     {
         if (file == null || file.Length == 0) return null;
@@ -493,21 +592,6 @@ public class CertificateController : BaseAuthController
 }
 
 // ── Request 模型 ──────────────────────────────────────────────
-public class CreateEmployeeRequest
-{
-    public string    RealName { get; set; } = "";
-    public int       Gender   { get; set; } = 1;
-    public string?   Phone    { get; set; }
-    public string?   Email    { get; set; }
-    public string?   IdCard   { get; set; }
-    public long?     DeptId   { get; set; }
-    public long?     PostId   { get; set; }
-    public DateTime? EntryDate { get; set; }
-    public DateTime? ProbationEndDate { get; set; }
-    public string?   Remark   { get; set; }
-}
-public class UpdateEmployeeRequest : CreateEmployeeRequest { public long Id { get; set; } }
-
 public class CreateContractRequest
 {
     public long      EmployeeId   { get; set; }

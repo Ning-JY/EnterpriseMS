@@ -21,6 +21,18 @@ public class Employee : BaseEntity
     [Column("formal_date")]        public DateTime? FormalDate      { get; set; }
     [Column("leave_date")]         public DateTime? LeaveDate       { get; set; }
     [Column("remark")]             public string?  Remark           { get; set; }
+    // ── 扩展字段 ──────────────────────────────────────────
+    [Column("avatar")]             public string?  Avatar           { get; set; }
+    [Column("birth_date")]         public DateTime? BirthDate       { get; set; }
+    [Column("native_place")]       public string?  NativePlace      { get; set; }
+    [Column("education")]          public string?  Education        { get; set; }
+    [Column("major")]              public string?  Major            { get; set; }
+    [Column("graduate_school")]    public string?  GraduateSchool   { get; set; }
+    [Column("emergency_contact")]  public string?  EmergencyContact { get; set; }
+    [Column("emergency_phone")]    public string?  EmergencyPhone   { get; set; }
+    [Column("address")]            public string?  Address          { get; set; }
+    [Column("bank_account")]       public string?  BankAccount      { get; set; }
+    [Column("bank_name")]          public string?  BankName         { get; set; }
     public SysDept? Dept { get; set; }
     public ICollection<EmployeeContract>    Contracts    { get; set; } = new List<EmployeeContract>();
     public ICollection<EmployeeCertificate> Certificates { get; set; } = new List<EmployeeCertificate>();

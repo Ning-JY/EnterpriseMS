@@ -77,24 +77,39 @@ public class UserService : IUserService
         if (await _uow.Users.AnyAsync(u => u.Username == dto.Username))
             throw new BusinessException("用户名已存在");
 
-        var user = new SysUser
+        await _uow.BeginTransactionAsync();
+        try
         {
-            Username     = dto.Username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, 12),
-            RealName     = dto.RealName,
-            Phone        = dto.Phone,
-            Email        = dto.Email,
-            DeptId       = dto.DeptId,
-            PostId       = dto.PostId,
-            Remark       = dto.Remark,
-            CreatedBy    = operBy,
-        };
-        await _uow.Users.AddAsync(user);
-        await _uow.SaveChangesAsync();
-        if (dto.RoleIds.Any())
-            await AssignRolesAsync(user.Id, dto.RoleIds);
-        _logger.LogInformation("创建用户 {Username} by {OperBy}", dto.Username, operBy);
-        return user.Id;
+            var user = new SysUser
+            {
+                Username     = dto.Username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, 12),
+                RealName     = dto.RealName,
+                Phone        = dto.Phone,
+                Email        = dto.Email,
+                DeptId       = dto.DeptId,
+                PostId       = dto.PostId,
+                Remark       = dto.Remark,
+                CreatedBy    = operBy,
+            };
+            await _uow.Users.AddAsync(user);
+            await _uow.SaveChangesAsync();
+
+            if (dto.RoleIds.Any())
+            {
+                await PrepareRoleAssignment(user.Id, dto.RoleIds);
+                await _uow.SaveChangesAsync();
+            }
+
+            await _uow.CommitAsync();
+            _logger.LogInformation("创建用户 {Username} by {OperBy}", dto.Username, operBy);
+            return user.Id;
+        }
+        catch
+        {
+            await _uow.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task UpdateAsync(UpdateUserDto dto, string operBy)
@@ -111,36 +126,47 @@ public class UserService : IUserService
                 throw new BusinessException("该员工已绑定其他账号，请先解绑");
         }
 
-        user.EmployeeId = dto.EmployeeId;  // 允许 null（解绑）
-        user.Remark     = dto.Remark;
-        user.UpdatedBy  = operBy;
+        await _uow.BeginTransactionAsync();
+        try
+        {
+            user.EmployeeId = dto.EmployeeId;
+            user.Remark     = dto.Remark;
+            user.UpdatedBy  = operBy;
 
-        if (dto.EmployeeId.HasValue)
-        {
-            // 绑定了员工档案：从员工档案同步基本信息，确保一致性
-            var emp = await _uow.Employees.GetByIdAsync(dto.EmployeeId.Value);
-            if (emp != null)
+            if (dto.EmployeeId.HasValue)
             {
-                user.RealName = emp.RealName;
-                user.Phone    = emp.Phone;
-                user.Email    = emp.Email;
-                user.DeptId   = emp.DeptId;
-                user.PostId   = emp.PostId;
+                var emp = await _uow.Employees.GetByIdAsync(dto.EmployeeId.Value);
+                if (emp != null)
+                {
+                    user.RealName = emp.RealName;
+                    user.Phone    = emp.Phone;
+                    user.Email    = emp.Email;
+                    user.DeptId   = emp.DeptId;
+                    user.PostId   = emp.PostId;
+                }
             }
+            else
+            {
+                user.RealName = dto.RealName;
+                user.Phone    = dto.Phone;
+                user.Email    = dto.Email;
+                user.DeptId   = dto.DeptId;
+                user.PostId   = dto.PostId;
+            }
+
+            _uow.Users.Update(user);
+            await PrepareRoleAssignment(dto.Id, dto.RoleIds);
+            await _uow.SaveChangesAsync();
+            await _uow.CommitAsync();
+
+            await _permCache.RemoveUserPermsAsync(dto.Id);
+            await _permCache.RemoveUserMenuIdsAsync(dto.Id);
         }
-        else
+        catch
         {
-            // 未绑定员工：允许手动维护
-            user.RealName = dto.RealName;
-            user.Phone    = dto.Phone;
-            user.Email    = dto.Email;
-            user.DeptId   = dto.DeptId;
-            user.PostId   = dto.PostId;
+            await _uow.RollbackAsync();
+            throw;
         }
-        _uow.Users.Update(user);
-        await AssignRolesAsync(dto.Id, dto.RoleIds);
-        await _uow.SaveChangesAsync();
-        await _permCache.RemoveUserPermsAsync(dto.Id);
     }
 
     public async Task DeleteAsync(long id, string operBy)
@@ -195,6 +221,14 @@ public class UserService : IUserService
 
     public async Task AssignRolesAsync(long userId, List<long> roleIds)
     {
+        await PrepareRoleAssignment(userId, roleIds);
+        await _uow.SaveChangesAsync();
+        await _permCache.RemoveUserPermsAsync(userId);
+        await _permCache.RemoveUserMenuIdsAsync(userId);
+    }
+
+    private async Task PrepareRoleAssignment(long userId, List<long> roleIds)
+    {
         var old = await _uow.UserRoles.GetListAsync(r => r.UserId == userId);
         _uow.UserRoles.RemoveRange(old);
 
@@ -204,9 +238,6 @@ public class UserService : IUserService
                 .Select(rid => new SysUserRole { UserId = userId, RoleId = rid });
             await _uow.UserRoles.AddRangeAsync(newRoles);
         }
-        await _uow.SaveChangesAsync();
-        await _permCache.RemoveUserPermsAsync(userId);
-        await _permCache.RemoveUserMenuIdsAsync(userId);
     }
 
     public async Task UpdateLastLoginAsync(long id)

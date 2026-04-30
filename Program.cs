@@ -55,6 +55,8 @@ try
     builder.Services.AddScoped<IOperLogService,       OperLogService>();
     builder.Services.AddScoped<IProjectService,       ProjectService>();
     builder.Services.AddScoped<IEmployeeQueryService, EmployeeQueryService>();
+    builder.Services.AddScoped<IEmployeeService,      EmployeeService>();
+    builder.Services.AddScoped<IKbService,             KbService>();
     builder.Services.AddScoped<IHangfireService, HangfireService>();
 
     // ── 缓存：Redis 可用则 Redis，否则自动降级内存缓存 ────────

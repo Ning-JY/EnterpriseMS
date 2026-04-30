@@ -1,7 +1,7 @@
 @using EnterpriseMS.Common.Extensions
-@using EnterpriseMS.Domain.Entities.Hr
+@using EnterpriseMS.Services.DTOs.Hr
 @using EnterpriseMS.Services.DTOs.System
-@model Employee
+@model EmployeeDetailDto
 @inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
 @{
     ViewData["Title"] = Model.RealName + " - 员工详情";
@@ -9,7 +9,6 @@
     bool canEdit   = await PermSvc.HasPermAsync(userId, "hr:employee:edit");
     bool canFormal = await PermSvc.HasPermAsync(userId, "hr:employee:formal");
     bool canLeave  = await PermSvc.HasPermAsync(userId, "hr:employee:leave");
-    string[] statusText  = new[]{"试用期","在职","已离职"};
     string[] statusBadge = new[]{"badge-warning","badge-success","badge-secondary"};
     var depts = ViewBag.Depts as List<DeptTreeDto> ?? new();
 }
@@ -21,7 +20,7 @@
                 <h1 class="m-0">
                     <a href="/hr/employee" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
                     @Model.RealName
-                    <span class="badge @statusBadge[Model.Status] ml-2">@statusText[Model.Status]</span>
+                    <span class="badge @statusBadge[Model.Status] ml-2">@Model.StatusText</span>
                 </h1>
             </div>
             <div class="col-sm-6">
@@ -41,21 +40,64 @@
     <div class="col-md-4">
         <div class="card card-primary card-outline">
             <div class="card-body text-center">
-                <i class="fas fa-user-circle fa-5x text-muted mb-3"></i>
+                @if (!string.IsNullOrEmpty(Model.Avatar))
+                {
+                    <img src="@Model.Avatar" class="img-circle elevation-2 mb-3" style="width:100px;height:100px;object-fit:cover" alt="头像">
+                }
+                else
+                {
+                    <i class="fas fa-user-circle fa-5x text-muted mb-3"></i>
+                }
                 <h4 class="mb-1">@Model.RealName</h4>
-                <p class="text-muted mb-0">@(Model.Dept?.DeptName ?? "暂无部门")</p>
+                <p class="text-muted mb-0">@(Model.DeptName ?? "暂无部门")</p>
             </div>
             <div class="card-footer p-0">
                 <table class="table table-sm table-borderless mb-0">
                     <tr><td class="text-muted pl-3">工号</td><td><code>@Model.EmpNo</code></td></tr>
-                    <tr><td class="text-muted pl-3">性别</td><td>@(Model.Gender==1?"男":"女")</td></tr>
+                    <tr><td class="text-muted pl-3">性别</td><td>@Model.GenderText</td></tr>
                     <tr><td class="text-muted pl-3">手机</td><td>@(Model.Phone??"-")</td></tr>
                     <tr><td class="text-muted pl-3">邮箱</td><td class="small">@(Model.Email??"-")</td></tr>
+                    @if (Model.BirthDate.HasValue)
+                    {
+                        <tr><td class="text-muted pl-3">出生日期</td><td>@Model.BirthDate.Value.ToString("yyyy-MM-dd")</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.NativePlace))
+                    {
+                        <tr><td class="text-muted pl-3">籍贯</td><td>@Model.NativePlace</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Education))
+                    {
+                        <tr><td class="text-muted pl-3">学历</td><td>@Model.Education</td></tr>
+                    }
                     <tr><td class="text-muted pl-3">入职</td><td>@(Model.EntryDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
                     <tr><td class="text-muted pl-3">转正</td><td>@(Model.FormalDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
                     @if (Model.Status==2)
                     {
                         <tr><td class="text-muted pl-3">离职</td><td class="text-danger">@(Model.LeaveDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Address))
+                    {
+                        <tr><td class="text-muted pl-3">住址</td><td class="small">@Model.Address</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.EmergencyContact))
+                    {
+                        <tr><td class="text-muted pl-3">紧急联系人</td><td>@Model.EmergencyContact @(Model.EmergencyPhone??"")</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Major))
+                    {
+                        <tr><td class="text-muted pl-3">专业</td><td>@Model.Major</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.GraduateSchool))
+                    {
+                        <tr><td class="text-muted pl-3">毕业院校</td><td>@Model.GraduateSchool</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.BankAccount))
+                    {
+                        <tr><td class="text-muted pl-3">银行账号</td><td class="small">@Model.BankAccount</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.BankName))
+                    {
+                        <tr><td class="text-muted pl-3">开户行</td><td class="small">@Model.BankName</td></tr>
                     }
                     @if (!string.IsNullOrEmpty(Model.Remark))
                     {
@@ -311,17 +353,109 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-3">
                     <div class="form-group">
                         <label>入职日期</label>
                         <input type="date" id="editEntryDate" class="form-control"
                                value="@(Model.EntryDate?.ToString("yyyy-MM-dd")??"")">
                     </div>
                 </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>试用期截止</label>
+                        <input type="date" id="editProbationEnd" class="form-control"
+                               value="@(Model.ProbationEndDate?.ToString("yyyy-MM-dd")??"")">
+                    </div>
+                </div>
             </div>
             <div class="form-group">
                 <label>备注</label>
                 <textarea id="editRemark" class="form-control" rows="2">@(Model.Remark??"")</textarea>
+            </div>
+            <hr>
+            <h6 class="text-muted mb-3">扩展信息</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>出生日期</label>
+                        <input type="date" id="editBirthDate" class="form-control"
+                               value="@(Model.BirthDate?.ToString("yyyy-MM-dd")??"")">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>籍贯</label>
+                        <input type="text" id="editNativePlace" class="form-control"
+                               value="@(Model.NativePlace??"")" maxlength="50">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>学历</label>
+                        <select id="editEducation" class="form-control">
+                            <option value="">请选择</option>
+                            @foreach (var ed in new[] { "高中", "大专", "本科", "硕士", "博士", "其他" })
+                            {
+                                <option value="@ed" selected="@(Model.Education==ed?"selected":null)">@ed</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>专业</label>
+                        <input type="text" id="editMajor" class="form-control"
+                               value="@(Model.Major??"")" maxlength="50">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>毕业院校</label>
+                        <input type="text" id="editGraduateSchool" class="form-control"
+                               value="@(Model.GraduateSchool??"")" maxlength="100">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>现住址</label>
+                        <input type="text" id="editAddress" class="form-control"
+                               value="@(Model.Address??"")" maxlength="200">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>紧急联系人</label>
+                        <input type="text" id="editEmergencyContact" class="form-control"
+                               value="@(Model.EmergencyContact??"")" maxlength="50">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>紧急联系电话</label>
+                        <input type="text" id="editEmergencyPhone" class="form-control"
+                               value="@(Model.EmergencyPhone??"")" maxlength="20">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>银行账号</label>
+                        <input type="text" id="editBankAccount" class="form-control"
+                               value="@(Model.BankAccount??"")" maxlength="30">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>开户行</label>
+                        <input type="text" id="editBankName" class="form-control"
+                               value="@(Model.BankName??"")" maxlength="100">
+                    </div>
+                </div>
             </div>
         </div>
         <div class="modal-footer">
@@ -498,7 +632,18 @@ function saveEdit() {
         IdCard:   $('#editIdCard').val(),
         DeptId:   parseInt($('#editDeptId').val()) || null,
         EntryDate: $('#editEntryDate').val() || null,
+        ProbationEndDate: $('#editProbationEnd').val() || null,
         Remark:   $('#editRemark').val(),
+        BirthDate: $('#editBirthDate').val() || null,
+        NativePlace: $('#editNativePlace').val(),
+        Education: $('#editEducation').val(),
+        Major: $('#editMajor').val(),
+        GraduateSchool: $('#editGraduateSchool').val(),
+        Address: $('#editAddress').val(),
+        EmergencyContact: $('#editEmergencyContact').val(),
+        EmergencyPhone: $('#editEmergencyPhone').val(),
+        BankAccount: $('#editBankAccount').val(),
+        BankName: $('#editBankName').val(),
     };
     if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
     ajaxPost('/hr/employee/update', data, function(r) {

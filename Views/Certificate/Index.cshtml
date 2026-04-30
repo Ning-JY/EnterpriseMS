@@ -48,6 +48,10 @@
                 <input type="hidden" name="page" value="1">
                 <button class="btn btn-sm btn-primary">搜索</button>
             </form>
+            <a href="/hr/cert/export?keyword=@ViewBag.Keyword&status=@ViewBag.Status"
+               class="btn btn-sm btn-success mr-1">
+                <i class="fas fa-file-excel mr-1"></i>导出
+            </a>
             <button class="btn btn-sm btn-success" onclick="openAddModal()">
                 <i class="fas fa-plus"></i> 新增证书
             </button>

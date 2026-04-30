@@ -1,15 +1,16 @@
-@using EnterpriseMS.Domain.Entities.Info
-@model List<KbFile>
+@using EnterpriseMS.Common
+@using EnterpriseMS.Services.DTOs.Kb
+@model PagedResult<KbFileDto>
 @inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
 @{
     ViewData["Title"] = "知识库管理";
-    var categories = ViewBag.Categories as List<KbCategory> ?? new();
+    var categories = ViewBag.Categories as List<KbCategoryDto> ?? new();
     var curCatId   = ViewBag.CategoryId as long?;
+    var curStatus  = ViewBag.Status as int?;
     var userId     = User.GetUserId();
     bool canUpload = await PermSvc.HasPermAsync(userId, "kb:file:upload");
     bool canDelete = await PermSvc.HasPermAsync(userId, "kb:file:delete");
     bool canManage = await PermSvc.HasPermAsync(userId, "kb:file:manage");
-    string FileSizeText(long s) => s < 1048576 ? $"{s/1024:N1}KB" : $"{s/1048576:N1}MB";
 }
 
 <div class="content-header"><div class="container-fluid">
@@ -33,11 +34,10 @@
 <section class="content"><div class="container-fluid">
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">全部文件（共 @ViewBag.Total 个）</h3>
+        <h3 class="card-title">全部文件（共 @Model.Total 个）</h3>
         <div class="card-tools">
             <form id="searchForm" method="get" action="/kb/manage" class="d-inline-flex mr-2">
-                <select name="categoryId" class="form-control form-control-sm mr-1" style="width:120px"
-                        onchange="this.form.submit()">
+                <select name="categoryId" class="form-control form-control-sm mr-1" style="width:120px">
                     <option value="">全部分类</option>
                     @foreach (var c in categories)
                     {
@@ -46,11 +46,20 @@
                         </option>
                     }
                 </select>
+                <select name="status" class="form-control form-control-sm mr-1" style="width:80px">
+                    <option value="">全部</option>
+                    <option value="1" selected="@(curStatus?.ToString()=="1"?"selected":null)">启用</option>
+                    <option value="0" selected="@(curStatus?.ToString()=="0"?"selected":null)">禁用</option>
+                </select>
                 <input name="keyword" class="form-control form-control-sm mr-1"
-                       placeholder="搜索文件名" value="@ViewBag.Keyword" style="width:160px">
+                       placeholder="文件名/说明" value="@ViewBag.Keyword" style="width:160px">
                 <input type="hidden" name="page" value="1">
                 <button class="btn btn-sm btn-primary">搜索</button>
             </form>
+            <a href="/kb/export?categoryId=@curCatId&keyword=@ViewBag.Keyword&status=@curStatus"
+               class="btn btn-sm btn-success mr-1">
+                <i class="fas fa-file-excel mr-1"></i>导出
+            </a>
             @if (canUpload)
             {
                 <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#uploadModal">
@@ -69,7 +78,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var f in Model)
+                @foreach (var f in Model.Items)
                 {
                     <tr class="@(f.Status==0?"table-secondary":"")">
                         <td>
@@ -82,9 +91,9 @@
                             @if (!string.IsNullOrEmpty(f.Description))
                             { <br><small class="text-muted">@f.Description</small> }
                         </td>
-                        <td><small>@(f.Category?.Name ?? "-")</small></td>
+                        <td><small>@(f.CategoryName ?? "-")</small></td>
                         <td><small>@(f.Version ?? "-")</small></td>
-                        <td><small>@FileSizeText(f.FileSize)</small></td>
+                        <td><small>@f.FileSizeText</small></td>
                         <td><small>@f.CreatedBy</small></td>
                         <td><small>@f.CreatedAt.ToString("yyyy-MM-dd")</small></td>
                         <td class="text-center">
@@ -97,6 +106,10 @@
                             </a>
                             @if (canManage)
                             {
+                                <button class="btn btn-xs btn-info mr-1 btn-edit"
+                                        data-id="@f.Id" title="编辑">
+                                    <i class="fas fa-edit"></i>
+                                </button>
                                 <button class="btn btn-xs @(f.IsPinned?"btn-warning":"btn-outline-warning") mr-1"
                                         onclick="togglePin(@f.Id)" title="@(f.IsPinned?"取消置顶":"置顶")">
                                     <i class="fas fa-thumbtack"></i>
@@ -104,31 +117,22 @@
                             }
                             @if (canDelete)
                             {
-                                <button class="btn btn-xs btn-danger"
-                                        onclick="deleteFile(@f.Id,'@f.FileName')" title="删除">
+                                <button class="btn btn-xs btn-danger btn-delete"
+                                        data-id="@f.Id" data-name="@f.FileName" title="删除">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             }
                         </td>
                     </tr>
                 }
-                @if (!Model.Any())
+                @if (!Model.Items.Any())
                 {
                     <tr><td colspan="8" class="text-center text-muted py-4">暂无文件</td></tr>
                 }
             </tbody>
         </table>
     </div>
-    @{
-        var paged = new EnterpriseMS.Common.PagedResult<KbFile>
-        {
-            Items    = Model,
-            Total    = (int)(ViewBag.Total ?? 0),
-            Page     = (int)(ViewBag.Page  ?? 1),
-            PageSize = (int)(ViewBag.Size   ?? 20),
-        };
-    }
-    <partial name="_Pagination" model="paged" />
+    <partial name="_Pagination" model="Model" />
 </div>
 </div></section>
 
@@ -205,11 +209,68 @@
     </div></div>
 </div>
 
+<!-- 编辑弹窗 -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">编辑文件信息</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editId">
+            <div class="form-group">
+                <label>文件名称 <span class="text-danger">*</span></label>
+                <input type="text" id="editFileName" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>所属分类 <span class="text-danger">*</span></label>
+                <select id="editCategory" class="form-control">
+                    @foreach (var c in categories)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>版本号</label>
+                        <input type="text" id="editVersion" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>状态</label>
+                        <select id="editStatus" class="form-control">
+                            <option value="1">启用</option>
+                            <option value="0">禁用</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>说明</label>
+                <textarea id="editDesc" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="editPinned">
+                <label class="custom-control-label" for="editPinned">置顶显示</label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveEdit()">
+                <i class="fas fa-save mr-1"></i> 保存
+            </button>
+        </div>
+    </div></div>
+</div>
+
 @section Scripts {
 <script>
 var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
 
-document.getElementById('uploadFile').addEventListener('change', function() {
+document.getElementById('uploadFile')?.addEventListener('change', function() {
     this.nextElementSibling.textContent = this.files[0]?.name ?? '点击选择文件';
 });
 
@@ -263,18 +324,66 @@ function doUpload() {
     });
 }
 
+// 编辑
+$(document).on('click', '.btn-edit', function() {
+    var id = $(this).data('id');
+    var loadIdx = layer.load(1);
+    $.get('/kb/detail/' + id, function(r) {
+        layer.close(loadIdx);
+        if (!r.success) { layer.msg(r.message, {icon:2}); return; }
+        var d = r.data;
+        $('#editId').val(d.id);
+        $('#editFileName').val(d.fileName);
+        $('#editCategory').val(d.categoryId);
+        $('#editVersion').val(d.version || '');
+        $('#editDesc').val(d.description || '');
+        $('#editStatus').val(d.status);
+        $('#editPinned').prop('checked', d.isPinned);
+        $('#editModal').modal('show');
+    }).fail(function() { layer.close(loadIdx); layer.msg('加载失败', {icon:2}); });
+});
+
+function saveEdit() {
+    var data = {
+        Id:          parseInt($('#editId').val()),
+        FileName:    $('#editFileName').val(),
+        CategoryId:  parseInt($('#editCategory').val()),
+        Version:     $('#editVersion').val(),
+        Description: $('#editDesc').val(),
+        Status:      parseInt($('#editStatus').val()),
+        IsPinned:    $('#editPinned').is(':checked'),
+    };
+    if (!data.FileName) { layer.msg('请填写文件名称', {icon:2}); return; }
+    var loadIdx = layer.load(1);
+    $.ajax({
+        url: '/kb/update', type: 'POST', contentType: 'application/json',
+        headers: { 'RequestVerificationToken': antiForgery },
+        data: JSON.stringify(data),
+        success: function(r) {
+            layer.close(loadIdx);
+            if (r.success) {
+                layer.msg(r.message, {icon:1, time:1500}, function() { location.reload(); });
+            } else { layer.msg(r.message, {icon:2}); }
+        },
+        error: function() { layer.close(loadIdx); layer.msg('请求失败', {icon:2}); }
+    });
+}
+
 function togglePin(id) {
     $.post('/kb/pin/' + id, {__RequestVerificationToken: antiForgery},
         function(r) { handleResult(r, ()=>location.reload()); });
 }
 
-function deleteFile(id, name) {
-    layer.confirm('确认删除文件 <b>' + name + '</b>？', {icon:3, btn:['确认删除','取消']},
-        function(i) {
-            layer.close(i);
-            $.post('/kb/delete/' + id, {__RequestVerificationToken: antiForgery},
-                function(r) { handleResult(r, ()=>location.reload()); });
-        });
-}
+// 使用 data 属性避免 XSS
+$(document).on('click', '.btn-delete', function() {
+    var id   = $(this).data('id');
+    var name = $(this).data('name');
+    layer.confirm('确认删除文件 <b>' + $('<span>').text(name).html() + '</b>？',
+        {icon:3, btn:['确认删除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/kb/delete/' + id, {__RequestVerificationToken: antiForgery},
+            function(r) { handleResult(r, ()=>location.reload()); });
+    });
+});
 </script>
 }

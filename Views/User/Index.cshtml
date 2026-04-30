@@ -54,6 +54,22 @@
                     </div>
                     <div class="col-md-2">
                         <div class="form-group">
+                            <label>部门</label>
+                            <select name="DeptId" class="form-control form-control-sm">
+                                <option value="">全部</option>
+                                @foreach (var d in ViewBag.Depts as List<DeptTreeDto> ?? new())
+                                {
+                                    <option value="@d.Id" selected="@(query.DeptId?.ToString()==d.Id.ToString()?"selected":null)">@d.DeptName</option>
+                                    @foreach (var cd in d.Children)
+                                    {
+                                        <option value="@cd.Id" selected="@(query.DeptId?.ToString()==cd.Id.ToString()?"selected":null)">&nbsp;&nbsp;└ @cd.DeptName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-group">
                             <label>状态</label>
                             <select name="Status" class="form-control form-control-sm">
                                 <option value="">全部</option>
@@ -162,8 +178,8 @@
                                 }
                                 @if (canDel)
                                 {
-                                    <button class="btn btn-xs btn-danger"
-                                            onclick="deleteUser(@u.Id, '@u.RealName')"
+                                    <button class="btn btn-xs btn-danger btn-delete"
+                                            data-id="@u.Id" data-name="@u.RealName"
                                             title="删除">
                                         <i class="fas fa-trash"></i>
                                     </button>
@@ -243,8 +259,9 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>角色</label>
-                                <select id="roleIds" class="form-control" multiple>
-                                </select>
+                                <div id="roleCheckboxGroup" class="border rounded p-2" style="max-height:120px;overflow-y:auto">
+                                    <small class="text-muted">加载中...</small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -313,18 +330,33 @@
 <script>
 var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
 
-// 加载角色列表
+// 加载角色列表（checkbox 模式）
 function loadRoles(selectedIds) {
     $.get('/system/user/roles', function(r) {
         if (!r.success) return;
-        var sel = $('#roleIds');
-        sel.empty();
+        var container = $('#roleCheckboxGroup');
+        container.empty();
+        if (!r.data || r.data.length === 0) {
+            container.html('<small class="text-muted">暂无可用角色</small>');
+            return;
+        }
         r.data.forEach(function(role) {
-            var opt = $('<option>').val(role.Id).text(role.RoleName);
-            if (selectedIds && selectedIds.includes(role.Id)) opt.prop('selected', true);
-            sel.append(opt);
+            var checked = selectedIds && selectedIds.includes(role.Id) ? ' checked' : '';
+            container.append(
+                '<div class="form-check form-check-inline mr-2">'
+                + '<input class="form-check-input role-cb" type="checkbox" '
+                + 'id="role_' + role.Id + '" value="' + role.Id + '"' + checked + '>'
+                + '<label class="form-check-label small" for="role_' + role.Id + '">'
+                + role.RoleName + '</label></div>'
+            );
         });
     });
+}
+
+function getSelectedRoleIds() {
+    var ids = [];
+    $('.role-cb:checked').each(function() { ids.push(parseInt($(this).val())); });
+    return ids;
 }
 
 function openAddModal() {
@@ -335,12 +367,17 @@ function openAddModal() {
     $('#pwdRequired').show();
     $('#pwdHint').hide();
     $('#employeeBindRow').hide();
+    $('#empSyncHint').hide();
+    $('#realName,#phone,#email').prop('readonly', false).removeClass('bg-light');
+    $('#deptId,#postId').prop('disabled', false);
     loadRoles([]);
     $('#userModal').modal('show');
 }
 
 function openEditModal(id) {
+    var loadIdx = layer.load(1);
     $.get('/system/user/detail/' + id, function(r) {
+        layer.close(loadIdx);
         if (!r.success) { layer.msg(r.message, {icon:2}); return; }
         var u = r.data;
         $('#userModalTitle').text('编辑用户');
@@ -351,37 +388,45 @@ function openEditModal(id) {
         $('#phone').val(u.Phone || '');
         $('#email').val(u.Email || '');
         $('#remark').val(u.Remark || '');
-        $('#deptId').val(u.DeptId || '');
-        $('#postId').val(u.PostId || '');
         $('#pwdRequired').hide();
         $('#pwdHint').show();
-        $('#deptId').val(u.DeptId || '');
-        $('#postId').val(u.PostId || '');
         loadRoles(u.RoleIds || []);
-        // 加载员工列表并回填当前绑定
+        // 恢复可编辑状态，再由 syncEmployeeFields 根据绑定情况锁定
+        $('#realName,#phone,#email').prop('readonly', false).removeClass('bg-light');
+        $('#deptId').val(u.DeptId || '').prop('disabled', false);
+        $('#postId').val(u.PostId || '').prop('disabled', false);
         $('#employeeBindRow').show();
         loadEmployeeOptions(u.EmployeeId);
         $('#userModal').modal('show');
+    }).fail(function() {
+        layer.close(loadIdx);
+        layer.msg('加载用户信息失败', {icon:2});
     });
 }
 
 function saveUser() {
     var id = $('#userId').val();
     var isEdit = !!id;
+
+    // 即使 deptId/postId 被 disabled，也要从 data 属性或原值获取
+    var deptVal = $('#deptId').prop('disabled') ? $('#deptId').data('saved-val') : $('#deptId').val();
+    var postVal = $('#postId').prop('disabled') ? $('#postId').data('saved-val') : $('#postId').val();
+
     var data = {
-        Id:       id,
-        Username: $('#username').val(),
-        RealName: $('#realName').val(),
-        Password: $('#password').val(),
-        Phone:    $('#phone').val(),
-        Email:    $('#email').val(),
-        Remark:   $('#remark').val(),
-        RoleIds:    $('#roleIds').val() ? $('#roleIds').val().map(Number) : [],
-        DeptId:     parseInt($('#deptId').val()) || null,
-        PostId:     parseInt($('#postId').val()) || null,
+        Id:         id,
+        Username:   $('#username').val(),
+        RealName:   $('#realName').val(),
+        Password:   $('#password').val(),
+        Phone:      $('#phone').val(),
+        Email:      $('#email').val(),
+        Remark:     $('#remark').val(),
+        RoleIds:    getSelectedRoleIds(),
+        DeptId:     parseInt(deptVal) || null,
+        PostId:     parseInt(postVal) || null,
         EmployeeId: parseInt($('#bindEmployeeId').val()) || null,
     };
 
+    if (!data.Username && !isEdit) { layer.msg('请填写用户名', {icon:2}); return; }
     if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
     if (!isEdit && !data.Password) { layer.msg('请填写密码', {icon:2}); return; }
     if (data.Password && data.Password.length < 6) {
@@ -389,23 +434,21 @@ function saveUser() {
     }
 
     var url = isEdit ? '/system/user/update' : '/system/user/create';
-    var load = layer.load(1);
+    var loadIdx = layer.load(1);
     $.ajax({
         url: url, type: 'POST', contentType: 'application/json',
         headers: { 'RequestVerificationToken': antiForgery },
         data: JSON.stringify(data),
         success: function(r) {
-            layer.close(load);
+            layer.close(loadIdx);
             if (r.success) {
                 $('#userModal').modal('hide');
-                layer.msg(r.message, {icon:1, time:1500}, function() {
-                    location.reload();
-                });
+                layer.msg(r.message, {icon:1, time:1500}, function() { location.reload(); });
             } else {
                 layer.msg(r.message, {icon:2});
             }
         },
-        error: function() { layer.close(load); layer.msg('请求失败', {icon:2}); }
+        error: function() { layer.close(loadIdx); layer.msg('请求失败', {icon:2}); }
     });
 }
 
@@ -433,8 +476,11 @@ function resetPwd(id) {
     });
 }
 
-function deleteUser(id, name) {
-    layer.confirm('确认删除用户 <b>' + name + '</b>？此操作不可恢复！',
+// 使用 data 属性获取用户名，避免 XSS
+$(document).on('click', '.btn-delete', function() {
+    var id   = $(this).data('id');
+    var name = $(this).data('name');
+    layer.confirm('确认删除用户 <b>' + $('<span>').text(name).html() + '</b>？此操作不可恢复！',
         {icon:3, title:'警告', btn:['确认删除','取消']}, function(i) {
         layer.close(i);
         $.post('/system/user/delete/' + id,
@@ -444,7 +490,7 @@ function deleteUser(id, name) {
             });
         });
     });
-}
+});
 
 // 加载员工下拉（含已绑定提示）
 function loadEmployeeOptions(currentEmpId) {
@@ -458,32 +504,28 @@ function loadEmployeeOptions(currentEmpId) {
             opts += '<option value="' + e.Id + '"' + sel + disabled + '>' + label + '</option>';
         });
         $('#bindEmployeeId').html(opts);
-        // 触发一次change，回填当前员工信息
         if (currentEmpId) syncEmployeeFields();
     });
 }
 
-// 当员工下拉变更时，自动同步员工档案信息到用户字段并锁定
 $('#bindEmployeeId').on('change', function() { syncEmployeeFields(); });
 
 function syncEmployeeFields() {
     var empId = $('#bindEmployeeId').val();
     if (!empId) {
-        // 解绑：恢复编辑能力
-        $('#realName, #phone, #email, #deptId, #postId').prop('readonly', false)
-            .prop('disabled', false).removeClass('bg-light');
+        $('#realName,#phone,#email').prop('readonly', false).removeClass('bg-light');
+        $('#deptId,#postId').prop('disabled', false);
         $('#empSyncHint').hide();
         return;
     }
-    // 绑定员工：从员工档案拉取信息
     $.get('/hr/employee/json/' + empId, function(r) {
         if (!r.success) return;
         var e = r.data;
         $('#realName').val(e.RealName).prop('readonly', true).addClass('bg-light');
         $('#phone').val(e.Phone || '').prop('readonly', true).addClass('bg-light');
         $('#email').val(e.Email || '').prop('readonly', true).addClass('bg-light');
-        $('#deptId').val(e.DeptId || '').prop('disabled', true);
-        $('#postId').val(e.PostId || '').prop('disabled', true);
+        $('#deptId').val(e.DeptId || '').prop('disabled', true).data('saved-val', e.DeptId || '');
+        $('#postId').val(e.PostId || '').prop('disabled', true).data('saved-val', e.PostId || '');
         $('#empSyncHint').show();
     });
 }

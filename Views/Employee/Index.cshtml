@@ -1,6 +1,6 @@
 @using EnterpriseMS.Common.Extensions
-@using EnterpriseMS.Domain.Entities.Hr
-@model List<Employee>
+@using EnterpriseMS.Services.DTOs.Hr
+@model PagedResult<EmployeeListDto>
 @inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
 @{
     ViewData["Title"] = "员工信息";
@@ -31,20 +31,27 @@
 <section class="content"><div class="container-fluid">
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">员工列表（共 @ViewBag.Total 人）</h3>
+        <h3 class="card-title">员工列表（共 @Model.Total 人）</h3>
         <div class="card-tools d-flex align-items-center gap-2">
                     <form id="searchForm" method="get" action="/hr/employee" class="d-inline-flex mr-2">
                 <input name="keyword" class="form-control form-control-sm mr-1"
-                       placeholder="姓名/工号/手机" value="@ViewBag.Keyword" style="width:160px">
+                       placeholder="姓名/工号/手机" value="@ViewBag.Query?.Keyword" style="width:160px">
                 <select name="status" class="form-control form-control-sm mr-1" style="width:90px">
                     <option value="">全部</option>
-                    <option value="0" selected="@(ViewBag.Status?.ToString()=="0" ? "selected" : null)">试用期</option>
-                    <option value="1" selected="@(ViewBag.Status?.ToString()=="1" ? "selected" : null)">在职</option>
-                    <option value="2" selected="@(ViewBag.Status?.ToString()=="2" ? "selected" : null)">离职</option>
+                    <option value="0" selected="@(ViewBag.Query?.Status?.ToString()=="0" ? "selected" : null)">试用期</option>
+                    <option value="1" selected="@(ViewBag.Query?.Status?.ToString()=="1" ? "selected" : null)">在职</option>
+                    <option value="2" selected="@(ViewBag.Query?.Status?.ToString()=="2" ? "selected" : null)">离职</option>
                 </select>
                 <input type="hidden" name="page" id="pageInput" value="1">
                 <button class="btn btn-sm btn-primary">搜索</button>
             </form>
+            <a href="/hr/employee/export?keyword=@ViewBag.Query?.Keyword&deptId=@ViewBag.Query?.DeptId&status=@ViewBag.Query?.Status"
+               class="btn btn-sm btn-success mr-1">
+                <i class="fas fa-file-excel mr-1"></i>导出
+            </a>
+            <a href="/hr/employee/import" class="btn btn-sm btn-info mr-1">
+                <i class="fas fa-file-import mr-1"></i>导入
+            </a>
             @if (canAdd)
             {
                 <button class="btn btn-sm btn-success" onclick="openAddModal()">
@@ -62,7 +69,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var e in Model)
+                @foreach (var e in Model.Items)
                 {
                     <tr>
                         <td><code class="small">@e.EmpNo</code></td>
@@ -70,12 +77,12 @@
                             <a href="/hr/employee/detail/@e.Id" class="font-weight-bold text-dark">
                                 @e.RealName
                             </a>
-                            <small class="text-muted ml-1">@(e.Gender == 1 ? "男" : "女")</small>
+                            <small class="text-muted ml-1">@e.GenderText</small>
                         </td>
-                        <td>@(e.Dept?.DeptName ?? "-")</td>
+                        <td>@(e.DeptName ?? "-")</td>
                         <td>@(e.Phone ?? "-")</td>
                         <td>
-                            <span class="badge @statusBadge[e.Status]">@statusText[e.Status]</span>
+                            <span class="badge @statusBadge[e.Status]">@e.StatusText</span>
                         </td>
                         <td class="small text-muted">@(e.EntryDate?.ToString("yyyy-MM-dd") ?? "-")</td>
                         <td class="small text-muted">@(e.FormalDate?.ToString("yyyy-MM-dd") ?? "-")</td>
@@ -104,21 +111,14 @@
                         </td>
                     </tr>
                 }
-                @if (!Model.Any())
+                @if (!Model.Items.Any())
                 {
                     <tr><td colspan="8" class="text-center text-muted py-4">暂无数据</td></tr>
                 }
             </tbody>
         </table>
     </div>
-    @{
-        var paged = new EnterpriseMS.Common.PagedResult<Employee>
-        {
-            Items = Model, Total = ViewBag.Total,
-            Page = ViewBag.Page, PageSize = ViewBag.Size
-        };
-    }
-    <partial name="_Pagination" model="paged" />
+    <partial name="_Pagination" model="Model" />
 </div>
 </div></section>
 
@@ -202,6 +202,82 @@
                 <label>备注</label>
                 <textarea id="empRemark" class="form-control" rows="2"></textarea>
             </div>
+            <hr>
+            <h6 class="text-muted mb-3">扩展信息</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>出生日期</label>
+                        <input type="date" id="empBirthDate" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>籍贯</label>
+                        <input type="text" id="empNativePlace" class="form-control" maxlength="50">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>学历</label>
+                        <select id="empEducation" class="form-control">
+                            <option value="">请选择</option>
+                            @foreach (var ed in new[] { "高中", "大专", "本科", "硕士", "博士", "其他" })
+                            {
+                                <option value="@ed">@ed</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>专业</label>
+                        <input type="text" id="empMajor" class="form-control" maxlength="50">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>毕业院校</label>
+                        <input type="text" id="empGraduateSchool" class="form-control" maxlength="100">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>现住址</label>
+                        <input type="text" id="empAddress" class="form-control" maxlength="200">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>紧急联系人</label>
+                        <input type="text" id="empEmergencyContact" class="form-control" maxlength="50">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>紧急联系电话</label>
+                        <input type="text" id="empEmergencyPhone" class="form-control" maxlength="20">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>银行账号</label>
+                        <input type="text" id="empBankAccount" class="form-control" maxlength="30">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>开户行</label>
+                        <input type="text" id="empBankName" class="form-control" maxlength="100">
+                    </div>
+                </div>
+            </div>
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
@@ -224,13 +300,37 @@ function openAddModal() {
 }
 
 function openEditModal(id) {
-    $.get('/hr/employee/detail/' + id, function(r) {}).fail(function() {
+    var load = layer.load(1);
+    $.get('/hr/employee/json/' + id, function(r) {
+        layer.close(load);
+        if (!r.success) { layer.msg(r.message, {icon:2}); return; }
+        var d = r.data;
+        $('#empModalTitle').text('编辑员工 - ' + d.realName);
+        $('#empId').val(d.id);
+        $('#empRealName').val(d.realName);
+        $('#empGender').val(d.gender);
+        $('#empPhone').val(d.phone || '');
+        $('#empEmail').val(d.email || '');
+        $('#empIdCard').val(d.idCard || '');
+        $('#empDeptId').val(d.deptId || '');
+        $('#empEntryDate').val(d.entryDate || '');
+        $('#empProbationEnd').val(d.probationEndDate || '');
+        $('#empRemark').val(d.remark || '');
+        $('#empBirthDate').val(d.birthDate || '');
+        $('#empNativePlace').val(d.nativePlace || '');
+        $('#empEducation').val(d.education || '');
+        $('#empMajor').val(d.major || '');
+        $('#empGraduateSchool').val(d.graduateSchool || '');
+        $('#empAddress').val(d.address || '');
+        $('#empEmergencyContact').val(d.emergencyContact || '');
+        $('#empEmergencyPhone').val(d.emergencyPhone || '');
+        $('#empBankAccount').val(d.bankAccount || '');
+        $('#empBankName').val(d.bankName || '');
+        $('#empModal').modal('show');
+    }).fail(function() {
+        layer.closeAll('loading');
         layer.msg('加载失败', {icon:2});
     });
-    // 简化：直接打开弹窗让用户重新填（实际项目应加载现有数据）
-    $('#empModalTitle').text('编辑员工（ID：' + id + '）');
-    $('#empId').val(id);
-    $('#empModal').modal('show');
 }
 
 function saveEmp() {
@@ -243,7 +343,17 @@ function saveEmp() {
         DeptId: parseInt($('#empDeptId').val()) || null,
         EntryDate: $('#empEntryDate').val() || null,
         ProbationEndDate: $('#empProbationEnd').val() || null,
-        Remark: $('#empRemark').val()
+        Remark: $('#empRemark').val(),
+        BirthDate: $('#empBirthDate').val() || null,
+        NativePlace: $('#empNativePlace').val(),
+        Education: $('#empEducation').val(),
+        Major: $('#empMajor').val(),
+        GraduateSchool: $('#empGraduateSchool').val(),
+        Address: $('#empAddress').val(),
+        EmergencyContact: $('#empEmergencyContact').val(),
+        EmergencyPhone: $('#empEmergencyPhone').val(),
+        BankAccount: $('#empBankAccount').val(),
+        BankName: $('#empBankName').val()
     };
     if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
     var url = id ? '/hr/employee/update' : '/hr/employee/create';

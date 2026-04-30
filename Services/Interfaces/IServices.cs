@@ -4,6 +4,7 @@ using EnterpriseMS.Services.DTOs.User;
 using EnterpriseMS.Services.DTOs.System;
 using EnterpriseMS.Services.DTOs.Project;
 using EnterpriseMS.Services.DTOs.Hr;
+using EnterpriseMS.Services.DTOs.Kb;
 
 namespace EnterpriseMS.Services.Interfaces;
 
@@ -127,4 +128,28 @@ public interface IEmployeeQueryService
 {
     /// <summary>获取所有在职员工（状态0试用/1在职），供下拉菜单选择</summary>
     Task<List<EmployeeSimpleDto>> GetAllOnJobAsync();
+}
+
+// ── 员工档案服务 ───────────────────────────────────────────
+public interface IEmployeeService
+{
+    Task<PagedResult<EmployeeListDto>> GetPagedAsync(EmployeeQueryDto query);
+    Task<EmployeeDetailDto?>           GetDetailAsync(long id);
+    Task<long>                         CreateAsync(CreateEmployeeDto dto, string operBy);
+    Task                               UpdateAsync(UpdateEmployeeDto dto, string operBy);
+    Task                               FormalAsync(long id, string operBy);
+    Task                               LeaveAsync(long id, string operBy, string? reason = null);
+}
+
+// ── 知识库服务 ─────────────────────────────────────────────
+public interface IKbService
+{
+    Task<PagedResult<KbFileDto>>  GetPagedAsync(KbQueryDto query, bool adminView = false);
+    Task<KbFileDto?>              GetDetailAsync(long id);
+    Task<long>                    UploadAsync(KbUploadDto dto, string operBy);
+    Task                          UpdateAsync(KbUpdateDto dto, string operBy);
+    Task                          TogglePinAsync(long id, string operBy);
+    Task                          DeleteAsync(long id, string operBy);
+    Task<(string path, string name, string mime, long size)?> GetDownloadInfoAsync(long id);
+    Task<List<KbCategoryDto>>     GetCategoriesAsync();
 }

@@ -164,7 +164,7 @@
       <div class="card-body p-0">
         <table class="table table-sm table-hover mb-0">
           <thead class="thead-light">
-            <tr><th>姓名</th><th>角色</th><th>占比</th><th>合同产值</th><th>已实现</th><th>操作</th></tr>
+            <tr><th>姓名</th><th>职责</th><th>占比</th><th>合同产值</th><th>已实现</th><th>操作</th></tr>
           </thead>
           <tbody>
             @foreach (var m in Model.Members.OrderByDescending(x=>x.Status==0))
@@ -174,7 +174,7 @@
                   <strong>@m.EmployeeName</strong>
                   <br><small class="text-muted">@(m.DeptName??"")</small>
                 </td>
-                <td><small>@m.Role</small></td>
+                <td><small>@m.DutyDesc</small></td>
                 <td><strong class="@(m.Status==0?"text-primary":"text-muted")">@m.Ratio.ToString("N1")%</strong></td>
                 <td class="text-primary small">@m.ContractValue.ToString("N2")</td>
                 <td class="text-success small">@m.ReceivedValue.ToString("N2")</td>

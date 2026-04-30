@@ -1,0 +1,258 @@
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "批量导入员工";
+    var depts = ViewBag.Depts as List<EnterpriseMS.Domain.Entities.System.SysDept> ?? new();
+}
+
+<div class="content-header"><div class="container-fluid">
+    <div class="row mb-2">
+        <div class="col-sm-6">
+            <h1 class="m-0">
+                <a href="/hr/employee" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
+                批量导入员工
+            </h1>
+        </div>
+        <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item"><a href="/hr/employee">员工档案</a></li>
+                <li class="breadcrumb-item active">批量导入</li>
+            </ol>
+        </div>
+    </div>
+</div></div>
+
+<section class="content"><div class="container-fluid">
+<div class="row">
+
+    <!-- 左侧：操作区 -->
+    <div class="col-md-7">
+        <!-- Step 1 -->
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <span class="badge badge-primary mr-2">1</span>
+                    下载导入模板
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    请先下载标准模板，按照模板格式填写员工数据后再上传。
+                    带 <span class="text-danger">*</span> 的列为必填项。
+                </p>
+                <a href="/hr/employee/import/template" class="btn btn-outline-success">
+                    <i class="fas fa-file-excel mr-2"></i>下载导入模板（Excel）
+                </a>
+            </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <span class="badge badge-primary mr-2">2</span>
+                    上传 Excel 文件
+                </h3>
+            </div>
+            <div class="card-body">
+                <!-- 拖拽上传区 -->
+                <div id="dropZone"
+                     class="border rounded text-center py-5 mb-3"
+                     style="border-style:dashed!important;cursor:pointer;transition:background .2s"
+                     onclick="document.getElementById('fileInput').click()"
+                     ondragover="event.preventDefault();this.style.background='#e8f4fd'"
+                     ondragleave="this.style.background=''"
+                     ondrop="handleDrop(event)">
+                    <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3 d-block"></i>
+                    <p class="text-muted mb-1">点击或拖拽文件到此处</p>
+                    <small class="text-muted">支持 .xlsx / .xls，最大 10MB</small>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls"
+                           style="display:none" onchange="onFileSelected(this)">
+                </div>
+
+                <!-- 已选文件信息 -->
+                <div id="fileInfo" class="alert alert-info d-none">
+                    <i class="fas fa-file-excel mr-2"></i>
+                    <span id="fileName"></span>
+                    <span class="badge badge-secondary ml-2" id="fileSize"></span>
+                    <button type="button" class="close" onclick="clearFile()">
+                        <span>&times;</span>
+                    </button>
+                </div>
+
+                <button class="btn btn-primary btn-block" id="importBtn"
+                        onclick="doImport()" disabled>
+                    <i class="fas fa-upload mr-2"></i>开始导入
+                </button>
+
+                <!-- 进度条 -->
+                <div class="progress mt-3 d-none" id="progressBar">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated w-100"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 导入结果 -->
+        <div id="resultCard" class="card d-none">
+            <div class="card-header" id="resultHeader">
+                <h3 class="card-title"><i class="fas fa-clipboard-check mr-2"></i>导入结果</h3>
+            </div>
+            <div class="card-body" id="resultBody"></div>
+        </div>
+    </div>
+
+    <!-- 右侧：说明 -->
+    <div class="col-md-5">
+        <!-- 字段说明 -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-info-circle mr-2"></i>字段说明</h3>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead class="thead-light">
+                        <tr><th>字段名</th><th>必填</th><th>说明</th></tr>
+                    </thead>
+                    <tbody style="font-size:12px">
+                        <tr><td>工号</td><td class="text-muted text-center">-</td><td>留空则自动生成（如 EMP20240001）</td></tr>
+                        <tr><td>姓名*</td><td class="text-danger text-center">&#10003;</td><td></td></tr>
+                        <tr><td>性别</td><td class="text-muted text-center">-</td><td>男/女，默认男</td></tr>
+                        <tr><td>手机</td><td class="text-muted text-center">-</td><td></td></tr>
+                        <tr><td>邮箱</td><td class="text-muted text-center">-</td><td></td></tr>
+                        <tr><td>身份证号</td><td class="text-muted text-center">-</td><td>18位</td></tr>
+                        <tr><td>部门</td><td class="text-muted text-center">-</td><td>填部门全称，自动匹配</td></tr>
+                        <tr><td>入职日期</td><td class="text-muted text-center">-</td><td>格式：2024-03-01</td></tr>
+                        <tr><td>试用期截止</td><td class="text-muted text-center">-</td><td>格式：2024-09-01</td></tr>
+                        <tr><td>备注</td><td class="text-muted text-center">-</td><td></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 部门参考 -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-list-ul mr-2"></i>当前可用部门</h3>
+            </div>
+            <div class="card-body" style="font-size:12px">
+                <p class="text-muted mb-0">
+                    @string.Join("、", depts.Select(d => d.DeptName))
+                </p>
+            </div>
+        </div>
+    </div>
+
+</div>
+</div></section>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+var selectedFile = null;
+
+function onFileSelected(input) {
+    if (input.files[0]) setFile(input.files[0]);
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropZone').style.background = '';
+    var f = e.dataTransfer.files[0];
+    if (f && (f.name.endsWith('.xlsx') || f.name.endsWith('.xls'))) {
+        setFile(f);
+    } else {
+        layer.msg('请上传 .xlsx 或 .xls 文件', {icon:2});
+    }
+}
+
+function setFile(f) {
+    selectedFile = f;
+    document.getElementById('fileName').textContent = f.name;
+    document.getElementById('fileSize').textContent =
+        f.size < 1048576 ? (f.size/1024).toFixed(1)+'KB' : (f.size/1048576).toFixed(1)+'MB';
+    document.getElementById('fileInfo').classList.remove('d-none');
+    document.getElementById('importBtn').disabled = false;
+}
+
+function clearFile() {
+    selectedFile = null;
+    document.getElementById('fileInput').value = '';
+    document.getElementById('fileInfo').classList.add('d-none');
+    document.getElementById('importBtn').disabled = true;
+}
+
+function doImport() {
+    if (!selectedFile) { layer.msg('请先选择文件', {icon:2}); return; }
+
+    var fd = new FormData();
+    fd.append('file', selectedFile);
+
+    document.getElementById('importBtn').disabled = true;
+    document.getElementById('progressBar').classList.remove('d-none');
+    document.getElementById('resultCard').classList.add('d-none');
+
+    $.ajax({
+        url: '/hr/employee/import/execute',
+        type: 'POST',
+        data: fd,
+        processData: false,
+        contentType: false,
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) {
+            document.getElementById('progressBar').classList.add('d-none');
+            document.getElementById('importBtn').disabled = false;
+            showResult(r);
+        },
+        error: function(xhr) {
+            document.getElementById('progressBar').classList.add('d-none');
+            document.getElementById('importBtn').disabled = false;
+            layer.msg('请求失败：' + (xhr.responseText || '未知错误'), {icon:2});
+        }
+    });
+}
+
+function showResult(r) {
+    var card   = document.getElementById('resultCard');
+    var header = document.getElementById('resultHeader');
+    var body   = document.getElementById('resultBody');
+    card.classList.remove('d-none');
+
+    if (!r.success) {
+        header.className = 'card-header bg-danger text-white';
+        body.innerHTML   = '<div class="text-danger"><i class="fas fa-times-circle mr-1"></i>' + r.message + '</div>';
+        return;
+    }
+
+    var d = r.data;
+    var hasError = d.ErrorCount > 0;
+    header.className = hasError ? 'card-header bg-warning' : 'card-header bg-success text-white';
+
+    var html = '<div class="row text-center mb-3">'
+        + '<div class="col-4"><div class="text-success font-weight-bold" style="font-size:2rem">' + d.SuccessCount + '</div><small>成功导入</small></div>'
+        + '<div class="col-4"><div class="text-warning font-weight-bold" style="font-size:2rem">' + d.SkipCount + '</div><small>跳过（已存在）</small></div>'
+        + '<div class="col-4"><div class="text-danger font-weight-bold" style="font-size:2rem">' + d.ErrorCount + '</div><small>错误</small></div>'
+        + '</div>';
+
+    if (d.SuccessCount > 0) {
+        html += '<div class="mb-2"><span class="badge badge-success mr-1">成功</span>'
+              + d.SuccessList.join('、') + '</div>';
+    }
+    if (d.SkipList.length > 0) {
+        html += '<div class="mb-2"><span class="badge badge-warning mr-1">跳过</span>'
+              + d.SkipList.join('<br>') + '</div>';
+    }
+    if (d.ErrorList.length > 0) {
+        html += '<div class="mb-2"><span class="badge badge-danger mr-1">错误</span><ul class="mb-0 pl-3">';
+        d.ErrorList.forEach(function(e) { html += '<li class="text-danger small">' + e + '</li>'; });
+        html += '</ul></div>';
+    }
+
+    if (d.SuccessCount > 0) {
+        html += '<div class="mt-3 text-center"><a href="/hr/employee" class="btn btn-sm btn-primary">'
+              + '<i class="fas fa-arrow-right mr-1"></i>查看员工列表</a></div>';
+    }
+
+    body.innerHTML = html;
+}
+</script>
+}

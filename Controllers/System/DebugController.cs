@@ -140,12 +140,7 @@ public class DebugController : BaseAuthController
         var menuSeeds = new List<EnterpriseMS.Domain.Entities.System.SysMenu>
     {
         // ── 在此处维护所有需要补充的菜单记录 ──
-        new() { Id=8,  MenuName="造价小工具", ParentId=0, MenuType="M", Icon="fa-calculator",
-                Path="/tool",            Sort=8,  Visible=1, Status=1, CreatedAt=dt, CreatedBy="system" },
-        new() { Id=81, MenuName="报告生成",   ParentId=8, MenuType="C", Icon="fa-file-word",
-                Path="/tool/report",     Sort=1,  Visible=1, Status=1, Perms=null,   CreatedAt=dt, CreatedBy="system" },
-        new() { Id=82, MenuName="费用计算器", ParentId=8, MenuType="C", Icon="fa-coins",
-                Path="/tool/calculator", Sort=2,  Visible=1, Status=1, Perms=null,   CreatedAt=dt, CreatedBy="system" },
+
     };
 
         int menuAdded = 0, menuSkipped = 0;

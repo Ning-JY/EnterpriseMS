@@ -1,21 +1,10 @@
-@using EnterpriseMS.Domain.Entities.Info
-@model List<KbFile>
+@using EnterpriseMS.Common
+@using EnterpriseMS.Services.DTOs.Kb
+@model PagedResult<KbFileDto>
 @{
     ViewData["Title"] = "知识库";
-    var categories  = ViewBag.Categories as List<KbCategory> ?? new();
-    var curCatId    = ViewBag.CategoryId as long?;
-    string[] previewExts = { "pdf", "jpg", "jpeg", "png" };
-    string FileSizeText(long size) => size < 1024 ? $"{size}B"
-        : size < 1048576 ? $"{size/1024:N1}KB" : $"{size/1048576:N1}MB";
-    string ExtIcon(string? ext) => (ext ?? "").ToLower() switch {
-        "pdf"  => "fa-file-pdf text-danger",
-        "doc" or "docx" => "fa-file-word text-primary",
-        "xls" or "xlsx" => "fa-file-excel text-success",
-        "ppt" or "pptx" => "fa-file-powerpoint text-warning",
-        "jpg" or "jpeg" or "png" => "fa-file-image text-info",
-        "zip" or "rar" => "fa-file-archive text-secondary",
-        _ => "fa-file text-muted"
-    };
+    var categories = ViewBag.Categories as List<KbCategoryDto> ?? new();
+    var curCatId   = ViewBag.CategoryId as long?;
 }
 
 <div class="content-header"><div class="container-fluid">
@@ -44,7 +33,7 @@
                     <li class="nav-item">
                         <a href="/kb" class="nav-link @(curCatId == null ? "active" : "")">
                             <i class="fas fa-layer-group mr-2"></i>全部文件
-                            <span class="badge badge-secondary float-right">@ViewBag.Total</span>
+                            <span class="badge badge-secondary float-right">@Model.Total</span>
                         </a>
                     </li>
                     @foreach (var cat in categories)
@@ -53,6 +42,7 @@
                             <a href="/kb?categoryId=@cat.Id"
                                class="nav-link @(curCatId == cat.Id ? "active" : "")">
                                 <i class="fas @(cat.Icon ?? "fa-folder") mr-2"></i>@cat.Name
+                                <span class="badge badge-light float-right">@cat.FileCount</span>
                             </a>
                         </li>
                     }
@@ -86,7 +76,7 @@
             </form>
         </div>
 
-        @if (!Model.Any())
+        @if (!Model.Items.Any())
         {
             <div class="text-center text-muted py-5">
                 <i class="fas fa-folder-open fa-3x mb-3 d-block"></i>
@@ -110,7 +100,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var f in Model)
+                            @foreach (var f in Model.Items)
                             {
                                 <tr>
                                     <td>
@@ -118,7 +108,7 @@
                                         {
                                             <span class="badge badge-danger mr-1">置顶</span>
                                         }
-                                        <i class="fas @ExtIcon(f.FileExt) mr-2"></i>
+                                        <i class="fas @f.ExtIcon mr-2"></i>
                                         <strong>@f.FileName</strong>
                                         @if (!string.IsNullOrEmpty(f.Description))
                                         {
@@ -126,21 +116,19 @@
                                         }
                                     </td>
                                     <td>
-                                        <span class="badge badge-light">
-                                            @(f.Category?.Name ?? "-")
-                                        </span>
+                                        <span class="badge badge-light">@(f.CategoryName ?? "-")</span>
                                     </td>
-                                    <td class="small text-muted">@FileSizeText(f.FileSize)</td>
+                                    <td class="small text-muted">@f.FileSizeText</td>
                                     <td class="small">@(f.Version ?? "-")</td>
                                     <td class="small text-muted">@f.CreatedAt.ToString("yyyy-MM-dd")</td>
                                     <td class="text-center">
                                         <span class="badge badge-light">@f.DownloadCount</span>
                                     </td>
                                     <td>
-                                        @if (previewExts.Contains(f.FileExt?.ToLower() ?? ""))
+                                        @if (f.CanPreview)
                                         {
-                                            <button class="btn btn-xs btn-info mr-1"
-                                                    onclick="previewFile(@f.Id,'@f.FileName','@f.FileExt')"
+                                            <button class="btn btn-xs btn-info mr-1 btn-preview"
+                                                    data-id="@f.Id" data-name="@f.FileName"
                                                     title="预览">
                                                 <i class="fas fa-eye"></i>
                                             </button>
@@ -155,16 +143,7 @@
                         </tbody>
                     </table>
                 </div>
-                @{
-                    var paged = new EnterpriseMS.Common.PagedResult<KbFile>
-                    {
-                        Items    = Model,
-                        Total    = (int)(ViewBag.Total    ?? 0),
-                        Page     = (int)(ViewBag.Page     ?? 1),
-                        PageSize = (int)(ViewBag.Size      ?? 20),
-                    };
-                }
-                <partial name="_Pagination" model="paged" />
+                <partial name="_Pagination" model="Model" />
             </div>
         }
     </div>
@@ -195,13 +174,14 @@
 
 @section Scripts {
 <script>
-function previewFile(id, name, ext) {
+$(document).on('click', '.btn-preview', function() {
+    var id   = $(this).data('id');
+    var name = $(this).data('name');
     $('#previewTitle').text(name);
     $('#previewDownload').attr('href', '/kb/download/' + id);
     $('#previewFrame').attr('src', '/kb/preview/' + id);
     $('#previewModal').modal('show');
-}
-// 关闭弹窗时清空iframe（避免占用内存）
+});
 $('#previewModal').on('hidden.bs.modal', function() {
     $('#previewFrame').attr('src', '');
 });

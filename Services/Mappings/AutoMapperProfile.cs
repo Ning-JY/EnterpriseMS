@@ -5,6 +5,7 @@ using EnterpriseMS.Domain.Entities.Project;
 using EnterpriseMS.Services.DTOs.User;
 using EnterpriseMS.Services.DTOs.System;
 using EnterpriseMS.Services.DTOs.Project;
+using EnterpriseMS.Services.DTOs.Hr;
 
 namespace EnterpriseMS.Services.Mappings;
 
@@ -88,6 +89,27 @@ public class AutoMapperProfile : Profile
 
         // ProjectLog
         CreateMap<ProjectOperLog, ProjectLogDto>();
+
+        // Employee
+        CreateMap<Employee, EmployeeListDto>()
+            .ForMember(d => d.DeptName, o => o.MapFrom(s => s.Dept != null ? s.Dept.DeptName : null));
+        CreateMap<Employee, EmployeeDetailDto>()
+            .IncludeBase<Employee, EmployeeListDto>();
+        CreateMap<CreateEmployeeDto, Employee>();
+        CreateMap<UpdateEmployeeDto, Employee>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.EmpNo, o => o.Ignore())
+            .ForMember(d => d.CreatedAt, o => o.Ignore())
+            .ForMember(d => d.CreatedBy, o => o.Ignore())
+            .ForMember(d => d.IsDeleted, o => o.Ignore())
+            .ForMember(d => d.Contracts, o => o.Ignore())
+            .ForMember(d => d.Certificates, o => o.Ignore())
+            .ForMember(d => d.Dept, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.Ignore())
+            .ForMember(d => d.FormalDate, o => o.Ignore())
+            .ForMember(d => d.LeaveDate, o => o.Ignore());
+        CreateMap<EmployeeContract, EmployeeContractDto>();
+        CreateMap<EmployeeCertificate, EmployeeCertificateDto>();
     }
 }
 // 追加在文件末尾前闭合花括号前，此处用bash追加到文件最后一行之前的方式

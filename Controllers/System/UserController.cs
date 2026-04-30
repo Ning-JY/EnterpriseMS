@@ -79,7 +79,7 @@ public class UserController : BaseAuthController
         { return Json(ApiResult<object>.Fail(ex.Message)); }
     }
 
-    [HttpPost("delete/{id}")]
+    [HttpPost("delete/{id}"), ValidateAntiForgeryToken]
     [HasPermission("sys:user:delete")]
     public async Task<IActionResult> Delete(long id)
     {
@@ -93,20 +93,21 @@ public class UserController : BaseAuthController
         { return Json(ApiResult<object>.Fail(ex.Message)); }
     }
 
-    [HttpPost("status")]
+    [HttpPost("status"), ValidateAntiForgeryToken]
     [HasPermission("sys:user:edit")]
     public async Task<IActionResult> SetStatus(long id, int status)
     {
         try
         {
             await _userSvc.SetStatusAsync(id, status, User.GetRealName());
+            await _logSvc.LogAsync("切换用户状态", $"用户ID：{id}，状态：{(status == 1 ? "启用" : "禁用")}", "UPDATE", id);
             return Json(ApiResult<object>.Ok(status == 1 ? "已启用" : "已禁用"));
         }
         catch (BusinessException ex)
         { return Json(ApiResult<object>.Fail(ex.Message)); }
     }
 
-    [HttpPost("resetpwd")]
+    [HttpPost("resetpwd"), ValidateAntiForgeryToken]
     [HasPermission("sys:user:reset")]
     public async Task<IActionResult> ResetPwd(long id, string newPwd)
     {
@@ -134,6 +135,7 @@ public class UserController : BaseAuthController
     }
 
     [HttpGet("roles")]
+    [HasPermission("sys:user:list")]
     public async Task<IActionResult> GetRoles()
     {
         var roles = await _roleSvc.GetAllActiveAsync();
