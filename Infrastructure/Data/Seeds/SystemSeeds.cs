@@ -144,7 +144,7 @@ public static class SystemSeeds
         // ── 超管拥有全部权限 ──────────────────────────────────
         var allMenuIds = new long[]
         {
-            1,2,3,4,5,6,7,8,
+            1,2,3,4,5,6,7,8,9,
             11,12,13,14,15,16,17,
             111,112,113,114,
             121,122,123,124,
@@ -160,18 +160,20 @@ public static class SystemSeeds
             211,212,213,214,
             31, 311,312,313,314,315,316,317,318,319,320,
             41, 411,412,413,414,
+            91, 911,912,913,914,915,916
         };
         mb.Entity<SysRoleMenu>().HasData(
             allMenuIds.Select(mid => new SysRoleMenu { RoleId = 1, MenuId = mid }).ToArray()
         );
 
-        // 项目经理角色菜单（员工档案只读 + 项目管理全部）
+        // 项目经理角色菜单（员工档案只读 + 项目管理全部 + 投标管理）
         var pmMenuIds = new long[]
         {
             5, 51, 52,              // 个人中心（所有人可见）
             2, 21, 22, 23,          // 员工档案查看
             3, 31, 311,312,313,315,316,317,318,319,  // 项目管理全部
             4, 41, 413, 414,        // 概预算查看+录入意见
+            9, 91, 911,912,913,914,915,916,  // 投标管理全部
         };
         mb.Entity<SysRoleMenu>().HasData(
             pmMenuIds.Select(mid => new SysRoleMenu { RoleId = 3, MenuId = mid }).ToArray()

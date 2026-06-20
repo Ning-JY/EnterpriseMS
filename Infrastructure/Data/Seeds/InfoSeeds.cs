@@ -105,7 +105,16 @@ public static class InfoSeeds
             new SysMenu { Id = 411, MenuName = "新增任务", ParentId = 41, MenuType = "F", Sort = 1, Visible = 0, Status = 1, Perms = "budget:task:add", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 412, MenuName = "编辑任务", ParentId = 41, MenuType = "F", Sort = 2, Visible = 0, Status = 1, Perms = "budget:task:edit", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 413, MenuName = "提交内审", ParentId = 41, MenuType = "F", Sort = 3, Visible = 0, Status = 1, Perms = "budget:task:submit", CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 414, MenuName = "录入意见", ParentId = 41, MenuType = "F", Sort = 4, Visible = 0, Status = 1, Perms = "budget:opinion:add", CreatedAt = dt, CreatedBy = "system" }
+            new SysMenu { Id = 414, MenuName = "录入意见", ParentId = 41, MenuType = "F", Sort = 4, Visible = 0, Status = 1, Perms = "budget:opinion:add", CreatedAt = dt, CreatedBy = "system" },
+            // ── 投标管理 ──────────────────────────────────────
+            new SysMenu { Id = 9, MenuName = "投标管理", ParentId = 0, MenuType = "M", Icon = "fa-file-signature", Path = "/bid", Sort = 9, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 91, MenuName = "投标台账", ParentId = 9, MenuType = "C", Icon = "fa-clipboard-list", Path = "/bid", Sort = 1, Visible = 1, Status = 1, Perms = "bid:project:list", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 911, MenuName = "新建投标", ParentId = 91, MenuType = "F", Sort = 1, Visible = 0, Status = 1, Perms = "bid:project:add", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 912, MenuName = "编辑投标", ParentId = 91, MenuType = "F", Sort = 2, Visible = 0, Status = 1, Perms = "bid:project:edit", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 913, MenuName = "删除投标", ParentId = 91, MenuType = "F", Sort = 3, Visible = 0, Status = 1, Perms = "bid:project:delete", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 914, MenuName = "AI解析", ParentId = 91, MenuType = "F", Sort = 4, Visible = 0, Status = 1, Perms = "bid:project:analyze", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 915, MenuName = "AI生成", ParentId = 91, MenuType = "F", Sort = 5, Visible = 0, Status = 1, Perms = "bid:project:generate", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 916, MenuName = "AI审查", ParentId = 91, MenuType = "F", Sort = 6, Visible = 0, Status = 1, Perms = "bid:project:review", CreatedAt = dt, CreatedBy = "system" }
         );
     }
 }

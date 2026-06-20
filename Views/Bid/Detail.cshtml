@@ -1,0 +1,778 @@
+@model EnterpriseMS.Services.DTOs.Bid.BidProjectDto
+@using EnterpriseMS.Domain.Enums
+@{
+    ViewData["Title"] = $"投标详情 - {Model.ProjectName}";
+    Layout = "_Layout";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">
+                    @Model.ProjectName
+                    <small class="ml-2">投标详情</small>
+                </h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item"><a href="/Bid">投标管理</a></li>
+                    <li class="breadcrumb-item active">投标详情</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-md-12 text-right">
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-edit mr-1"></i>编辑
+            </a>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left mr-1"></i>返回列表
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">基本信息</div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">项目名称</dt>
+                        <dd class="col-sm-8">@Model.ProjectName</dd>
+                        <dt class="col-sm-4">项目编号</dt>
+                        <dd class="col-sm-8">@Model.ProjectCode</dd>
+                        <dt class="col-sm-4">招标人</dt>
+                        <dd class="col-sm-8">@(Model.Tenderer ?? "-")</dd>
+                        <dt class="col-sm-4">预算金额</dt>
+                        <dd class="col-sm-8">@(Model.Budget?.ToString("N2") ?? "-") 万元</dd>
+                        <dt class="col-sm-4">截止日期</dt>
+                        <dd class="col-sm-8">@(Model.Deadline?.ToString("yyyy-MM-dd") ?? "-")</dd>
+                        <dt class="col-sm-4">状态</dt>
+                        <dd class="col-sm-8">
+                            <span class="badge bg-@(GetStatusColor(Model.Status))">
+                                @GetStatusName(Model.Status)
+                            </span>
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">招标文件分析</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <input type="file" id="bidFile" class="form-control" accept=".pdf,.docx,.doc" />
+                    </div>
+                    <button type="button" class="btn btn-primary w-100" onclick="analyzeDocument()">
+                        <i class="bi bi-robot"></i> AI解析招标文件
+                    </button>
+                    <div id="analyzeProgress" class="mt-3" style="display:none;">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">
+                                正在解析...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">快捷操作</div>
+                <div class="card-body">
+                    <button type="button" class="btn btn-success w-100 mb-2" onclick="generateFullBid()">
+                        <i class="fas fa-magic"></i> 一键生成全部章节
+                    </button>
+                    <button type="button" class="btn btn-warning w-100 mb-2" onclick="reviewBid()">
+                        <i class="fas fa-check-circle"></i> AI审查标书
+                    </button>
+                    <button type="button" class="btn btn-primary w-100 mb-2" onclick="matchPersonnel()">
+                        <i class="fas fa-users"></i> 智能匹配人员
+                    </button>
+                    <button type="button" class="btn btn-info w-100 mb-2" onclick="assembleDocument('all')">
+                        <i class="fas fa-file-alt"></i> 组卷（完整文件）
+                    </button>
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="button" class="btn btn-outline-info w-100" onclick="assembleDocument('technical')">
+                                技术部分
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" class="btn btn-outline-info w-100" onclick="assembleDocument('commercial')">
+                                商务部分
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>招标要求</span>
+                    <span class="badge bg-info">@Model.Requirements.Count 项</span>
+                </div>
+                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                    @if (Model.Requirements.Any())
+                    {
+                        @foreach (var req in Model.Requirements.GroupBy(r => r.Category))
+                        {
+                            <h6 class="text-primary mt-2">@req.Key</h6>
+                            <ul class="list-unstyled ms-3">
+                                @foreach (var item in req)
+                                {
+                                    <li class="mb-1">
+                                        <small class="text-muted">@(item.ScoreWeight?.ToString() ?? "")分</small>
+                                        @item.Content
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-muted text-center py-3">
+                            请先上传招标文件进行AI解析
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>标书章节</span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="showAddChapter()">+ 添加章节</button>
+                </div>
+                <div class="card-body">
+                    <div id="chaptersList">
+                        @if (Model.Documents.Any())
+                        {
+                            @foreach (var doc in Model.Documents.OrderBy(d => d.SortOrder))
+                            {
+                                <div class="card mb-2" data-doc-id="@doc.Id">
+                                    <div class="card-body p-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>@doc.ChapterName</strong>
+                                                <span class="badge bg-@(GetDocStatusColor(doc.Status)) ms-2">
+                                                    @GetDocStatusName(doc.Status)
+                                                </span>
+                                                <small class="text-muted ms-2">@(doc.WordCount ?? 0) 字</small>
+                                            </div>
+                                            <div>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="previewChapter(@doc.Id, '@doc.ChapterName')">预览</button>
+                                                <button class="btn btn-sm btn-outline-success" onclick="regenerateChapter('@doc.ChapterName')">重新生成</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted text-center py-3">
+                                暂无章节，请使用"一键生成全部章节"或手动添加
+                            </div>
+                        }
+                    </div>
+
+                    <div id="generatingProgress" class="mt-3" style="display:none;">
+                        <div class="alert alert-info">
+                            <i class="fas fa-hourglass-half"></i> 正在生成：<span id="generatingChapter"></span>
+                        </div>
+                    </div>
+
+                    <div id="generatingOutput" class="mt-3 border rounded p-3 bg-light"
+                         style="display:none; max-height: 500px; overflow-y: auto; white-space: pre-wrap;"></div>
+                </div>
+            </div>
+
+            <div class="card" id="reviewResult" style="display:none;">
+                <div class="card-header">AI审查结果</div>
+                <div class="card-body" id="reviewContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 章节预览/编辑弹窗 -->
+<div class="modal fade" id="chapterModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chapterModalTitle">章节内容</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div id="chapterPreview" style="white-space: pre-wrap; max-height: 60vh; overflow-y: auto; padding: 15px; background: #f8f9fa; border-radius: 5px;"></div>
+                <div id="chapterEditArea" style="display:none;">
+                    <textarea id="chapterContentEdit" class="form-control" rows="20" style="font-size: 14px;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="btnToggleEdit" onclick="toggleEditMode()">编辑</button>
+                <button type="button" class="btn btn-success" id="btnSaveContent" style="display:none;" onclick="saveChapterContent()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 组卷结果弹窗 -->
+<div class="modal fade" id="assembleModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assembleModalTitle">投标文件</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div id="assembleInfo" class="mb-3"></div>
+                <ul class="nav nav-tabs" id="assembleTabs" role="tablist"></ul>
+                <div class="tab-content" id="assembleTabContent"></div>
+                <div id="assembleLoading" class="text-center py-4" style="display:none;">
+                    <div class="spinner-border text-primary"></div>
+                    <p class="mt-2">正在组装文档...</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-success" onclick="copyAssembleContent()">
+                    <i class="fas fa-copy"></i> 复制全部内容
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/bid-ai.js"></script>
+    <script>
+        var bidProjectId = @Model.Id;
+
+        async function analyzeDocument() {
+            var fileInput = document.getElementById('bidFile');
+            if (!fileInput.files.length) {
+                alert('请选择招标文件');
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append('File', fileInput.files[0]);
+            formData.append('BidProjectId', bidProjectId);
+
+            document.getElementById('analyzeProgress').style.display = 'block';
+
+            try {
+                var response = await fetch('/Bid/Analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                var result = await response.json();
+
+                if (result.success) {
+                    alert('解析完成！页面将刷新显示结果。');
+                    location.reload();
+                } else {
+                    alert('解析失败：' + result.message);
+                }
+            } catch (e) {
+                alert('请求失败：' + e.message);
+            } finally {
+                document.getElementById('analyzeProgress').style.display = 'none';
+            }
+        }
+
+        async function generateFullBid() {
+            if (!confirm('确定要一键生成全部章节吗？这将覆盖现有内容。')) return;
+
+            document.getElementById('generatingProgress').style.display = 'block';
+
+            try {
+                var response = await fetch('/Bid/GenerateFull', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ BidProjectId: bidProjectId })
+                });
+                var result = await response.json();
+
+                if (result.success) {
+                    alert('生成完成！页面将刷新显示结果。');
+                    location.reload();
+                } else {
+                    alert('生成失败：' + result.message);
+                }
+            } catch (e) {
+                alert('请求失败：' + e.message);
+            } finally {
+                document.getElementById('generatingProgress').style.display = 'none';
+            }
+        }
+
+        function showAddChapter() {
+            var name = prompt('请输入章节名称：');
+            if (name) {
+                generateChapterStream(name);
+            }
+        }
+
+        function regenerateChapter(chapterName) {
+            var customReq = prompt('请输入自定义要求（可选，直接点确定跳过）：\n\n例如：\n- 重点突出公司在轨道交通领域的经验\n- 增加BIM技术应用方案\n- 补充质量控制措施');
+            generateChapterStream(chapterName, customReq || '');
+        }
+
+        var currentDocId = null;
+        var isEditMode = false;
+
+        async function previewChapter(docId, chapterName) {
+            currentDocId = docId;
+            isEditMode = false;
+            document.getElementById('chapterModalTitle').textContent = chapterName;
+            document.getElementById('chapterPreview').style.display = 'block';
+            document.getElementById('chapterEditArea').style.display = 'none';
+            document.getElementById('btnToggleEdit').textContent = '编辑';
+            document.getElementById('btnSaveContent').style.display = 'none';
+
+            document.getElementById('chapterPreview').innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div><p>加载中...</p></div>';
+            $('#chapterModal').modal('show');
+
+            try {
+                var docResponse = await fetch('/Bid/GetDocument?docId=' + docId, {
+                    credentials: 'same-origin'
+                });
+
+                if (docResponse.redirected) {
+                    window.location.href = docResponse.url;
+                    return;
+                }
+
+                var docResult = await docResponse.json();
+                var doc = docResult.data || docResult;
+
+                var content = '';
+                if (doc.Content) content = doc.Content;
+                else if (doc.content) content = doc.content;
+
+                if (content) {
+                    document.getElementById('chapterPreview').innerHTML = '<div style="white-space: pre-wrap; line-height: 1.8;">' + escapeHtml(content) + '</div>';
+                } else {
+                    document.getElementById('chapterPreview').innerHTML = '<div class="text-muted">暂无内容，请先生成标书</div>';
+                }
+            } catch (e) {
+                document.getElementById('chapterPreview').innerHTML = '<div class="text-danger">加载失败：' + e.message + '</div>';
+            }
+        }
+
+        function toggleEditMode() {
+            isEditMode = !isEditMode;
+            var preview = document.getElementById('chapterPreview');
+            var editArea = document.getElementById('chapterEditArea');
+            var btnToggle = document.getElementById('btnToggleEdit');
+            var btnSave = document.getElementById('btnSaveContent');
+
+            if (isEditMode) {
+                editArea.value = preview.innerText;
+                preview.style.display = 'none';
+                editArea.style.display = 'block';
+                btnToggle.textContent = '预览';
+                btnSave.style.display = 'inline-block';
+            } else {
+                preview.innerHTML = '<div style="white-space: pre-wrap;">' + escapeHtml(editArea.value) + '</div>';
+                preview.style.display = 'block';
+                editArea.style.display = 'none';
+                btnToggle.textContent = '编辑';
+                btnSave.style.display = 'none';
+            }
+        }
+
+        async function saveChapterContent() {
+            if (!currentDocId) return;
+
+            var content = document.getElementById('chapterContentEdit').value;
+            try {
+                var response = await fetch('/Bid/UpdateContent?documentId=' + currentDocId, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ Content: content })
+                });
+                var result = await response.json();
+
+                if (result.success) {
+                    alert('保存成功！');
+                    location.reload();
+                } else {
+                    alert('保存失败：' + result.message);
+                }
+            } catch (e) {
+                alert('请求失败：' + e.message);
+            }
+        }
+
+        var assembleData = null;
+
+        async function assembleDocument(part) {
+            document.getElementById('assembleModalTitle').textContent = part === 'all' ? '投标文件（完整）' :
+                part === 'technical' ? '技术部分' : '商务部分';
+            document.getElementById('assembleInfo').innerHTML = '';
+            document.getElementById('assembleTabs').innerHTML = '';
+            document.getElementById('assembleTabContent').innerHTML = '';
+            document.getElementById('assembleLoading').style.display = 'block';
+            $('#assembleModal').modal('show');
+
+            try {
+                var response = await fetch('/Bid/Assemble', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ BidProjectId: bidProjectId, Part: part })
+                });
+                var result = await response.json();
+
+                document.getElementById('assembleLoading').style.display = 'none';
+
+                if (result.success && result.data) {
+                    assembleData = result.data;
+                    displayAssembleResult(result.data);
+                } else {
+                    document.getElementById('assembleInfo').innerHTML = '<div class="alert alert-warning">' + (result.message || '组卷失败') + '</div>';
+                }
+            } catch (e) {
+                document.getElementById('assembleLoading').style.display = 'none';
+                document.getElementById('assembleInfo').innerHTML = '<div class="alert alert-danger">请求失败：' + e.message + '</div>';
+            }
+        }
+
+        function displayAssembleResult(data) {
+            var infoHtml = '<div class="alert alert-info py-2"><strong>' + escapeHtml(data.ProjectName) + '</strong> - 组装时间：' + data.AssembleTime + '</div>';
+            document.getElementById('assembleInfo').innerHTML = infoHtml;
+
+            var tabsHtml = '';
+            var contentHtml = '';
+            var first = true;
+
+            if (data.TechnicalPart && data.TechnicalPart.Chapters.length > 0) {
+                tabsHtml += '<li class="nav-item"><a class="nav-link' + (first ? ' active' : '') + '" data-toggle="tab" href="#tabTechnical">技术部分 (' + data.TechnicalPart.WordCount + '字)</a></li>';
+                contentHtml += '<div class="tab-pane fade' + (first ? ' show active' : '') + '" id="tabTechnical">';
+                contentHtml += buildPartContent(data.TechnicalPart);
+                contentHtml += '</div>';
+                first = false;
+            }
+
+            if (data.CommercialPart && data.CommercialPart.Chapters.length > 0) {
+                tabsHtml += '<li class="nav-item"><a class="nav-link' + (first ? ' active' : '') + '" data-toggle="tab" href="#tabCommercial">商务部分 (' + data.CommercialPart.WordCount + '字)</a></li>';
+                contentHtml += '<div class="tab-pane fade' + (first ? ' show active' : '') + '" id="tabCommercial">';
+                contentHtml += buildPartContent(data.CommercialPart);
+                contentHtml += '</div>';
+                first = false;
+            }
+
+            if (data.FullDocument && data.FullDocument.Chapters.length > 0) {
+                tabsHtml += '<li class="nav-item"><a class="nav-link' + (first ? ' active' : '') + '" data-toggle="tab" href="#tabFull">完整文件 (' + data.FullDocument.WordCount + '字)</a></li>';
+                contentHtml += '<div class="tab-pane fade' + (first ? ' show active' : '') + '" id="tabFull">';
+                contentHtml += '<div style="white-space: pre-wrap; line-height: 1.8; padding: 15px; background: #f8f9fa; border-radius: 5px; max-height: 60vh; overflow-y: auto;">';
+                contentHtml += escapeHtml(data.FullDocument.Content);
+                contentHtml += '</div></div>';
+            }
+
+            document.getElementById('assembleTabs').innerHTML = tabsHtml;
+            document.getElementById('assembleTabContent').innerHTML = contentHtml;
+        }
+
+        function buildPartContent(part) {
+            var html = '';
+            part.Chapters.forEach(function(chapter, index) {
+                html += '<div class="card mb-3">';
+                html += '<div class="card-header"><strong>' + (index + 1) + '. ' + escapeHtml(chapter.Name) + '</strong>';
+                html += ' <span class="badge badge-secondary ml-2">' + chapter.WordCount + '字</span></div>';
+                html += '<div class="card-body">';
+                html += '<div style="white-space: pre-wrap; line-height: 1.8;">' + escapeHtml(chapter.Content) + '</div>';
+                html += '</div></div>';
+            });
+            return html;
+        }
+
+        function copyAssembleContent() {
+            if (!assembleData) return;
+
+            var content = '';
+            if (assembleData.FullDocument) {
+                content = assembleData.FullDocument.Content;
+            } else if (assembleData.TechnicalPart && assembleData.CommercialPart) {
+                content = assembleData.TechnicalPart.Content + '\n\n' + assembleData.CommercialPart.Content;
+            } else if (assembleData.TechnicalPart) {
+                content = assembleData.TechnicalPart.Content;
+            } else if (assembleData.CommercialPart) {
+                content = assembleData.CommercialPart.Content;
+            }
+
+            navigator.clipboard.writeText(content).then(function() {
+                alert('内容已复制到剪贴板！');
+            }).catch(function() {
+                var textarea = document.createElement('textarea');
+                textarea.value = content;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('内容已复制到剪贴板！');
+            });
+        }
+
+        // ── 人员匹配 ───────────────────────────────────────────
+        async function matchPersonnel() {
+            var progressEl = document.getElementById('generatingProgress');
+            var outputEl = document.getElementById('generatingOutput');
+
+            progressEl.style.display = 'block';
+            outputEl.style.display = 'block';
+            document.getElementById('generatingChapter').textContent = '智能匹配人员';
+            outputEl.innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div><p>正在从数据库中匹配符合要求的人员...</p></div>';
+
+            try {
+                var response = await fetch('/Bid/MatchPersonnel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ BidProjectId: bidProjectId, MaxPersonnel: 10 })
+                });
+
+                if (response.redirected) {
+                    window.location.href = response.url;
+                    return;
+                }
+
+                var text = await response.text();
+                var result = JSON.parse(text);
+                var data = result.data || result;
+
+                var matched = data.matchedPersonnel || data.MatchedPersonnel;
+                if (data && matched) {
+                    data.matchedPersonnel = matched;
+                    data.unmatchedRequirements = data.unmatchedRequirements || data.UnmatchedRequirements || [];
+                    data.summary = data.summary || data.Summary || '';
+                    displayPersonnelMatchResult(data);
+                } else {
+                    var msg = (data && (data.message || data.Message)) || result.message || '未找到匹配人员';
+                    outputEl.innerHTML = '<div class="alert alert-warning">' + escapeHtml(msg) + '</div>';
+                }
+            } catch (e) {
+                outputEl.innerHTML = '<div class="alert alert-danger">请求失败：' + e.message + '</div>';
+            } finally {
+                progressEl.style.display = 'none';
+            }
+        }
+
+        function displayPersonnelMatchResult(data) {
+            var outputEl = document.getElementById('generatingOutput');
+            var html = '<div class="alert alert-info py-2">' + escapeHtml(data.summary || data.Summary || '') + '</div>';
+
+            var personnel = data.matchedPersonnel || data.MatchedPersonnel || [];
+            if (personnel.length > 0) {
+                html += '<table class="table table-sm table-bordered">';
+                html += '<thead class="thead-light"><tr><th>姓名</th><th>部门</th><th>学历</th><th>工作年限</th><th>证书</th><th>匹配得分</th></tr></thead>';
+                html += '<tbody>';
+
+                personnel.forEach(function(p) {
+                    var name = p.name || p.Name || '';
+                    var dept = p.deptName || p.DeptName || '-';
+                    var edu = p.education || p.Education || '-';
+                    var years = p.workYears || p.WorkYears || 0;
+                    var score = p.matchScore || p.MatchScore || 0;
+                    var certs = p.certificates || p.Certificates || [];
+
+                    html += '<tr>';
+                    html += '<td><strong>' + escapeHtml(name) + '</strong></td>';
+                    html += '<td>' + escapeHtml(dept) + '</td>';
+                    html += '<td>' + escapeHtml(edu) + '</td>';
+                    html += '<td>' + years + '年</td>';
+                    html += '<td>';
+                    certs.forEach(function(c) {
+                        var certName = c.certName || c.CertName || '';
+                        if (certName) html += '<span class="badge badge-success mr-1 mb-1">' + escapeHtml(certName) + '</span>';
+                    });
+                    html += '</td>';
+                    html += '<td><span class="badge badge-primary">' + score + '分</span></td>';
+                    html += '</tr>';
+                });
+
+                html += '</tbody></table>';
+            } else {
+                html += '<div class="alert alert-warning py-2"><i class="fas fa-exclamation-triangle"></i> 暂无符合条件的人员</div>';
+            }
+
+            var unmatched = data.unmatchedRequirements || data.UnmatchedRequirements || [];
+            if (unmatched.length > 0) {
+                html += '<div class="alert alert-warning py-2 mt-2"><strong>未匹配的要求：</strong><ul class="mb-0">';
+                unmatched.forEach(function(req) {
+                    html += '<li>' + escapeHtml(req) + '</li>';
+                });
+                html += '</ul></div>';
+            }
+
+            html += '<div class="mt-3"><button class="btn btn-primary" onclick="generatePersonnelSection()"><i class="fas fa-magic mr-1"></i>根据匹配结果生成人员配置文档</button></div>';
+
+            outputEl.innerHTML = html;
+        }
+
+        async function generatePersonnelSection() {
+            var outputEl = document.getElementById('generatingOutput');
+            outputEl.innerHTML += '<div class="mt-3"><div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> 正在生成人员配置文档...</div></div>';
+
+            try {
+                var response = await fetch('/Bid/GeneratePersonnelSection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({ BidProjectId: bidProjectId, MaxPersonnel: 10 })
+                });
+                var result = await response.json();
+
+                if (result.success) {
+                    alert('人员配置文档已生成！页面将刷新显示结果。');
+                    location.reload();
+                } else {
+                    alert('生成失败：' + result.message);
+                }
+            } catch (e) {
+                alert('请求失败：' + e.message);
+            }
+        }
+
+        async function generateChapterStream(chapterName, customRequirements) {
+            var progressEl = document.getElementById('generatingProgress');
+            var outputEl = document.getElementById('generatingOutput');
+
+            progressEl.style.display = 'block';
+            outputEl.style.display = 'block';
+            document.getElementById('generatingChapter').textContent = chapterName;
+            outputEl.innerHTML = '';
+
+            await generateChapterStreamInternal({
+                BidProjectId: bidProjectId,
+                ChapterName: chapterName,
+                TargetWordCount: 2000,
+                CustomRequirements: customRequirements || ''
+            }, function(chunk) {
+                document.getElementById('generatingOutput').innerHTML += chunk;
+            }, function() {
+                setTimeout(() => location.reload(), 1000);
+            });
+        }
+
+        async function reviewBid() {
+            document.getElementById('reviewResult').style.display = 'block';
+            document.getElementById('reviewContent').innerHTML =
+                '<div class="text-center"><div class="spinner-border text-primary"></div><p>正在审查...</p></div>';
+
+            try {
+                var response = await fetch('/Bid/Review', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ BidProjectId: bidProjectId })
+                });
+                var result = await response.json();
+
+                if (result.success) {
+                    displayReviewResult(result.data);
+                } else {
+                    document.getElementById('reviewContent').innerHTML =
+                        '<div class="alert alert-danger">' + result.message + '</div>';
+                }
+            } catch (e) {
+                document.getElementById('reviewContent').innerHTML =
+                    '<div class="alert alert-danger">请求失败：' + e.message + '</div>';
+            }
+        }
+
+        function displayReviewResult(data) {
+            var html = '<div class="mb-3"><strong>综合评分：</strong>';
+            var scoreClass = data.overallScore >= 80 ? 'success' : data.overallScore >= 60 ? 'warning' : 'danger';
+            html += '<span class="badge bg-' + scoreClass + ' fs-6">' + data.overallScore + '分</span></div>';
+
+            if (data.missingItems && data.missingItems.length > 0) {
+                html += '<h6 class="text-danger">缺失内容：</h6><ul>';
+                data.missingItems.forEach(function(item) {
+                    html += '<li>' + item + '</li>';
+                });
+                html += '</ul>';
+            }
+
+            if (data.issues && data.issues.length > 0) {
+                html += '<h6 class="text-warning">问题列表：</h6>';
+                data.issues.forEach(function(issue) {
+                    html += '<div class="alert alert-' +
+                        (issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warning' : 'info') +
+                        ' py-2">';
+                    html += '<strong>[' + issue.chapter + ']</strong> ' + issue.description;
+                    if (issue.suggestion) html += '<br><small class="text-muted">建议：' + issue.suggestion + '</small>';
+                    html += '</div>';
+                });
+            }
+
+            if (data.suggestions && data.suggestions.length > 0) {
+                html += '<h6 class="text-primary">改进建议：</h6><ul>';
+                data.suggestions.forEach(function(item) {
+                    html += '<li>' + item + '</li>';
+                });
+                html += '</ul>';
+            }
+
+            document.getElementById('reviewContent').innerHTML = html;
+        }
+    </script>
+}
+
+@functions {
+    string GetStatusColor(int status) => status switch
+    {
+        0 => "secondary",
+        1 => "info",
+        2 => "primary",
+        3 => "warning",
+        4 => "success",
+        5 => "info",
+        6 => "success",
+        7 => "danger",
+        _ => "secondary"
+    };
+
+    string GetStatusName(int status) => status switch
+    {
+        0 => "草稿",
+        1 => "解析中",
+        2 => "生成中",
+        3 => "审查中",
+        4 => "就绪",
+        5 => "已提交",
+        6 => "已中标",
+        7 => "未中标",
+        _ => "未知"
+    };
+
+    string GetDocStatusColor(int status) => status switch
+    {
+        0 => "secondary",
+        1 => "success",
+        2 => "warning",
+        3 => "info",
+        4 => "primary",
+        _ => "secondary"
+    };
+
+    string GetDocStatusName(int status) => status switch
+    {
+        0 => "草稿",
+        1 => "AI生成",
+        2 => "编辑中",
+        3 => "已审查",
+        4 => "定稿",
+        _ => "未知"
+    };
+}

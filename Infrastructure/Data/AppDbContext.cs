@@ -7,6 +7,7 @@ using EnterpriseMS.Domain.Entities.Hr;
 using EnterpriseMS.Domain.Entities.Project;
 using EnterpriseMS.Domain.Entities.Budget;
 using EnterpriseMS.Domain.Entities.Info;
+using EnterpriseMS.Domain.Entities.Bid;
 using EnterpriseMS.Infrastructure.Data.Seeds;
 
 namespace EnterpriseMS.Infrastructure.Data;
@@ -51,6 +52,11 @@ public class AppDbContext : DbContext
     // 知识库
     public DbSet<KbFile> KbFiles { get; set; }
     public DbSet<KbCategory> KbCategories { get; set; }
+    // 投标管理
+    public DbSet<BidProject> BidProjects { get; set; }
+    public DbSet<BidRequirement> BidRequirements { get; set; }
+    public DbSet<BidDocument> BidDocuments { get; set; }
+    public DbSet<BidTemplate> BidTemplates { get; set; }
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -101,6 +107,14 @@ public class AppDbContext : DbContext
             .HasForeignKey(i => i.ProjectId);
         mb.Entity<ProjectFile>().HasOne(f => f.Project).WithMany(p => p.Files)
             .HasForeignKey(f => f.ProjectId);
+
+        // 投标管理
+        mb.Entity<BidProject>().HasOne(e => e.Project).WithMany()
+            .HasForeignKey(e => e.ProjectId).OnDelete(DeleteBehavior.Restrict);
+        mb.Entity<BidRequirement>().HasOne(e => e.BidProject).WithMany(b => b.Requirements)
+            .HasForeignKey(e => e.BidProjectId).OnDelete(DeleteBehavior.Cascade);
+        mb.Entity<BidDocument>().HasOne(e => e.BidProject).WithMany(b => b.Documents)
+            .HasForeignKey(e => e.BidProjectId).OnDelete(DeleteBehavior.Cascade);
 
         // 全局软删除过滤器
         foreach (var entityType in mb.Model.GetEntityTypes())

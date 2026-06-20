@@ -1,0 +1,91 @@
+@model EnterpriseMS.Services.DTOs.Bid.BidProjectCreateDto
+@{
+    ViewData["Title"] = "新建投标";
+    Layout = "_Layout";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0">新建投标</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item"><a href="/Bid">投标管理</a></li>
+                    <li class="breadcrumb-item active">新建投标</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card card-primary card-outline">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-plus-circle mr-1"></i>基本信息</h3>
+                </div>
+                <form asp-action="Create" method="post">
+                    <div class="card-body">
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">关联项目ID <span class="text-danger">*</span></label>
+                            <div class="col-sm-9">
+                                <input asp-for="ProjectId" class="form-control" required />
+                                <span asp-validation-for="ProjectId" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">招标人</label>
+                            <div class="col-sm-9">
+                                <input asp-for="Tenderer" class="form-control" placeholder="如：XX市建设局" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">预算金额（万元）</label>
+                            <div class="col-sm-9">
+                                <input asp-for="Budget" class="form-control" type="number" step="0.01" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">投标截止日期</label>
+                            <div class="col-sm-9">
+                                <input asp-for="Deadline" class="form-control" type="date" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-sm-3 col-form-label">备注</label>
+                            <div class="col-sm-9">
+                                <textarea asp-for="Remark" class="form-control" rows="3" placeholder="项目描述、特殊要求等"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i>创建
+                        </button>
+                        <a href="/Bid" class="btn btn-default ml-2">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card card-info card-outline">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-info-circle mr-1"></i>操作说明</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-2">创建投标项目后，可以：</p>
+                    <ul class="text-muted small">
+                        <li>上传招标文件进行AI解析</li>
+                        <li>一键生成标书各章节</li>
+                        <li>预览和编辑章节内容</li>
+                        <li>组卷生成完整投标文件</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</section>
