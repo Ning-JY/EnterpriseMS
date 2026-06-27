@@ -20,6 +20,9 @@ public class Employee : BaseEntity
     [Column("probation_end_date")] public DateTime? ProbationEndDate{ get; set; }
     [Column("formal_date")]        public DateTime? FormalDate      { get; set; }
     [Column("leave_date")]         public DateTime? LeaveDate       { get; set; }
+    /// <summary>学历。补充字段——原代码 BidService.MatchPersonnelAsync 引用了 emp.Education，
+    /// 但该属性此前未在实体中定义，导致编译失败，这里补上（不属于本次招标解析模块范围，是顺手修复的阻塞性bug）。</summary>
+    [Column("education")]          public string?  Education        { get; set; }
     [Column("remark")]             public string?  Remark           { get; set; }
     public SysDept? Dept { get; set; }
     public ICollection<EmployeeContract>    Contracts    { get; set; } = new List<EmployeeContract>();

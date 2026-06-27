@@ -31,3 +31,12 @@ public enum BidChapterType
     AfterSales = 5,
     Custom = 99
 }
+
+/// <summary>招标文件解析阶段。NeedsConfirm 是硬约束：存在该状态时不应允许进入大纲生成等下游环节。</summary>
+public enum BidParseStage
+{
+    NotStarted = 0,
+    Parsing    = 1,
+    NeedsConfirm = 2,
+    Confirmed  = 3
+}

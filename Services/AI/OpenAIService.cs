@@ -196,30 +196,30 @@ public class OpenAIService : IAIService
             Tenderer = "XX市建设局",
             Budget = Math.Round((decimal)(rng.Next(50, 500) + rng.NextDouble()), 2),
             Deadline = DateTime.Now.AddDays(rng.Next(30, 90)),
-            Qualifications = new List<string>
+            Qualifications = new List<QualificationItem>
             {
-                "具有工程咨询甲级资质",
-                "近三年无不良信用记录",
-                "项目负责人需具有高级职称"
+                new() { Content = "具有工程咨询甲级资质，未提供资质证明的不予资格审查通过", IsVeto = true, SourceRef = "p.14（演示数据）" },
+                new() { Content = "近三年无不良信用记录", IsVeto = false, SourceRef = "p.15（演示数据）" },
+                new() { Content = "项目负责人需具有高级职称", IsVeto = false, SourceRef = "p.16（演示数据）" }
             },
-            TechnicalRequirements = new List<string>
+            TechnicalRequirements = new List<RequirementItem>
             {
-                "技术方案需涵盖项目全过程",
-                "提交成果需符合国家相关规范",
-                "项目团队不少于5人"
+                new() { Content = "技术方案需涵盖项目全过程", SourceRef = "p.20（演示数据）" },
+                new() { Content = "提交成果需符合国家相关规范", SourceRef = "p.21（演示数据）" },
+                new() { Content = "项目团队不少于5人", SourceRef = "p.22（演示数据）" }
             },
-            CommercialRequirements = new List<string>
+            CommercialRequirements = new List<RequirementItem>
             {
-                "投标有效期90天",
-                "履约保证金为合同金额的10%",
-                "付款方式：3-3-3-1"
+                new() { Content = "投标有效期90天", SourceRef = "p.25（演示数据）" },
+                new() { Content = "履约保证金为合同金额的10%", SourceRef = "p.26（演示数据）" },
+                new() { Content = "付款方式：3-3-3-1", SourceRef = "p.26（演示数据）" }
             },
             ScoringCriteria = new List<ScoringCriterion>
             {
-                new() { Item = "技术方案", MaxScore = 40, Description = "方案的科学性、可行性、创新性" },
-                new() { Item = "商务报价", MaxScore = 30, Description = "价格合理性" },
-                new() { Item = "企业业绩", MaxScore = 20, Description = "类似项目经验" },
-                new() { Item = "人员配置", MaxScore = 10, Description = "团队资质和经验" }
+                new() { Item = "技术方案", MaxScore = 40, Description = "方案的科学性、可行性、创新性", SourceRef = "p.29（演示数据）" },
+                new() { Item = "商务报价", MaxScore = 30, Description = "价格合理性", SourceRef = "p.29（演示数据）" },
+                new() { Item = "企业业绩", MaxScore = 20, Description = "类似项目经验", SourceRef = "p.30（演示数据）" },
+                new() { Item = "人员配置", MaxScore = 10, Description = "团队资质和经验", SourceRef = "p.30（演示数据）" }
             },
             BidDocuments = new List<string>
             {
@@ -235,6 +235,17 @@ public class OpenAIService : IAIService
                 "投标文件需密封递交",
                 "逾期递交概不接受",
                 "演示模式：请配置 AI:ApiKey 启用真实AI解析"
+            },
+            FormatRule = new FormatRule
+            {
+                Font = "宋体小四（演示数据）",
+                PageLimit = 80,
+                Binding = "胶装一正三副（演示数据）",
+                SourceRef = "p.33（演示数据）"
+            },
+            NeedsReview = new List<string>
+            {
+                "演示模式生成，未做真实出处校验，请配置 AI:ApiKey 后重新解析"
             }
         };
     }

@@ -14,6 +14,10 @@ public interface IBidService
 
     Task<BidAnalysisResult> AnalyzeBidDocumentAsync(BidAnalyzeRequest request);
     Task SaveAnalysisResultAsync(long bidProjectId, BidAnalysisResult result);
+    /// <summary>人工确认招标要素表，解析阶段卡点。仍存在 NeedsReview 条目时会拒绝确认。</summary>
+    Task ConfirmElementsAsync(long bidProjectId, string operBy);
+    /// <summary>人工核对单条"待确认"要求，补充出处或调整否决项标记后清除待确认状态。</summary>
+    Task ResolveRequirementReviewAsync(long requirementId, bool isVeto, string? sourceRef, string operBy);
 
     Task<BidDocumentDto> GenerateChapterAsync(BidGenerateRequest request);
     IAsyncEnumerable<string> GenerateChapterStreamAsync(BidGenerateRequest request);

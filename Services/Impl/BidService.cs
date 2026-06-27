@@ -133,13 +133,75 @@ public class BidService : IBidService
 
     public async Task<BidAnalysisResult> AnalyzeBidDocumentAsync(BidAnalyzeRequest request)
     {
-        string content;
+        ParsedDocument parsed;
         using (var stream = request.File.OpenReadStream())
         {
-            content = _parser.Parse(stream, request.File.FileName);
+            parsed = _parser.Parse(stream, request.File.FileName);
         }
 
-        return await _aiService.AnalyzeBidDocumentAsync(content);
+        // 标记解析中，前端据此展示进度；即便后续异常，也已落库，方便排查在哪个分块失败。
+        var bidProject = await _bidProjectRepo.GetByIdAsync(request.BidProjectId);
+        if (bidProject != null)
+        {
+            bidProject.ParseStage = (int)BidParseStage.Parsing;
+            bidProject.SourceFileName = request.File.FileName;
+            _bidProjectRepo.Update(bidProject);
+            await _uow.SaveChangesAsync();
+        }
+
+        _logger.LogInformation("招标文件 {FileName} 共切分为 {Count} 个分块，HasReliablePageNumbers={HasPages}",
+            request.File.FileName, parsed.Chunks.Count, parsed.HasReliablePageNumbers);
+
+        // 逐块调用AI（每块自带 SourceHint，AI据此标注出处），再做确定性合并——
+        // 合并、去重属于规则性工作，不应该再让AI做一次"总结合并"，避免二次幻觉。
+        var chunkResults = new List<BidAnalysisResult>();
+        foreach (var chunk in parsed.Chunks)
+        {
+            var taggedText = $"[{chunk.SourceHint}]\n{chunk.Text}";
+            var chunkResult = await _aiService.AnalyzeBidDocumentAsync(taggedText);
+            chunkResults.Add(chunkResult);
+        }
+
+        var merged = MergeAnalysisResults(chunkResults);
+
+        // 没有可靠页码（Word文档）时，把这一限制也提示给用户，而不是让 sourceRef 看起来像页码却不可靠。
+        if (!parsed.HasReliablePageNumbers)
+        {
+            merged.NeedsReview.Insert(0, "源文件为 Word 文档，OOXML 格式没有可靠的页码概念，以下出处定位均为段落区间（¶），并非真实页码；如需精确到页码，建议先将招标文件转换为 PDF 后再上传解析。");
+        }
+
+        return merged;
+    }
+
+    /// <summary>
+    /// 确定性合并多个分块的AI抽取结果：项目基本信息取第一个非空值，
+    /// 列表类字段直接拼接并按内容去重（保留先出现的，连同其SourceRef）。
+    /// 这一步故意不再调用AI，避免合并阶段产生新的幻觉。
+    /// </summary>
+    private BidAnalysisResult MergeAnalysisResults(List<BidAnalysisResult> chunkResults)
+    {
+        var merged = new BidAnalysisResult();
+
+        merged.ProjectName = chunkResults.Select(r => r.ProjectName).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s)) ?? "";
+        merged.ProjectCode = chunkResults.Select(r => r.ProjectCode).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s)) ?? "";
+        merged.Tenderer = chunkResults.Select(r => r.Tenderer).FirstOrDefault(s => !string.IsNullOrWhiteSpace(s));
+        merged.Budget = chunkResults.Select(r => r.Budget).FirstOrDefault(b => b.HasValue);
+        merged.Deadline = chunkResults.Select(r => r.Deadline).FirstOrDefault(d => d.HasValue);
+        merged.FormatRule = chunkResults.Select(r => r.FormatRule).FirstOrDefault(f => f != null);
+
+        merged.Qualifications = chunkResults.SelectMany(r => r.Qualifications)
+            .GroupBy(q => q.Content.Trim()).Select(g => g.First()).ToList();
+        merged.TechnicalRequirements = chunkResults.SelectMany(r => r.TechnicalRequirements)
+            .GroupBy(q => q.Content.Trim()).Select(g => g.First()).ToList();
+        merged.CommercialRequirements = chunkResults.SelectMany(r => r.CommercialRequirements)
+            .GroupBy(q => q.Content.Trim()).Select(g => g.First()).ToList();
+        merged.ScoringCriteria = chunkResults.SelectMany(r => r.ScoringCriteria)
+            .GroupBy(s => s.Item.Trim()).Select(g => g.First()).ToList();
+        merged.BidDocuments = chunkResults.SelectMany(r => r.BidDocuments).Distinct().ToList();
+        merged.SpecialNotes = chunkResults.SelectMany(r => r.SpecialNotes).Distinct().ToList();
+        merged.NeedsReview = chunkResults.SelectMany(r => r.NeedsReview).Distinct().ToList();
+
+        return merged;
     }
 
     public async Task SaveAnalysisResultAsync(long bidProjectId, BidAnalysisResult result)
@@ -147,12 +209,17 @@ public class BidService : IBidService
         var bidProject = await _bidProjectRepo.GetByIdAsync(bidProjectId);
         if (bidProject == null) throw new NotFoundException($"投标项目不存在: {bidProjectId}");
 
-        bidProject.ProjectName = result.ProjectName;
-        bidProject.ProjectCode = result.ProjectCode;
-        bidProject.Tenderer = result.Tenderer;
-        bidProject.Budget = result.Budget;
-        bidProject.Deadline = result.Deadline;
+        if (!string.IsNullOrWhiteSpace(result.ProjectName)) bidProject.ProjectName = result.ProjectName;
+        if (!string.IsNullOrWhiteSpace(result.ProjectCode)) bidProject.ProjectCode = result.ProjectCode;
+        bidProject.Tenderer = result.Tenderer ?? bidProject.Tenderer;
+        bidProject.Budget = result.Budget ?? bidProject.Budget;
+        bidProject.Deadline = result.Deadline ?? bidProject.Deadline;
         bidProject.Status = (int)BidProjectStatus.Analyzing;
+        // 解析完成后进入"待人工确认"卡点，而不是直接放行；ConfirmElementsAsync 才会把它推进到 Confirmed。
+        bidProject.ParseStage = (int)BidParseStage.NeedsConfirm;
+        bidProject.FormatRuleJson = result.FormatRule != null
+            ? System.Text.Json.JsonSerializer.Serialize(result.FormatRule)
+            : null;
 
         _bidProjectRepo.Update(bidProject);
 
@@ -160,13 +227,15 @@ public class BidService : IBidService
         foreach (var req in existingReqs)
             _requirementRepo.SoftDelete(req);
 
-        var allRequirements = new List<(string Category, string Content, int? Score)>();
-        result.Qualifications.ForEach(q => allRequirements.Add(("资质要求", q, null)));
-        result.TechnicalRequirements.ForEach(q => allRequirements.Add(("技术要求", q, null)));
-        result.CommercialRequirements.ForEach(q => allRequirements.Add(("商务要求", q, null)));
-        result.ScoringCriteria.ForEach(s => allRequirements.Add(("评分标准", s.Description ?? s.Item, s.MaxScore)));
+        // (Category, Content, Score, IsVeto, SourceRef)
+        var allRequirements = new List<(string Category, string Content, int? Score, bool IsVeto, string? SourceRef)>();
+        result.Qualifications.ForEach(q => allRequirements.Add(("资质要求", q.Content, null, q.IsVeto, q.SourceRef)));
+        result.TechnicalRequirements.ForEach(q => allRequirements.Add(("技术要求", q.Content, null, false, q.SourceRef)));
+        result.CommercialRequirements.ForEach(q => allRequirements.Add(("商务要求", q.Content, null, false, q.SourceRef)));
+        result.ScoringCriteria.ForEach(s => allRequirements.Add(("评分标准", s.Description ?? s.Item, s.MaxScore, false, s.SourceRef)));
 
-        foreach (var (category, content, score) in allRequirements)
+        // 抽取结果若没有出处定位，标记为待人工确认，不静默接受；与 needsReview 文案双重兜底。
+        foreach (var (category, content, score, isVeto, sourceRef) in allRequirements)
         {
             await _requirementRepo.AddAsync(new BidRequirement
             {
@@ -174,9 +243,47 @@ public class BidService : IBidService
                 Category = category,
                 Content = content,
                 ScoreWeight = score,
+                IsVeto = isVeto,
+                SourceRef = sourceRef,
+                NeedsReview = string.IsNullOrWhiteSpace(sourceRef),
                 CreatedBy = "AI"
             });
         }
+        await _uow.SaveChangesAsync();
+    }
+
+    public async Task ConfirmElementsAsync(long bidProjectId, string operBy)
+    {
+        var bidProject = await _bidProjectRepo.GetByIdAsync(bidProjectId);
+        if (bidProject == null) throw new NotFoundException($"投标项目不存在: {bidProjectId}");
+
+        // 硬约束：仍处于"待人工确认"才允许确认；不允许在未解析或已确认状态下重复触发，
+        // 也不允许跳过解析直接确认，呼应"人工卡点不可跳过"的设计原则。
+        if (bidProject.ParseStage != (int)BidParseStage.NeedsConfirm)
+            throw new BusinessException("当前阶段不允许确认招标要素表，请先完成AI解析");
+
+        var stillNeedsReview = await _requirementRepo.GetListAsync(
+            r => r.BidProjectId == bidProjectId && r.NeedsReview);
+        if (stillNeedsReview.Any())
+            throw new BusinessException($"仍有 {stillNeedsReview.Count} 项待人工确认的条目未处理，请先在列表中核对（编辑后清除\"待确认\"标记）");
+
+        bidProject.ParseStage = (int)BidParseStage.Confirmed;
+        bidProject.ElementsConfirmedAt = DateTime.Now;
+        bidProject.ElementsConfirmedBy = operBy;
+        _bidProjectRepo.Update(bidProject);
+        await _uow.SaveChangesAsync();
+    }
+
+    public async Task ResolveRequirementReviewAsync(long requirementId, bool isVeto, string? sourceRef, string operBy)
+    {
+        var req = await _requirementRepo.GetByIdAsync(requirementId);
+        if (req == null) throw new NotFoundException($"招标要求条目不存在: {requirementId}");
+
+        req.IsVeto = isVeto;
+        req.SourceRef = sourceRef;
+        req.NeedsReview = string.IsNullOrWhiteSpace(sourceRef);
+        req.UpdatedBy = operBy;
+        _requirementRepo.Update(req);
         await _uow.SaveChangesAsync();
     }
 

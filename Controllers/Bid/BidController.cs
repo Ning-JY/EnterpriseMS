@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
+using EnterpriseMS.Filters;
 using EnterpriseMS.Services.AI.Models;
 using EnterpriseMS.Services.DTOs.Bid;
 using EnterpriseMS.Services.Interfaces;
@@ -73,6 +74,7 @@ public class BidController : BaseAuthController
     }
 
     [HttpPost]
+    [HasPermission("bid:project:analyze")]
     public async Task<IActionResult> Analyze(BidAnalyzeRequest request)
     {
         try
@@ -84,6 +86,44 @@ public class BidController : BaseAuthController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing bid document");
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>"人工确认招标要素表"卡点。仍有待确认条目时会被拒绝，前端按 message 提示用户先处理。</summary>
+    [HttpPost]
+    [HasPermission("bid:project:confirm")]
+    public async Task<IActionResult> ConfirmElements([FromBody] ConfirmElementsRequest request)
+    {
+        try
+        {
+            await _bidService.ConfirmElementsAsync(request.BidProjectId, User.GetUsername());
+            return Json(ApiResult.Ok("招标要素表已确认"));
+        }
+        catch (BusinessException ex)
+        {
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error confirming bid elements");
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>人工核对单条"待确认"要求：补充出处定位、修正是否为否决项，提交后清除待确认标记。</summary>
+    [HttpPost]
+    public async Task<IActionResult> ResolveRequirement([FromBody] ResolveRequirementRequest request)
+    {
+        try
+        {
+            await _bidService.ResolveRequirementReviewAsync(
+                request.RequirementId, request.IsVeto, request.SourceRef, User.GetUsername());
+            return Json(ApiResult.Ok());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resolving requirement review");
             return Json(ApiResult<object>.Fail(ex.Message));
         }
     }
@@ -262,4 +302,16 @@ public class BidController : BaseAuthController
 public class UpdateContentRequest
 {
     public string Content { get; set; } = "";
+}
+
+public class ConfirmElementsRequest
+{
+    public long BidProjectId { get; set; }
+}
+
+public class ResolveRequirementRequest
+{
+    public long RequirementId { get; set; }
+    public bool IsVeto { get; set; }
+    public string? SourceRef { get; set; }
 }
