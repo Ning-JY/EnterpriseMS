@@ -126,6 +126,14 @@ public class BidAssembleChapter
     public int WordCount { get; set; }
 }
 
+public class BidExportResult
+{
+    public byte[] FileBytes { get; set; } = Array.Empty<byte>();
+    public string FileName { get; set; } = "";
+    /// <summary>导出过程中的非阻断性提示（如预估页数超限、未识别到明确格式要求），文件仍会正常生成。</summary>
+    public List<string> Warnings { get; set; } = new();
+}
+
 public class BidListQuery
 {
     public long? ProjectId { get; set; }

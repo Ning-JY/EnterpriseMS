@@ -9,6 +9,7 @@ using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Services.AI;
 using EnterpriseMS.Services.AI.Models;
 using EnterpriseMS.Services.DTOs.Bid;
+using EnterpriseMS.Services.Export;
 using EnterpriseMS.Services.Interfaces;
 
 namespace EnterpriseMS.Services.Impl;
@@ -24,6 +25,7 @@ public class BidService : IBidService
     private readonly IUnitOfWork _uow;
     private readonly IAIService _aiService;
     private readonly DocumentParser _parser;
+    private readonly IWordExportService _wordExportService;
     private readonly IMapper _mapper;
     private readonly ILogger<BidService> _logger;
 
@@ -37,6 +39,7 @@ public class BidService : IBidService
         IUnitOfWork uow,
         IAIService aiService,
         DocumentParser parser,
+        IWordExportService wordExportService,
         IMapper mapper,
         ILogger<BidService> logger)
     {
@@ -49,6 +52,7 @@ public class BidService : IBidService
         _uow = uow;
         _aiService = aiService;
         _parser = parser;
+        _wordExportService = wordExportService;
         _mapper = mapper;
         _logger = logger;
     }
@@ -527,6 +531,51 @@ public class BidService : IBidService
             WordCount = content.Length,
             Chapters = chapters
         };
+    }
+
+    public async Task<BidExportResult> ExportWordAsync(long bidProjectId, string part)
+    {
+        var bidProject = await _bidProjectRepo.GetByIdAsync(bidProjectId);
+        if (bidProject == null) throw new NotFoundException($"投标项目不存在: {bidProjectId}");
+
+        var assembled = await AssembleBidDocumentAsync(bidProjectId, part);
+        var assemblePart = part switch
+        {
+            "technical" => assembled.TechnicalPart,
+            "commercial" => assembled.CommercialPart,
+            _ => assembled.FullDocument
+        };
+        if (assemblePart == null || !assemblePart.Chapters.Any())
+            throw new BusinessException("没有可导出的章节内容，请先生成标书正文");
+
+        FormatRule? formatRule = null;
+        if (!string.IsNullOrWhiteSpace(bidProject.FormatRuleJson))
+        {
+            try { formatRule = System.Text.Json.JsonSerializer.Deserialize<FormatRule>(bidProject.FormatRuleJson); }
+            catch (Exception ex) { _logger.LogWarning(ex, "FormatRuleJson 反序列化失败，使用默认格式导出"); }
+        }
+
+        var (bytes, warnings) = _wordExportService.BuildDocx(
+            bidProject.ProjectName, bidProject.ProjectCode, bidProject.Tenderer, assemblePart, formatRule);
+
+        var fileName = $"{bidProject.ProjectName}_{assemblePart.Title}_{DateTime.Now:yyyyMMddHHmm}.docx";
+        return new BidExportResult { FileBytes = bytes, FileName = fileName, Warnings = warnings };
+    }
+
+    public async Task<BidExportResult> ExportPdfAsync(long bidProjectId, string part)
+    {
+        var wordResult = await ExportWordAsync(bidProjectId, part);
+        var (pdfBytes, error) = await _wordExportService.ConvertDocxToPdfAsync(wordResult.FileBytes);
+
+        if (pdfBytes == null)
+        {
+            // PDF转换依赖服务器环境（LibreOffice），失败时把明确原因带回去，而不是让前端只看到一个通用错误，
+            // 并且仍然把已经生成好的Word文件返回，用户不应该因为PDF转换环境问题而拿不到任何文件。
+            throw new BusinessException($"{error} 已为您生成Word版本，可改用Word格式下载。");
+        }
+
+        var fileName = Path.GetFileNameWithoutExtension(wordResult.FileName) + ".pdf";
+        return new BidExportResult { FileBytes = pdfBytes, FileName = fileName, Warnings = wordResult.Warnings };
     }
 
     public async Task<PersonnelMatchResult> MatchPersonnelAsync(PersonnelMatchRequest request)

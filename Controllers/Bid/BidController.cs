@@ -212,6 +212,51 @@ public class BidController : BaseAuthController
         }
     }
 
+    /// <summary>导出真正的.docx文件。用GET+querystring而不是走JSON接口，方便前端直接用fetch+blob下载。</summary>
+    [HttpGet]
+    [HasPermission("bid:project:export")]
+    public async Task<IActionResult> ExportWord(long bidProjectId, string part = "all")
+    {
+        try
+        {
+            var result = await _bidService.ExportWordAsync(bidProjectId, part);
+            if (result.Warnings.Any())
+                Response.Headers.Append("X-Export-Warnings", Uri.EscapeDataString(string.Join(" | ", result.Warnings)));
+            return File(result.FileBytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", result.FileName);
+        }
+        catch (BusinessException ex)
+        {
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting bid document to Word");
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
+    [HttpGet]
+    [HasPermission("bid:project:export")]
+    public async Task<IActionResult> ExportPdf(long bidProjectId, string part = "all")
+    {
+        try
+        {
+            var result = await _bidService.ExportPdfAsync(bidProjectId, part);
+            if (result.Warnings.Any())
+                Response.Headers.Append("X-Export-Warnings", Uri.EscapeDataString(string.Join(" | ", result.Warnings)));
+            return File(result.FileBytes, "application/pdf", result.FileName);
+        }
+        catch (BusinessException ex)
+        {
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting bid document to PDF");
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> Review([FromBody] BidReviewRequest request)
     {

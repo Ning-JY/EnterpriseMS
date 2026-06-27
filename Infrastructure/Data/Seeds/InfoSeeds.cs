@@ -116,7 +116,8 @@ public static class InfoSeeds
             new SysMenu { Id = 917, MenuName = "确认招标要素", ParentId = 91, MenuType = "F", Sort = 5, Visible = 0, Status = 1, Perms = "bid:project:confirm", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 915, MenuName = "AI生成", ParentId = 91, MenuType = "F", Sort = 6, Visible = 0, Status = 1, Perms = "bid:project:generate", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 918, MenuName = "人员匹配", ParentId = 91, MenuType = "F", Sort = 7, Visible = 0, Status = 1, Perms = "bid:project:match", CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 916, MenuName = "AI审查", ParentId = 91, MenuType = "F", Sort = 8, Visible = 0, Status = 1, Perms = "bid:project:review", CreatedAt = dt, CreatedBy = "system" }
+            new SysMenu { Id = 919, MenuName = "导出文件", ParentId = 91, MenuType = "F", Sort = 8, Visible = 0, Status = 1, Perms = "bid:project:export", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 916, MenuName = "AI审查", ParentId = 91, MenuType = "F", Sort = 9, Visible = 0, Status = 1, Perms = "bid:project:review", CreatedAt = dt, CreatedBy = "system" }
         );
     }
 }

@@ -27,6 +27,10 @@ public interface IBidService
     Task UpdateDocumentContentAsync(long documentId, string content);
     Task<BidDocumentDto?> GetDocumentAsync(long docId);
     Task<BidAssembleResult> AssembleBidDocumentAsync(long bidProjectId, string part);
+    /// <summary>生成真正的.docx文件（封面、目录字段、按FormatRule套用字体、页眉页码），而不是纯文本拼接。</summary>
+    Task<BidExportResult> ExportWordAsync(long bidProjectId, string part);
+    /// <summary>导出PDF，依赖服务器LibreOffice环境；环境不可用时抛出包含明确原因的异常。</summary>
+    Task<BidExportResult> ExportPdfAsync(long bidProjectId, string part);
     Task SaveStreamedDocumentAsync(long bidProjectId, string chapterName, int chapterType, string content);
     Task<PersonnelMatchResult> MatchPersonnelAsync(PersonnelMatchRequest request);
     Task<string> GeneratePersonnelSectionAsync(PersonnelMatchRequest request);

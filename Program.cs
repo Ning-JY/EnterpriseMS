@@ -14,6 +14,7 @@ using EnterpriseMS.Services.Impl;
 using EnterpriseMS.Services.Interfaces;
 using EnterpriseMS.Services.Mappings;
 using EnterpriseMS.Services.AI;
+using EnterpriseMS.Services.Export;
 using Hangfire.Dashboard;
 using StackExchange.Redis;
 using Hangfire.Redis.StackExchange;
@@ -63,6 +64,7 @@ try
     // ── 投标管理 ──────────────────────────────────────────────
     builder.Services.AddSingleton<IAIService, OpenAIService>();
     builder.Services.AddSingleton<DocumentParser>();
+    builder.Services.AddSingleton<IWordExportService, WordExportService>();
     builder.Services.AddScoped<IBidService, BidService>();
 
     // ── 缓存：Redis 可用则 Redis，否则自动降级内存缓存 ────────
