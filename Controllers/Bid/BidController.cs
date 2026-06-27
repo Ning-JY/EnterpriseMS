@@ -265,6 +265,7 @@ public class BidController : BaseAuthController
     }
 
     [HttpPost]
+    [HasPermission("bid:project:match")]
     public async Task<IActionResult> MatchPersonnel([FromBody] PersonnelMatchRequest request)
     {
         try
@@ -280,6 +281,7 @@ public class BidController : BaseAuthController
     }
 
     [HttpPost]
+    [HasPermission("bid:project:match")]
     public async Task<IActionResult> GeneratePersonnelSection([FromBody] PersonnelMatchRequest request)
     {
         try

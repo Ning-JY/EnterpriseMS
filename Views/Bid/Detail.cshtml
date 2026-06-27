@@ -766,10 +766,6 @@
 
             var personnel = data.matchedPersonnel || data.MatchedPersonnel || [];
             if (personnel.length > 0) {
-                html += '<table class="table table-sm table-bordered">';
-                html += '<thead class="thead-light"><tr><th>姓名</th><th>部门</th><th>学历</th><th>工作年限</th><th>证书</th><th>匹配得分</th></tr></thead>';
-                html += '<tbody>';
-
                 personnel.forEach(function(p) {
                     var name = p.name || p.Name || '';
                     var dept = p.deptName || p.DeptName || '-';
@@ -777,23 +773,42 @@
                     var years = p.workYears || p.WorkYears || 0;
                     var score = p.matchScore || p.MatchScore || 0;
                     var certs = p.certificates || p.Certificates || [];
+                    var basis = p.matchBasis || p.MatchBasis || [];
+                    var conflicts = p.conflictWarnings || p.ConflictWarnings || [];
+                    var hasConflict = conflicts.length > 0;
 
-                    html += '<tr>';
-                    html += '<td><strong>' + escapeHtml(name) + '</strong></td>';
-                    html += '<td>' + escapeHtml(dept) + '</td>';
-                    html += '<td>' + escapeHtml(edu) + '</td>';
-                    html += '<td>' + years + '年</td>';
-                    html += '<td>';
+                    html += '<div class="card mb-2" style="border-left:4px solid ' + (hasConflict ? '#d9822b' : '#28a745') + ';">';
+                    html += '<div class="card-body p-2">';
+                    html += '<div class="d-flex justify-content-between align-items-start">';
+                    html += '<div><strong>' + escapeHtml(name) + '</strong>';
+                    html += ' <span class="text-muted" style="font-size:12px;">' + escapeHtml(dept) + ' · ' + escapeHtml(edu) + ' · 工作' + years + '年</span></div>';
+                    html += '<span class="badge badge-primary">匹配得分 ' + score + '</span>';
+                    html += '</div>';
+
+                    if (hasConflict) {
+                        html += '<div class="alert alert-warning py-1 px-2 mt-2 mb-1" style="font-size:11.5px;">';
+                        conflicts.forEach(function(c) { html += '<div><i class="fas fa-exclamation-triangle mr-1"></i>' + escapeHtml(c) + '</div>'; });
+                        html += '</div>';
+                    }
+
+                    html += '<div class="mt-2" style="font-size:12px;">';
                     certs.forEach(function(c) {
                         var certName = c.certName || c.CertName || '';
-                        if (certName) html += '<span class="badge badge-success mr-1 mb-1">' + escapeHtml(certName) + '</span>';
+                        var validity = c.validityStatus || c.ValidityStatus || 'Valid';
+                        var badgeClass = validity === 'Expired' ? 'badge-danger' : (validity === 'ExpiringSoon' ? 'badge-warning' : (validity === 'Unknown' ? 'badge-secondary' : 'badge-success'));
+                        var validityLabel = validity === 'Expired' ? '已过期' : (validity === 'ExpiringSoon' ? '即将到期' : (validity === 'Unknown' ? '未登记有效期' : '有效'));
+                        if (certName) html += '<span class="badge ' + badgeClass + ' mr-1 mb-1">' + escapeHtml(certName) + ' · ' + validityLabel + '</span>';
                     });
-                    html += '</td>';
-                    html += '<td><span class="badge badge-primary">' + score + '分</span></td>';
-                    html += '</tr>';
-                });
+                    html += '</div>';
 
-                html += '</tbody></table>';
+                    if (basis.length > 0) {
+                        html += '<ul class="mb-0 mt-1" style="font-size:11.5px;color:#495057;padding-left:18px;">';
+                        basis.forEach(function(b) { html += '<li>' + escapeHtml(b) + '</li>'; });
+                        html += '</ul>';
+                    }
+
+                    html += '</div></div>';
+                });
             } else {
                 html += '<div class="alert alert-warning py-2"><i class="fas fa-exclamation-triangle"></i> 暂无符合条件的人员</div>';
             }
@@ -807,7 +822,18 @@
                 html += '</ul></div>';
             }
 
-            html += '<div class="mt-3"><button class="btn btn-primary" onclick="generatePersonnelSection()"><i class="fas fa-magic mr-1"></i>根据匹配结果生成人员配置文档</button></div>';
+            var unrecognized = data.unrecognizedRequirements || data.UnrecognizedRequirements || [];
+            if (unrecognized.length > 0) {
+                html += '<div class="alert alert-info py-2 mt-2" style="background:#e9f1fb;border-color:#b9d3ef;">';
+                html += '<strong><i class="fas fa-search mr-1"></i>系统无法自动识别证书类型，需人工直接核对：</strong><ul class="mb-0">';
+                unrecognized.forEach(function(req) {
+                    html += '<li>' + escapeHtml(req) + '</li>';
+                });
+                html += '</ul></div>';
+            }
+
+            html += '<div class="mt-3"><button class="btn btn-primary" onclick="generatePersonnelSection()"><i class="fas fa-magic mr-1"></i>根据匹配结果生成人员配置文档</button>';
+            html += ' <small class="text-muted ml-2">存在岗位冲突的人员不会被写入正文，需人工确认后再补充</small></div>';
 
             outputEl.innerHTML = html;
         }
