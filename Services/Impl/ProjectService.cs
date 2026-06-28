@@ -16,6 +16,14 @@ public class ProjectService : IProjectService
     private readonly IPermissionService _permSvc;
     private readonly ILogger<ProjectService> _logger;
 
+    // 允许上传的文件扩展名白名单
+    private static readonly HashSet<string> AllowedFileExts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "pdf","doc","docx","xls","xlsx","ppt","pptx",
+        "jpg","jpeg","png","gif","bmp","tiff",
+        "zip","rar","7z","txt","csv","dwg","dxf"
+    };
+
     public ProjectService(IUnitOfWork uow, IMapper mapper,
         IPermissionService permSvc, ILogger<ProjectService> logger)
     { _uow = uow; _mapper = mapper; _permSvc = permSvc; _logger = logger; }
@@ -76,6 +84,8 @@ public class ProjectService : IProjectService
             q = q.Where(p => p.DeptId == query.DeptId);
         if (query.ProgressStatus.HasValue)
             q = q.Where(p => p.ProgressStatus == query.ProgressStatus);
+        if (!string.IsNullOrWhiteSpace(query.BizType))
+            q = q.Where(p => p.BizType == query.BizType);
 
         var total = await q.CountAsync();
         var list = await q.OrderByDescending(p => p.CreatedAt)
@@ -198,8 +208,11 @@ public class ProjectService : IProjectService
     {
         var proj = await _uow.Projects.GetByIdAsync(dto.Id)
             ?? throw new NotFoundException("项目不存在");
-        if (dto.NewStatus <= proj.ProgressStatus && dto.NewStatus != proj.ProgressStatus)
+        // #5 修复：不允许变更到相同状态
+        if (dto.NewStatus < proj.ProgressStatus)
             throw new BusinessException("状态只能向前推进，不可回退");
+        if (dto.NewStatus == proj.ProgressStatus)
+            throw new BusinessException("新状态与当前状态相同，无需变更");
 
         var oldStatus = GetProgressText(proj.ProgressStatus);
         proj.ProgressStatus = dto.NewStatus;
@@ -227,12 +240,26 @@ public class ProjectService : IProjectService
         await WriteLogAsync(id, "项目终止", $"原因：{reason}", operBy);
     }
 
+    // #1 修复：使用 MaxAsync + 解析最大序号，避免并发冲突和删除后编号重复
     public async Task<string> GenerateProjNoAsync()
     {
         var year = DateTime.Now.Year;
-        var count = await _uow.Projects.CountAsync(
-            p => p.CreatedAt.Year == year);
-        return $"PRJ-{year}-{(count + 1):D3}";
+        var prefix = $"PRJ-{year}-";
+
+        var maxNo = await _uow.Projects.Query()
+            .Where(p => p.ProjNo.StartsWith(prefix))
+            .Select(p => p.ProjNo)
+            .ToListAsync();
+
+        var maxSeq = 0;
+        foreach (var no in maxNo)
+        {
+            var dashIdx = no.LastIndexOf('-');
+            if (dashIdx >= 0 && int.TryParse(no[(dashIdx + 1)..], out var seq) && seq > maxSeq)
+                maxSeq = seq;
+        }
+
+        return $"{prefix}{(maxSeq + 1):D3}";
     }
 
     // ── 成员 ────────────────────────────────────────────────
@@ -278,13 +305,13 @@ public class ProjectService : IProjectService
         await _uow.SaveChangesAsync();
     }
 
+    // #3 修复：仅标记退出状态，不设 IsDeleted，保留历史可查
     public async Task RemoveMemberAsync(long projectId, long memberId, string operBy)
     {
         var member = await _uow.ProjMembers.GetByIdAsync(memberId)
             ?? throw new NotFoundException("成员记录不存在");
         member.Status = 1;
         member.LeaveDate = DateTime.Today;
-        member.IsDeleted = true;   // 软删除：全局查询过滤器自动排除
         member.UpdatedBy = operBy;
         _uow.ProjMembers.Update(member);
         await _uow.SaveChangesAsync();
@@ -301,6 +328,7 @@ public class ProjectService : IProjectService
         return ms.Id;
     }
 
+    // #11 修复：编辑里程碑时，如果计划日期被延后到未来，恢复逾期标记
     public async Task UpdateMilestoneAsync(long projectId, UpdateMilestoneDto dto, string operBy)
     {
         var ms = await _uow.Milestones.GetByIdAsync(dto.Id)
@@ -313,6 +341,9 @@ public class ProjectService : IProjectService
         ms.Sort = dto.Sort;
         ms.Remark = dto.Remark;
         ms.UpdatedBy = operBy;
+        // 如果计划日期被延后到未来且未完成，清除逾期标记
+        if (ms.Status != 2 && dto.PlanDate >= DateTime.Today && ms.IsOverdue)
+            ms.IsOverdue = false;
         _uow.Milestones.Update(ms);
         await _uow.SaveChangesAsync();
     }
@@ -351,10 +382,36 @@ public class ProjectService : IProjectService
         return acc.Id;
     }
 
+    // #14 新增：编辑验收记录
+    public async Task UpdateAcceptanceAsync(UpdateAcceptanceDto dto, string operBy)
+    {
+        var acc = await _uow.Acceptances.GetByIdAsync(dto.Id)
+            ?? throw new NotFoundException("验收记录不存在");
+        acc.AcceptBatch = dto.AcceptBatch;
+        acc.AcceptDate = dto.AcceptDate;
+        acc.AcceptAmount = dto.AcceptAmount;
+        acc.InvoiceNo = dto.InvoiceNo;
+        acc.Remark = dto.Remark;
+        acc.UpdatedBy = operBy;
+        _uow.Acceptances.Update(acc);
+        await _uow.SaveChangesAsync();
+        await WriteLogAsync(acc.ProjectId, "修改验收记录",
+            $"批次：{dto.AcceptBatch}，金额：{dto.AcceptAmount}万元", operBy);
+    }
+
+    // #14 新增：删除验收记录
+    public async Task DeleteAcceptanceAsync(long acceptanceId)
+    {
+        var acc = await _uow.Acceptances.GetByIdAsync(acceptanceId)
+            ?? throw new NotFoundException("验收记录不存在");
+        _uow.Acceptances.SoftDelete(acc);
+        await _uow.SaveChangesAsync();
+    }
+
     public async Task<decimal> GetTotalReceivedAsync(long projectId)
     {
         // 统计两个来源：
-        // 1. ProjectAcceptance（旧的手动验收批次）
+        // 1. ProjectAcceptance（手动验收批次）
         var accTotal = await _uow.Acceptances.Query()
             .Where(a => a.ProjectId == projectId)
             .SumAsync(a => a.AcceptAmount);
@@ -362,6 +419,7 @@ public class ProjectService : IProjectService
         var invTotal = await _uow.ProjInvoices.Query()
             .Where(i => i.ProjectId == projectId && i.IsReceived)
             .SumAsync(i => i.Amount);
+        // 注意：验收和发票回款为独立业务流程，分别统计
         return accTotal + invTotal;
     }
 
@@ -391,6 +449,28 @@ public class ProjectService : IProjectService
         return contract.Id;
     }
 
+    // #13 新增：编辑合同
+    public async Task UpdateContractAsync(UpdateContractDto dto, string operBy)
+    {
+        var contract = await _uow.ProjContracts.GetByIdAsync(dto.Id)
+            ?? throw new NotFoundException("合同不存在");
+        contract.ContractNo = dto.ContractNo;
+        contract.ContractType = dto.ContractType;
+        contract.ContractName = dto.ContractName;
+        contract.PartyA = dto.PartyA;
+        contract.PartyB = dto.PartyB;
+        contract.Amount = dto.Amount;
+        contract.SignDate = dto.SignDate;
+        contract.StartDate = dto.StartDate;
+        contract.EndDate = dto.EndDate;
+        contract.Remark = dto.Remark;
+        contract.UpdatedBy = operBy;
+        _uow.ProjContracts.Update(contract);
+        await _uow.SaveChangesAsync();
+        await WriteLogAsync(contract.ProjectId, "修改合同",
+            $"合同编号：{dto.ContractNo}，金额：{dto.Amount}万", operBy);
+    }
+
     public async Task DeleteContractAsync(long contractId)
     {
         var c = await _uow.ProjContracts.GetByIdAsync(contractId)
@@ -399,12 +479,51 @@ public class ProjectService : IProjectService
         await _uow.SaveChangesAsync();
     }
 
+    // #18 新增：合同附件上传（从 Controller 迁移到 Service）
+    public async Task UploadContractFileAsync(long contractId, string fileName,
+        string filePath, string operBy)
+    {
+        var contract = await _uow.ProjContracts.GetByIdAsync(contractId)
+            ?? throw new NotFoundException("合同不存在");
+        if (!string.IsNullOrEmpty(contract.FilePath) && File.Exists(contract.FilePath))
+            File.Delete(contract.FilePath);
+        contract.FilePath = filePath;
+        contract.FileName = fileName;
+        contract.UpdatedBy = operBy;
+        _uow.ProjContracts.Update(contract);
+        await _uow.SaveChangesAsync();
+    }
+
+    // #18 新增：合同附件删除（从 Controller 迁移到 Service）
+    public async Task DeleteContractFileAsync(long contractId, string operBy)
+    {
+        var contract = await _uow.ProjContracts.GetByIdAsync(contractId)
+            ?? throw new NotFoundException("合同不存在");
+        if (!string.IsNullOrEmpty(contract.FilePath) && File.Exists(contract.FilePath))
+            File.Delete(contract.FilePath);
+        contract.FilePath = null;
+        contract.FileName = null;
+        contract.UpdatedBy = operBy;
+        _uow.ProjContracts.Update(contract);
+        await _uow.SaveChangesAsync();
+    }
+
+    // #18 新增：合同文件下载路径获取
+    public async Task<(string? filePath, string? fileName)> GetContractFileAsync(long contractId)
+    {
+        var contract = await _uow.ProjContracts.GetByIdAsync(contractId);
+        if (contract == null || string.IsNullOrEmpty(contract.FilePath) || !File.Exists(contract.FilePath))
+            return (null, null);
+        return (contract.FilePath, contract.FileName);
+    }
+
     // ── 发票 ──────────────────────────────────────────────────
     public async Task<long> AddInvoiceAsync(CreateInvoiceDto dto, string operBy)
     {
         var invoice = new ProjectInvoice
         {
             ProjectId = dto.ProjectId,
+            ReceiptName = dto.ReceiptName,
             InvoiceNo = dto.InvoiceNo,
             InvoiceType = dto.InvoiceType,
             Amount = dto.Amount,
@@ -429,6 +548,52 @@ public class ProjectService : IProjectService
         inv.IsReceived = true; inv.ReceivedDate = receivedDate; inv.UpdatedBy = operBy;
         _uow.ProjInvoices.Update(inv);
         await _uow.SaveChangesAsync();
+    }
+
+    // #18 新增：删除发票（从 Controller 迁移到 Service）
+    public async Task DeleteInvoiceAsync(long invoiceId)
+    {
+        var inv = await _uow.ProjInvoices.GetByIdAsync(invoiceId)
+            ?? throw new NotFoundException("发票不存在");
+        _uow.ProjInvoices.SoftDelete(inv);
+        await _uow.SaveChangesAsync();
+    }
+
+    // #18 新增：发票文件上传（从 Controller 迁移到 Service）
+    public async Task UploadInvoiceFileAsync(long invoiceId, string fileType,
+        string fileName, string filePath, string operBy)
+    {
+        var inv = await _uow.ProjInvoices.GetByIdAsync(invoiceId)
+            ?? throw new NotFoundException("发票不存在");
+        if (fileType == "invoice")
+        {
+            if (!string.IsNullOrEmpty(inv.InvoiceFile) && File.Exists(inv.InvoiceFile))
+                File.Delete(inv.InvoiceFile);
+            inv.InvoiceFile = filePath;
+            inv.InvoiceFileName = fileName;
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(inv.PaymentFile) && File.Exists(inv.PaymentFile))
+                File.Delete(inv.PaymentFile);
+            inv.PaymentFile = filePath;
+            inv.PaymentFileName = fileName;
+        }
+        inv.UpdatedBy = operBy;
+        _uow.ProjInvoices.Update(inv);
+        await _uow.SaveChangesAsync();
+    }
+
+    // #18 新增：发票文件下载路径获取
+    public async Task<(string? filePath, string? fileName)> GetInvoiceFileAsync(long invoiceId, string fileType)
+    {
+        var inv = await _uow.ProjInvoices.GetByIdAsync(invoiceId);
+        if (inv == null) return (null, null);
+        var (fp, fn) = fileType == "invoice"
+            ? (inv.InvoiceFile, inv.InvoiceFileName)
+            : (inv.PaymentFile, inv.PaymentFileName);
+        if (string.IsNullOrEmpty(fp) || !File.Exists(fp)) return (null, null);
+        return (fp, fn);
     }
 
     // ── 项目文件 ──────────────────────────────────────────────
@@ -458,9 +623,35 @@ public class ProjectService : IProjectService
     {
         var f = await _uow.ProjFiles.GetByIdAsync(fileId)
             ?? throw new NotFoundException("文件不存在");
-        if (System.IO.File.Exists(f.FilePath)) System.IO.File.Delete(f.FilePath);
+        if (File.Exists(f.FilePath)) File.Delete(f.FilePath);
         _uow.ProjFiles.SoftDelete(f);
         await _uow.SaveChangesAsync();
+    }
+
+    // #18 新增：文件下载路径获取
+    public async Task<(string? filePath, string? fileName, string? fileExt)?> GetFileAsync(long fileId)
+    {
+        var f = await _uow.ProjFiles.GetByIdAsync(fileId);
+        if (f == null || !File.Exists(f.FilePath)) return null;
+        return (f.FilePath, f.FileName, f.FileExt);
+    }
+
+    // ── 操作日志（分页）───────────────────────────────────────
+    // #15 新增：分页查询操作日志
+    public async Task<PagedResult<ProjectLogDto>> GetLogsPagedAsync(long projectId, int page, int size)
+    {
+        var q = _uow.ProjLogs.Query().Where(l => l.ProjectId == projectId);
+        var total = await q.CountAsync();
+        var list = await q.OrderByDescending(l => l.OperAt)
+            .Skip((page - 1) * size).Take(size)
+            .ToListAsync();
+        return new PagedResult<ProjectLogDto>
+        {
+            Items = _mapper.Map<List<ProjectLogDto>>(list),
+            Total = total,
+            Page = page,
+            PageSize = size
+        };
     }
 
     // ── 统计 ─────────────────────────────────────────────────
@@ -522,6 +713,17 @@ public class ProjectService : IProjectService
         return new { total, executing, completed, overdue };
     }
 
+    // #7 新增：文件扩展名白名单校验
+    public static bool IsFileExtensionAllowed(string fileName)
+    {
+        var ext = Path.GetExtension(fileName)?.TrimStart('.').ToLower() ?? "";
+        return AllowedFileExts.Contains(ext);
+    }
+
+    // #6 新增：fileType 参数白名单校验
+    public static bool IsValidFileType(string fileType)
+        => fileType is "invoice" or "payment";
+
     // ── 私有辅助 ─────────────────────────────────────────────
     // 递归获取部门ID及所有子部门ID
     private static List<long> GetSelfAndChildDeptIds(List<SysDept> allDepts, long deptId)
@@ -548,6 +750,7 @@ public class ProjectService : IProjectService
         await _uow.SaveChangesAsync();
     }
 
+    // #20 修复：状态文本统一维护
     public static string GetProgressText(int status) => status switch
     {
         0 => "前期商务",
@@ -561,5 +764,17 @@ public class ProjectService : IProjectService
         8 => "已完成",
         9 => "已终止",
         _ => "未知",
+    };
+
+    // #20 新增：状态 Badge 样式统一维护
+    public static string GetProgressBadge(int status) => status switch
+    {
+        0 or 1 => "badge-secondary",
+        2 or 3 => "badge-warning",
+        4 or 5 => "badge-info",
+        6 or 7 => "badge-primary",
+        8      => "badge-success",
+        9      => "badge-danger",
+        _      => "badge-light",
     };
 }

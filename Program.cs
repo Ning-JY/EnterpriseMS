@@ -67,6 +67,9 @@ try
     builder.Services.AddSingleton<IWordExportService, WordExportService>();
     builder.Services.AddScoped<IBidService, BidService>();
 
+    // ── 模板化报告生成 ──────────────────────────────────────────
+    builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
+
     // ── 缓存：Redis 可用则 Redis，否则自动降级内存缓存 ────────
     var redisConn = builder.Configuration["Redis:Connection"] ?? "";
     var redisOk   = false;
