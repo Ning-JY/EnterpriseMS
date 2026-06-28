@@ -1,0 +1,837 @@
+@{
+    ViewData["Title"] = "模板化报告生成";
+    Layout = "_Layout";
+}
+
+@section Styles {
+    <style>
+        .wizard-stepper {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-bottom: 30px;
+        }
+        .wizard-stepper::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 5%;
+            right: 5%;
+            height: 3px;
+            background: #dee2e6;
+            z-index: 0;
+        }
+        .wizard-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+            flex: 1;
+        }
+        .wizard-step .step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #dee2e6;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+        }
+        .wizard-step.active .step-circle {
+            background: #007bff;
+            color: white;
+            box-shadow: 0 0 0 4px rgba(0,123,255,0.2);
+        }
+        .wizard-step.completed .step-circle {
+            background: #28a745;
+            color: white;
+        }
+        .wizard-step .step-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-align: center;
+        }
+        .wizard-step.active .step-label {
+            color: #007bff;
+            font-weight: bold;
+        }
+        .wizard-step.completed .step-label {
+            color: #28a745;
+        }
+
+        .template-card {
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .template-card:hover {
+            border-color: #007bff;
+            transform: translateY(-2px);
+        }
+        .template-card.selected {
+            border-color: #28a745;
+            background-color: #f0fff4;
+        }
+
+        .mapping-scroll {
+            max-height: 360px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        .mapping-scroll table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+        .mapping-scroll th,
+        .mapping-scroll td {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .mapping-scroll th {
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fc;
+            z-index: 10;
+            min-width: 150px;
+        }
+        .mapping-scroll select {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            padding: 4px 2px;
+        }
+
+        .field-form-group {
+            margin-bottom: 15px;
+        }
+        .field-form-group label {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        .field-form-group .required {
+            color: #dc3545;
+        }
+
+        .data-table td {
+            max-height: 2.6em;
+            line-height: 1.3em;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        .tree-scroll {
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        .tree-ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+        .tree-li {
+            margin: 6px 0;
+        }
+        .parent-li {
+            margin-top: 12px;
+            border-left: 2px solid #17a2b8;
+            padding-left: 8px;
+        }
+        .child-ul {
+            list-style: none;
+            padding-left: 28px;
+            margin: 4px 0 8px 0;
+        }
+        .tree-label {
+            cursor: pointer;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+    </style>
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">模板化报告生成</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item">造价小工具</li>
+                    <li class="breadcrumb-item active">模板化报告生成</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+
+        @** 向导步骤条 *@
+        <div class="card card-outline card-primary mb-3">
+            <div class="card-body py-3">
+                <div class="wizard-stepper">
+                    <div class="wizard-step active" id="wizStep1">
+                        <div class="step-circle">1</div>
+                        <div class="step-label">选择模板</div>
+                    </div>
+                    <div class="wizard-step" id="wizStep2">
+                        <div class="step-circle">2</div>
+                        <div class="step-label">导入Excel</div>
+                    </div>
+                    <div class="wizard-step" id="wizStep3">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">字段映射</div>
+                    </div>
+                    <div class="wizard-step" id="wizStep4">
+                        <div class="step-circle">4</div>
+                        <div class="step-label">补充填写</div>
+                    </div>
+                    <div class="wizard-step" id="wizStep5">
+                        <div class="step-circle">5</div>
+                        <div class="step-label">预览</div>
+                    </div>
+                    <div class="wizard-step" id="wizStep6">
+                        <div class="step-circle">6</div>
+                        <div class="step-label">生成下载</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @** 步骤1: 选择模板 *@
+        <div id="wizContent1" class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-file-word mr-1"></i>步骤1: 选择报告模板
+            </div>
+            <div class="card-body">
+                <div class="row" id="templateList">
+                    <div class="col-12 text-center text-muted py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                        <p>加载模板列表...</p>
+                    </div>
+                </div>
+                <div class="text-right mt-3">
+                    <button class="btn btn-primary" onclick="goWizardStep(2)" id="btnStep1Next" disabled>
+                        下一步 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @** 步骤2: 导入Excel *@
+        <div id="wizContent2" class="card" style="display:none;">
+            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                <span><i class="fas fa-file-excel mr-1"></i>步骤2: 导入Excel数据</span>
+                <button class="btn btn-sm btn-light" onclick="goWizardStep(1)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <input type="file" id="excelUpload" accept=".xlsx,.xls" style="display:none">
+                    <button class="btn btn-primary" onclick="document.getElementById('excelUpload').click()">
+                        <i class="fas fa-folder-open mr-1"></i>选择Excel文件
+                    </button>
+                    <span id="excelFileName" class="ml-2 text-muted"></span>
+                </div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card">
+                            <div class="card-header bg-info text-white py-2">
+                                <i class="fas fa-folder-open mr-1"></i>项目结构
+                            </div>
+                            <div class="card-body p-2 tree-scroll" id="excelTree">
+                                <div class="text-muted small">请先导入Excel</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="alert alert-info small mb-0">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            导入Excel后，点击左侧项目名称查看数据预览
+                        </div>
+                        <div id="excelPreview" class="mt-3"></div>
+                    </div>
+                </div>
+                <div class="text-right mt-3">
+                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(1)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
+                    <button class="btn btn-primary" onclick="goWizardStep(3)" id="btnStep2Next" disabled>
+                        下一步 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @** 步骤3: 字段映射 *@
+        <div id="wizContent3" class="card" style="display:none;">
+            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                <span><i class="fas fa-map mr-1"></i>步骤3: 字段映射</span>
+                <button class="btn btn-sm btn-light" onclick="goWizardStep(2)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info small">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    为Excel中的每一列选择对应的模板字段。带 <span class="text-danger">*</span> 的为必填字段。
+                </div>
+                <div class="mapping-scroll" id="mappingTable">
+                    <div class="text-muted text-center py-3">请先导入Excel并选择项目</div>
+                </div>
+                <div class="text-right mt-3">
+                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(2)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
+                    <button class="btn btn-success" onclick="confirmMappingAndNext()">
+                        <i class="fas fa-check mr-1"></i>确认映射并继续
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @** 步骤4: 补充填写 *@
+        <div id="wizContent4" class="card" style="display:none;">
+            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                <span><i class="fas fa-edit mr-1"></i>步骤4: 补充填写信息</span>
+                <button class="btn btn-sm btn-light" onclick="goWizardStep(3)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info small">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    以下字段需要手动填写（未从Excel映射的字段）。
+                </div>
+                <div class="row" id="supplementaryFields">
+                    <div class="col-12 text-muted text-center py-3">加载中...</div>
+                </div>
+                <div class="text-right mt-3">
+                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(3)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
+                    <button class="btn btn-primary" onclick="goWizardStep(5)">
+                        下一步 <i class="fas fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @** 步骤5: 预览 *@
+        <div id="wizContent5" class="card" style="display:none;">
+            <div class="card-header bg-primary text-white d-flex justify-content-between">
+                <span><i class="fas fa-eye mr-1"></i>步骤5: 预览报告</span>
+                <button class="btn btn-sm btn-light" onclick="goWizardStep(4)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
+            </div>
+            <div class="card-body">
+                <div id="previewContent" style="max-height:60vh;overflow-y:auto;">
+                    <div class="text-muted text-center py-4">
+                        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
+                        <p>正在生成预览...</p>
+                    </div>
+                </div>
+                <div class="text-right mt-3">
+                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(4)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
+                    <button class="btn btn-success" onclick="goWizardStep(6)">
+                        <i class="fas fa-download mr-1"></i>生成并下载
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        @** 步骤6: 生成下载 *@
+        <div id="wizContent6" class="card" style="display:none;">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-check-circle mr-1"></i>步骤6: 报告已生成
+            </div>
+            <div class="card-body text-center py-5">
+                <i class="fas fa-file-word fa-4x text-success mb-3"></i>
+                <h4>报告生成成功！</h4>
+                <p class="text-muted">文件已自动下载，如未下载请点击下方按钮</p>
+                <button class="btn btn-success btn-lg mt-3" onclick="downloadReport()">
+                    <i class="fas fa-download mr-1"></i>重新下载
+                </button>
+                <button class="btn btn-outline-primary mt-3 ml-2" onclick="resetWizard()">
+                    <i class="fas fa-redo mr-1"></i>重新开始
+                </button>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <script>
+        // ═══════════════════════════════════════════════════════
+        //  全局状态
+        // ═══════════════════════════════════════════════════════
+        let currentWizardStep = 1;
+        let selectedTemplate = null;
+        let workbookSheets = [];
+        let currentMapping = {};
+        let isMapped = false;
+        let childNodes = [];
+        let parentNodes = [];
+        let nodeChecked = new Map();
+        let sheetsStore = [];
+        let currentChildNode = null;
+        let supplementaryFieldValues = {};
+
+        // ═══════════════════════════════════════════════════════
+        //  向导导航
+        // ═══════════════════════════════════════════════════════
+        function goWizardStep(step) {
+            currentWizardStep = step;
+
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById('wizContent' + i).style.display = i === step ? '' : 'none';
+
+                let stepEl = document.getElementById('wizStep' + i);
+                stepEl.className = 'wizard-step';
+                if (i < step) stepEl.className = 'wizard-step completed';
+                else if (i === step) stepEl.className = 'wizard-step active';
+
+                let circle = stepEl.querySelector('.step-circle');
+                if (i < step) circle.innerHTML = '<i class="fas fa-check"></i>';
+                else circle.innerHTML = i;
+            }
+
+            if (step === 3) goWizardStep3();
+            if (step === 5) generatePreview();
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  步骤1: 加载模板列表
+        // ═══════════════════════════════════════════════════════
+        async function loadTemplates() {
+            try {
+                let resp = await fetch('/templatereport/templates');
+                let result = await resp.json();
+                if (result.code === 200 && result.data) {
+                    renderTemplateList(result.data);
+                }
+            } catch (err) {
+                console.error('加载模板失败:', err);
+            }
+        }
+
+        function renderTemplateList(templates) {
+            let html = '';
+            for (let t of templates) {
+                html += `<div class="col-md-4 mb-3">
+                    <div class="card template-card" onclick="selectTemplate('${t.id}')" data-id="${t.id}">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-file-word text-primary mr-1"></i>${escapeHtml(t.name)}</h5>
+                            <p class="card-text text-muted small">${escapeHtml(t.description || '')}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge badge-info">${t.fields ? t.fields.length : 0} 个字段</span>
+                                <small class="text-muted">${escapeHtml(t.createdAt || '')}</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }
+            if (!html) html = '<div class="col-12 text-center text-muted py-4"><p>暂无可用模板</p><a href="/templatereport/templateconfig" class="btn btn-primary">前往配置模板</a></div>';
+            document.getElementById('templateList').innerHTML = html;
+        }
+
+        function selectTemplate(id) {
+            document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
+            let card = document.querySelector(`.template-card[data-id="${id}"]`);
+            if (card) card.classList.add('selected');
+            selectedTemplate = id;
+            document.getElementById('btnStep1Next').disabled = false;
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  步骤2: 导入Excel
+        // ═══════════════════════════════════════════════════════
+        document.getElementById('excelUpload').addEventListener('change', async (e) => {
+            let file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('excelFileName').textContent = file.name;
+            let buffer = await file.arrayBuffer();
+            let workbook = XLSX.read(buffer, { type: 'array' });
+
+            workbookSheets = [];
+            for (let name of workbook.SheetNames) {
+                let ws = workbook.Sheets[name];
+                let data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+                if (data.length >= 3) workbookSheets.push({ name, data });
+            }
+
+            if (!workbookSheets.length) {
+                layer.msg('无有效工作表', { icon: 2 });
+                return;
+            }
+
+            isMapped = false;
+            sheetsStore = [];
+            nodeChecked.clear();
+            buildExcelTree();
+            document.getElementById('btnStep2Next').disabled = false;
+            e.target.value = "";
+        });
+
+        function buildExcelTree() {
+            let parentMap = new Map();
+            childNodes = [];
+            let childId = 0;
+
+            for (let sIdx = 0; sIdx < workbookSheets.length; sIdx++) {
+                let sheet = workbookSheets[sIdx];
+                let a2Val = sheet.data[1]?.[0] || "";
+                let parsed = parseParentChild(a2Val);
+                if (!parsed) continue;
+
+                let cid = `child_${sIdx}_${childId++}`;
+                childNodes.push({ id: cid, label: parsed.child || "未命名", sheetIdx: sIdx, parentName: parsed.parent });
+                let pKey = parsed.parent || "未分组";
+                if (!parentMap.has(pKey)) parentMap.set(pKey, { id: `parent_${pKey}`, name: pKey, childrenIds: [] });
+                parentMap.get(pKey).childrenIds.push(cid);
+            }
+
+            parentNodes = Array.from(parentMap.values());
+            let html = '<ul class="tree-ul">';
+            for (let p of parentNodes) {
+                html += `<li class="parent-li">
+                    <div class="tree-label">
+                        <input type="checkbox" class="parent-check" data-id="${p.id}" onchange="onParentCheck('${p.id}', this)">
+                        <span style="font-weight:bold;"><i class="fas fa-folder text-warning mr-1"></i>${escapeHtml(p.name)}</span>
+                    </div>
+                    <ul class="child-ul">`;
+                for (let cid of p.childrenIds) {
+                    let ch = childNodes.find(c => c.id === cid);
+                    if (!ch) continue;
+                    html += `<li>
+                        <div class="tree-label">
+                            <input type="checkbox" class="child-check" data-id="${ch.id}" onchange="onChildCheck('${ch.id}', this)">
+                            <span onclick="onExcelChildClick('${ch.id}')"><i class="fas fa-file-alt text-info mr-1"></i>${escapeHtml(ch.label)}</span>
+                        </div>
+                    </li>`;
+                }
+                html += `</ul></li>`;
+            }
+            html += '</ul>';
+            document.getElementById('excelTree').innerHTML = html;
+        }
+
+        function parseParentChild(a2) {
+            if (!a2) return null;
+            let s = String(a2).trim();
+            if (s.includes('\\')) {
+                let parts = s.split('\\');
+                return { parent: parts[0].trim(), child: parts.slice(1).join('\\').trim() || parts[parts.length - 1].trim() };
+            }
+            return { parent: null, child: s };
+        }
+
+        function onParentCheck(pid, chk) {
+            let parent = parentNodes.find(p => p.id === pid);
+            if (!parent) return;
+            for (let cid of parent.childrenIds) {
+                nodeChecked.set(cid, chk.checked);
+                let cChk = document.querySelector(`.child-check[data-id="${cid}"]`);
+                if (cChk) cChk.checked = chk.checked;
+            }
+        }
+
+        function onChildCheck(cid, chk) {
+            nodeChecked.set(cid, chk.checked);
+            let parent = parentNodes.find(p => p.childrenIds.includes(cid));
+            if (parent) {
+                let all = parent.childrenIds.every(id => nodeChecked.get(id));
+                let any = parent.childrenIds.some(id => nodeChecked.get(id));
+                let pChk = document.querySelector(`.parent-check[data-id="${parent.id}"]`);
+                if (pChk) {
+                    pChk.checked = all;
+                    pChk.indeterminate = any && !all;
+                }
+            }
+        }
+
+        function onExcelChildClick(cid) {
+            let child = childNodes.find(c => c.id === cid);
+            if (!child) return;
+            currentChildNode = cid;
+
+            let sheet = workbookSheets[child.sheetIdx];
+            if (sheet) {
+                let headerRow = sheet.data[2] || [];
+                renderExcelPreview(headerRow, sheet.data.slice(3, 8));
+            }
+        }
+
+        function renderExcelPreview(headers, rows) {
+            let html = '<table class="table table-sm table-bordered"><thead><tr>';
+            for (let h of headers) html += `<th style="font-size:12px;">${escapeHtml(String(h || ''))}</th>`;
+            html += '</tr></thead><tbody>';
+            for (let row of rows) {
+                html += '<tr>';
+                for (let cell of row) html += `<td style="font-size:12px;">${escapeHtml(String(cell || ''))}</td>`;
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            document.getElementById('excelPreview').innerHTML = html;
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  步骤3: 字段映射
+        // ═══════════════════════════════════════════════════════
+        async function goWizardStep3() {
+            if (!selectedTemplate) {
+                layer.msg('请先选择模板', { icon: 2 });
+                return;
+            }
+            if (!workbookSheets.length) {
+                layer.msg('请先导入Excel', { icon: 2 });
+                return;
+            }
+
+            let template = await fetchTemplate(selectedTemplate);
+            if (!template || !template.fields) {
+                layer.msg('无法加载模板字段', { icon: 2 });
+                return;
+            }
+
+            let sheet = workbookSheets[0];
+            let headers = sheet.data[2] || [];
+
+            let html = '<table class="table table-sm"><thead><tr><th>Excel列</th><th>示例数据</th><th>映射到模板字段</th></tr></thead><tbody>';
+            for (let i = 0; i < headers.length; i++) {
+                let headerName = String(headers[i] || '');
+                let sampleData = sheet.data.slice(3, 4).map(r => r[i]).join(', ');
+                html += `<tr>
+                    <td style="font-weight:bold;">${escapeHtml(headerName)}</td>
+                    <td class="text-muted" style="font-size:12px;">${escapeHtml(sampleData.substring(0, 30))}</td>
+                    <td>
+                        <select class="form-control form-control-sm mapping-select" data-colidx="${i}">
+                            <option value="">不映射</option>`;
+                for (let f of template.fields) {
+                    if (f.source === 'excel') {
+                        html += `<option value="${escapeHtml(f.name)}">${escapeHtml(f.label)}${f.required ? ' *' : ''}</option>`;
+                    }
+                }
+                html += `</select></td></tr>`;
+            }
+            html += '</tbody></table>';
+            document.getElementById('mappingTable').innerHTML = html;
+        }
+
+        async function fetchTemplate(id) {
+            try {
+                let resp = await fetch(`/templatereport/template/${id}`);
+                let result = await resp.json();
+                return result.code === 200 ? result.data : null;
+            } catch { return null; }
+        }
+
+        async function confirmMappingAndNext() {
+            let selects = document.querySelectorAll('.mapping-select');
+            currentMapping = {};
+            let mappedCount = 0;
+
+            selects.forEach(sel => {
+                let col = parseInt(sel.dataset.colidx);
+                let field = sel.value;
+                if (field) {
+                    currentMapping[field] = col;
+                    mappedCount++;
+                }
+            });
+
+            if (mappedCount === 0) {
+                layer.msg('请至少映射一个字段', { icon: 2 });
+                return;
+            }
+
+            sheetsStore = [];
+            for (let sIdx = 0; sIdx < workbookSheets.length; sIdx++) {
+                let sheet = workbookSheets[sIdx];
+                let dataRows = sheet.data.slice(5);
+                let parsed = [];
+                for (let row of dataRows) {
+                    if (!row.length || (row.length === 1 && !row[0])) continue;
+                    let item = {};
+                    for (let [field, col] of Object.entries(currentMapping)) {
+                        item[field] = row[col] !== undefined ? String(row[col]) : '';
+                    }
+                    if (item['项目名称'] || item['项目编码']) parsed.push(item);
+                }
+                sheetsStore.push({ sheetIdx: sIdx, sheetName: sheet.name, parsedRows: parsed });
+            }
+
+            isMapped = true;
+            goWizardStep(4);
+            buildSupplementaryFields();
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  步骤4: 补充填写
+        // ═══════════════════════════════════════════════════════
+        async function buildSupplementaryFields() {
+            let template = await fetchTemplate(selectedTemplate);
+            if (!template || !template.fields) return;
+
+            let html = '<div class="col-md-8">';
+            for (let f of template.fields) {
+                if (f.source === 'excel') continue;
+                html += `<div class="field-form-group">
+                    <label>${escapeHtml(f.label)}${f.required ? ' <span class="required">*</span>' : ''}</label>`;
+                if (f.type === 'date') {
+                    html += `<input type="date" class="form-control" data-field="${escapeHtml(f.name)}" value="${escapeHtml(f.defaultValue || '')}">`;
+                } else if (f.type === 'select' && f.options) {
+                    html += `<select class="form-control" data-field="${escapeHtml(f.name)}">
+                        <option value="">请选择</option>`;
+                    for (let opt of f.options) {
+                        html += `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>`;
+                    }
+                    html += '</select>';
+                } else {
+                    html += `<input type="text" class="form-control" data-field="${escapeHtml(f.name)}" placeholder="请输入${escapeHtml(f.label)}" value="${escapeHtml(f.defaultValue || '')}">`;
+                }
+                if (f.helpText) html += `<small class="form-text text-muted">${escapeHtml(f.helpText)}</small>`;
+                html += '</div>';
+            }
+            html += '</div>';
+            document.getElementById('supplementaryFields').innerHTML = html;
+
+            document.querySelectorAll('#supplementaryFields [data-field]').forEach(el => {
+                el.addEventListener('change', () => {
+                    supplementaryFieldValues[el.dataset.field] = el.value;
+                });
+                el.addEventListener('input', () => {
+                    supplementaryFieldValues[el.dataset.field] = el.value;
+                });
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  步骤5: 预览
+        // ═══════════════════════════════════════════════════════
+        async function generatePreview() {
+            document.getElementById('previewContent').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x mb-2"></i><p>正在生成预览...</p></div>';
+
+            let excelRows = [];
+            if (sheetsStore.length > 0 && currentChildNode) {
+                let child = childNodes.find(c => c.id === currentChildNode);
+                if (child && sheetsStore[child.sheetIdx]) {
+                    excelRows = sheetsStore[child.childIdx || child.sheetIdx]?.parsedRows || sheetsStore[0]?.parsedRows || [];
+                } else {
+                    excelRows = sheetsStore[0]?.parsedRows || [];
+                }
+            }
+
+            let request = {
+                templateId: selectedTemplate,
+                supplementaryFields: supplementaryFieldValues,
+                excelColumns: Object.entries(currentMapping).map(([field, col]) => ({
+                    fieldName: field,
+                    columnName: field,
+                    columnIndex: col
+                })),
+                excelRows: excelRows.slice(0, 10)
+            };
+
+            try {
+                let resp = await fetch('/templatereport/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+                let result = await resp.json();
+                if (result.code === 200 && result.data) {
+                    document.getElementById('previewContent').innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle mr-1"></i>预览已生成，请确认数据无误后点击"生成并下载"</div>';
+                } else {
+                    document.getElementById('previewContent').innerHTML = `<div class="alert alert-warning">${escapeHtml(result.message || '预览生成失败')}</div>`;
+                }
+            } catch (err) {
+                document.getElementById('previewContent').innerHTML = `<div class="alert alert-danger">预览失败: ${escapeHtml(err.message)}</div>`;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  步骤6: 生成下载
+        // ═══════════════════════════════════════════════════════
+        async function downloadReport() {
+            let excelRows = [];
+            if (sheetsStore.length > 0) {
+                excelRows = sheetsStore[0]?.parsedRows || [];
+            }
+
+            let request = {
+                templateId: selectedTemplate,
+                supplementaryFields: supplementaryFieldValues,
+                excelColumns: Object.entries(currentMapping).map(([field, col]) => ({
+                    fieldName: field,
+                    columnName: field,
+                    columnIndex: col
+                })),
+                excelRows: excelRows
+            };
+
+            try {
+                layer.load(1);
+                let resp = await fetch('/templatereport/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(request)
+                });
+                layer.closeAll();
+
+                if (resp.ok) {
+                    let blob = await resp.blob();
+                    let fileName = resp.headers.get('content-disposition')?.split('filename=')[1] || '报告.docx';
+                    saveAs(blob, fileName);
+                    goWizardStep(6);
+                } else {
+                    let result = await resp.json();
+                    layer.msg(result.message || '生成失败', { icon: 2 });
+                }
+            } catch (err) {
+                layer.closeAll();
+                layer.msg('生成失败: ' + err.message, { icon: 2 });
+            }
+        }
+
+        function resetWizard() {
+            currentWizardStep = 1;
+            selectedTemplate = null;
+            workbookSheets = [];
+            currentMapping = {};
+            isMapped = false;
+            childNodes = [];
+            parentNodes = [];
+            nodeChecked.clear();
+            sheetsStore = [];
+            currentChildNode = null;
+            supplementaryFieldValues = {};
+
+            document.getElementById('btnStep1Next').disabled = true;
+            document.getElementById('btnStep2Next').disabled = true;
+            goWizardStep(1);
+            loadTemplates();
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[m]);
+        }
+
+        // ═══════════════════════════════════════════════════════
+        //  初始化
+        // ═══════════════════════════════════════════════════════
+        loadTemplates();
+    </script>
+}

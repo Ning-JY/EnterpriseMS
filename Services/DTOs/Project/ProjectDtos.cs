@@ -264,3 +264,17 @@ public class CreateInvoiceDto
     public string?  Payer        { get; set; }
     public string?  Remark       { get; set; }
 }
+
+// ── #14 新增：编辑验收记录 DTO ─────────────────────────────
+public class UpdateAcceptanceDto
+{
+    public long     Id           { get; set; }
+    public string   AcceptBatch  { get; set; } = "";
+    public DateTime AcceptDate   { get; set; }
+    public decimal  AcceptAmount { get; set; }
+    public string?  InvoiceNo    { get; set; }
+    public string?  Remark       { get; set; }
+}
+
+// ── #13 新增：编辑合同 DTO ─────────────────────────────────
+public class UpdateContractDto : CreateContractDto { public long Id { get; set; } }

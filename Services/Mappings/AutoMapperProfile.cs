@@ -115,10 +115,20 @@ public class AutoMapperProfile : Profile
 
         // Bid
         CreateMap<BidProject, BidProjectDto>()
-            .ForMember(d => d.StatusName, o => o.MapFrom(src => GetBidStatusName(src.Status)));
+            .ForMember(d => d.StatusName, o => o.MapFrom(src => GetBidStatusName(src.Status)))
+            .ForMember(d => d.ParseStageName, o => o.MapFrom(src => GetParseStageName(src.ParseStage)));
         CreateMap<BidRequirement, BidRequirementDto>();
         CreateMap<BidDocument, BidDocumentDto>();
     }
+
+    private static string GetParseStageName(int stage) => stage switch
+    {
+        0 => "未解析",
+        1 => "解析中",
+        2 => "待人工确认",
+        3 => "已确认",
+        _ => "未知"
+    };
 
     private static string GetBidStatusName(int status) => status switch
     {

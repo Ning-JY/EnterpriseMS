@@ -113,8 +113,11 @@ public static class InfoSeeds
             new SysMenu { Id = 912, MenuName = "编辑投标", ParentId = 91, MenuType = "F", Sort = 2, Visible = 0, Status = 1, Perms = "bid:project:edit", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 913, MenuName = "删除投标", ParentId = 91, MenuType = "F", Sort = 3, Visible = 0, Status = 1, Perms = "bid:project:delete", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 914, MenuName = "AI解析", ParentId = 91, MenuType = "F", Sort = 4, Visible = 0, Status = 1, Perms = "bid:project:analyze", CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 915, MenuName = "AI生成", ParentId = 91, MenuType = "F", Sort = 5, Visible = 0, Status = 1, Perms = "bid:project:generate", CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 916, MenuName = "AI审查", ParentId = 91, MenuType = "F", Sort = 6, Visible = 0, Status = 1, Perms = "bid:project:review", CreatedAt = dt, CreatedBy = "system" }
+            new SysMenu { Id = 917, MenuName = "确认招标要素", ParentId = 91, MenuType = "F", Sort = 5, Visible = 0, Status = 1, Perms = "bid:project:confirm", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 915, MenuName = "AI生成", ParentId = 91, MenuType = "F", Sort = 6, Visible = 0, Status = 1, Perms = "bid:project:generate", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 918, MenuName = "人员匹配", ParentId = 91, MenuType = "F", Sort = 7, Visible = 0, Status = 1, Perms = "bid:project:match", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 919, MenuName = "导出文件", ParentId = 91, MenuType = "F", Sort = 8, Visible = 0, Status = 1, Perms = "bid:project:export", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 916, MenuName = "AI审查", ParentId = 91, MenuType = "F", Sort = 9, Visible = 0, Status = 1, Perms = "bid:project:review", CreatedAt = dt, CreatedBy = "system" }
         );
     }
 }

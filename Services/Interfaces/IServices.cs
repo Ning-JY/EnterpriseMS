@@ -4,6 +4,7 @@ using EnterpriseMS.Services.DTOs.User;
 using EnterpriseMS.Services.DTOs.System;
 using EnterpriseMS.Services.DTOs.Project;
 using EnterpriseMS.Services.DTOs.Hr;
+using EnterpriseMS.Services.DTOs.Kb;
 
 namespace EnterpriseMS.Services.Interfaces;
 
@@ -106,17 +107,29 @@ public interface IProjectService
     Task         CompleteMilestoneAsync(long milestoneId, string operBy);
     // 验收
     Task<long>    AddAcceptanceAsync(CreateAcceptanceDto dto, string operBy);
+    Task          UpdateAcceptanceAsync(UpdateAcceptanceDto dto, string operBy);
+    Task          DeleteAcceptanceAsync(long acceptanceId);
     Task<decimal> GetTotalReceivedAsync(long projectId);
     // 合同
-    Task<long> AddContractAsync(CreateContractDto dto, string operBy);
-    Task       DeleteContractAsync(long contractId);
+    Task<long>   AddContractAsync(CreateContractDto dto, string operBy);
+    Task         UpdateContractAsync(UpdateContractDto dto, string operBy);
+    Task         DeleteContractAsync(long contractId);
+    Task         UploadContractFileAsync(long contractId, string fileName, string filePath, string operBy);
+    Task         DeleteContractFileAsync(long contractId, string operBy);
+    Task<(string? filePath, string? fileName)> GetContractFileAsync(long contractId);
     // 发票
-    Task<long> AddInvoiceAsync(CreateInvoiceDto dto, string operBy);
-    Task       ConfirmInvoiceReceivedAsync(long invoiceId, DateTime receivedDate, string operBy);
+    Task<long>   AddInvoiceAsync(CreateInvoiceDto dto, string operBy);
+    Task         ConfirmInvoiceReceivedAsync(long invoiceId, DateTime receivedDate, string operBy);
+    Task         DeleteInvoiceAsync(long invoiceId);
+    Task         UploadInvoiceFileAsync(long invoiceId, string fileType, string fileName, string filePath, string operBy);
+    Task<(string? filePath, string? fileName)> GetInvoiceFileAsync(long invoiceId, string fileType);
     // 文件
-    Task<long> AddFileAsync(long projectId, string category, string fileName,
+    Task<long>   AddFileAsync(long projectId, string category, string fileName,
         string filePath, long fileSize, string? description, string? version, string operBy);
-    Task       DeleteFileAsync(long fileId);
+    Task         DeleteFileAsync(long fileId);
+    Task<(string? filePath, string? fileName, string? fileExt)?> GetFileAsync(long fileId);
+    // 操作日志（分页）
+    Task<PagedResult<ProjectLogDto>> GetLogsPagedAsync(long projectId, int page, int size);
     // 统计
     Task<object> GetDashboardStatsAsync();
     Task<object> GetMyStatsAsync(long employeeId);
@@ -127,4 +140,28 @@ public interface IEmployeeQueryService
 {
     /// <summary>获取所有在职员工（状态0试用/1在职），供下拉菜单选择</summary>
     Task<List<EmployeeSimpleDto>> GetAllOnJobAsync();
+}
+
+// ── 员工档案服务 ───────────────────────────────────────────
+public interface IEmployeeService
+{
+    Task<PagedResult<EmployeeListDto>> GetPagedAsync(EmployeeQueryDto query);
+    Task<EmployeeDetailDto?>           GetDetailAsync(long id);
+    Task<long>                         CreateAsync(CreateEmployeeDto dto, string operBy);
+    Task                               UpdateAsync(UpdateEmployeeDto dto, string operBy);
+    Task                               FormalAsync(long id, string operBy);
+    Task                               LeaveAsync(long id, string operBy, string? reason = null);
+}
+
+// ── 知识库服务 ─────────────────────────────────────────────
+public interface IKbService
+{
+    Task<PagedResult<KbFileDto>>  GetPagedAsync(KbQueryDto query, bool adminView = false);
+    Task<KbFileDto?>              GetDetailAsync(long id);
+    Task<long>                    UploadAsync(KbUploadDto dto, string operBy);
+    Task                          UpdateAsync(KbUpdateDto dto, string operBy);
+    Task                          TogglePinAsync(long id, string operBy);
+    Task                          DeleteAsync(long id, string operBy);
+    Task<(string path, string name, string mime, long size)?> GetDownloadInfoAsync(long id);
+    Task<List<KbCategoryDto>>     GetCategoriesAsync();
 }

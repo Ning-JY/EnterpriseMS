@@ -15,6 +15,15 @@ public class BidProjectDto
     public string? StatusName { get; set; }
     public string? Remark { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    /// <summary>解析阶段：0未解析 1解析中 2待人工确认 3已确认。前端据此渲染解析卡点UI。</summary>
+    public int ParseStage { get; set; }
+    public string? ParseStageName { get; set; }
+    public string? FormatRuleJson { get; set; }
+    public string? SourceFileName { get; set; }
+    public DateTime? ElementsConfirmedAt { get; set; }
+    public string? ElementsConfirmedBy { get; set; }
+
     public List<BidRequirementDto> Requirements { get; set; } = new();
     public List<BidDocumentDto> Documents { get; set; } = new();
 }
@@ -44,6 +53,9 @@ public class BidRequirementDto
     public string Content { get; set; } = "";
     public int? ScoreWeight { get; set; }
     public string? Description { get; set; }
+    public bool IsVeto { get; set; }
+    public string? SourceRef { get; set; }
+    public bool NeedsReview { get; set; }
 }
 
 public class BidDocumentDto
@@ -112,6 +124,14 @@ public class BidAssembleChapter
     public string Name { get; set; } = "";
     public string Content { get; set; } = "";
     public int WordCount { get; set; }
+}
+
+public class BidExportResult
+{
+    public byte[] FileBytes { get; set; } = Array.Empty<byte>();
+    public string FileName { get; set; } = "";
+    /// <summary>导出过程中的非阻断性提示（如预估页数超限、未识别到明确格式要求），文件仍会正常生成。</summary>
+    public List<string> Warnings { get; set; } = new();
 }
 
 public class BidListQuery

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
+using EnterpriseMS.Filters;
 using EnterpriseMS.Services.AI.Models;
 using EnterpriseMS.Services.DTOs.Bid;
 using EnterpriseMS.Services.Interfaces;
@@ -73,6 +74,7 @@ public class BidController : BaseAuthController
     }
 
     [HttpPost]
+    [HasPermission("bid:project:analyze")]
     public async Task<IActionResult> Analyze(BidAnalyzeRequest request)
     {
         try
@@ -84,6 +86,44 @@ public class BidController : BaseAuthController
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing bid document");
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>"人工确认招标要素表"卡点。仍有待确认条目时会被拒绝，前端按 message 提示用户先处理。</summary>
+    [HttpPost]
+    [HasPermission("bid:project:confirm")]
+    public async Task<IActionResult> ConfirmElements([FromBody] ConfirmElementsRequest request)
+    {
+        try
+        {
+            await _bidService.ConfirmElementsAsync(request.BidProjectId, User.GetUsername());
+            return Json(ApiResult.Ok("招标要素表已确认"));
+        }
+        catch (BusinessException ex)
+        {
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error confirming bid elements");
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
+    /// <summary>人工核对单条"待确认"要求：补充出处定位、修正是否为否决项，提交后清除待确认标记。</summary>
+    [HttpPost]
+    public async Task<IActionResult> ResolveRequirement([FromBody] ResolveRequirementRequest request)
+    {
+        try
+        {
+            await _bidService.ResolveRequirementReviewAsync(
+                request.RequirementId, request.IsVeto, request.SourceRef, User.GetUsername());
+            return Json(ApiResult.Ok());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resolving requirement review");
             return Json(ApiResult<object>.Fail(ex.Message));
         }
     }
@@ -172,6 +212,51 @@ public class BidController : BaseAuthController
         }
     }
 
+    /// <summary>导出真正的.docx文件。用GET+querystring而不是走JSON接口，方便前端直接用fetch+blob下载。</summary>
+    [HttpGet]
+    [HasPermission("bid:project:export")]
+    public async Task<IActionResult> ExportWord(long bidProjectId, string part = "all")
+    {
+        try
+        {
+            var result = await _bidService.ExportWordAsync(bidProjectId, part);
+            if (result.Warnings.Any())
+                Response.Headers.Append("X-Export-Warnings", Uri.EscapeDataString(string.Join(" | ", result.Warnings)));
+            return File(result.FileBytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", result.FileName);
+        }
+        catch (BusinessException ex)
+        {
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting bid document to Word");
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
+    [HttpGet]
+    [HasPermission("bid:project:export")]
+    public async Task<IActionResult> ExportPdf(long bidProjectId, string part = "all")
+    {
+        try
+        {
+            var result = await _bidService.ExportPdfAsync(bidProjectId, part);
+            if (result.Warnings.Any())
+                Response.Headers.Append("X-Export-Warnings", Uri.EscapeDataString(string.Join(" | ", result.Warnings)));
+            return File(result.FileBytes, "application/pdf", result.FileName);
+        }
+        catch (BusinessException ex)
+        {
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error exporting bid document to PDF");
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> Review([FromBody] BidReviewRequest request)
     {
@@ -225,6 +310,7 @@ public class BidController : BaseAuthController
     }
 
     [HttpPost]
+    [HasPermission("bid:project:match")]
     public async Task<IActionResult> MatchPersonnel([FromBody] PersonnelMatchRequest request)
     {
         try
@@ -240,6 +326,7 @@ public class BidController : BaseAuthController
     }
 
     [HttpPost]
+    [HasPermission("bid:project:match")]
     public async Task<IActionResult> GeneratePersonnelSection([FromBody] PersonnelMatchRequest request)
     {
         try
@@ -262,4 +349,16 @@ public class BidController : BaseAuthController
 public class UpdateContentRequest
 {
     public string Content { get; set; } = "";
+}
+
+public class ConfirmElementsRequest
+{
+    public long BidProjectId { get; set; }
+}
+
+public class ResolveRequirementRequest
+{
+    public long RequirementId { get; set; }
+    public bool IsVeto { get; set; }
+    public string? SourceRef { get; set; }
 }

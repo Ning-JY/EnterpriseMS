@@ -5,6 +5,33 @@
     Layout = "_Layout";
 }
 
+@* 招标文件解析模块专用样式：刻意自包含、不依赖 AdminLTE/Bootstrap 之外的任何库，
+   否决性条款用警示色单独提出，不与普通要求混排——这是本模块最重要的视觉原则。 *@
+<style>
+    .tp-stage-bar{display:flex;align-items:stretch;gap:0;margin-bottom:14px;border:1px solid #dee2e6;border-radius:4px;overflow:hidden;}
+    .tp-stage{flex:1;padding:8px 10px;font-size:12px;text-align:center;background:#f8f9fa;color:#868e96;border-right:1px solid #dee2e6;position:relative;}
+    .tp-stage:last-child{border-right:none;}
+    .tp-stage.tp-done{background:#eaf4ee;color:#2f7a4f;}
+    .tp-stage.tp-live{background:#fdf3e3;color:#a9690e;font-weight:600;}
+    .tp-stage .tp-stage-num{display:block;font-size:10px;opacity:.7;margin-bottom:2px;}
+
+    .tp-veto-box{background:#fdf3e3;border:1px solid #f0c178;border-left:4px solid #d9822b;border-radius:4px;padding:12px 14px;margin-bottom:14px;}
+    .tp-veto-box .tp-veto-title{font-weight:600;color:#a9690e;font-size:13px;margin-bottom:8px;}
+    .tp-veto-item{font-size:12.5px;line-height:1.7;padding:5px 0;color:#6b4a1e;border-top:1px solid #f0c178;}
+    .tp-veto-item:first-of-type{border-top:none;}
+
+    .tp-review-box{background:#e9f1fb;border:1px solid #b9d3ef;border-left:4px solid #3a6ea5;border-radius:4px;padding:12px 14px;margin-bottom:14px;}
+    .tp-review-box .tp-review-title{font-weight:600;color:#2c5a8c;font-size:13px;margin-bottom:8px;}
+
+    .tp-req-row{padding:8px 4px;border-bottom:1px solid #eee;font-size:12.5px;}
+    .tp-req-row:last-child{border-bottom:none;}
+    .tp-req-row .tp-src{font-family:Consolas,monospace;font-size:10.5px;color:#868e96;margin-left:6px;}
+    .tp-badge-veto{display:inline-block;font-size:10px;background:#a9690e;color:#fff;border-radius:3px;padding:1px 6px;margin-right:6px;}
+    .tp-badge-review{display:inline-block;font-size:10px;background:#3a6ea5;color:#fff;border-radius:3px;padding:1px 6px;margin-right:6px;}
+
+    .tp-confirm-bar{display:flex;align-items:center;justify-content:space-between;background:#f8f9fa;border:1px dashed #ced4da;border-radius:4px;padding:10px 14px;margin-top:10px;}
+</style>
+
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
@@ -38,6 +65,20 @@
         </div>
     </div>
 
+    @{
+        var parseStage = Model.ParseStage;
+    }
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="tp-stage-bar">
+                <div class="tp-stage @(parseStage >= 1 ? "tp-done" : "")"><span class="tp-stage-num">01</span>上传文件</div>
+                <div class="tp-stage @(parseStage == 1 ? "tp-live" : (parseStage >= 2 ? "tp-done" : ""))"><span class="tp-stage-num">02</span>AI 解析</div>
+                <div class="tp-stage @(parseStage == 2 ? "tp-live" : (parseStage >= 3 ? "tp-done" : ""))"><span class="tp-stage-num">03</span>人工确认要素表</div>
+                <div class="tp-stage @(parseStage >= 3 ? "tp-done" : "")"><span class="tp-stage-num">04</span>进入内容生成</div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-md-4">
             <div class="card mb-3">
@@ -65,18 +106,30 @@
             </div>
 
             <div class="card mb-3">
-                <div class="card-header">招标文件分析</div>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>招标文件解析</span>
+                    <span class="badge bg-@(parseStage == 3 ? "success" : (parseStage == 2 ? "warning" : "secondary"))">
+                        @Model.ParseStageName
+                    </span>
+                </div>
                 <div class="card-body">
+                    @if (!string.IsNullOrWhiteSpace(Model.SourceFileName))
+                    {
+                        <div class="mb-2 text-muted" style="font-size:12px;">
+                            <i class="fas fa-file-alt mr-1"></i>@Model.SourceFileName
+                        </div>
+                    }
                     <div class="mb-3">
                         <input type="file" id="bidFile" class="form-control" accept=".pdf,.docx,.doc" />
+                        <small class="text-muted">支持 PDF / Word；扫描件暂不支持文字识别</small>
                     </div>
                     <button type="button" class="btn btn-primary w-100" onclick="analyzeDocument()">
-                        <i class="bi bi-robot"></i> AI解析招标文件
+                        <i class="fas fa-robot mr-1"></i> AI解析招标文件
                     </button>
                     <div id="analyzeProgress" class="mt-3" style="display:none;">
                         <div class="progress">
                             <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">
-                                正在解析...
+                                正在解析（按章节分块处理，大文件可能需要数十秒到数分钟）...
                             </div>
                         </div>
                     </div>
@@ -86,6 +139,12 @@
             <div class="card mb-3">
                 <div class="card-header">快捷操作</div>
                 <div class="card-body">
+                    @if (parseStage != 3)
+                    {
+                        <div class="alert alert-light border mb-2" style="font-size:11.5px;padding:6px 10px;">
+                            <i class="fas fa-info-circle mr-1"></i>建议先完成"人工确认招标要素表"，再生成正文内容
+                        </div>
+                    }
                     <button type="button" class="btn btn-success w-100 mb-2" onclick="generateFullBid()">
                         <i class="fas fa-magic"></i> 一键生成全部章节
                     </button>
@@ -112,29 +171,134 @@
                     </div>
                 </div>
             </div>
+
+            <div class="card mb-3">
+                <div class="card-header">导出文件</div>
+                <div class="card-body">
+                    <div class="form-group mb-2">
+                        <select id="exportPart" class="form-control form-control-sm">
+                            <option value="all">完整投标文件</option>
+                            <option value="technical">仅技术部分</option>
+                            <option value="commercial">仅商务部分</option>
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="button" class="btn btn-success w-100" onclick="exportDocument('word')">
+                                <i class="fas fa-file-word mr-1"></i>导出Word
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" class="btn btn-danger w-100" onclick="exportDocument('pdf')">
+                                <i class="fas fa-file-pdf mr-1"></i>导出PDF
+                            </button>
+                        </div>
+                    </div>
+                    <div id="exportStatus" class="mt-2" style="font-size:11.5px;"></div>
+                    <small class="text-muted d-block mt-1">PDF导出依赖服务器LibreOffice环境；若不可用请改用Word格式</small>
+                </div>
+            </div>
         </div>
 
         <div class="col-md-8">
+            @{
+                var vetoItems = Model.Requirements.Where(r => r.IsVeto).ToList();
+                var reviewItems = Model.Requirements.Where(r => r.NeedsReview).ToList();
+            }
+
+            @if (vetoItems.Any())
+            {
+                <div class="tp-veto-box">
+                    <div class="tp-veto-title"><i class="fas fa-exclamation-triangle mr-1"></i>否决性条款 · @vetoItems.Count 项（不满足将导致废标，请重点核对）</div>
+                    @foreach (var v in vetoItems)
+                    {
+                        <div class="tp-veto-item">
+                            @v.Content
+                            @if (!string.IsNullOrWhiteSpace(v.SourceRef))
+                            {
+                                <span class="tp-src">[@v.SourceRef]</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @if (reviewItems.Any())
+            {
+                <div class="tp-review-box">
+                    <div class="tp-review-title"><i class="fas fa-search mr-1"></i>待人工确认 · @reviewItems.Count 项（AI未能在原文中定位到出处，需人工核实后才能确认要素表）</div>
+                    @foreach (var r in reviewItems)
+                    {
+                        <div class="tp-req-row" style="border-color:#b9d3ef;">
+                            <span class="tp-badge-review">待确认</span>@r.Content
+                            <button class="btn btn-xs btn-outline-primary float-right" style="font-size:10px;padding:1px 6px;"
+                                    onclick="resolveRequirement(@r.Id, '@Html.Raw(System.Text.Json.JsonEncodedText.Encode(r.Content))')">
+                                核对
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>招标要求</span>
                     <span class="badge bg-info">@Model.Requirements.Count 项</span>
                 </div>
-                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                <div class="card-body" style="max-height: 320px; overflow-y: auto;">
                     @if (Model.Requirements.Any())
                     {
                         @foreach (var req in Model.Requirements.GroupBy(r => r.Category))
                         {
                             <h6 class="text-primary mt-2">@req.Key</h6>
-                            <ul class="list-unstyled ms-3">
-                                @foreach (var item in req)
-                                {
-                                    <li class="mb-1">
-                                        <small class="text-muted">@(item.ScoreWeight?.ToString() ?? "")分</small>
-                                        @item.Content
-                                    </li>
-                                }
-                            </ul>
+                            @foreach (var item in req)
+                            {
+                                <div class="tp-req-row">
+                                    @if (item.IsVeto)
+                                    {
+                                        <span class="tp-badge-veto">否决项</span>
+                                    }
+                                    @if (item.NeedsReview)
+                                    {
+                                        <span class="tp-badge-review">待确认</span>
+                                    }
+                                    <small class="text-muted">@(item.ScoreWeight?.ToString() ?? "")分</small>
+                                    @item.Content
+                                    @if (!string.IsNullOrWhiteSpace(item.SourceRef))
+                                    {
+                                        <span class="tp-src">[@item.SourceRef]</span>
+                                    }
+                                </div>
+                            }
+                        }
+
+                        @if (parseStage == 2)
+                        {
+                            <div class="tp-confirm-bar">
+                                <span style="font-size:12.5px;color:#495057;">
+                                    @if (reviewItems.Any())
+                                    {
+                                        <text>还有 @reviewItems.Count 项待确认，处理完成后才能确认要素表</text>
+                                    }
+                                    else
+                                    {
+                                        <text>所有条目已有出处定位，可以确认招标要素表</text>
+                                    }
+                                </span>
+                                <button type="button" class="btn btn-sm @(reviewItems.Any() ? "btn-secondary" : "btn-success")"
+                                        onclick="confirmElements()" @(reviewItems.Any() ? "disabled" : "")>
+                                    <i class="fas fa-check mr-1"></i>确认招标要素表
+                                </button>
+                            </div>
+                        }
+                        else if (parseStage == 3)
+                        {
+                            <div class="tp-confirm-bar" style="border-style:solid;border-color:#bcd6c5;background:#eaf2ec;">
+                                <span style="font-size:12.5px;color:#2f7a4f;">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    已于 @(Model.ElementsConfirmedAt?.ToString("yyyy-MM-dd HH:mm")) 由 @Model.ElementsConfirmedBy 确认
+                                </span>
+                            </div>
                         }
                     }
                     else
@@ -279,7 +443,7 @@
                 var result = await response.json();
 
                 if (result.success) {
-                    alert('解析完成！页面将刷新显示结果。');
+                    alert('解析完成！页面将刷新显示结果，请重点核对"否决性条款"和"待人工确认"两个区块。');
                     location.reload();
                 } else {
                     alert('解析失败：' + result.message);
@@ -288,6 +452,60 @@
                 alert('请求失败：' + e.message);
             } finally {
                 document.getElementById('analyzeProgress').style.display = 'none';
+            }
+        }
+
+        // "人工确认招标要素表"卡点：后端会再次校验是否还有待确认条目，前端disabled只是减少误触，不是唯一防线。
+        async function confirmElements() {
+            if (!confirm('确认后将锁定本次招标要素表，作为后续内容生成与人员匹配的依据，确定要继续吗？')) return;
+
+            try {
+                var response = await fetch('/Bid/ConfirmElements', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ BidProjectId: bidProjectId })
+                });
+                var result = await response.json();
+
+                if (result.success) {
+                    alert('招标要素表已确认。');
+                    location.reload();
+                } else {
+                    alert('无法确认：' + result.message);
+                }
+            } catch (e) {
+                alert('请求失败：' + e.message);
+            }
+        }
+
+        // 核对单条"待确认"要求：人工补充原文出处定位，并复核是否属于否决性条款。
+        async function resolveRequirement(requirementId, content) {
+            var decoded = JSON.parse('"' + content + '"');
+            var sourceRef = prompt(
+                '核对以下条目，并填写在原文中的出处定位（如 "p.14" 或 "投标人须知 §3.2"）：\n\n' + decoded,
+                ''
+            );
+            if (sourceRef === null) return; // 用户取消
+            if (!sourceRef.trim()) {
+                alert('出处不能为空，否则该条目会继续保留"待确认"状态');
+                return;
+            }
+            var isVeto = confirm('该条目是否为否决性条款（不满足将直接导致废标）？\n点击"确定"=是否决项，点击"取消"=不是否决项');
+
+            try {
+                var response = await fetch('/Bid/ResolveRequirement', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ RequirementId: requirementId, IsVeto: isVeto, SourceRef: sourceRef.trim() })
+                });
+                var result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('保存失败：' + result.message);
+                }
+            } catch (e) {
+                alert('请求失败：' + e.message);
             }
         }
 
@@ -449,6 +667,57 @@
             }
         }
 
+        // 真实文件导出：成功时后端返回二进制文件流，失败时返回JSON错误——用响应的 Content-Type 区分两种情况，
+        // 而不是假设请求一定成功。导出警告（如预估页数超限）通过自定义响应头带回，不阻断下载。
+        async function exportDocument(format) {
+            var part = document.getElementById('exportPart').value;
+            var statusEl = document.getElementById('exportStatus');
+            statusEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin mr-1"></i>正在生成' + (format === 'pdf' ? 'PDF' : 'Word') + '文件...</span>';
+
+            var url = '/Bid/Export' + (format === 'pdf' ? 'Pdf' : 'Word') + '?bidProjectId=' + bidProjectId + '&part=' + part;
+
+            try {
+                var response = await fetch(url, { method: 'GET' });
+                var contentType = response.headers.get('Content-Type') || '';
+
+                if (contentType.indexOf('application/json') !== -1) {
+                    var result = await response.json();
+                    statusEl.innerHTML = '<div class="alert alert-warning py-1 px-2 mb-0">' + escapeHtml(result.message || '导出失败') + '</div>';
+                    return;
+                }
+
+                if (!response.ok) {
+                    statusEl.innerHTML = '<div class="alert alert-danger py-1 px-2 mb-0">导出失败（HTTP ' + response.status + '）</div>';
+                    return;
+                }
+
+                var warningsHeader = response.headers.get('X-Export-Warnings');
+                var blob = await response.blob();
+                var disposition = response.headers.get('Content-Disposition') || '';
+                var match = /filename\*?=(?:UTF-8'')?["']?([^"';]+)/i.exec(disposition);
+                var fileName = match ? decodeURIComponent(match[1]) : ('export.' + (format === 'pdf' ? 'pdf' : 'docx'));
+
+                var a = document.createElement('a');
+                var objectUrl = URL.createObjectURL(blob);
+                a.href = objectUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(objectUrl);
+
+                if (warningsHeader) {
+                    var warnings = decodeURIComponent(warningsHeader).split(' | ');
+                    statusEl.innerHTML = '<div class="alert alert-warning py-1 px-2 mb-0">' +
+                        warnings.map(function(w) { return '<div>' + escapeHtml(w) + '</div>'; }).join('') + '</div>';
+                } else {
+                    statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle mr-1"></i>已下载</span>';
+                }
+            } catch (e) {
+                statusEl.innerHTML = '<div class="alert alert-danger py-1 px-2 mb-0">请求失败：' + escapeHtml(e.message) + '</div>';
+            }
+        }
+
         function displayAssembleResult(data) {
             var infoHtml = '<div class="alert alert-info py-2"><strong>' + escapeHtml(data.ProjectName) + '</strong> - 组装时间：' + data.AssembleTime + '</div>';
             document.getElementById('assembleInfo').innerHTML = infoHtml;
@@ -575,10 +844,6 @@
 
             var personnel = data.matchedPersonnel || data.MatchedPersonnel || [];
             if (personnel.length > 0) {
-                html += '<table class="table table-sm table-bordered">';
-                html += '<thead class="thead-light"><tr><th>姓名</th><th>部门</th><th>学历</th><th>工作年限</th><th>证书</th><th>匹配得分</th></tr></thead>';
-                html += '<tbody>';
-
                 personnel.forEach(function(p) {
                     var name = p.name || p.Name || '';
                     var dept = p.deptName || p.DeptName || '-';
@@ -586,23 +851,42 @@
                     var years = p.workYears || p.WorkYears || 0;
                     var score = p.matchScore || p.MatchScore || 0;
                     var certs = p.certificates || p.Certificates || [];
+                    var basis = p.matchBasis || p.MatchBasis || [];
+                    var conflicts = p.conflictWarnings || p.ConflictWarnings || [];
+                    var hasConflict = conflicts.length > 0;
 
-                    html += '<tr>';
-                    html += '<td><strong>' + escapeHtml(name) + '</strong></td>';
-                    html += '<td>' + escapeHtml(dept) + '</td>';
-                    html += '<td>' + escapeHtml(edu) + '</td>';
-                    html += '<td>' + years + '年</td>';
-                    html += '<td>';
+                    html += '<div class="card mb-2" style="border-left:4px solid ' + (hasConflict ? '#d9822b' : '#28a745') + ';">';
+                    html += '<div class="card-body p-2">';
+                    html += '<div class="d-flex justify-content-between align-items-start">';
+                    html += '<div><strong>' + escapeHtml(name) + '</strong>';
+                    html += ' <span class="text-muted" style="font-size:12px;">' + escapeHtml(dept) + ' · ' + escapeHtml(edu) + ' · 工作' + years + '年</span></div>';
+                    html += '<span class="badge badge-primary">匹配得分 ' + score + '</span>';
+                    html += '</div>';
+
+                    if (hasConflict) {
+                        html += '<div class="alert alert-warning py-1 px-2 mt-2 mb-1" style="font-size:11.5px;">';
+                        conflicts.forEach(function(c) { html += '<div><i class="fas fa-exclamation-triangle mr-1"></i>' + escapeHtml(c) + '</div>'; });
+                        html += '</div>';
+                    }
+
+                    html += '<div class="mt-2" style="font-size:12px;">';
                     certs.forEach(function(c) {
                         var certName = c.certName || c.CertName || '';
-                        if (certName) html += '<span class="badge badge-success mr-1 mb-1">' + escapeHtml(certName) + '</span>';
+                        var validity = c.validityStatus || c.ValidityStatus || 'Valid';
+                        var badgeClass = validity === 'Expired' ? 'badge-danger' : (validity === 'ExpiringSoon' ? 'badge-warning' : (validity === 'Unknown' ? 'badge-secondary' : 'badge-success'));
+                        var validityLabel = validity === 'Expired' ? '已过期' : (validity === 'ExpiringSoon' ? '即将到期' : (validity === 'Unknown' ? '未登记有效期' : '有效'));
+                        if (certName) html += '<span class="badge ' + badgeClass + ' mr-1 mb-1">' + escapeHtml(certName) + ' · ' + validityLabel + '</span>';
                     });
-                    html += '</td>';
-                    html += '<td><span class="badge badge-primary">' + score + '分</span></td>';
-                    html += '</tr>';
-                });
+                    html += '</div>';
 
-                html += '</tbody></table>';
+                    if (basis.length > 0) {
+                        html += '<ul class="mb-0 mt-1" style="font-size:11.5px;color:#495057;padding-left:18px;">';
+                        basis.forEach(function(b) { html += '<li>' + escapeHtml(b) + '</li>'; });
+                        html += '</ul>';
+                    }
+
+                    html += '</div></div>';
+                });
             } else {
                 html += '<div class="alert alert-warning py-2"><i class="fas fa-exclamation-triangle"></i> 暂无符合条件的人员</div>';
             }
@@ -616,7 +900,18 @@
                 html += '</ul></div>';
             }
 
-            html += '<div class="mt-3"><button class="btn btn-primary" onclick="generatePersonnelSection()"><i class="fas fa-magic mr-1"></i>根据匹配结果生成人员配置文档</button></div>';
+            var unrecognized = data.unrecognizedRequirements || data.UnrecognizedRequirements || [];
+            if (unrecognized.length > 0) {
+                html += '<div class="alert alert-info py-2 mt-2" style="background:#e9f1fb;border-color:#b9d3ef;">';
+                html += '<strong><i class="fas fa-search mr-1"></i>系统无法自动识别证书类型，需人工直接核对：</strong><ul class="mb-0">';
+                unrecognized.forEach(function(req) {
+                    html += '<li>' + escapeHtml(req) + '</li>';
+                });
+                html += '</ul></div>';
+            }
+
+            html += '<div class="mt-3"><button class="btn btn-primary" onclick="generatePersonnelSection()"><i class="fas fa-magic mr-1"></i>根据匹配结果生成人员配置文档</button>';
+            html += ' <small class="text-muted ml-2">存在岗位冲突的人员不会被写入正文，需人工确认后再补充</small></div>';
 
             outputEl.innerHTML = html;
         }
