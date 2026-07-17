@@ -1,0 +1,23 @@
+[Unit]
+Description=EnterpriseMS - 企业管理系统
+After=network.target mysql.service redis.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/enterprisems
+ExecStart=/usr/bin/dotnet /var/www/enterprisems/EnterpriseMS.dll
+Restart=always
+RestartSec=10
+KillSignal=SIGINT
+SyslogIdentifier=enterprisems
+
+# 环境变量 —— Linux 部署时在此处填写真实密码
+Environment="DB_PASSWORD=your_password_here"
+Environment="REDIS_PASSWORD=your_password_here"
+Environment="ASPNETCORE_ENVIRONMENT=Production"
+Environment="ASPNETCORE_URLS=http://+:5080"
+
+[Install]
+WantedBy=multi-user.target

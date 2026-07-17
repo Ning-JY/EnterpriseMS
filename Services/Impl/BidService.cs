@@ -607,6 +607,13 @@ public class BidService : IBidService
         var deadline = bidProject.Deadline ?? DateTime.Now.AddMonths(3);
         var employees = await _employeeRepo.GetListAsync(e => e.Status == (int)EmployeeStatus.OnJob);
 
+        // 批量预加载所有在职员工的有效证书，避免 N+1 查询
+        var employeeIds = employees.Select(e => e.Id).ToList();
+        var allCerts = await _certRepo.GetListAsync(c =>
+            employeeIds.Contains(c.EmployeeId) && c.Status == (int)CertStatus.Valid);
+        var certsByEmployee = allCerts.GroupBy(c => c.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
         // 在建项目关键岗位冲突检测（社保唯一性的代理信号）：
         // 拉取所有仍处于执行/签约/投标阶段、且角色为核心岗位的项目成员记录，排除本次投标对应的项目本身。
         var coreRoles = new[] { "项目经理", "技术负责人", "项目负责人", "负责人" };
@@ -630,7 +637,7 @@ public class BidService : IBidService
 
         foreach (var emp in employees)
         {
-            var certs = await _certRepo.GetListAsync(c => c.EmployeeId == emp.Id && c.Status == (int)CertStatus.Valid);
+            var certs = certsByEmployee.GetValueOrDefault(emp.Id, new List<EmployeeCertificate>());
 
             var empMatch = new MatchedPersonnel
             {

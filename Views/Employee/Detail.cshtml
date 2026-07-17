@@ -508,25 +508,39 @@ function saveEdit() {
 
 function doFormal() {
     var today = new Date().toISOString().split('T')[0];
-    layer.prompt({ title: '请选择转正日期', formType: 2, value: today }, function(val, i) {
-        layer.close(i);
-        $.post('/hr/employee/formal', { id: empId, formalDate: val, __RequestVerificationToken: antiForgery },
-            function(r) {
-                layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
-                    function() { if (r.success) location.reload(); });
-            });
+    layer.open({
+        type: 1, title: '办理转正', area: ['350px', '180px'],
+        content: '<div class="form-group" style="padding:15px"><label>转正日期</label><input type="date" id="formalDate" class="form-control" value="' + today + '"></div>',
+        btn: ['确认转正', '取消'],
+        yes: function(idx) {
+            var val = $('#formalDate').val();
+            if (!val) { layer.msg('请选择日期', {icon:2}); return; }
+            $.post('/hr/employee/formal', { id: empId, formalDate: val, __RequestVerificationToken: antiForgery },
+                function(r) {
+                    layer.close(idx);
+                    layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                        function() { if (r.success) location.reload(); });
+                });
+        }
     });
 }
 
 function doLeave() {
     var today = new Date().toISOString().split('T')[0];
-    layer.prompt({ title: '请输入离职日期', formType: 2, value: today }, function(val, i) {
-        layer.close(i);
-        $.post('/hr/employee/leave', { id: empId, leaveDate: val, __RequestVerificationToken: antiForgery },
-            function(r) {
-                layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
-                    function() { if (r.success) location.reload(); });
-            });
+    layer.open({
+        type: 1, title: '办理离职', area: ['350px', '180px'],
+        content: '<div class="form-group" style="padding:15px"><label>离职日期</label><input type="date" id="leaveDate" class="form-control" value="' + today + '"></div>',
+        btn: ['确认离职', '取消'],
+        yes: function(idx) {
+            var val = $('#leaveDate').val();
+            if (!val) { layer.msg('请选择日期', {icon:2}); return; }
+            $.post('/hr/employee/leave', { id: empId, leaveDate: val, __RequestVerificationToken: antiForgery },
+                function(r) {
+                    layer.close(idx);
+                    layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                        function() { if (r.success) location.reload(); });
+                });
+        }
     });
 }
 

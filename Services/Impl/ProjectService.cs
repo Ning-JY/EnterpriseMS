@@ -663,12 +663,30 @@ public class ProjectService : IProjectService
             .Where(m => m.EmployeeId == employeeId && m.Status == 0)
             .ToListAsync();
 
+        var projectIds = memberships.Where(m => m.Project != null).Select(m => m.ProjectId).ToList();
+
+        // 批量查询所有项目的回款总额，避免 N+1 查询
+        var accTotals = await _uow.Acceptances.Query()
+            .Where(a => projectIds.Contains(a.ProjectId))
+            .GroupBy(a => a.ProjectId)
+            .Select(g => new { ProjectId = g.Key, Total = g.Sum(a => a.AcceptAmount) })
+            .ToListAsync();
+        var invTotals = await _uow.ProjInvoices.Query()
+            .Where(i => projectIds.Contains(i.ProjectId) && i.IsReceived)
+            .GroupBy(i => i.ProjectId)
+            .Select(g => new { ProjectId = g.Key, Total = g.Sum(i => i.Amount) })
+            .ToListAsync();
+        var receivedByProject = accTotals.ToDictionary(a => a.ProjectId, a => a.Total)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value + invTotals.FirstOrDefault(i => i.ProjectId == kvp.Key)?.Total ?? 0);
+
         var stats = new List<object>();
         foreach (var ms in memberships)
         {
             if (ms.Project == null) continue;
             var proj = ms.Project;
-            var received = await GetTotalReceivedAsync(proj.Id);
+            var received = receivedByProject.GetValueOrDefault(proj.Id, 0m);
             var actual = proj.ActualContractAmount;
             stats.Add(new
             {

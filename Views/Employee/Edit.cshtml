@@ -113,6 +113,32 @@
             </div>
             <div class="col-md-4">
                 <div class="form-group">
+                    <label>岗位</label>
+                    <select id="postId" class="form-control">
+                        <option value="">请选择岗位</option>
+                        @foreach (var p in ViewBag.Posts as List<EnterpriseMS.Domain.Entities.System.SysPost> ?? new())
+                        {
+                            <option value="@p.Id" selected="@(Model.PostId == p.Id ? "selected" : null)">@p.PostName</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="form-group">
+                    <label>学历</label>
+                    <select id="education" class="form-control">
+                        <option value="">请选择</option>
+                        @foreach (var edu in new[] { "高中", "大专", "本科", "硕士", "博士" })
+                        {
+                            <option value="@edu" selected="@(Model.Education == edu ? "selected" : null)">@edu</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="form-group">
                     <label>入职日期</label>
                     <input type="date" id="entryDate" class="form-control"
                            value="@(Model.EntryDate?.ToString("yyyy-MM-dd") ?? "")">
@@ -158,6 +184,8 @@ function saveEdit() {
         Email:            $('#email').val(),
         IdCard:           $('#idCard').val(),
         DeptId:           parseInt($('#deptId').val()) || null,
+        PostId:           parseInt($('#postId').val()) || null,
+        Education:        $('#education').val() || null,
         EntryDate:        $('#entryDate').val() || null,
         ProbationEndDate: $('#probationEnd').val() || null,
         Remark:           $('#remark').val()

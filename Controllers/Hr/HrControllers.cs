@@ -45,6 +45,15 @@ public class EmployeeController : BaseAuthController
         var total = await q.CountAsync();
         var list  = await q.OrderByDescending(e => e.CreatedAt)
                            .Skip((page-1)*size).Take(size).ToListAsync();
+
+        // 批量查询已绑定的员工ID，用于列表显示绑定状态
+        var empIds = list.Select(e => e.Id).ToList();
+        var boundEmpIds = await _uow.Users.Query()
+            .Where(u => u.EmployeeId.HasValue && empIds.Contains(u.EmployeeId.Value))
+            .Select(u => u.EmployeeId!.Value)
+            .ToListAsync();
+        ViewBag.BoundEmpIds = boundEmpIds;
+
         ViewBag.Depts    = await _deptSvc.GetTreeAsync();
         ViewBag.Keyword  = keyword; ViewBag.DeptId = deptId; ViewBag.Status = status;
         ViewBag.Page = page; ViewBag.Size = size; ViewBag.Total = total;
@@ -98,6 +107,7 @@ public class EmployeeController : BaseAuthController
             .FirstOrDefaultAsync(e => e.Id == id);
         if (emp == null) return NotFound();
         ViewBag.Depts = await _deptSvc.GetTreeAsync();
+        ViewBag.Posts = await _uow.Posts.GetListAsync();
         return View(emp);
     }
 
@@ -107,10 +117,11 @@ public class EmployeeController : BaseAuthController
     {
         if (string.IsNullOrWhiteSpace(req.RealName))
             return Json(ApiResult<object>.Fail("姓名不能为空"));
-        var count = await _uow.Employees.CountAsync();
+        // 使用雪花ID后6位 + 年份生成工号，避免并发冲突
+        var snowId = EnterpriseMS.Common.SnowflakeId.Next();
         var emp   = new Employee
         {
-            EmpNo    = $"EMP{DateTime.Now.Year}{(count+1):D4}",
+            EmpNo    = $"EMP{DateTime.Now.Year}{snowId % 100000:D5}",
             RealName = req.RealName, Gender = req.Gender,
             Phone = req.Phone, Email = req.Email, IdCard = req.IdCard,
             DeptId = req.DeptId, PostId = req.PostId,
@@ -184,7 +195,8 @@ public class EmployeeController : BaseAuthController
     }
 
     // 供用户管理绑定员工使用
-    [HttpGet("options"), AllowAnonymous]
+    [HttpGet("options")]
+    [Authorize]
     public async Task<IActionResult> Options()
     {
         var emps = await _uow.Employees.Query()
@@ -340,18 +352,7 @@ public class ContractController : BaseAuthController
     }
 
     private async Task<(string path, string name)?> SaveUploadFile(IFormFile? file, string folder)
-    {
-        if (file == null || file.Length == 0) return null;
-        if (file.Length > 20 * 1024 * 1024) return null;
-        var dir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", folder);
-        Directory.CreateDirectory(dir);
-        var ext  = Path.GetExtension(file.FileName);
-        var name = $"{Guid.NewGuid():N}{ext}";
-        var path = Path.Combine(dir, name);
-        using var fs = new FileStream(path, FileMode.Create);
-        await file.CopyToAsync(fs);
-        return (path, file.FileName);
-    }
+        => await EnterpriseMS.Common.FileUploadHelper.SaveUploadFile(file, folder);
 }
 
 // ── 证书管理 ──────────────────────────────────────────────────
@@ -478,18 +479,7 @@ public class CertificateController : BaseAuthController
     }
 
     private async Task<(string path, string name)?> SaveUploadFile(IFormFile? file, string folder)
-    {
-        if (file == null || file.Length == 0) return null;
-        if (file.Length > 20 * 1024 * 1024) return null;
-        var dir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", folder);
-        Directory.CreateDirectory(dir);
-        var ext  = Path.GetExtension(file.FileName);
-        var name = $"{Guid.NewGuid():N}{ext}";
-        var fpath = Path.Combine(dir, name);
-        using var fs = new FileStream(fpath, FileMode.Create);
-        await file.CopyToAsync(fs);
-        return (fpath, file.FileName);
-    }
+        => await EnterpriseMS.Common.FileUploadHelper.SaveUploadFile(file, folder);
 }
 
 // ── Request 模型 ──────────────────────────────────────────────

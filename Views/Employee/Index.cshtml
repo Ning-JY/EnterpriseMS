@@ -35,8 +35,19 @@
         <div class="card-tools d-flex align-items-center gap-2">
                     <form id="searchForm" method="get" action="/hr/employee" class="d-inline-flex mr-2">
                 <input name="keyword" class="form-control form-control-sm mr-1"
-                       placeholder="姓名/工号/手机" value="@ViewBag.Keyword" style="width:160px">
-                <select name="status" class="form-control form-control-sm mr-1" style="width:90px">
+                       placeholder="姓名/工号/手机" value="@ViewBag.Keyword" style="width:120px">
+                <select name="deptId" class="form-control form-control-sm mr-1" style="width:110px">
+                    <option value="">全部部门</option>
+                    @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
+                    {
+                        <option value="@d.Id" selected="@(ViewBag.DeptId?.ToString()==d.Id.ToString() ? "selected" : null)">@d.DeptName</option>
+                        @foreach (var c in d.Children)
+                        {
+                            <option value="@c.Id" selected="@(ViewBag.DeptId?.ToString()==c.Id.ToString() ? "selected" : null)">&nbsp;&nbsp;└ @c.DeptName</option>
+                        }
+                    }
+                </select>
+                <select name="status" class="form-control form-control-sm mr-1" style="width:80px">
                     <option value="">全部</option>
                     <option value="0" selected="@(ViewBag.Status?.ToString()=="0" ? "selected" : null)">试用期</option>
                     <option value="1" selected="@(ViewBag.Status?.ToString()=="1" ? "selected" : null)">在职</option>
@@ -58,7 +69,7 @@
             <thead class="thead-light">
                 <tr>
                     <th>工号</th><th>姓名</th><th>部门</th><th>手机</th>
-                    <th>状态</th><th>入职日期</th><th>转正日期</th><th>操作</th>
+                    <th>状态</th><th>入职日期</th><th>登录账号</th><th>操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -78,7 +89,16 @@
                             <span class="badge @statusBadge[e.Status]">@statusText[e.Status]</span>
                         </td>
                         <td class="small text-muted">@(e.EntryDate?.ToString("yyyy-MM-dd") ?? "-")</td>
-                        <td class="small text-muted">@(e.FormalDate?.ToString("yyyy-MM-dd") ?? "-")</td>
+                        <td>
+                            @if (ViewBag.BoundEmpIds is List<long> boundIds && boundIds.Contains(e.Id))
+                            {
+                                <span class="badge badge-success"><i class="fas fa-check-circle mr-1"></i>已绑定</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">未绑定</span>
+                            }
+                        </td>
                         <td>
                             <a href="/hr/employee/detail/@e.Id" class="btn btn-xs btn-info" title="详情">
                                 <i class="fas fa-eye"></i>
@@ -224,13 +244,24 @@ function openAddModal() {
 }
 
 function openEditModal(id) {
-    $.get('/hr/employee/detail/' + id, function(r) {}).fail(function() {
-        layer.msg('加载失败', {icon:2});
+    $.get('/hr/employee/json/' + id, function(r) {
+        if (!r.success) { layer.msg(r.message || '加载失败', {icon:2}); return; }
+        var e = r.data;
+        $('#empModalTitle').text('编辑员工');
+        $('#empId').val(e.Id);
+        $('#empRealName').val(e.RealName);
+        $('#empGender').val(e.Gender);
+        $('#empPhone').val(e.Phone || '');
+        $('#empEmail').val(e.Email || '');
+        $('#empIdCard').val(e.IdCard || '');
+        $('#empDeptId').val(e.DeptId || '');
+        $('#empEntryDate').val(e.EntryDate || '');
+        $('#empProbationEnd').val(e.ProbationEndDate || '');
+        $('#empRemark').val(e.Remark || '');
+        $('#empModal').modal('show');
+    }).fail(function() {
+        layer.msg('加载员工信息失败', {icon:2});
     });
-    // 简化：直接打开弹窗让用户重新填（实际项目应加载现有数据）
-    $('#empModalTitle').text('编辑员工（ID：' + id + '）');
-    $('#empId').val(id);
-    $('#empModal').modal('show');
 }
 
 function saveEmp() {
@@ -260,20 +291,36 @@ function saveEmp() {
 }
 
 function doFormal(id, name) {
-    layer.prompt({title: name + ' 转正日期', formType: 2}, function(val, i) {
-        layer.close(i);
-        $.post('/hr/employee/formal', {id, formalDate: val, __RequestVerificationToken: antiForgery}, function(r) {
-            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
-        });
+    var today = new Date().toISOString().split('T')[0];
+    layer.open({
+        type: 1, title: name + ' - 办理转正', area: ['350px', '180px'],
+        content: '<div class="form-group" style="padding:15px"><label>转正日期</label><input type="date" id="formalDate" class="form-control" value="' + today + '"></div>',
+        btn: ['确认转正', '取消'],
+        yes: function(idx) {
+            var val = $('#formalDate').val();
+            if (!val) { layer.msg('请选择日期', {icon:2}); return; }
+            $.post('/hr/employee/formal', {id, formalDate: val, __RequestVerificationToken: antiForgery}, function(r) {
+                layer.close(idx);
+                layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
+            });
+        }
     });
 }
 
 function doLeave(id, name) {
-    layer.prompt({title: name + ' 离职日期', formType: 2}, function(val, i) {
-        layer.close(i);
-        $.post('/hr/employee/leave', {id, leaveDate: val, __RequestVerificationToken: antiForgery}, function(r) {
-            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
-        });
+    var today = new Date().toISOString().split('T')[0];
+    layer.open({
+        type: 1, title: name + ' - 办理离职', area: ['350px', '180px'],
+        content: '<div class="form-group" style="padding:15px"><label>离职日期</label><input type="date" id="leaveDate" class="form-control" value="' + today + '"></div>',
+        btn: ['确认离职', '取消'],
+        yes: function(idx) {
+            var val = $('#leaveDate').val();
+            if (!val) { layer.msg('请选择日期', {icon:2}); return; }
+            $.post('/hr/employee/leave', {id, leaveDate: val, __RequestVerificationToken: antiForgery}, function(r) {
+                layer.close(idx);
+                layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
+            });
+        }
     });
 }
 </script>

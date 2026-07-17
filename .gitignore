@@ -39,3 +39,14 @@ wwwroot/
 
 # 数据库迁移文件
 Migrations/
+
+# 环境变量（含敏感信息，不可提交）
+.env
+.env.*
+!.env.example
+
+# IIS 配置（含环境变量密码，部署时本地填写）
+web.config
+
+# IDE 配置
+.vscode/

@@ -41,9 +41,29 @@ public class UserService : IUserService
         var list  = await q.OrderByDescending(u => u.CreatedAt)
                            .Skip((query.Page - 1) * query.Size).Take(query.Size)
                            .ToListAsync();
+
+        var dtos = _mapper.Map<List<UserListDto>>(list);
+
+        // 批量加载绑定的员工姓名
+        var empIds = list.Where(u => u.EmployeeId.HasValue).Select(u => u.EmployeeId!.Value).ToList();
+        if (empIds.Any())
+        {
+            var empNames = await _uow.Employees.Query()
+                .Where(e => empIds.Contains(e.Id))
+                .Select(e => new { e.Id, e.RealName })
+                .ToListAsync();
+            var empDict = empNames.ToDictionary(e => e.Id, e => e.RealName);
+            foreach (var dto in dtos)
+            {
+                var user = list.First(u => u.Id == dto.Id);
+                if (user.EmployeeId.HasValue && empDict.TryGetValue(user.EmployeeId.Value, out var empName))
+                    dto.EmployeeName = empName;
+            }
+        }
+
         return new PagedResult<UserListDto>
         {
-            Items    = _mapper.Map<List<UserListDto>>(list),
+            Items    = dtos,
             Total    = total,
             Page     = query.Page,
             PageSize = query.Size,

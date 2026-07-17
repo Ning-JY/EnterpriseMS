@@ -16,6 +16,8 @@ public class UserListDto
     public DateTime? LastLoginTime { get; set; }
     public DateTime  CreatedAt    { get; set; }
     public List<string> RoleNames { get; set; } = new();
+    /// <summary>绑定的员工姓名（可空）</summary>
+    public string?  EmployeeName  { get; set; }
 }
 
 public class UserDetailDto : UserListDto
@@ -27,8 +29,6 @@ public class UserDetailDto : UserListDto
     public string?      Remark     { get; set; }
     /// <summary>绑定的员工档案ID（可空，admin等系统账号不绑定）</summary>
     public long?        EmployeeId { get; set; }
-    /// <summary>绑定员工姓名（仅展示用）</summary>
-    public string?      EmployeeName { get; set; }
 }
 
 public class CreateUserDto

@@ -116,6 +116,24 @@ public class AppDbContext : DbContext
         mb.Entity<BidDocument>().HasOne(e => e.BidProject).WithMany(b => b.Documents)
             .HasForeignKey(e => e.BidProjectId).OnDelete(DeleteBehavior.Cascade);
 
+        // 外键索引：为频繁查询的外键字段添加索引，提升查询性能
+        mb.Entity<EmployeeContract>().HasIndex(c => c.EmployeeId);
+        mb.Entity<EmployeeCertificate>().HasIndex(c => c.EmployeeId);
+        mb.Entity<ProjectMember>().HasIndex(m => m.ProjectId);
+        mb.Entity<ProjectMember>().HasIndex(m => m.EmployeeId);
+        mb.Entity<ProjectMilestone>().HasIndex(m => m.ProjectId);
+        mb.Entity<ProjectAcceptance>().HasIndex(a => a.ProjectId);
+        mb.Entity<ProjectOperLog>().HasIndex(l => l.ProjectId);
+        mb.Entity<ProjectContract>().HasIndex(c => c.ProjectId);
+        mb.Entity<ProjectInvoice>().HasIndex(i => i.ProjectId);
+        mb.Entity<ProjectFile>().HasIndex(f => f.ProjectId);
+        mb.Entity<BidRequirement>().HasIndex(r => r.BidProjectId);
+        mb.Entity<BidDocument>().HasIndex(d => d.BidProjectId);
+        mb.Entity<BudgetSection>().HasIndex(s => s.TaskId);
+        mb.Entity<ReviewOpinion>().HasIndex(o => o.TaskId);
+        mb.Entity<InfoArticle>().HasIndex(a => a.CategoryId);
+        mb.Entity<KbFile>().HasIndex(f => f.CategoryId);
+
         // 全局软删除过滤器
         foreach (var entityType in mb.Model.GetEntityTypes())
         {

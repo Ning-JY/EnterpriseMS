@@ -36,10 +36,14 @@ try
 
     var connStr = builder.Configuration.GetConnectionString("Default")
                   ?? throw new InvalidOperationException("缺少数据库连接字符串 Default");
+    // 环境变量覆盖配置文件中的占位符密码
+    var dbPwd = Environment.GetEnvironmentVariable("DB_PASSWORD");
+    if (!string.IsNullOrEmpty(dbPwd))
+        connStr = connStr.Replace("${DB_PASSWORD}", dbPwd);
 
     // ── 数据库 ────────────────────────────────────────────────
     builder.Services.AddDbContext<AppDbContext>(opt =>
-        opt.UseMySql(connStr, ServerVersion.AutoDetect(connStr),
+        opt.UseMySql(connStr, new MySqlServerVersion(new Version(8, 0, 36)),
             x => x.MigrationsAssembly("EnterpriseMS").CommandTimeout(60))
            .EnableSensitiveDataLogging(builder.Environment.IsDevelopment()));
 
@@ -72,6 +76,10 @@ try
 
     // ── 缓存：Redis 可用则 Redis，否则自动降级内存缓存 ────────
     var redisConn = builder.Configuration["Redis:Connection"] ?? "";
+    // 环境变量覆盖配置文件中的占位符密码
+    var redisPwd = Environment.GetEnvironmentVariable("REDIS_PASSWORD");
+    if (!string.IsNullOrEmpty(redisPwd))
+        redisConn = redisConn.Replace("${REDIS_PASSWORD}", redisPwd);
     var redisOk   = false;
 
     if (!string.IsNullOrWhiteSpace(redisConn))
@@ -165,13 +173,8 @@ try
         cfg.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
            .UseSimpleAssemblyNameTypeSerializer()
            .UseRecommendedSerializerSettings();
-        if (redisOk)
-            cfg.UseRedisStorage(redisConn, new Hangfire.Redis.StackExchange.RedisStorageOptions
-            {
-                Prefix = "EMS:Hangfire:", Db = 1,
-            });
-        else
-            cfg.UseMemoryStorage();
+        // 开发环境始终使用内存存储，避免 Redis 配置问题
+        cfg.UseMemoryStorage();
     });
     builder.Services.AddHangfireServer(opt =>
     {
@@ -213,7 +216,7 @@ try
         AppPath        = "/",
     });
 
-    app.MapControllerRoute("public",  "pub/{controller=Info}/{action=Index}/{id?}");
+    app.MapControllerRoute("public",  "pub/{action=Index}/{id?}", new { controller = "Info" });
     app.MapControllerRoute("default", "{controller=Home}/{action=Index}/{id?}");
     app.MapHealthChecks("/health");
 
