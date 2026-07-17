@@ -1,60 +1,194 @@
-/* EnterpriseMS 全局样式 */
+/* =========================================================
+   EnterpriseMS 主题样式 · 青绿 / 石板灰 · 企业级后台
+   设计参照：costdata.cybertumu.com/app（Tailwind 青绿 + 石板灰）
+   仅覆盖 AdminLTE 3 默认皮肤，不改任何页面结构。
+   ========================================================= */
 
-/* ── 通用 ───────────────────────────────────── */
-body { font-size: 14px; }
-.font-monospace { font-family: 'Courier New', monospace; }
-.progress-xs { height: 4px; border-radius: 2px; }
-
-/* ── 表格优化 ───────────────────────────────── */
-.table-sm td, .table-sm th { padding: .35rem .5rem; }
-.table thead th { white-space: nowrap; font-size: 12px; }
-
-/* ── 卡片优化 ───────────────────────────────── */
-.card-outline .card-header { border-bottom: 1px solid rgba(0,0,0,.125); }
-.card .card-title { font-size: 15px; font-weight: 600; }
-
-/* ── 徽章颜色补充 ───────────────────────────── */
-.badge { font-size: 11px; font-weight: 500; }
-
-/* ── 按钮组 ─────────────────────────────────── */
-.btn-xs { padding: 2px 8px; font-size: 11px; border-radius: 3px; }
-
-/* ── 侧边栏激活状态 ─────────────────────────── */
-.nav-sidebar .nav-item > .nav-link.active {
-    background-color: rgba(255,255,255,.1);
+/* ── 设计变量 ─────────────────────────────── */
+:root {
+  --brand:        #00514b;   /* 深青绿 */
+  --brand-2:      #0d6b64;   /* 主青绿（按钮 / 强调） */
+  --brand-soft:   #a2f1e7;   /* 浅青绿（侧栏高亮文字） */
+  --secondary:    #00658e;   /* 蓝青 */
+  --bg:           #f5f7fa;   /* 内容区底色 */
+  --surface:      #ffffff;
+  --surface-low:  #eef2f7;
+  --line:         #e3e8ef;   /* 边框 */
+  --line-strong:  #cbd5e1;
+  --text:         #0f172a;
+  --muted:        #64748b;
+  --sidebar-bg:   #0f172a;   /* 深石板灰 */
+  --sidebar-line: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --radius:       14px;
+  --radius-sm:    9px;
+  --shadow-sm:    0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+  --shadow-md:    0 6px 20px rgba(15,23,42,.10);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei",
+          "PingFang SC", "Hiragino Sans GB", "Source Han Sans CN", system-ui, sans-serif;
 }
 
-/* ── 登录页 ─────────────────────────────────── */
-.login-page .login-box { width: 380px; }
-.login-card-body .login-box-msg { color: #6c757d; font-size: 13px; }
+/* ── 基础 ─────────────────────────────────── */
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg);
+}
+a { color: var(--brand-2); }
+a:hover { color: var(--brand); }
+.font-monospace { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+.progress-xs { height: 4px; border-radius: 3px; }
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-/* ── 信息框 ─────────────────────────────────── */
-.info-box { min-height: 70px; padding: 8px 10px; }
-.info-box-icon { width: 70px; font-size: 24px; display: flex; align-items: center; justify-content: center; }
-.info-box-content { padding: 5px 10px; }
-.info-box-number { font-size: 22px; font-weight: 700; }
+/* ── 侧边栏（深石板灰 + 青绿高亮） ──────── */
+.main-sidebar, .sidebar-dark-primary { background: var(--sidebar-bg) !important; }
+.main-sidebar { border-right: 1px solid var(--sidebar-line); }
+.sidebar-dark-primary .brand-link {
+  border-bottom: 1px solid var(--sidebar-line);
+  color: #fff;
+  padding: 1.05rem 1.15rem;
+}
+.sidebar-dark-primary .brand-link .brand-text { letter-spacing: .5px; }
+.sidebar-dark-primary .user-panel { border-bottom: 1px solid var(--sidebar-line); }
+.sidebar-dark-primary .user-panel .info a { color: #fff; }
+.nav-sidebar .nav-link {
+  color: var(--sidebar-text);
+  border-radius: 8px;
+  margin: 2px 10px;
+  padding: .6rem .8rem;
+}
+.nav-sidebar .nav-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+.nav-sidebar .nav-link.active,
+.nav-sidebar .nav-link.active:hover {
+  color: var(--brand-soft) !important;
+  background: linear-gradient(90deg, rgba(13,107,100,.32), rgba(13,107,100,.10)) !important;
+  box-shadow: inset 3px 0 0 var(--brand-soft);
+}
+.nav-sidebar .nav-treeview .nav-link { color: #94a3b8; margin-left: 6px; padding-left: 1.5rem; }
+.nav-sidebar .nav-treeview .nav-link.active {
+  color: var(--brand-soft) !important;
+  background: rgba(13,107,100,.18) !important;
+  box-shadow: none;
+}
+.nav-sidebar .nav-icon { color: var(--brand-soft); opacity: .9; }
+.sidebar::-webkit-scrollbar { width: 7px; }
+.sidebar::-webkit-scrollbar-thumb { background: #243049; border-radius: 7px; }
 
-/* ── 时间线 ─────────────────────────────────── */
-.timeline .time-label span { font-size: 11px; }
+/* ── 顶栏 ─────────────────────────────────── */
+.main-header.navbar {
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  height: 56px;
+}
+.main-header .navbar-nav .nav-link,
+.main-header.navbar-light .navbar-nav .nav-link { color: #475569; }
+.main-header .navbar-nav .nav-link:hover { color: var(--brand-2); }
 
-/* ── 步骤条（新建项目） ─────────────────────── */
-#step-tab-1, #step-tab-2, #step-tab-3 { cursor: default; }
+/* ── 内容区 ───────────────────────────────── */
+.content-wrapper { background-color: var(--bg) !important; }
+.content-header { padding: 18px 0 6px; }
+.content { padding: 0 1rem 1.5rem; }
+.content-header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: .3px; }
+.breadcrumb { background: transparent; padding: 0; }
+.breadcrumb-item + .breadcrumb-item::before { color: var(--line-strong); }
 
-/* ── 表单优化 ───────────────────────────────── */
-.form-control:focus { border-color: #80bdff; box-shadow: 0 0 0 .15rem rgba(0,123,255,.15); }
+/* ── 卡片 ─────────────────────────────────── */
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.card:hover { box-shadow: var(--shadow-md); }
+.card-header { background: transparent; border-bottom: 1px solid var(--line); padding: .95rem 1.15rem; }
+.card-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.card-body { padding: 1.15rem; }
+.card-outline { border: 1px solid var(--line); }
+.card-primary { border-top: 3px solid var(--brand-2); }
+
+/* ── KPI 小卡（small-box 重新配色） ─────── */
+.small-box {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.small-box:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.small-box .inner h3 { font-weight: 700; letter-spacing: .5px; }
+.small-box .icon { opacity: .16; }
+.small-box.bg-info      { background-color: var(--brand-2) !important; }
+.small-box.bg-success   { background-color: #15803d        !important; }
+.small-box.bg-warning   { background-color: #b45309        !important; }
+.small-box.bg-secondary { background-color: #475569        !important; }
+
+/* ── 按钮（青绿主色） ───────────────────── */
+.btn { border-radius: 8px; }
+.btn-primary { background-color: var(--brand-2); border-color: var(--brand-2); }
+.btn-primary:hover, .btn-primary:focus { background-color: var(--brand); border-color: var(--brand); }
+.btn-outline-primary { color: var(--brand-2); border-color: #8fd3ca; }
+.btn-outline-primary:hover { background-color: var(--brand-2); border-color: var(--brand-2); color: #fff; }
+.btn-outline-primary:hover, .btn-outline-info:hover,
+.btn-outline-secondary:hover, .btn-outline-success:hover { color: #fff; }
+.btn-xs { padding: 2px 8px; font-size: 11px; border-radius: 6px; }
+.text-primary { color: var(--brand-2) !important; }
+.bg-primary  { background-color: var(--brand-2) !important; }
+
+/* ── 表格 ─────────────────────────────────── */
+.table-sm td, .table-sm th { padding: .45rem .6rem; }
+.table thead th {
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom: 2px solid var(--line);
+  background: #fafbfc;
+}
+.table td, .table th { border-color: var(--line); }
+.table-hover tbody tr:hover { background-color: #f8fafc; }
+tr.table-warning td { background-color: rgba(180,83,9,.08) !important; }
+
+/* ── 徽章 ─────────────────────────────────── */
+.badge { font-size: 11px; font-weight: 500; border-radius: 6px; padding: .35em .6em; }
+
+/* ── 表单 ─────────────────────────────────── */
+.form-control:focus { border-color: var(--brand-2); box-shadow: 0 0 0 .15rem rgba(13,107,100,.15); }
 .custom-switch .custom-control-label { cursor: pointer; }
 
-/* ── 分页 ───────────────────────────────────── */
-.pagination .page-link { font-size: 12px; padding: .25rem .6rem; }
+/* ── 分页 ─────────────────────────────────── */
+.pagination .page-link { font-size: 12px; padding: .3rem .65rem; border-radius: 7px; color: var(--brand-2); }
+.page-item.active .page-link { background-color: var(--brand-2); border-color: var(--brand-2); color: #fff; }
 
-/* ── 仪表盘快捷按钮 ─────────────────────────── */
-.btn-outline-primary:hover, .btn-outline-info:hover,
-.btn-outline-secondary:hover, .btn-outline-success:hover {
-    color: #fff;
+/* ── 信息框 ───────────────────────────────── */
+.info-box {
+  min-height: 72px; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: var(--surface); box-shadow: var(--shadow-sm);
 }
+.info-box-icon { width: 64px; font-size: 24px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+.info-box-content { padding: 4px 10px; }
+.info-box-number { font-size: 22px; font-weight: 700; }
 
-/* ── 可折叠卡片 ─────────────────────────────── */
+/* ── 时间线 / 步骤条 / 折叠卡片 ─────────── */
+.timeline .time-label span { font-size: 11px; }
+#step-tab-1, #step-tab-2, #step-tab-3 { cursor: default; }
 .collapsed-card .card-body { display: none; }
 
-/* ── 逾期行高亮 ─────────────────────────────── */
-tr.table-warning td { background-color: rgba(255, 193, 7, 0.1) !important; }
+/* ── 页脚 ─────────────────────────────────── */
+.main-footer { background: #fff; border-top: 1px solid var(--line); color: var(--muted); padding: .8rem 1rem; }
+
+/* ── 登录页（青绿渐变背景） ─────────────── */
+.login-page {
+  background:
+    radial-gradient(1200px 600px at 82% -10%, rgba(13,107,100,.30), transparent 60%),
+    radial-gradient(900px 520px at 0% 110%, rgba(0,101,142,.22), transparent 55%),
+    linear-gradient(135deg, #0f172a 0%, #0b3b39 55%, #0d6b64 100%);
+}
+.login-card-body { border-radius: var(--radius); box-shadow: 0 12px 44px rgba(0,0,0,.28); }
+.login-box-msg { color: var(--muted); font-size: 13px; }
