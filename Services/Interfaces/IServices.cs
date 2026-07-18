@@ -90,7 +90,8 @@ public interface IOperLogService
 public interface IProjectService
 {
     Task<PagedResult<ProjectListDto>> GetPagedAsync(ProjectQueryDto query, long operUserId);
-    Task<ProjectDetailDto?>           GetDetailAsync(long id);
+    Task<ProjectDetailDto?>           GetDetailAsync(long id, long operUserId);
+    Dictionary<string, string>        BuildReportFieldValues(ProjectDetailDto p);
     Task<long>                        CreateAsync(CreateProjectDto dto, string operBy);
     Task                              UpdateAsync(UpdateProjectDto dto, string operBy);
     Task                              ChangeStatusAsync(ChangeStatusDto dto, string operBy);

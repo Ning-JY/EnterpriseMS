@@ -22,6 +22,43 @@ public class TemplateReportController : BaseAuthController
     [HttpGet("index")]
     public IActionResult Index() => View();
 
+    [HttpGet("manage")]
+    public IActionResult Manage() => View();
+
+    [HttpGet("download/{templateId}")]
+    public IActionResult DownloadTemplate(string templateId)
+    {
+        try
+        {
+            var (bytes, fileName) = _reportService.GetTemplateFile(templateId);
+            if (bytes == null)
+                return NotFound("模板文件不存在");
+            return File(bytes,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                fileName);
+        }
+        catch (Exception ex)
+        {
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
+    [HttpPost("delete")]
+    public IActionResult DeleteTemplate([FromBody] DeleteTemplateRequest request)
+    {
+        try
+        {
+            var ok = _reportService.DeleteTemplate(request.TemplateId);
+            return Json(ok
+                ? ApiResult<object>.Ok(null, "模板已删除")
+                : ApiResult<object>.Fail("模板不存在或已删除"));
+        }
+        catch (Exception ex)
+        {
+            return Json(ApiResult<object>.Fail(ex.Message));
+        }
+    }
+
     [HttpGet("templateconfig")]
     public IActionResult TemplateConfig() => View();
 

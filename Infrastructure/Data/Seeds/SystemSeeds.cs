@@ -155,7 +155,7 @@ public static class SystemSeeds
             51,52,
             61,62,621,622,
             71,72,
-            81,82,
+            81,82,83,
             21,22,23,
             211,212,213,214,
             31, 311,312,313,314,315,316,317,318,319,320,
@@ -174,6 +174,7 @@ public static class SystemSeeds
             3, 31, 311,312,313,315,316,317,318,319,  // 项目管理全部
             4, 41, 413, 414,        // 概预算查看+录入意见
             9, 91, 911,912,913,914,917,915,918,919,916,  // 投标管理全部
+            8, 83,                  // 造价小工具：成果报告模板管理
         };
         mb.Entity<SysRoleMenu>().HasData(
             pmMenuIds.Select(mid => new SysRoleMenu { RoleId = 3, MenuId = mid }).ToArray()

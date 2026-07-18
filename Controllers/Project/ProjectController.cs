@@ -9,6 +9,7 @@ using EnterpriseMS.Filters;
 using EnterpriseMS.Services.DTOs.Project;
 using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.Interfaces;
+using EnterpriseMS.Services.Impl;
 
 namespace EnterpriseMS.Controllers.Project;
 
@@ -21,14 +22,16 @@ public class ProjectController : BaseAuthController
     private readonly IEmployeeQueryService _empQrySvc;
     private readonly IOperLogService       _logSvc;
     private readonly IUnitOfWork           _uow;
+    private readonly IReportGeneratorService _reportSvc;
 
     public ProjectController(IProjectService projSvc, IDeptService deptSvc,
         IDictService dictSvc, IEmployeeQueryService empQrySvc,
-        IOperLogService logSvc, IUnitOfWork uow, IPermissionService permSvc)
+        IOperLogService logSvc, IUnitOfWork uow, IPermissionService permSvc,
+        IReportGeneratorService reportSvc)
         : base(permSvc)
     {
         _projSvc = projSvc; _deptSvc = deptSvc; _dictSvc = dictSvc;
-        _empQrySvc = empQrySvc; _logSvc = logSvc; _uow = uow;
+        _empQrySvc = empQrySvc; _logSvc = logSvc; _uow = uow; _reportSvc = reportSvc;
     }  [HasPermission("proj:project:list")]
     public async Task<IActionResult> Index(ProjectQueryDto query)
     {
@@ -45,18 +48,44 @@ public class ProjectController : BaseAuthController
     [HasPermission("proj:project:list")]
     public async Task<IActionResult> Detail(long id)
     {
-        var proj = await _projSvc.GetDetailAsync(id);
+        var proj = await _projSvc.GetDetailAsync(id, User.GetUserId());
         if (proj == null) return NotFound();
         ViewBag.AllMembers        = await _empQrySvc.GetAllOnJobAsync();
         ViewBag.DictMilestoneType = await _dictSvc.GetDataByTypeAsync("milestone_type");
         return View(proj);
     }
 
+    // ── 成果报告：选择模板 → 自动填充项目详情 → 生成 Word ──
+    [HttpGet("{projectId}/report/generate")]
+    [HasPermission("proj:project:list")]
+    public async Task<IActionResult> GenerateReport(long projectId, string templateId)
+    {
+        if (string.IsNullOrWhiteSpace(templateId))
+            return BadRequest("请选择报告模板");
+        var proj = await _projSvc.GetDetailAsync(projectId, User.GetUserId());
+        if (proj == null) return NotFound("项目不存在或无访问权限");
+
+        try
+        {
+            var fields   = _projSvc.BuildReportFieldValues(proj);
+            var bytes    = _reportSvc.GenerateDocument(templateId, fields);
+            var tpl      = _reportSvc.GetTemplate(templateId);
+            var fileName = $"{proj.ProjName}_{(tpl?.Name ?? "成果报告")}.docx";
+            return File(bytes,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                fileName);
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpGet("edit/{id}")]
     [HasPermission("proj:project:edit")]
     public async Task<IActionResult> Edit(long id)
     {
-        var proj = await _projSvc.GetDetailAsync(id);
+        var proj = await _projSvc.GetDetailAsync(id, User.GetUserId());
         if (proj == null) return NotFound();
         if (proj.ProgressStatus == 9)
             return RedirectToAction("Detail", new { id });

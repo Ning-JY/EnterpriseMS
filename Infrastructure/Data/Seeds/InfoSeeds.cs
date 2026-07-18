@@ -77,6 +77,7 @@ public static class InfoSeeds
             new SysMenu { Id = 72, MenuName = "产值报表", ParentId = 7, MenuType = "C", Icon = "fa-user-chart", Path = "/report/output", Sort = 2, Visible = 1, Status = 1, Perms = "report:output", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 81, MenuName = "报告生成", ParentId = 8, MenuType = "C", Icon = "fa-file-word", Path = "/tool/report", Sort = 1, Visible = 1, Status = 1, Perms = null, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 82, MenuName = "费用计算器", ParentId = 8, MenuType = "C", Icon = "fa-coins", Path = "/tool/calculator", Sort = 2, Visible = 1, Status = 1, Perms = null, CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 83, MenuName = "成果报告模板", ParentId = 8, MenuType = "C", Icon = "fa-layer-group", Path = "/tool/templates", Sort = 3, Visible = 1, Status = 1, Perms = null, CreatedAt = dt, CreatedBy = "system" },
             // 个人中心子菜单
             new SysMenu { Id = 51, MenuName = "个人资料", ParentId = 5, MenuType = "C", Icon = "fa-id-card", Path = "/profile", Sort = 1, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 52, MenuName = "产值统计", ParentId = 5, MenuType = "C", Icon = "fa-chart-bar", Path = "/my-stats", Sort = 2, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },

@@ -36,46 +36,8 @@ public class ProjectService : IProjectService
             .Include(p => p.BizLeader)
             .Include(p => p.Milestones)
             .AsQueryable();
-        // ── 数据权限过滤 ─────────────────────────────────────────
-        var (dataScope, userDeptId) = await _permSvc.GetUserDataScopeAsync(operUserId);
-
-        if (dataScope == 1)
-        {
-            // 全部数据，不过滤
-        }
-        else if (dataScope == 3 && userDeptId.HasValue)
-        {
-            // 本部门及子部门：查出所有子部门ID
-            var dept = await _uow.Depts.GetListAsync(d => !d.IsDeleted);
-            var deptIds = GetSelfAndChildDeptIds(dept, userDeptId.Value);
-            q = q.Where(p => p.DeptId.HasValue && deptIds.Contains(p.DeptId.Value));
-        }
-        else if (dataScope == 2 && userDeptId.HasValue)
-        {
-            // 仅本部门
-            q = q.Where(p => p.DeptId == userDeptId);
-        }
-        else
-        {
-            // 仅本人参与的项目
-            var empId = await _uow.Users.Query()
-                .Where(u => u.Id == operUserId)
-                .Select(u => u.EmployeeId)
-                .FirstOrDefaultAsync();
-
-            if (!empId.HasValue)
-            {
-                q = q.Take(0); // 返回空
-            }
-            else
-            {
-                var memberQuery = _uow.ProjMembers.Query();
-                q = q.Where(p => memberQuery.Any(m =>
-                    m.ProjectId == p.Id
-                    && m.EmployeeId == empId.Value
-                    && m.Status == 0));
-            }
-        }
+        // ── 数据权限过滤（按部门 / 项目成员隔离，列表与详情共用）─────────
+        q = await ApplyDataScopeAsync(q, operUserId);
         if (!string.IsNullOrWhiteSpace(query.Keyword))
             q = q.Where(p => p.ProjName.Contains(query.Keyword) ||
                              p.OwnerName.Contains(query.Keyword) ||
@@ -105,9 +67,9 @@ public class ProjectService : IProjectService
         };
     }
 
-    public async Task<ProjectDetailDto?> GetDetailAsync(long id)
+    public async Task<ProjectDetailDto?> GetDetailAsync(long id, long operUserId)
     {
-        var proj = await _uow.Projects.Query(false)
+        var q = _uow.Projects.Query(false)
             .Include(p => p.Dept)
             .Include(p => p.TechLeader)
             .Include(p => p.BizLeader)
@@ -118,7 +80,12 @@ public class ProjectService : IProjectService
             .Include(p => p.Contracts)
             .Include(p => p.Invoices)
             .Include(p => p.Files)
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .AsQueryable();
+
+        // 数据权限：非授权范围直接查不到（避免靠 ID 越权查看）
+        q = await ApplyDataScopeAsync(q, operUserId);
+
+        var proj = await q.FirstOrDefaultAsync(p => p.Id == id);
         if (proj == null) return null;
 
         var dto = _mapper.Map<ProjectDetailDto>(proj);
@@ -767,6 +734,93 @@ public class ProjectService : IProjectService
         await _uow.ProjLogs.AddAsync(log);
         await _uow.SaveChangesAsync();
     }
+
+    // ── 数据权限：按角色 DataScope 隔离项目（部门 / 子部门 / 本人成员）──
+    // DataScope: 1=全部 2=本部门 3=本部门及子部门 4=仅本人参与项目
+    private async Task<IQueryable<Project>> ApplyDataScopeAsync(IQueryable<Project> q, long operUserId)
+    {
+        var (dataScope, userDeptId) = await _permSvc.GetUserDataScopeAsync(operUserId);
+
+        if (dataScope == 1)
+            return q; // 全部数据
+
+        if (dataScope == 3 && userDeptId.HasValue)
+        {
+            var all = await _uow.Depts.GetListAsync(d => !d.IsDeleted);
+            var deptIds = GetSelfAndChildDeptIds(all, userDeptId.Value);
+            return q.Where(p => p.DeptId.HasValue && deptIds.Contains(p.DeptId.Value));
+        }
+
+        if (dataScope == 2 && userDeptId.HasValue)
+            return q.Where(p => p.DeptId == userDeptId);
+
+        // 仅本人参与的项目（DataScope=4 或无部门信息时）
+        var empId = await _uow.Users.Query()
+            .Where(u => u.Id == operUserId)
+            .Select(u => u.EmployeeId)
+            .FirstOrDefaultAsync();
+        if (!empId.HasValue)
+            return q.Take(0);
+
+        var memberQuery = _uow.ProjMembers.Query();
+        return q.Where(p => memberQuery.Any(m =>
+            m.ProjectId == p.Id && m.EmployeeId == empId.Value && m.Status == 0));
+    }
+
+    // ── 成果报告：把项目详情映射为模板占位符键值（{{键}}）────────────
+    // 模板中使用相同中文键名即可被自动填充；模块类键值为多行文本。
+    public Dictionary<string, string> BuildReportFieldValues(ProjectDetailDto p)
+    {
+        string F(object? v) => v == null ? "" : v.ToString()!;
+        var ms = new Dictionary<string, string>
+        {
+            // 单值字段
+            ["项目编号"]       = p.ProjNo,
+            ["项目名称"]       = p.ProjName,
+            ["项目业主"]       = p.OwnerName,
+            ["业主联系人"]     = p.OwnerContact ?? "",
+            ["业主电话"]       = p.OwnerPhone ?? "",
+            ["业务类型"]       = p.BizType,
+            ["采购方式"]       = p.ProcurementType ?? "",
+            ["限价金额"]       = p.LimitPrice.HasValue ? $"{p.LimitPrice:N2} 万元" : "",
+            ["建设规模"]       = p.BuildingScale ?? "",
+            ["承接部门"]       = p.DeptName ?? "",
+            ["技术负责人"]     = p.TechLeaderName ?? "",
+            ["商务负责人"]     = p.BizLeaderName ?? "",
+            ["合同金额"]       = $"{p.ContractAmount:N2} 万元",
+            ["实际合同金额"]   = $"{p.ActualAmount:N2} 万元",
+            ["是否联合体"]     = p.IsJointVenture ? "是" : "否",
+            ["我方占比"]       = p.OurRatio.HasValue ? $"{p.OurRatio}%" : "",
+            ["签约日期"]       = p.SignDate?.ToString("yyyy-MM-dd") ?? "",
+            ["计划完成日期"]   = p.PlanEndDate?.ToString("yyyy-MM-dd") ?? "",
+            ["实际完成日期"]   = p.ActualEndDate?.ToString("yyyy-MM-dd") ?? "",
+            ["项目状态"]       = p.ProgressText,
+            ["备注"]           = p.Remark ?? "",
+            ["已收款"]         = $"{p.TotalReceived:N2} 万元",
+            ["收款率"]         = (p.ActualAmount > 0 ? p.TotalReceived / p.ActualAmount * 100 : 0).ToString("N1") + "%",
+            ["服务团队人数"]   = p.Members.Count(m => m.Status == 0).ToString(),
+            // 模块字段（多行文本）
+            ["成员明细"]       = string.Join("\n", p.Members
+                .Where(m => m.Status == 0)
+                .Select(m => $"· {m.EmployeeName}（{m.Role}） 占比 {m.Ratio}%  职责：{m.DutyDesc ?? "-"}")),
+            ["里程碑明细"]     = string.Join("\n", p.Milestones
+                .OrderBy(m => m.Sort)
+                .Select(m => $"· {m.MilestoneName}  计划 {m.PlanDate:yyyy-MM-dd}  负责人 {m.OwnerName ?? "-"}  状态 {MilestoneStatusText(m.Status)}")),
+            ["合同明细"]       = string.Join("\n", p.Contracts
+                .Select(c => $"· {c.ContractNo}（{c.ContractType}） 甲方 {c.PartyA}  金额 {c.Amount:N2} 万元  签约 {c.SignDate?.ToString("yyyy-MM-dd") ?? "-"}")),
+            ["回款明细"]       = string.Join("\n", p.Invoices
+                .OrderByDescending(i => i.CreatedAt)
+                .Select(i => $"· {i.ReceiptName}  金额 {i.Amount:N2} 万元  {(i.IsReceived ? "已收" : "待收")}  开票 {i.InvoiceDate?.ToString("yyyy-MM-dd") ?? "-"}")),
+            ["验收明细"]       = string.Join("\n", p.Acceptances
+                .Select(a => $"· {a.AcceptBatch}  金额 {a.AcceptAmount:N2} 万元  日期 {a.AcceptDate:yyyy-MM-dd}")),
+        };
+        return ms;
+    }
+
+    private static string MilestoneStatusText(int status) => status switch
+    {
+        0 => "待开始", 1 => "进行中", 2 => "已完成", _ => "未知"
+    };
 
     // #20 修复：状态文本统一维护
     public static string GetProgressText(int status) => status switch

@@ -238,6 +238,19 @@ try
             // 迁移失败只记录日志，不阻止服务启动（避免迁移脚本问题导致服务不可用）
             Log.Error(ex, "数据库迁移失败，请检查连接字符串和数据库权限：{Msg}", ex.Message);
         }
+
+        // 自定义种子（HasData，Upsert 语义）：迁移后同步种子数据，
+        // 确保新增的菜单 / 角色菜单等配置在下次启动时自动生效。
+        try
+        {
+            await db.SeedAsync();
+            Log.Information("种子数据同步完成");
+        }
+        catch (Exception ex)
+        {
+            // 种子失败（如数据库尚未就绪）只告警，不阻止启动
+            Log.Warning(ex, "种子数据同步跳过：{Msg}", ex.Message);
+        }
     }
 
     // ── Hangfire 定时任务 ─────────────────────────────────────

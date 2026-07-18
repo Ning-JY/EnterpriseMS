@@ -17,6 +17,8 @@ public interface IReportGeneratorService
     string ConfigureTemplate(ConfigureTemplateRequest request, IFormFile templateFile);
     string FillTemplate(string templateId, Dictionary<string, string> fieldValues);
     byte[] GenerateDocument(string templateId, Dictionary<string, string> fieldValues);
+    bool DeleteTemplate(string templateId);
+    (byte[]? Bytes, string FileName) GetTemplateFile(string templateId);
 }
 
 public class ReportGeneratorService : IReportGeneratorService
@@ -404,5 +406,46 @@ public class ReportGeneratorService : IReportGeneratorService
     private class ManifestWrapper
     {
         public List<TemplateInfoDto> Templates { get; set; } = new();
+    }
+
+    public bool DeleteTemplate(string templateId)
+    {
+        var manifestPath = Path.Combine(_templateRoot, "template-manifest.json");
+        if (!File.Exists(manifestPath))
+            return false;
+
+        var json = File.ReadAllText(manifestPath);
+        var manifest = System.Text.Json.JsonSerializer.Deserialize<ManifestWrapper>(json);
+        if (manifest?.Templates == null)
+            return false;
+
+        var tpl = manifest.Templates.FirstOrDefault(t => t.Id == templateId);
+        if (tpl == null)
+            return false;
+
+        // 删除磁盘上的模板文件（先在 wwwroot/templates，再到 doc/模板文件）
+        var filePath = GetTemplateFilePath(tpl.FileName);
+        if (File.Exists(filePath))
+            File.Delete(filePath);
+
+        manifest.Templates.Remove(tpl);
+
+        var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+        File.WriteAllText(manifestPath,
+            System.Text.Json.JsonSerializer.Serialize(manifest, options), Encoding.UTF8);
+        return true;
+    }
+
+    public (byte[]? Bytes, string FileName) GetTemplateFile(string templateId)
+    {
+        var tpl = GetTemplate(templateId);
+        if (tpl == null)
+            return (null, "");
+
+        var filePath = GetTemplateFilePath(tpl.FileName);
+        if (!File.Exists(filePath))
+            return (null, $"{tpl.Name}.docx");
+
+        return (File.ReadAllBytes(filePath), $"{tpl.Name}.docx");
     }
 }

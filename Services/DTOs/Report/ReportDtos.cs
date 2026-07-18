@@ -43,6 +43,11 @@ public class ConfigureTemplateRequest
     public List<ReplacementItem> Replacements { get; set; } = new();
 }
 
+public class DeleteTemplateRequest
+{
+    public string TemplateId { get; set; } = "";
+}
+
 public class ReplacementItem
 {
     public string OldText { get; set; } = "";

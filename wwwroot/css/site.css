@@ -113,6 +113,8 @@ a:hover { color: var(--brand); }
 .card-body { padding: 1.15rem; }
 .card-outline { border: 1px solid var(--line); }
 .card-primary { border-top: 3px solid var(--brand-2); }
+.card-header.bg-brand { background: var(--brand-2); color: #fff; border-bottom: none; }
+.card-header.bg-brand .card-title { color: #fff; }
 
 /* ── KPI 小卡（small-box 重新配色） ─────── */
 .small-box {
