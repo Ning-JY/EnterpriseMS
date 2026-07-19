@@ -1,0 +1,512 @@
+@{
+    ViewData["Title"] = "Debug 工具";
+    var stats   = ViewBag.Stats   as Dictionary<string, int>   ?? new();
+    var pending = ViewBag.Pending as List<string>               ?? new();
+    var applied = ViewBag.Applied as List<string>               ?? new();
+}
+
+<div class="content-header"><div class="container-fluid">
+    <div class="row mb-2">
+        <div class="col-sm-6">
+            <h1 class="m-0">
+                <i class="fas fa-bug text-warning mr-2"></i>Debug 工具
+                <span class="badge badge-warning ml-2" style="font-size:12px">仅超管可见</span>
+            </h1>
+        </div>
+        <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item">系统管理</li>
+                <li class="breadcrumb-item active">Debug 工具</li>
+            </ol>
+        </div>
+    </div>
+</div></div>
+
+<section class="content"><div class="container-fluid">
+
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle mr-2"></i>
+    <strong>注意：</strong>此页面仅用于开发测试阶段。种子数据写入为<strong>幂等操作</strong>，
+    已存在的记录（按主键判断）会自动跳过，不会覆盖业务数据。
+</div>
+
+<div class="row">
+
+    <!-- 左列：操作区 -->
+    <div class="col-md-7">
+
+        <!-- 快捷操作：仅写入菜单/权限 -->
+        <div class="card card-warning card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-bolt mr-2"></i>快速补充菜单和字典
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    仅写入菜单、角色菜单、字典类型、字典数据。
+                    适合版本升级后<strong>补充新菜单权限</strong>而不重建数据库时使用。
+                </p>
+                <button class="btn btn-warning" id="seedMenuBtn" onclick="seedMenu()">
+                    <i class="fas fa-list-ul mr-1"></i>写入菜单 / 字典种子数据
+                </button>
+                <div id="seedMenuResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- 写入全量种子数据 -->
+        <div class="card card-danger card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-database mr-2"></i>写入全量种子数据
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    写入所有表的种子数据（部门、用户、员工、项目等），已存在的记录自动跳过。
+                    适合首次部署或新增了种子数据后补充。
+                </p>
+                <div class="input-group mb-3" style="max-width:400px">
+                    <input type="text" id="seedConfirm" class="form-control"
+                           placeholder="输入 CONFIRM 确认操作">
+                    <div class="input-group-append">
+                        <button class="btn btn-danger" onclick="seedAll()">
+                            <i class="fas fa-play mr-1"></i>执行
+                        </button>
+                    </div>
+                </div>
+                <div id="seedResult" class="mt-2"></div>
+            </div>
+        </div>
+
+        <!-- 清空权限缓存 -->
+        <div class="card card-info card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-eraser mr-2"></i>清空权限缓存
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    清空所有在线用户的权限缓存，用户下次操作时会重新从数据库加载权限。
+                    适合修改了角色权限后<strong>无需重启服务</strong>立即生效。
+                </p>
+                <button class="btn btn-info" onclick="clearCache()">
+                    <i class="fas fa-broom mr-1"></i>清空所有用户权限缓存
+                </button>
+                <div id="cacheResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- 执行数据库迁移 -->
+        <div class="card card-secondary card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-code-branch mr-2"></i>执行数据库迁移
+                </h3>
+            </div>
+            <div class="card-body">
+                @if (!pending.Any())
+                {
+                    <p class="text-success mb-2">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        数据库已是最新版本（已执行 @applied.Count 个迁移）
+                    </p>
+                }
+                else
+                {
+                    <p class="text-warning mb-2">
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        有 <strong>@pending.Count</strong> 个待执行迁移：
+                        @string.Join("、", pending)
+                    </p>
+                }
+                <div class="input-group" style="max-width:400px">
+                    <input type="text" id="migrateConfirm" class="form-control"
+                           placeholder="输入 CONFIRM 确认迁移">
+                    <div class="input-group-append">
+                        <button class="btn btn-secondary" onclick="runMigrate()">
+                            <i class="fas fa-database mr-1"></i>执行迁移
+                        </button>
+                    </div>
+                </div>
+                <div id="migrateResult" class="mt-3"></div>
+            </div>
+        </div>
+
+        <!-- AI 模型配置 -->
+        <div class="card card-purple card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-robot mr-2"></i>AI 模型配置
+                </h3>
+                <div class="card-tools">
+                    <span id="aiStatus" class="badge badge-secondary">未加载</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    配置 AI 服务的 API Key 和模型。保存后<strong>立即生效</strong>，无需重启。
+                    支持 OpenAI / DeepSeek / 通义千问等兼容 OpenAI 协议的服务。
+                </p>
+                <div class="form-group">
+                    <label>API Key <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text"><i class="fas fa-key"></i></span>
+                        </div>
+                        <input type="password" id="aiApiKey" class="form-control" placeholder="sk-..." />
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-secondary" type="button"
+                                    onclick="togglePassword('aiApiKey')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label>API Base URL</label>
+                            <input type="text" id="aiBaseUrl" class="form-control"
+                                   value="https://api.openai.com/v1" />
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>模型</label>
+                            <select id="aiModel" class="form-select">
+                                <option value="gpt-4o">GPT-4o</option>
+                                <option value="gpt-4o-mini">GPT-4o Mini</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                                <option value="deepseek-chat">DeepSeek Chat</option>
+                                <option value="deepseek-reasoner">DeepSeek Reasoner</option>
+                                <option value="qwen-plus">通义千问 Plus</option>
+                                <option value="qwen-turbo">通义千问 Turbo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>自定义模型名称</label>
+                            <input type="text" id="aiCustomModel" class="form-control"
+                                   placeholder="如不使用预设，可直接输入模型名称" />
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex">
+                    <button class="btn btn-purple mr-2" onclick="saveAiConfig()" id="aiSaveBtn">
+                        <i class="fas fa-save mr-1"></i>保存配置
+                    </button>
+                    <button class="btn btn-outline-info" onclick="testAiConfig()" id="aiTestBtn">
+                        <i class="fas fa-plug mr-1"></i>测试连接
+                    </button>
+                </div>
+                <div id="aiResult" class="mt-3"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 右列：数据库状态 -->
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-table mr-2"></i>当前数据量
+                </h3>
+                <div class="card-tools">
+                    <button class="btn btn-xs btn-outline-secondary" onclick="location.reload()">
+                        <i class="fas fa-sync-alt"></i> 刷新
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="thead-light">
+                        <tr><th>数据表</th><th class="text-right">记录数</th><th>状态</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var kv in stats)
+                        {
+                            <tr>
+                                <td>@kv.Key</td>
+                                <td class="text-right">
+                                    <strong class="@(kv.Value == 0 ? "text-danger" : "text-success")">
+                                        @kv.Value
+                                    </strong>
+                                </td>
+                                <td>
+                                    @if (kv.Value == 0)
+                                    {
+                                        <span class="badge badge-danger">空</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-success">正常</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Migration 历史 -->
+        @if (applied.Any())
+        {
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-history mr-2"></i>已执行迁移
+                        <span class="badge badge-light ml-1">@applied.Count</span>
+                    </h3>
+                    <div class="card-tools">
+                        <button type="button" class="btn btn-tool"
+                                data-card-widget="collapse">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush" style="font-size:12px">
+                        @foreach (var m in applied.AsEnumerable().Reverse())
+                        {
+                            <li class="list-group-item py-1">
+                                <i class="fas fa-check text-success mr-1"></i>
+                                @m
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+
+</div>
+</div></section>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+
+// 快速写入菜单/字典
+function seedMenu() {
+    if (!confirm('确认写入菜单和字典种子数据？已存在的记录会自动跳过。')) return;
+    var btn = document.getElementById('seedMenuBtn');
+    btn.disabled = true;
+    var load = layer.load(1, {shade: [0.3, '#000']});
+    $.post('/system/debug/seed-menu', {__RequestVerificationToken: antiForgery},
+        function(r) {
+            layer.close(load);
+            btn.disabled = false;
+            var el = document.getElementById('seedMenuResult');
+            if (r.success) {
+                var html = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i>' + r.message + '<ul class="mb-0 mt-1">';
+                if (Array.isArray(r.data)) r.data.forEach(function(d) { html += '<li class="small">' + d + '</li>'; });
+                el.innerHTML = html + '</ul></div>';
+            } else {
+                el.innerHTML = '<div class="alert alert-danger py-2">' + r.message + '</div>';
+            }
+        }
+    );
+}
+
+// 全量种子数据
+function seedAll() {
+    var confirm_val = document.getElementById('seedConfirm').value;
+    if (confirm_val !== 'CONFIRM') {
+        layer.msg('请输入 CONFIRM 确认操作', {icon:2}); return;
+    }
+    var load = layer.load(1, {shade: [0.3, '#000']});
+    $.post('/system/debug/seed',
+        {confirm: confirm_val, __RequestVerificationToken: antiForgery},
+        function(r) {
+            layer.close(load);
+            var el = document.getElementById('seedResult');
+            if (r.success) {
+                var html = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i><strong>' + r.message + '</strong>';
+                var d = r.data;
+                if (d.Details && d.Details.length) {
+                    html += '<ul class="mb-0 mt-1 small">';
+                    d.Details.forEach(function(line) { html += '<li>' + line + '</li>'; });
+                    html += '</ul>';
+                }
+                if (d.Errors && d.Errors.length) {
+                    html += '<ul class="mb-0 mt-1 small text-danger">';
+                    d.Errors.forEach(function(e) { html += '<li>' + e + '</li>'; });
+                    html += '</ul>';
+                }
+                el.innerHTML = html + '</div>';
+                document.getElementById('seedConfirm').value = '';
+                // 3秒后刷新数据量
+                setTimeout(function() { location.reload(); }, 3000);
+            } else {
+                el.innerHTML = '<div class="alert alert-danger py-2">' + r.message + '</div>';
+            }
+        }
+    );
+}
+
+// 清空权限缓存
+function clearCache() {
+    var load = layer.load(1);
+    $.post('/system/debug/clear-cache',
+        {__RequestVerificationToken: antiForgery},
+        function(r) {
+            layer.close(load);
+            var el = document.getElementById('cacheResult');
+            el.innerHTML = r.success
+                ? '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i>' + r.message + '</div>'
+                : '<div class="alert alert-danger py-2">' + r.message + '</div>';
+        }
+    );
+}
+
+// 执行迁移
+function runMigrate() {
+    var confirm_val = document.getElementById('migrateConfirm').value;
+    if (confirm_val !== 'CONFIRM') {
+        layer.msg('请输入 CONFIRM 确认迁移', {icon:2}); return;
+    }
+    var load = layer.load(1, {shade:[0.3,'#000']});
+    $.post('/system/debug/migrate',
+        {confirm: confirm_val, __RequestVerificationToken: antiForgery},
+        function(r) {
+            layer.close(load);
+            var el = document.getElementById('migrateResult');
+            if (r.success) {
+                var html = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i><strong>' + r.message + '</strong>';
+                if (Array.isArray(r.data) && r.data.length) {
+                    html += '<ul class="mb-0 mt-1 small">';
+                    r.data.forEach(function(m) { html += '<li>' + m + '</li>'; });
+                    html += '</ul>';
+                }
+                el.innerHTML = html + '</div>';
+                document.getElementById('migrateConfirm').value = '';
+                setTimeout(function() { location.reload(); }, 2000);
+            } else {
+                el.innerHTML = '<div class="alert alert-danger py-2">' + r.message + '</div>';
+            }
+        }
+    );
+}
+
+// ── AI 配置 ───────────────────────────────────────────────
+function togglePassword(id) {
+    var el = document.getElementById(id);
+    el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function loadAiConfig() {
+    $.get('/system/debug/ai-config', function(r) {
+        if (r.success && r.data) {
+            var d = r.data;
+            document.getElementById('aiApiKey').value = d.apiKey || '';
+            document.getElementById('aiBaseUrl').value = d.baseUrl || 'https://api.openai.com/v1';
+            document.getElementById('aiCustomModel').value = '';
+            // 匹配预设模型
+            var sel = document.getElementById('aiModel');
+            var matched = false;
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === d.model) { sel.selectedIndex = i; matched = true; break; }
+            }
+            if (!matched && d.model) document.getElementById('aiCustomModel').value = d.model;
+            updateAiStatus(d.apiKey);
+        }
+    });
+}
+
+function updateAiStatus(apiKey) {
+    var el = document.getElementById('aiStatus');
+    if (apiKey) {
+        el.className = 'badge badge-success';
+        el.textContent = '已配置';
+    } else {
+        el.className = 'badge badge-warning';
+        el.textContent = 'Demo模式';
+    }
+}
+
+function getSelectedModel() {
+    var custom = document.getElementById('aiCustomModel').value.trim();
+    if (custom) return custom;
+    return document.getElementById('aiModel').value;
+}
+
+function saveAiConfig() {
+    var data = {
+        apiKey: document.getElementById('aiApiKey').value.trim(),
+        baseUrl: document.getElementById('aiBaseUrl').value.trim(),
+        model: getSelectedModel()
+    };
+    var btn = document.getElementById('aiSaveBtn');
+    btn.disabled = true;
+    $.ajax({
+        url: '/system/debug/ai-config',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) {
+            btn.disabled = false;
+            var el = document.getElementById('aiResult');
+            if (r.success) {
+                el.innerHTML = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i>' + r.message + '</div>';
+                updateAiStatus(data.apiKey);
+            } else {
+                el.innerHTML = '<div class="alert alert-danger py-2">' + r.message + '</div>';
+            }
+        },
+        error: function() {
+            btn.disabled = false;
+            document.getElementById('aiResult').innerHTML = '<div class="alert alert-danger py-2">请求失败</div>';
+        }
+    });
+}
+
+function testAiConfig() {
+    var data = {
+        apiKey: document.getElementById('aiApiKey').value.trim(),
+        baseUrl: document.getElementById('aiBaseUrl').value.trim(),
+        model: getSelectedModel()
+    };
+    if (!data.apiKey) {
+        layer.msg('请先输入 API Key', {icon: 2}); return;
+    }
+    var btn = document.getElementById('aiTestBtn');
+    btn.disabled = true;
+    var load = layer.load(1, {shade: [0.3, '#000']});
+    $.ajax({
+        url: '/system/debug/ai-test',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        headers: { 'RequestVerificationToken': antiForgery },
+        success: function(r) {
+            layer.close(load);
+            btn.disabled = false;
+            var el = document.getElementById('aiResult');
+            if (r.success) {
+                el.innerHTML = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i><strong>连接成功！</strong> AI回复：' + r.message + '</div>';
+            } else {
+                el.innerHTML = '<div class="alert alert-danger py-2"><i class="fas fa-times mr-1"></i>' + r.message + '</div>';
+            }
+        },
+        error: function() {
+            layer.close(load);
+            btn.disabled = false;
+            document.getElementById('aiResult').innerHTML = '<div class="alert alert-danger py-2">请求失败</div>';
+        }
+    });
+}
+
+// 页面加载时读取AI配置
+$(function() { loadAiConfig(); });
+</script>
+}
