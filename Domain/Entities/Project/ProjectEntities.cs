@@ -29,11 +29,18 @@ public class Project : BaseEntity
     [Column("progress_status")]   public int      ProgressStatus  { get; set; } = 0;
     [Column("status_updated_at")] public DateTime? StatusUpdatedAt { get; set; } // 最后状态变更时间
     [Column("building_scale")]    public string?  BuildingScale   { get; set; }
+    [Column("project_category")]  public string?  ProjectCategory { get; set; }
+    [Column("project_leader_id")] public long?    ProjectLeaderId { get; set; }
+    [Column("project_overview")]  public string?  ProjectOverview { get; set; }
+    [Column("contract_signed")]   public bool     ContractSigned  { get; set; }
+    [Column("contract_signed_date")] public DateTime? ContractSignedDate { get; set; }
+    [Column("contract_scan_file")]public string?  ContractScanFile{ get; set; }
     [Column("remark")]            public string?  Remark          { get; set; }
 
-    public SysDept?  Dept       { get; set; }
-    public Employee? TechLeader { get; set; }
-    public Employee? BizLeader  { get; set; }
+    public SysDept?  Dept          { get; set; }
+    public Employee? TechLeader    { get; set; }
+    public Employee? BizLeader     { get; set; }
+    public Employee? ProjectLeader { get; set; }
     public ICollection<ProjectMember>     Members     { get; set; } = new List<ProjectMember>();
     public ICollection<ProjectMilestone>  Milestones  { get; set; } = new List<ProjectMilestone>();
     public ICollection<ProjectAcceptance> Acceptances { get; set; } = new List<ProjectAcceptance>();

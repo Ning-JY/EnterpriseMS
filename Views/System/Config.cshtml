@@ -1,0 +1,177 @@
+@using EnterpriseMS.Domain.Entities.System
+@{
+    ViewData["Title"] = "系统参数设置";
+    var configs = ViewBag.Configs as List<SysConfig> ?? new();
+    var grouped = configs.GroupBy(c => c.GroupName).OrderBy(g => g.Key).ToList();
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-sliders-h mr-2"></i>系统参数设置</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item"><a href="/system">系统管理</a></li>
+                    <li class="breadcrumb-item active">系统参数设置</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content"><div class="container-fluid">
+<div class="card card-primary card-outline">
+    <div class="card-header p-0">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-system">基础设置</a></li>
+            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-display">显示设置</a></li>
+            <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-navigation">导航栏设置</a></li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <form id="configForm">
+            <div class="tab-content">
+                <!-- 基础设置 -->
+                <div class="tab-pane fade show active" id="tab-system">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>系统名称</label>
+                                <input type="text" class="form-control config-input" data-key="system_name" data-type="text" data-group="system" value="@GetConfig(configs, "system_name", "企业管理系统")">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>系统副标题</label>
+                                <input type="text" class="form-control config-input" data-key="system_subtitle" data-type="text" data-group="system" value="@GetConfig(configs, "system_subtitle", "")">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>项目编号前缀</label>
+                                <input type="text" class="form-control config-input" data-key="project_no_prefix" data-type="text" data-group="system" value="@GetConfig(configs, "project_no_prefix", "")" placeholder="如 EMC-">
+                                <small class="text-muted">新建项目时自动生成的编号前缀，留空则不加前缀</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>公司名称</label>
+                                <input type="text" class="form-control config-input" data-key="company_name" data-type="text" data-group="system" value="@GetConfig(configs, "company_name", "")">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 显示设置 -->
+                <div class="tab-pane fade" id="tab-display">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>主色调</label>
+                                <input type="color" class="form-control config-input p-1" data-key="primary_color" data-type="color" data-group="display" value="@GetConfig(configs, "primary_color", "#007bff")" style="height:38px">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>侧边栏样式</label>
+                                <select class="form-control config-input" data-key="sidebar_style" data-type="text" data-group="display">
+                                    <option value="dark" selected="@(GetConfig(configs, "sidebar_style", "dark") == "dark")">深色</option>
+                                    <option value="light" selected="@(GetConfig(configs, "sidebar_style", "dark") == "light")">浅色</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>字体大小</label>
+                                <select class="form-control config-input" data-key="font_size" data-type="text" data-group="display">
+                                    <option value="small" selected="@(GetConfig(configs, "font_size", "default") == "small')">小</option>
+                                    <option value="default" selected="@(GetConfig(configs, "font_size", "default") == "default")">默认</option>
+                                    <option value="large" selected="@(GetConfig(configs, "font_size", "default") == "large')">大</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label>表格每页条数</label>
+                                <select class="form-control config-input" data-key="page_size" data-type="text" data-group="display">
+                                    <option value="10" selected="@(GetConfig(configs, "page_size", "20") == "10')">10</option>
+                                    <option value="20" selected="@(GetConfig(configs, "page_size", "20") == "20')">20</option>
+                                    <option value="50" selected="@(GetConfig(configs, "page_size", "20") == "50')">50</option>
+                                    <option value="100" selected="@(GetConfig(configs, "page_size", "20") == "100')">100</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 导航栏设置 -->
+                <div class="tab-pane fade" id="tab-navigation">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>侧边栏默认状态</label>
+                                <select class="form-control config-input" data-key="sidebar_collapsed" data-type="text" data-group="navigation">
+                                    <option value="false" selected="@(GetConfig(configs, "sidebar_collapsed", "false") == "false")">展开</option>
+                                    <option value="true" selected="@(GetConfig(configs, "sidebar_collapsed", "false") == "true")">折叠</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>固定导航栏</label>
+                                <select class="form-control config-input" data-key="navbar_fixed" data-type="text" data-group="navigation">
+                                    <option value="true" selected="@(GetConfig(configs, "navbar_fixed", "true") == "true")">是</option>
+                                    <option value="false" selected="@(GetConfig(configs, "navbar_fixed", "true") == "false")">否</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button type="button" class="btn btn-primary" onclick="saveConfigs()">
+                    <i class="fas fa-save mr-1"></i> 保存设置
+                </button>
+                <button type="button" class="btn btn-default ml-2" onclick="location.reload()">
+                    <i class="fas fa-undo mr-1"></i> 重置
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</div></section>
+
+@section Scripts {
+<script>
+var af = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+
+function saveConfigs() {
+    var configs = [];
+    $('.config-input').each(function() {
+        configs.push({
+            ConfigKey: $(this).data('key'),
+            ConfigValue: $(this).val(),
+            ConfigType: $(this).data('type'),
+            GroupName: $(this).data('group'),
+            Sort: 0
+        });
+    });
+    ajaxPost('/system/config/save', configs, function(r) {
+        layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500});
+    });
+}
+</script>
+}
+
+@functions {
+    string GetConfig(List<SysConfig> configs, string key, string defaultVal)
+    {
+        return configs.FirstOrDefault(c => c.ConfigKey == key)?.ConfigValue ?? defaultVal;
+    }
+}

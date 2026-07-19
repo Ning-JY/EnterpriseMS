@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using EnterpriseMS.Common;
 using EnterpriseMS.Infrastructure.Data;
 using EnterpriseMS.Services.Interfaces;
@@ -22,7 +23,19 @@ public class DebugController : BaseAuthController
     { _db = db; _permSvc = permSvc; }
 
     // ── 只允许 superadmin 访问的统一检查 ──────────────────────
-    private bool IsSuperAdmin() => User.IsInRole("superadmin");
+    private bool IsSuperAdmin()
+    {
+        // 方式1：通过 claims 中的 role 判断
+        if (User.IsInRole("superadmin")) return true;
+        // 方式2：直接查数据库（兜底，防止 claims 未正确写入）
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (long.TryParse(userIdStr, out var userId))
+        {
+            return _db.SysUserRoles.Any(ur =>
+                ur.UserId == userId && ur.RoleId == 1);
+        }
+        return false;
+    }
 
     private IActionResult Forbidden() =>
         User.Identity?.IsAuthenticated == true

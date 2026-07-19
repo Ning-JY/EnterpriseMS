@@ -28,10 +28,13 @@ public class AppDbContext : DbContext
     public DbSet<SysDictData> SysDictDatas { get; set; }
     public DbSet<SysOperLog> SysOperLogs { get; set; }
     public DbSet<SysLoginLog> SysLoginLogs { get; set; }
+    public DbSet<SysConfig> SysConfigs { get; set; }
     // HR
     public DbSet<Employee> Employees { get; set; }
     public DbSet<EmployeeContract> Contracts { get; set; }
     public DbSet<EmployeeCertificate> Certificates { get; set; }
+    public DbSet<EmployeeEducation> Educations { get; set; }
+    public DbSet<EmployeeWorkExp> WorkExperiences { get; set; }
     // 项目
     public DbSet<Project> Projects { get; set; }
     public DbSet<ProjectMember> ProjMembers { get; set; }
@@ -83,6 +86,10 @@ public class AppDbContext : DbContext
             .HasForeignKey(c => c.EmployeeId);
         mb.Entity<EmployeeCertificate>().HasOne(c => c.Employee).WithMany(e => e.Certificates)
             .HasForeignKey(c => c.EmployeeId);
+        mb.Entity<EmployeeEducation>().HasOne(e => e.Employee).WithMany(emp => emp.EducationList)
+            .HasForeignKey(e => e.EmployeeId);
+        mb.Entity<EmployeeWorkExp>().HasOne(w => w.Employee).WithMany(emp => emp.WorkExperiences)
+            .HasForeignKey(w => w.EmployeeId);
         mb.Entity<ProjectMember>().HasOne(m => m.Project).WithMany(p => p.Members)
             .HasForeignKey(m => m.ProjectId);
         mb.Entity<ProjectMember>().HasOne(m => m.Employee).WithMany()

@@ -23,10 +23,10 @@ public static class InfoSeeds
         // ── 菜单 ──────────────────────────────────────────────
         mb.Entity<SysMenu>().HasData(
             // ── 一级目录 ──────────────────────────────────────
-            new SysMenu { Id = 1, MenuName = "系统管理", ParentId = 0, MenuType = "M", Icon = "fa-cogs", Path = "/system", Sort = 1, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 1, MenuName = "系统管理", ParentId = 0, MenuType = "M", Icon = "fa-cogs", Path = "/system", Sort = 99, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 2, MenuName = "员工档案", ParentId = 0, MenuType = "M", Icon = "fa-users", Path = "/hr", Sort = 2, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 3, MenuName = "项目管理", ParentId = 0, MenuType = "M", Icon = "fa-project-diagram", Path = "/project", Sort = 3, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 4, MenuName = "概预算结算", ParentId = 0, MenuType = "M", Icon = "fa-file-invoice-dollar", Path = "/budget", Sort = 4, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+
             new SysMenu { Id = 5, MenuName = "个人中心", ParentId = 0, MenuType = "M", Icon = "fa-user-circle", Path = "/profile", Sort = 5, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 6, MenuName = "知识库", ParentId = 0, MenuType = "M", Icon = "fa-database", Path = "/kb", Sort = 6, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 7, MenuName = "报表中心", ParentId = 0, MenuType = "M", Icon = "fa-chart-bar", Path = "/report", Sort = 7, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
@@ -39,6 +39,7 @@ public static class InfoSeeds
             new SysMenu { Id = 15, MenuName = "操作日志", ParentId = 1, MenuType = "C", Icon = "fa-history", Path = "/system/log", Sort = 5, Visible = 1, Status = 1, Perms = "sys:log:list", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 16, MenuName = "菜单管理", ParentId = 1, MenuType = "C", Icon = "fa-th-list", Path = "/system/menu", Sort = 6, Visible = 1, Status = 1, Perms = "sys:menu:list", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 17, MenuName = "Debug工具", ParentId = 1, MenuType = "C", Icon = "fa-bug", Path = "/system/debug", Sort = 9, Visible = 1, Status = 1, Perms = "sys:debug:index", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 18, MenuName = "系统参数设置", ParentId = 1, MenuType = "C", Icon = "fa-sliders-h", Path = "/system/config", Sort = 10, Visible = 1, Status = 1, Perms = "sys:config:list", CreatedAt = dt, CreatedBy = "system" },
             // 用户管理按钮
             new SysMenu { Id = 111, MenuName = "新增", ParentId = 11, MenuType = "F", Sort = 1, Visible = 0, Status = 1, Perms = "sys:user:add", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 112, MenuName = "编辑", ParentId = 11, MenuType = "F", Sort = 2, Visible = 0, Status = 1, Perms = "sys:user:edit", CreatedAt = dt, CreatedBy = "system" },
@@ -77,7 +78,7 @@ public static class InfoSeeds
             new SysMenu { Id = 72, MenuName = "产值报表", ParentId = 7, MenuType = "C", Icon = "fa-user-chart", Path = "/report/output", Sort = 2, Visible = 1, Status = 1, Perms = "report:output", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 81, MenuName = "报告生成", ParentId = 8, MenuType = "C", Icon = "fa-file-word", Path = "/tool/report", Sort = 1, Visible = 1, Status = 1, Perms = null, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 82, MenuName = "费用计算器", ParentId = 8, MenuType = "C", Icon = "fa-coins", Path = "/tool/calculator", Sort = 2, Visible = 1, Status = 1, Perms = null, CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 83, MenuName = "成果报告模板", ParentId = 8, MenuType = "C", Icon = "fa-layer-group", Path = "/tool/templates", Sort = 3, Visible = 1, Status = 1, Perms = null, CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 83, MenuName = "成果报告模板", ParentId = 8, MenuType = "C", Icon = "fa-layer-group", Path = "/templatereport/manage", Sort = 3, Visible = 1, Status = 1, Perms = null, CreatedAt = dt, CreatedBy = "system" },
             // 个人中心子菜单
             new SysMenu { Id = 51, MenuName = "个人资料", ParentId = 5, MenuType = "C", Icon = "fa-id-card", Path = "/profile", Sort = 1, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 52, MenuName = "产值统计", ParentId = 5, MenuType = "C", Icon = "fa-chart-bar", Path = "/my-stats", Sort = 2, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
@@ -101,12 +102,7 @@ public static class InfoSeeds
             new SysMenu { Id = 318, MenuName = "完成节点", ParentId = 31, MenuType = "F", Sort = 8, Visible = 0, Status = 1, Perms = "proj:milestone:done", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 319, MenuName = "录入验收", ParentId = 31, MenuType = "F", Sort = 9, Visible = 0, Status = 1, Perms = "proj:acceptance:add", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 320, MenuName = "批量导入", ParentId = 31, MenuType = "F", Sort = 10, Visible = 0, Status = 1, Perms = "proj:project:import", CreatedAt = dt, CreatedBy = "system" },
-            // 概预算结算
-            new SysMenu { Id = 41, MenuName = "任务台账", ParentId = 4, MenuType = "C", Icon = "fa-calculator", Path = "/budget", Sort = 1, Visible = 1, Status = 1, Perms = "budget:task:list", CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 411, MenuName = "新增任务", ParentId = 41, MenuType = "F", Sort = 1, Visible = 0, Status = 1, Perms = "budget:task:add", CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 412, MenuName = "编辑任务", ParentId = 41, MenuType = "F", Sort = 2, Visible = 0, Status = 1, Perms = "budget:task:edit", CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 413, MenuName = "提交内审", ParentId = 41, MenuType = "F", Sort = 3, Visible = 0, Status = 1, Perms = "budget:task:submit", CreatedAt = dt, CreatedBy = "system" },
-            new SysMenu { Id = 414, MenuName = "录入意见", ParentId = 41, MenuType = "F", Sort = 4, Visible = 0, Status = 1, Perms = "budget:opinion:add", CreatedAt = dt, CreatedBy = "system" },
+
             // ── 投标管理 ──────────────────────────────────────
             new SysMenu { Id = 9, MenuName = "投标管理", ParentId = 0, MenuType = "M", Icon = "fa-file-signature", Path = "/bid", Sort = 9, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 91, MenuName = "投标台账", ParentId = 9, MenuType = "C", Icon = "fa-clipboard-list", Path = "/bid", Sort = 1, Visible = 1, Status = 1, Perms = "bid:project:list", CreatedAt = dt, CreatedBy = "system" },

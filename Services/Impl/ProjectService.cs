@@ -126,8 +126,8 @@ public class ProjectService : IProjectService
         if (dto.Members.Any())
         {
             var totalRatio = dto.Members.Sum(m => m.Ratio);
-            if (Math.Abs(totalRatio - 100) > 0.01m)
-                throw new BusinessException("成员占比之和必须等于100%");
+            if (totalRatio > 100)
+                throw new BusinessException("成员占比之和不能超过100%");
             foreach (var m in dto.Members)
             {
                 var member = _mapper.Map<ProjectMember>(m);
@@ -135,6 +135,22 @@ public class ProjectService : IProjectService
                 member.CreatedBy = operBy;
                 await _uow.ProjMembers.AddAsync(member);
             }
+        }
+        // 如果指定了项目负责人，自动添加到成员列表（占比0）
+        if (dto.ProjectLeaderId.HasValue && !dto.Members.Any(m => m.EmployeeId == dto.ProjectLeaderId))
+        {
+            await _uow.ProjMembers.AddAsync(new ProjectMember
+            {
+                Id = Common.SnowflakeId.Next(),
+                ProjectId = proj.Id,
+                EmployeeId = dto.ProjectLeaderId.Value,
+                Role = "项目负责人",
+                Ratio = 0,
+                JoinDate = DateTime.Now,
+                Status = 0,
+                CreatedBy = operBy,
+                CreatedAt = DateTime.Now
+            });
         }
         // 写入里程碑
         foreach (var ms in dto.Milestones)
@@ -227,6 +243,24 @@ public class ProjectService : IProjectService
         }
 
         return $"{prefix}{(maxSeq + 1):D3}";
+    }
+
+    public async Task<string> GenerateProjNoSuffixAsync()
+    {
+        var year = DateTime.Now.Year;
+        var prefix = $"{year}-";
+        var maxNo = await _uow.Projects.Query()
+            .Where(p => p.ProjNo.Contains(prefix))
+            .Select(p => p.ProjNo)
+            .ToListAsync();
+        var maxSeq = 0;
+        foreach (var no in maxNo)
+        {
+            var dashIdx = no.LastIndexOf('-');
+            if (dashIdx >= 0 && int.TryParse(no[(dashIdx + 1)..], out var seq) && seq > maxSeq)
+                maxSeq = seq;
+        }
+        return $"{(maxSeq + 1):D3}";
     }
 
     // ── 成员 ────────────────────────────────────────────────

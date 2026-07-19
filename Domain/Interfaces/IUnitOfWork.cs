@@ -17,9 +17,11 @@ public interface IUnitOfWork : IDisposable
     IRepository<SysDictType> DictTypes   { get; }
     IRepository<SysDictData> DictDatas   { get; }
     // HR
-    IRepository<Employee>             Employees    { get; }
-    IRepository<EmployeeContract>     Contracts    { get; }
-    IRepository<EmployeeCertificate>  Certificates { get; }
+    IRepository<Employee>             Employees      { get; }
+    IRepository<EmployeeContract>     Contracts      { get; }
+    IRepository<EmployeeCertificate>  Certificates   { get; }
+    IRepository<EmployeeEducation>    Educations     { get; }
+    IRepository<EmployeeWorkExp>      WorkExperiences{ get; }
     // 项目
     IRepository<Project>           Projects      { get; }
     IRepository<ProjectMember>     ProjMembers   { get; }

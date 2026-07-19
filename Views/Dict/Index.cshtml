@@ -9,6 +9,7 @@
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item"><a href="/system">系统管理</a></li>
                     <li class="breadcrumb-item active">字典管理</li>
                 </ol>
             </div>
@@ -20,16 +21,33 @@
 <div class="row">
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header"><h3 class="card-title">字典类型</h3></div>
+            <div class="card-header">
+                <h3 class="card-title">字典类型</h3>
+                <div class="card-tools">
+                    <button class="btn btn-sm btn-success" onclick="openAddType()">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
             <div class="card-body p-0">
                 <div class="list-group list-group-flush" id="typeList">
                     @foreach (var t in Model)
                     {
-                        <a href="javascript:loadData('@t.DictType', '@t.DictName')"
+                        <a href="javascript:loadData('@t.DictType', '@t.DictName', @t.Id)"
                            class="list-group-item list-group-item-action py-2">
-                            <div class="d-flex justify-content-between">
-                                <span><strong>@t.DictName</strong></span>
-                                <code class="text-muted small">@t.DictType</code>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>@t.DictName</strong>
+                                    <br><code class="text-muted small">@t.DictType</code>
+                                </div>
+                                <div class="btn-group">
+                                    <button class="btn btn-xs btn-outline-warning" onclick="event.stopPropagation();openEditType(@t.Id,'@t.DictName','@t.DictType',@t.Status)" title="编辑">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-danger" onclick="event.stopPropagation();deleteType(@t.Id,'@t.DictName')" title="删除">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
                             </div>
                         </a>
                     }
@@ -41,6 +59,11 @@
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title" id="dataTitle">请选择左侧字典类型</h3>
+                <div class="card-tools" id="dataTools" style="display:none">
+                    <button class="btn btn-sm btn-success" onclick="openAddData()">
+                        <i class="fas fa-plus"></i> 新增数据
+                    </button>
+                </div>
             </div>
             <div class="card-body table-responsive p-0" id="dataArea">
                 <div class="text-center text-muted py-5">← 点击左侧字典类型查看数据</div>
@@ -50,26 +73,243 @@
 </div>
 </div></section>
 
+<!-- 新增/编辑字典类型弹窗 -->
+<div class="modal fade" id="typeModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="typeModalTitle">新增字典类型</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="typeId">
+            <div class="form-group">
+                <label>类型名称 <span class="text-danger">*</span></label>
+                <input type="text" id="typeName" class="form-control" placeholder="如：业务类型">
+            </div>
+            <div class="form-group">
+                <label>类型编码 <span class="text-danger">*</span></label>
+                <input type="text" id="typeCode" class="form-control" placeholder="如：biz_type（英文下划线）">
+            </div>
+            <div class="form-group">
+                <label>状态</label>
+                <select id="typeStatus" class="form-control">
+                    <option value="1">正常</option>
+                    <option value="0">停用</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="typeRemark" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveType()">保存</button>
+        </div>
+    </div></div>
+</div>
+
+<!-- 新增/编辑字典数据弹窗 -->
+<div class="modal fade" id="dataModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="dataModalTitle">新增字典数据</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="dataId">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>标签名称 <span class="text-danger">*</span></label>
+                        <input type="text" id="dataLabel" class="form-control" placeholder="如：可行性研究报告">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>键值 <span class="text-danger">*</span></label>
+                        <input type="text" id="dataValue" class="form-control" placeholder="如：feasibility_study">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>排序</label>
+                        <input type="number" id="dataSort" class="form-control" value="0">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>是否默认</label>
+                        <select id="dataDefault" class="form-control">
+                            <option value="0">否</option>
+                            <option value="1">是</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>状态</label>
+                        <select id="dataStatus" class="form-control">
+                            <option value="1">正常</option>
+                            <option value="0">停用</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveData()">保存</button>
+        </div>
+    </div></div>
+</div>
+
 @section Scripts {
 <script>
-function loadData(dictType, dictName) {
+var af = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+var currentDictType = '';
+var currentDictName = '';
+var currentTypeId = 0;
+
+function loadData(dictType, dictName, typeId) {
+    currentDictType = dictType;
+    currentDictName = dictName;
+    currentTypeId = typeId;
     $('#dataTitle').text(dictName + '（' + dictType + '）');
+    $('#dataTools').show();
     $('#typeList a').removeClass('active');
     $('a[href*="' + dictType + '"]').addClass('active');
     $.get('/system/dict/data/' + dictType, function(r) {
         if (!r.success) return;
         var rows = r.data.map(function(d) {
-            return '<tr><td>' + d.Sort + '</td><td>' + d.DictLabel +
-                   '</td><td><code>' + d.DictValue + '</code></td>' +
-                   '<td>' + (d.IsDefault ? '<span class="badge badge-primary">默认</span>' : '') +
-                   '</td></tr>';
+            return '<tr>' +
+                '<td>' + d.Sort + '</td>' +
+                '<td>' + d.DictLabel + '</td>' +
+                '<td><code>' + d.DictValue + '</code></td>' +
+                '<td>' + (d.IsDefault ? '<span class="badge badge-primary">默认</span>' : '') + '</td>' +
+                '<td>' +
+                    '<button class="btn btn-xs btn-outline-warning mr-1" onclick="openEditData(' + d.Id + ',\'' + d.DictLabel + '\',\'' + d.DictValue + '\',' + d.Sort + ',' + d.IsDefault + ',1)" title="编辑"><i class="fas fa-edit"></i></button>' +
+                    '<button class="btn btn-xs btn-outline-danger" onclick="deleteData(' + d.Id + ',\'' + d.DictLabel + '\')" title="删除"><i class="fas fa-trash"></i></button>' +
+                '</td></tr>';
         }).join('');
         $('#dataArea').html(
             '<table class="table table-sm"><thead class="thead-light"><tr>' +
-            '<th width="60">排序</th><th>标签</th><th>键值</th><th>默认</th>' +
-            '</tr></thead><tbody>' + (rows || '<tr><td colspan="4" class="text-center text-muted py-3">暂无数据</td></tr>') +
+            '<th width="60">排序</th><th>标签</th><th>键值</th><th width="60">默认</th><th width="80">操作</th>' +
+            '</tr></thead><tbody>' + (rows || '<tr><td colspan="5" class="text-center text-muted py-3">暂无数据</td></tr>') +
             '</tbody></table>'
         );
+    });
+}
+
+// ── 字典类型 CRUD ──
+function openAddType() {
+    $('#typeModalTitle').text('新增字典类型');
+    $('#typeId').val(0);
+    $('#typeName, #typeCode, #typeRemark').val('');
+    $('#typeStatus').val(1);
+    $('#typeCode').prop('readonly', false);
+    $('#typeModal').modal('show');
+}
+
+function openEditType(id, name, code, status) {
+    $('#typeModalTitle').text('编辑字典类型');
+    $('#typeId').val(id);
+    $('#typeName').val(name);
+    $('#typeCode').val(code).prop('readonly', true);
+    $('#typeStatus').val(status);
+    $('#typeModal').modal('show');
+}
+
+function saveType() {
+    var name = $('#typeName').val().trim();
+    var code = $('#typeCode').val().trim();
+    if (!name || !code) { layer.msg('请填写类型名称和编码', {icon:2}); return; }
+    var id = parseInt($('#typeId').val()) || 0;
+    var data = { DictName: name, DictType: code, Status: parseInt($('#typeStatus').val()), Remark: $('#typeRemark').val() };
+    var url, method;
+    if (id > 0) {
+        data.Id = id;
+        url = '/system/dict/type/update';
+    } else {
+        url = '/system/dict/type/create';
+    }
+    ajaxPost(url, data, function(r) {
+        layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+            if (r.success) location.reload();
+        });
+    });
+}
+
+function deleteType(id, name) {
+    layer.confirm('确认删除字典类型「' + name + '」及其所有数据？', {icon:3}, function(i) {
+        layer.close(i);
+        $.post('/system/dict/type/delete/' + id, {__RequestVerificationToken: af}, function(r) {
+            layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+                if (r.success) location.reload();
+            });
+        });
+    });
+}
+
+// ── 字典数据 CRUD ──
+function openAddData() {
+    if (!currentDictType) { layer.msg('请先选择字典类型', {icon:2}); return; }
+    $('#dataModalTitle').text('新增字典数据 - ' + currentDictName);
+    $('#dataId').val(0);
+    $('#dataLabel, #dataValue').val('');
+    $('#dataSort').val(0);
+    $('#dataDefault, #dataStatus').val(1);
+    $('#dataModal').modal('show');
+}
+
+function openEditData(id, label, value, sort, isDefault, status) {
+    $('#dataModalTitle').text('编辑字典数据');
+    $('#dataId').val(id);
+    $('#dataLabel').val(label);
+    $('#dataValue').val(value);
+    $('#dataSort').val(sort);
+    $('#dataDefault').val(isDefault);
+    $('#dataStatus').val(status);
+    $('#dataModal').modal('show');
+}
+
+function saveData() {
+    var label = $('#dataLabel').val().trim();
+    var value = $('#dataValue').val().trim();
+    if (!label || !value) { layer.msg('请填写标签名称和键值', {icon:2}); return; }
+    var id = parseInt($('#dataId').val()) || 0;
+    var data = {
+        DictType: currentDictType,
+        DictLabel: label,
+        DictValue: value,
+        Sort: parseInt($('#dataSort').val()) || 0,
+        IsDefault: parseInt($('#dataDefault').val()) || 0,
+        Status: parseInt($('#dataStatus').val())
+    };
+    var url;
+    if (id > 0) {
+        data.Id = id;
+        url = '/system/dict/data/update';
+    } else {
+        url = '/system/dict/data/create';
+    }
+    ajaxPost(url, data, function(r) {
+        layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+            if (r.success) { $('#dataModal').modal('hide'); loadData(currentDictType, currentDictName, currentTypeId); }
+        });
+    });
+}
+
+function deleteData(id, label) {
+    layer.confirm('确认删除字典数据「' + label + '」？', {icon:3}, function(i) {
+        layer.close(i);
+        $.post('/system/dict/data/delete/' + id, {__RequestVerificationToken: af}, function(r) {
+            layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+                if (r.success) loadData(currentDictType, currentDictName, currentTypeId);
+            });
+        });
     });
 }
 </script>

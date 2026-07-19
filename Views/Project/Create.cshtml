@@ -5,7 +5,8 @@
     var depts   = ViewBag.Depts   as List<DeptTreeDto> ?? new List<DeptTreeDto>();
     var members = ViewBag.Members as List<EnterpriseMS.Services.DTOs.Hr.EmployeeSimpleDto>
                   ?? new List<EnterpriseMS.Services.DTOs.Hr.EmployeeSimpleDto>();
-    var projNo  = ViewBag.ProjNo  as string ?? "";
+    var projNoPrefix = ViewBag.ProjNoPrefix as string ?? "";
+    var generatedNo  = ViewBag.GeneratedNo  as string ?? "";
 }
 <div class="content-header">
   <div class="container-fluid">
@@ -36,24 +37,67 @@
     <div class="d-flex align-items-center">
       <span id="st1" class="badge badge-primary p-2 mr-2">1 基本信息</span>
       <div class="flex-fill border-top mx-2"></div>
-      <span id="st2" class="badge badge-secondary p-2 mr-2">2 服务团队</span>
-      <div class="flex-fill border-top mx-2"></div>
-      <span id="st3" class="badge badge-secondary p-2">3 工作节点</span>
+      <span id="st2" class="badge badge-secondary p-2 mr-2">2 其他信息</span>
     </div>
   </div>
 </div>
 
-<!-- STEP 1 -->
+<!-- STEP 1: 基本信息 -->
 <div id="step-1">
   <div class="card card-primary card-outline">
     <div class="card-header"><h3 class="card-title">基本信息</h3></div>
     <div class="card-body">
+      <!-- 第一行：编号 + 名称 -->
       <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>项目编号 <small class="text-muted" id="projNoPrefixHint">前缀：@projNoPrefix</small></label>
+            <div class="input-group">
+              @if (!string.IsNullOrEmpty(projNoPrefix))
+              {
+                <div class="input-group-prepend"><span class="input-group-text">@projNoPrefix</span></div>
+              }
+              <input type="text" id="projNoSuffix" class="form-control" value="@generatedNo" placeholder="自动生成">
+            </div>
+            <small class="text-muted" id="projNoCheck"></small>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="form-group">
+            <label>项目名称 <span class="text-danger">*</span></label>
+            <input type="text" id="projName" class="form-control"
+                   placeholder="请输入完整项目名称" maxlength="200">
+          </div>
+        </div>
+      </div>
+      <!-- 第二行：工程类别 + 项目负责人 -->
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>工程类别 <span class="text-danger">*</span></label>
+            <select id="projectCategory" class="form-control">
+              <option value="">请选择</option>
+              <option>建筑</option><option>安装</option><option>水利</option>
+              <option>交通</option><option>市政</option><option>环保</option>
+              <option>电力</option><option>通信</option><option>其他</option>
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>项目负责人 <span class="text-danger">*</span></label>
+            <select id="projectLeaderId" class="form-control">
+              <option value="">请选择</option>
+              @foreach (var m in members)
+              { <option value="@m.Id">@m.Display</option> }
+            </select>
+          </div>
+        </div>
+        <div class="col-md-4">
           <div class="form-group">
             <label>承接部门 <span class="text-danger">*</span></label>
             <select id="deptId" class="form-control">
-              <option value="">请选择承接部门</option>
+              <option value="">请选择</option>
               @foreach (var d in depts)
               {
                 <option value="@d.Id">@d.DeptName</option>
@@ -63,10 +107,13 @@
             </select>
           </div>
         </div>
+      </div>
+      <!-- 第三行：业务类型 + 采购方式 -->
+      <div class="row">
         <div class="col-md-6">
           <div class="form-group">
             <label>业务类型 <span class="text-danger">*</span></label>
-            <select id="bizType" class="form-control" onchange="onBizTypeChange()">
+            <select id="bizType" class="form-control">
               <option value="">请选择</option>
               <optgroup label="工程咨询">
                 <option>可行性研究报告</option><option>节能评估报告</option>
@@ -84,20 +131,7 @@
             </select>
           </div>
         </div>
-      </div>
-      <div class="form-group">
-        <label>项目名称 <span class="text-danger">*</span></label>
-        <input type="text" id="projName" class="form-control"
-               placeholder="请输入完整项目名称，与合同文件保持一致" maxlength="200">
-      </div>
-      <div class="row">
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>项目编号</label>
-            <input type="text" id="projNo" class="form-control" value="@projNo">
-          </div>
-        </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
           <div class="form-group">
             <label>采购方式</label>
             <select id="procurementType" class="form-control">
@@ -108,18 +142,8 @@
             </select>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>当前进度状态 <span class="text-danger">*</span></label>
-            <select id="progressStatus" class="form-control">
-              <option value="0">前期商务</option><option value="1">预计启动</option>
-              <option value="2">标书制作中</option><option value="3">投标/磋商中</option>
-              <option value="4">已中标·签订合同中</option>
-              <option value="5" selected>已签回合同</option><option value="6">执行中</option>
-            </select>
-          </div>
-        </div>
       </div>
+      <!-- 第四行：业主信息 -->
       <div class="row">
         <div class="col-md-4">
           <div class="form-group">
@@ -140,43 +164,9 @@
           </div>
         </div>
       </div>
-      <div class="row">
-        <div class="col-md-3">
-          <div class="form-group">
-            <label>限价金额（万元）</label>
-            <div class="input-group">
-              <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
-              <input type="number" id="limitPrice" class="form-control" placeholder="选填" step="0.01" min="0">
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="form-group">
-            <label>合同金额（万元）<span class="text-danger">*</span></label>
-            <div class="input-group">
-              <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
-              <input type="number" id="contractAmount" class="form-control"
-                     placeholder="0.00" step="0.01" min="0" oninput="onAmountChange()">
-              <div class="input-group-append"><span class="input-group-text">万</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="form-group">
-            <label>开标/签约日期</label>
-            <input type="date" id="signDate" class="form-control">
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="form-group">
-            <label>计划完成日期</label>
-            <input type="date" id="planEndDate" class="form-control">
-          </div>
-        </div>
-      </div>
+      <!-- 联合体 -->
       <div class="form-check mb-2">
-        <input type="checkbox" class="form-check-input" id="isJointVenture"
-               onchange="toggleJoint(this.checked)">
+        <input type="checkbox" class="form-check-input" id="isJointVenture" onchange="toggleJoint(this.checked)">
         <label class="form-check-label" for="isJointVenture">联合体项目</label>
       </div>
       <div id="jointArea" class="row" style="display:none">
@@ -184,8 +174,7 @@
           <div class="form-group">
             <label>我方合同占比 <span class="text-danger">*</span></label>
             <div class="input-group">
-              <input type="number" id="ourRatio" class="form-control"
-                     min="1" max="99" step="0.5" oninput="onAmountChange()">
+              <input type="number" id="ourRatio" class="form-control" min="1" max="99" step="0.5" oninput="onJointChange('ratio')">
               <div class="input-group-append"><span class="input-group-text">%</span></div>
             </div>
           </div>
@@ -193,15 +182,24 @@
         <div class="col-md-4">
           <div class="form-group">
             <label>我方实际合同额</label>
-            <input type="text" id="actualAmt" class="form-control" readonly
-                   style="background:#f8f9fa;font-weight:bold;color:#007bff">
+            <input type="number" id="actualAmt" class="form-control" readonly step="0.01" min="0" oninput="onJointChange('amount')">
           </div>
         </div>
       </div>
+      <!-- 项目概况 -->
       <div class="form-group">
-        <label>建设规模</label>
-        <input type="text" id="buildingScale" class="form-control"
-               placeholder="如：住宅12栋，建面8.6万㎡ / 道路改造2.3km">
+        <label>项目概况</label>
+        <textarea id="projectOverview" class="form-control" rows="3"
+                  placeholder="项目背景、规模、主要内容等"></textarea>
+      </div>
+      <div class="form-group">
+        <label>进度状态 <span class="text-danger">*</span></label>
+        <select id="progressStatus" class="form-control">
+          <option value="0">前期商务</option><option value="1">预计启动</option>
+          <option value="2">标书制作中</option><option value="3">投标/磋商中</option>
+          <option value="4">已中标·签订合同中</option>
+          <option value="5" selected>已签回合同</option><option value="6">执行中</option>
+        </select>
       </div>
       <div class="form-group">
         <label>备注</label>
@@ -212,45 +210,99 @@
   </div>
   <div class="text-right mb-3">
     <button type="button" class="btn btn-primary" onclick="goStep(2)">
-      下一步：服务团队 <i class="fas fa-arrow-right"></i>
+      下一步：其他信息 <i class="fas fa-arrow-right"></i>
     </button>
   </div>
 </div>
 
-<!-- STEP 2 -->
+<!-- STEP 2: 其他信息 -->
 <div id="step-2" style="display:none">
+  <!-- 金额信息 -->
   <div class="card card-success card-outline">
-    <div class="card-header"><h3 class="card-title">固定角色</h3></div>
+    <div class="card-header"><h3 class="card-title">金额信息</h3></div>
     <div class="card-body">
       <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
           <div class="form-group">
-            <label>技术负责人</label>
-            <select id="techLeaderId" class="form-control">
-              <option value="">请选择</option>
-              @foreach (var m in members)
-              { <option value="@m.Id">@m.Display</option> }
-            </select>
+            <label>限价金额（万元）</label>
+            <div class="input-group">
+              <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
+              <input type="number" id="limitPrice" class="form-control" placeholder="选填" step="0.01" min="0">
+            </div>
           </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-4">
           <div class="form-group">
-            <label>商务负责人</label>
-            <select id="bizLeaderId" class="form-control">
-              <option value="">请选择</option>
-              @foreach (var m in members)
-              { <option value="@m.Id">@m.Display</option> }
-            </select>
+            <label>合同金额（万元）<span class="text-danger">*</span></label>
+            <div class="input-group">
+              <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
+              <input type="number" id="contractAmount" class="form-control" placeholder="0.00" step="0.01" min="0">
+              <div class="input-group-append"><span class="input-group-text">万</span></div>
+            </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+  <!-- 日期信息 -->
+  <div class="card card-info card-outline">
+    <div class="card-header"><h3 class="card-title">日期信息</h3></div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>开标日期</label>
+            <input type="date" id="bidDeadline" class="form-control">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>签约日期</label>
+            <input type="date" id="signDate" class="form-control">
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>计划完成日期</label>
+            <input type="date" id="planEndDate" class="form-control">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 合同信息 -->
+  <div class="card card-warning card-outline">
+    <div class="card-header"><h3 class="card-title">合同信息</h3></div>
+    <div class="card-body">
+      <div class="form-check mb-3">
+        <input type="checkbox" class="form-check-input" id="contractSigned" onchange="toggleContractInfo(this.checked)">
+        <label class="form-check-label" for="contractSigned">已签订合同</label>
+      </div>
+      <div id="contractInfoArea" style="display:none">
+        <div class="row">
+          <div class="col-md-4">
+            <div class="form-group">
+              <label>签订日期</label>
+              <input type="date" id="contractSignedDate" class="form-control">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label>合同扫描件</label>
+              <div class="custom-file">
+                <input type="file" class="custom-file-input" id="contractScanFile" accept=".pdf,.jpg,.jpeg,.png">
+                <label class="custom-file-label" for="contractScanFile">选择文件</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 参与人员 -->
   <div class="card card-success card-outline">
     <div class="card-header">
-      <h3 class="card-title">参与人员 & 产值占比
-        <span class="badge badge-light ml-2" id="amtDisplay">合同额：—</span>
-      </h3>
+      <h3 class="card-title">参与人员 & 产值占比</h3>
       <div class="card-tools">
         <button type="button" class="btn btn-sm btn-success" onclick="addMRow()">
           <i class="fas fa-plus"></i> 添加
@@ -260,28 +312,18 @@
     <div class="card-body p-0">
       <table class="table table-sm">
         <thead class="thead-light">
-          <tr><th>姓名</th><th>职责描述</th><th width="130">占比</th><th width="110">产值</th><th width="36"></th></tr>
+          <tr><th>姓名</th><th>职责描述</th><th width="130">占比</th><th width="36"></th></tr>
         </thead>
         <tbody id="mBody"></tbody>
       </table>
     </div>
     <div class="card-footer">
       占比合计：<strong id="rTotal" class="text-success">0%</strong>
-      <span id="rWarn" class="text-danger ml-3" style="display:none">⚠ 须等于100%</span>
+      <span id="rWarn" class="text-warning ml-3" style="display:none">⚠ 占比不足100%（仅提醒）</span>
+      <span id="rOver" class="text-danger ml-3" style="display:none">⚠ 占比超过100%</span>
     </div>
   </div>
-  <div class="d-flex justify-content-between mb-3">
-    <button type="button" class="btn btn-default" onclick="goStep(1)">
-      <i class="fas fa-arrow-left"></i> 上一步
-    </button>
-    <button type="button" class="btn btn-primary" onclick="goStep(3)">
-      下一步：工作节点 <i class="fas fa-arrow-right"></i>
-    </button>
-  </div>
-</div>
-
-<!-- STEP 3 -->
-<div id="step-3" style="display:none">
+  <!-- 工作节点 -->
   <div class="card card-info card-outline">
     <div class="card-header">
       <h3 class="card-title">工作节点</h3>
@@ -300,16 +342,17 @@
       </table>
     </div>
   </div>
+  <!-- 保存前检查 -->
   <div class="callout callout-info" id="checkList">
     <h5>保存前检查</h5>
-    <span id="ck1" class="mr-3">☐ 承接部门</span>
+    <span id="ck1" class="mr-3">☐ 工程类别</span>
     <span id="ck2" class="mr-3">☐ 项目名称</span>
     <span id="ck3" class="mr-3">☐ 项目业主</span>
     <span id="ck4" class="mr-3">☐ 合同金额</span>
-    <span id="ck5">☐ 成员占比</span>
+    <span id="ck5">☐ 项目负责人</span>
   </div>
   <div class="d-flex justify-content-between mb-3">
-    <button type="button" class="btn btn-default" onclick="goStep(2)">
+    <button type="button" class="btn btn-default" onclick="goStep(1)">
       <i class="fas fa-arrow-left"></i> 上一步
     </button>
     <button type="button" class="btn btn-success" onclick="submitProj()">
@@ -325,6 +368,7 @@
 @section Scripts {
 <script>
 var af = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+var projNoPrefix = '@projNoPrefix';
 var allMembers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
     members.Select(m => new { id = m.Id, name = m.RealName })));
 var colors = ['#28a745','#007bff','#6f42c1','#fd7e14','#dc3545'];
@@ -332,32 +376,29 @@ var mIdx = 0, msIdx = 0;
 
 function goStep(n) {
     $('[id^="step-"]').hide(); $('#step-'+n).show();
-    ['st1','st2','st3'].forEach(function(id,i){
+    ['st1','st2'].forEach(function(id,i){
         $('#'+id).removeClass('badge-primary badge-secondary')
                  .addClass(i+1===n?'badge-primary':'badge-secondary');
     });
-    if (n===2) { syncAmtDisplay(); updateRatios(); }
-    if (n===3) { updateChecklist(); if (!$('#msBody tr').length) prefillMs(); }
+    if (n===2) updateChecklist();
     window.scrollTo(0,0);
 }
 
-function toggleJoint(on) { $('#jointArea').toggle(on); onAmountChange(); }
+function toggleJoint(on) { $('#jointArea').toggle(on); }
+function toggleContractInfo(on) { $('#contractInfoArea').toggle(on); }
 
-function onAmountChange() {
+function onJointChange(src) {
     var amt = parseFloat($('#contractAmount').val())||0;
     var isJ = $('#isJointVenture').is(':checked');
-    var r   = parseFloat($('#ourRatio').val())||100;
-    var act = isJ ? amt*r/100 : amt;
-    if (isJ && amt>0) $('#actualAmt').val('¥ '+act.toFixed(2)+' 万');
-    updateRatios(act);
-}
-
-function syncAmtDisplay() {
-    var amt = parseFloat($('#contractAmount').val())||0;
-    var isJ = $('#isJointVenture').is(':checked');
-    var r   = parseFloat($('#ourRatio').val())||100;
-    var act = isJ ? amt*r/100 : amt;
-    $('#amtDisplay').text('合同额：'+(act>0?act.toFixed(2)+' 万':'—'));
+    if (src === 'ratio') {
+        var r = parseFloat($('#ourRatio').val())||100;
+        if (isJ && amt > 0) $('#actualAmt').val((amt*r/100).toFixed(2));
+    } else {
+        var actual = parseFloat($('#actualAmt').val())||0;
+        if (isJ && actual > 0 && amt > 0) {
+            $('#ourRatio').val((actual/amt*100).toFixed(1));
+        }
+    }
 }
 
 function addMRow() {
@@ -370,31 +411,21 @@ function addMRow() {
         '<td><input type="text" class="form-control form-control-sm mDuty" placeholder="职责描述"></td>' +
         '<td><div class="input-group input-group-sm">' +
         '<input type="number" class="form-control mRatio" value="0" min="0" max="100" step="0.5" oninput="updateRatios()">' +
-        '<div class="input-group-append"><span class="input-group-text">%</span></div></div>' +
-        '<div class="progress progress-xs mt-1"><div class="progress-bar" style="width:0%;background:'+c+'" id="rb'+i+'"></div></div></td>' +
-        '<td><strong class="text-primary mVal" id="mv'+i+'">—</strong></td>' +
+        '<div class="input-group-append"><span class="input-group-text">%</span></div></div></td>' +
         '<td><button type="button" class="btn btn-xs btn-danger" onclick="$(\'#mr'+i+'\').remove();updateRatios()"><i class="fas fa-times"></i></button></td>' +
         '</tr>');
 }
 
-function updateRatios(baseAmt) {
-    if (baseAmt===undefined) {
-        var amt=parseFloat($('#contractAmount').val())||0;
-        var isJ=$('#isJointVenture').is(':checked');
-        var r=parseFloat($('#ourRatio').val())||100;
-        baseAmt=isJ?amt*r/100:amt;
-    }
+function updateRatios() {
     var total=0;
     $('.mRatio').each(function(){ total+=parseFloat($(this).val())||0; });
-    var ok=Math.abs(total-100)<0.1;
-    $('#rTotal').text(total.toFixed(1)+'%').toggleClass('text-success',ok).toggleClass('text-danger',!ok);
-    $('#rWarn').toggle(!ok);
-    $('.mRatio').each(function(i){
-        var r=parseFloat($(this).val())||0;
-        var val=baseAmt>0?'¥ '+(baseAmt*r/100).toFixed(2)+' 万':'—';
-        $(this).closest('tr').find('.mVal').text(val);
-        $(this).closest('tr').find('.progress-bar').css('width',r+'%');
-    });
+    var over = total > 100;
+    var under = total < 100 && total > 0;
+    $('#rTotal').text(total.toFixed(1)+'%')
+        .toggleClass('text-success', !over && !under)
+        .toggleClass('text-danger', over);
+    $('#rWarn').toggle(under);
+    $('#rOver').toggle(over);
 }
 
 function addMsRow(name,type,date) {
@@ -423,25 +454,17 @@ function prefillMs() {
     nodes.forEach(function(n){ addMsRow(n[0],n[1]); });
 }
 
-function onBizTypeChange() {
-    if (!$('#msBody tr').length) prefillMs();
-}
-
 function updateChecklist() {
     var checks={
-        'ck1':!!$('#deptId').val(), 'ck2':!!$('#projName').val().trim(),
+        'ck1':!!$('#projectCategory').val(), 'ck2':!!$('#projName').val().trim(),
         'ck3':!!$('#ownerName').val().trim(), 'ck4':parseFloat($('#contractAmount').val())>0,
-        'ck5':$('#mBody tr').length===0||Math.abs(getTotalRatio()-100)<0.1,
+        'ck5':!!$('#projectLeaderId').val(),
     };
-    var labels={'ck1':'承接部门','ck2':'项目名称','ck3':'项目业主','ck4':'合同金额','ck5':'成员占比'};
+    var labels={'ck1':'工程类别','ck2':'项目名称','ck3':'项目业主','ck4':'合同金额','ck5':'项目负责人'};
     $.each(checks,function(id,ok){
         $('#'+id).text((ok?'✓ ':'☐ ')+labels[id])
                  .toggleClass('text-success',ok).toggleClass('text-muted',!ok);
     });
-}
-
-function getTotalRatio(){
-    var t=0; $('.mRatio').each(function(){ t+=parseFloat($(this).val())||0; }); return t;
 }
 
 function collectData() {
@@ -450,41 +473,43 @@ function collectData() {
         if(n&&d) ms_list.push({MilestoneName:n, MilestoneType:$(this).find('.msType').val(),
             PlanDate:d, AcceptAmount:parseFloat($(this).find('.msAmt').val())||null, Sort:ms_list.length+1});
     });
-    var mb_list=[]; var s=1; $('#mBody tr').each(function(){
+    var mb_list=[]; $('#mBody tr').each(function(){
         var eid=$(this).find('.mEmp').val(), r=parseFloat($(this).find('.mRatio').val())||0;
-        if(eid&&r>0) mb_list.push({EmployeeId:parseInt(eid), Role:'参与人员',
+        if(eid) mb_list.push({EmployeeId:parseInt(eid), Role:'参与人员',
             DutyDesc:$(this).find('.mDuty').val(), Ratio:r,
             JoinDate:new Date().toISOString().split('T')[0]});
     });
     return {
-        ProjNo:$('#projNo').val(), ProjName:$('#projName').val().trim(),
+        ProjNo: projNoPrefix + ($('#projNoSuffix').val()||''),
+        ProjName:$('#projName').val().trim(),
         DeptId:parseInt($('#deptId').val())||null, BizType:$('#bizType').val(),
+        ProjectCategory:$('#projectCategory').val(),
+        ProjectLeaderId:parseInt($('#projectLeaderId').val())||null,
         OwnerName:$('#ownerName').val().trim(), OwnerContact:$('#ownerContact').val(),
         OwnerPhone:$('#ownerPhone').val(), ProcurementType:$('#procurementType').val(),
         LimitPrice:parseFloat($('#limitPrice').val())||null,
         ContractAmount:parseFloat($('#contractAmount').val())||0,
         IsJointVenture:$('#isJointVenture').is(':checked'),
         OurRatio:parseFloat($('#ourRatio').val())||null,
-        TechLeaderId:parseInt($('#techLeaderId').val())||null,
-        BizLeaderId:parseInt($('#bizLeaderId').val())||null,
+        TechLeaderId:null, BizLeaderId:null,
+        BidDeadline:$('#bidDeadline').val()||null,
         SignDate:$('#signDate').val()||null, PlanEndDate:$('#planEndDate').val()||null,
         ProgressStatus:parseInt($('#progressStatus').val()),
-        BuildingScale:$('#buildingScale').val(), Remark:$('#remark').val(),
+        ProjectOverview:$('#projectOverview').val(), Remark:$('#remark').val(),
+        ContractSigned:$('#contractSigned').is(':checked'),
+        ContractSignedDate:$('#contractSignedDate').val()||null,
         Members:mb_list, Milestones:ms_list,
     };
 }
 
 function submitProj() {
     var d=collectData();
-    if(!d.BizType){layer.msg('请选择业务类型',{icon:2});goStep(1);return;}
+    if(!d.ProjectCategory){layer.msg('请选择工程类别',{icon:2});goStep(1);return;}
     if(!d.ProjName){layer.msg('请填写项目名称',{icon:2});goStep(1);return;}
     if(!d.OwnerName){layer.msg('请填写项目业主',{icon:2});goStep(1);return;}
-    if(d.ContractAmount<=0){layer.msg('请填写合同金额',{icon:2});goStep(1);return;}
+    if(!d.ProjectLeaderId){layer.msg('请选择项目负责人',{icon:2});goStep(1);return;}
+    if(d.ContractAmount<=0){layer.msg('请填写合同金额',{icon:2});goStep(2);return;}
     if(d.IsJointVenture&&!d.OurRatio){layer.msg('联合体须填写我方占比',{icon:2});goStep(1);return;}
-    if(d.Members.length>0){
-        var t=d.Members.reduce(function(s,m){return s+m.Ratio;},0);
-        if(Math.abs(t-100)>0.1){layer.msg('成员占比总和须等于100%，当前'+t.toFixed(1)+'%',{icon:2});goStep(2);return;}
-    }
     var load=layer.load(1);
     $.ajax({url:'/project/create',type:'POST',contentType:'application/json',
         headers:{'RequestVerificationToken':af}, data:JSON.stringify(d),

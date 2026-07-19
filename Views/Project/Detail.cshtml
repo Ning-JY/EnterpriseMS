@@ -41,8 +41,17 @@
             <i class="fas fa-edit"></i> 编辑
           </a>
         }
+        <a href="/templatereport/project/@Model.Id" class="btn btn-sm btn-success mr-1">
+          <i class="fas fa-file-export"></i> 生成报告
+        </a>
+        <button class="btn btn-sm btn-outline-secondary mr-1" onclick="layer.msg('用章申请功能开发中',{icon:0})">
+          <i class="fas fa-stamp"></i> 用章申请
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="layer.msg('审批流程功能开发中',{icon:0})">
+          <i class="fas fa-project-diagram"></i> 审批流程
+        </button>
         @if (canStatus && Model.ProgressStatus < 9) {
-          <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#statusModal">
+          <button class="btn btn-sm btn-primary ml-1" data-toggle="modal" data-target="#statusModal">
             <i class="fas fa-arrow-right"></i> 变更状态
           </button>
         }
@@ -335,16 +344,17 @@
 <div class="card">
   <div class="card-header p-0">
     <ul class="nav nav-tabs" id="projTabs" role="tablist">
-      <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-milestone">工作节点</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-file">项目文件</a></li>
+      <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-file">项目文件</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-contract">合同管理</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-receipt">回款管理</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-milestone">工作节点</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-log">操作日志</a></li>
     </ul>
   </div>
   <div class="card-body tab-content">
 
     <!-- ── Tab①：工作节点 ── -->
-    <div class="tab-pane fade show active" id="tab-milestone">
+    <div class="tab-pane fade" id="tab-milestone">
       <div class="text-right mb-2">
         @if (canMSAdd)
         { <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#addMsModal">
@@ -402,7 +412,7 @@
     </div>
 
     <!-- 验收与回款 -->
-    <!-- ── Tab②：回款管理（含验收+发票合并）── -->
+    <!-- ── Tab③：回款管理（含验收+发票合并）── -->
     <div class="tab-pane fade" id="tab-receipt">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
@@ -522,8 +532,78 @@
         </table>
       </div>
     </div>
+    <!-- ── Tab②：合同管理 ── -->
+    <div class="tab-pane fade" id="tab-contract">
+      <div class="text-right mb-2">
+        @if (canEdit)
+        {
+          <button class="btn btn-sm btn-warning" data-toggle="modal" data-target="#addContractModal">
+            <i class="fas fa-plus"></i> 新增合同
+          </button>
+        }
+      </div>
+      @if (Model.Contracts.Any())
+      {
+        <table class="table table-sm table-hover">
+          <thead class="thead-light">
+            <tr><th>合同编号</th><th>类型</th><th>甲方</th><th>合同金额(万)</th><th>签约日期</th><th>状态</th><th>附件</th><th>操作</th></tr>
+          </thead>
+          <tbody>
+            @foreach (var ct in Model.Contracts)
+            {
+              <tr>
+                <td><code class="small">@ct.ContractNo</code></td>
+                <td><span class="badge badge-light">@ct.ContractType</span></td>
+                <td class="small">@ct.PartyA</td>
+                <td class="text-primary font-weight-bold">¥@ct.Amount.ToString("N2")</td>
+                <td class="small">@(ct.SignDate?.ToString("yyyy-MM-dd")??"-")</td>
+                <td>
+                  @if (ct.Status==1) { <span class="badge badge-success">生效</span> }
+                  else { <span class="badge badge-secondary">无效</span> }
+                </td>
+                <td>
+                  @if (ct.FileName != null)
+                  {
+                    <a href="/project/contracts/download/@ct.Id" class="btn btn-xs btn-info mr-1" title="下载">
+                      <i class="fas fa-download"></i>
+                    </a>
+                    @if (canEdit)
+                    {
+                      <label class="btn btn-xs btn-warning mb-0 mr-1" title="重新上传">
+                        <i class="fas fa-sync-alt"></i>
+                        <input type="file" style="display:none" onchange="uploadContractFile(@ct.Id,this)">
+                      </label>
+                    }
+                  }
+                  else if (canEdit)
+                  {
+                    <label class="btn btn-xs btn-outline-secondary mb-0">
+                      <i class="fas fa-upload"></i>
+                      <input type="file" style="display:none" onchange="uploadContractFile(@ct.Id,this)">
+                    </label>
+                  }
+                </td>
+                <td>
+                  @if (canEdit)
+                  {
+                    <button class="btn btn-xs btn-danger" onclick="delContract(@ct.Id,'@ct.ContractNo')">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+      else
+      {
+        <div class="text-center text-muted py-4">暂无合同记录</div>
+      }
+    </div>
+
     <!-- ── Tab③：项目文件 ── -->
-    <div class="tab-pane fade" id="tab-file">
+    <div class="tab-pane fade show active" id="tab-file">
 
     @if (canEdit)
     {

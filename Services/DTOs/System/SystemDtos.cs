@@ -100,3 +100,35 @@ public class DictDataDto
     public int    Sort       { get; set; }
     public int    IsDefault  { get; set; }
 }
+
+public class CreateDictTypeDto
+{
+    [Required, MaxLength(50)] public string DictName { get; set; } = "";
+    [Required, MaxLength(50)] public string DictType { get; set; } = "";
+    public int     Status { get; set; } = 1;
+    public string? Remark { get; set; }
+}
+
+public class UpdateDictTypeDto : CreateDictTypeDto { public long Id { get; set; } }
+
+public class CreateDictDataDto
+{
+    [Required, MaxLength(50)] public string DictType  { get; set; } = "";
+    [Required, MaxLength(100)] public string DictLabel { get; set; } = "";
+    [Required, MaxLength(100)] public string DictValue { get; set; } = "";
+    public int Sort       { get; set; }
+    public int IsDefault  { get; set; }
+    public int Status     { get; set; } = 1;
+}
+
+public class UpdateDictDataDto : CreateDictDataDto { public long Id { get; set; } }
+
+// ── Config DTOs ──
+public class SysConfigDto
+{
+    public string ConfigKey   { get; set; } = "";
+    public string ConfigValue { get; set; } = "";
+    public string? ConfigType { get; set; }
+    public string? GroupName  { get; set; }
+    public int    Sort        { get; set; }
+}

@@ -142,3 +142,15 @@ public class SysLoginLog
     [Column("msg")]        public string?  Msg       { get; set; }
     [Column("login_time")] public DateTime LoginTime { get; set; }
 }
+
+[Table("sys_config")]
+public class SysConfig
+{
+    public long      Id         { get; set; }
+    [Column("config_key")]   public string  ConfigKey   { get; set; } = "";
+    [Column("config_value")] public string  ConfigValue { get; set; } = "";
+    [Column("config_type")]  public string  ConfigType  { get; set; } = "text"; // text/number/boolean/color
+    [Column("group_name")]   public string  GroupName   { get; set; } = "system"; // system/display/navigation
+    [Column("sort")]         public int     Sort        { get; set; }
+    [Column("remark")]       public string? Remark      { get; set; }
+}

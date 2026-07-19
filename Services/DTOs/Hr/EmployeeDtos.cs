@@ -174,3 +174,49 @@ public class EmployeeCertificateDto
     public bool IsExpiringSoon => Status == 0 && ExpireDate.HasValue
         && ExpireDate.Value <= DateTime.Now.AddDays(90) && ExpireDate.Value > DateTime.Now;
 }
+
+// ── 教育经历 DTOs ──
+public class EducationDto
+{
+    public long      Id         { get; set; }
+    public long      EmployeeId { get; set; }
+    public string    SchoolName { get; set; } = "";
+    public string    Major      { get; set; } = "";
+    public string    Degree     { get; set; } = "";
+    public DateTime? StartDate  { get; set; }
+    public DateTime? EndDate    { get; set; }
+    public bool      IsFullTime { get; set; } = true;
+    public string?   Remark     { get; set; }
+}
+
+public class CreateEducationDto
+{
+    [Required, MaxLength(100)] public string SchoolName { get; set; } = "";
+    [Required, MaxLength(100)] public string Major      { get; set; } = "";
+    [Required, MaxLength(50)]  public string Degree     { get; set; } = "";
+    public DateTime? StartDate  { get; set; }
+    public DateTime? EndDate    { get; set; }
+    public bool      IsFullTime { get; set; } = true;
+    public string?   Remark     { get; set; }
+}
+
+// ── 工作经历 DTOs ──
+public class WorkExpDto
+{
+    public long      Id          { get; set; }
+    public long      EmployeeId  { get; set; }
+    public string    CompanyName { get; set; } = "";
+    public string    Position    { get; set; } = "";
+    public DateTime? StartDate   { get; set; }
+    public DateTime? EndDate     { get; set; }
+    public string?   Remark      { get; set; }
+}
+
+public class CreateWorkExpDto
+{
+    [Required, MaxLength(100)] public string CompanyName { get; set; } = "";
+    [Required, MaxLength(100)] public string Position    { get; set; } = "";
+    public DateTime? StartDate  { get; set; }
+    public DateTime? EndDate    { get; set; }
+    public string?   Remark     { get; set; }
+}

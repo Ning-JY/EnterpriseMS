@@ -519,3 +519,130 @@ public class CreateCertRequest
     public DateTime? IssueDate  { get; set; }
     public DateTime? ExpireDate { get; set; }
 }
+
+// ── 教育经历管理 ──────────────────────────────────────────────
+[Authorize, Route("hr/education")]
+public class EducationController : BaseAuthController
+{
+    private readonly IUnitOfWork _uow;
+    public EducationController(IUnitOfWork uow, IPermissionService permSvc)
+        : base(permSvc) => _uow = uow;
+
+    [HttpGet("list/{employeeId}")]
+    public async Task<IActionResult> List(long employeeId)
+    {
+        var list = await _uow.Educations.GetListAsync(e => e.EmployeeId == employeeId);
+        var dtos = list.OrderBy(e => e.StartDate).Select(e => new EducationDto
+        {
+            Id = e.Id, EmployeeId = e.EmployeeId, SchoolName = e.SchoolName,
+            Major = e.Major, Degree = e.Degree, StartDate = e.StartDate,
+            EndDate = e.EndDate, IsFullTime = e.IsFullTime, Remark = e.Remark
+        }).ToList();
+        return Json(ApiResult<object>.Ok(dtos));
+    }
+
+    [HttpPost("create"), ValidateAntiForgeryToken]
+    [HasPermission("hr:employee:edit")]
+    public async Task<IActionResult> Create([FromBody] CreateEducationDto dto, [FromQuery] long employeeId)
+    {
+        var entity = new EmployeeEducation
+        {
+            Id = Common.SnowflakeId.Next(), EmployeeId = employeeId,
+            SchoolName = dto.SchoolName, Major = dto.Major, Degree = dto.Degree,
+            StartDate = dto.StartDate, EndDate = dto.EndDate,
+            IsFullTime = dto.IsFullTime, Remark = dto.Remark,
+            CreatedAt = DateTime.Now, CreatedBy = User.Identity?.Name ?? "system"
+        };
+        await _uow.Educations.AddAsync(entity);
+        await _uow.SaveChangesAsync();
+        return Json(ApiResult<object>.Ok(new { id = entity.Id }, "添加成功"));
+    }
+
+    [HttpPost("update"), ValidateAntiForgeryToken]
+    [HasPermission("hr:employee:edit")]
+    public async Task<IActionResult> Update([FromBody] EducationDto dto)
+    {
+        var entity = await _uow.Educations.GetByIdAsync(dto.Id);
+        if (entity == null) return Json(ApiResult<object>.Fail("记录不存在"));
+        entity.SchoolName = dto.SchoolName; entity.Major = dto.Major;
+        entity.Degree = dto.Degree; entity.StartDate = dto.StartDate;
+        entity.EndDate = dto.EndDate; entity.IsFullTime = dto.IsFullTime;
+        entity.Remark = dto.Remark; entity.UpdatedAt = DateTime.Now;
+        await _uow.SaveChangesAsync();
+        return Json(ApiResult<object>.Ok("修改成功"));
+    }
+
+    [HttpPost("delete/{id}")]
+    [HasPermission("hr:employee:edit")]
+    public async Task<IActionResult> Delete(long id)
+    {
+        var entity = await _uow.Educations.GetByIdAsync(id);
+        if (entity == null) return Json(ApiResult<object>.Fail("记录不存在"));
+        _uow.Educations.SoftDelete(entity);
+        await _uow.SaveChangesAsync();
+        return Json(ApiResult<object>.Ok("删除成功"));
+    }
+}
+
+// ── 工作经历管理 ──────────────────────────────────────────────
+[Authorize, Route("hr/workexp")]
+public class WorkExpController : BaseAuthController
+{
+    private readonly IUnitOfWork _uow;
+    public WorkExpController(IUnitOfWork uow, IPermissionService permSvc)
+        : base(permSvc) => _uow = uow;
+
+    [HttpGet("list/{employeeId}")]
+    public async Task<IActionResult> List(long employeeId)
+    {
+        var list = await _uow.WorkExperiences.GetListAsync(w => w.EmployeeId == employeeId);
+        var dtos = list.OrderBy(w => w.StartDate).Select(w => new WorkExpDto
+        {
+            Id = w.Id, EmployeeId = w.EmployeeId, CompanyName = w.CompanyName,
+            Position = w.Position, StartDate = w.StartDate,
+            EndDate = w.EndDate, Remark = w.Remark
+        }).ToList();
+        return Json(ApiResult<object>.Ok(dtos));
+    }
+
+    [HttpPost("create"), ValidateAntiForgeryToken]
+    [HasPermission("hr:employee:edit")]
+    public async Task<IActionResult> Create([FromBody] CreateWorkExpDto dto, [FromQuery] long employeeId)
+    {
+        var entity = new EmployeeWorkExp
+        {
+            Id = Common.SnowflakeId.Next(), EmployeeId = employeeId,
+            CompanyName = dto.CompanyName, Position = dto.Position,
+            StartDate = dto.StartDate, EndDate = dto.EndDate,
+            Remark = dto.Remark, CreatedAt = DateTime.Now,
+            CreatedBy = User.Identity?.Name ?? "system"
+        };
+        await _uow.WorkExperiences.AddAsync(entity);
+        await _uow.SaveChangesAsync();
+        return Json(ApiResult<object>.Ok(new { id = entity.Id }, "添加成功"));
+    }
+
+    [HttpPost("update"), ValidateAntiForgeryToken]
+    [HasPermission("hr:employee:edit")]
+    public async Task<IActionResult> Update([FromBody] WorkExpDto dto)
+    {
+        var entity = await _uow.WorkExperiences.GetByIdAsync(dto.Id);
+        if (entity == null) return Json(ApiResult<object>.Fail("记录不存在"));
+        entity.CompanyName = dto.CompanyName; entity.Position = dto.Position;
+        entity.StartDate = dto.StartDate; entity.EndDate = dto.EndDate;
+        entity.Remark = dto.Remark; entity.UpdatedAt = DateTime.Now;
+        await _uow.SaveChangesAsync();
+        return Json(ApiResult<object>.Ok("修改成功"));
+    }
+
+    [HttpPost("delete/{id}")]
+    [HasPermission("hr:employee:edit")]
+    public async Task<IActionResult> Delete(long id)
+    {
+        var entity = await _uow.WorkExperiences.GetByIdAsync(id);
+        if (entity == null) return Json(ApiResult<object>.Fail("记录不存在"));
+        _uow.WorkExperiences.SoftDelete(entity);
+        await _uow.SaveChangesAsync();
+        return Json(ApiResult<object>.Ok("删除成功"));
+    }
+}

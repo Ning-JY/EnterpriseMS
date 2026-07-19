@@ -69,7 +69,6 @@ public static class SystemSeeds
             new SysDictType { Id = 3, DictName = "合同类型", DictType = "contract_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 4, DictName = "证书类型", DictType = "cert_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 5, DictName = "里程碑类型", DictType = "milestone_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 6, DictName = "概预算任务类型", DictType = "budget_task_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 7, DictName = "项目进度状态", DictType = "proj_status", Status = 1, CreatedAt = dt, CreatedBy = "system" }
         );
 
@@ -121,13 +120,6 @@ public static class SystemSeeds
             new SysDictData { Id = 506, DictType = "milestone_type", DictLabel = "报批上报", DictValue = "报批上报", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 507, DictType = "milestone_type", DictLabel = "成果交付", DictValue = "成果交付", Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 508, DictType = "milestone_type", DictLabel = "回款", DictValue = "回款", Sort = 8, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            // 概预算任务类型
-            new SysDictData { Id = 601, DictType = "budget_task_type", DictLabel = "概算编制", DictValue = "0", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 602, DictType = "budget_task_type", DictLabel = "预算编制", DictValue = "1", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 603, DictType = "budget_task_type", DictLabel = "结算编制", DictValue = "2", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 604, DictType = "budget_task_type", DictLabel = "概算评审", DictValue = "3", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 605, DictType = "budget_task_type", DictLabel = "预算评审", DictValue = "4", Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 606, DictType = "budget_task_type", DictLabel = "结算评审", DictValue = "5", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             // 项目进度状态
             new SysDictData { Id = 701, DictType = "proj_status", DictLabel = "前期商务", DictValue = "0", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 702, DictType = "proj_status", DictLabel = "预计启动", DictValue = "1", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
@@ -144,7 +136,7 @@ public static class SystemSeeds
         // ── 超管拥有全部权限 ──────────────────────────────────
         var allMenuIds = new long[]
         {
-            1,2,3,4,5,6,7,8,9,
+            1,2,3,5,6,7,8,9,
             11,12,13,14,15,16,17,
             111,112,113,114,
             121,122,123,124,
@@ -152,6 +144,7 @@ public static class SystemSeeds
             141,142,143,144,
             151,152,153,154,
             161,162,163,
+            18,
             51,52,
             61,62,621,622,
             71,72,
@@ -159,7 +152,6 @@ public static class SystemSeeds
             21,22,23,
             211,212,213,214,
             31, 311,312,313,314,315,316,317,318,319,320,
-            41, 411,412,413,414,
             91, 911,912,913,914,915,916
         };
         mb.Entity<SysRoleMenu>().HasData(
@@ -172,7 +164,6 @@ public static class SystemSeeds
             5, 51, 52,              // 个人中心（所有人可见）
             2, 21, 22, 23,          // 员工档案查看
             3, 31, 311,312,313,315,316,317,318,319,  // 项目管理全部
-            4, 41, 413, 414,        // 概预算查看+录入意见
             9, 91, 911,912,913,914,917,915,918,919,916,  // 投标管理全部
             8, 83,                  // 造价小工具：成果报告模板管理
         };
@@ -185,7 +176,6 @@ public static class SystemSeeds
         {
             5, 51, 52,              // 个人中心（所有人可见）
             3, 31, 317, 318, 319,   // 项目台账+完成节点+录入验收
-            4, 41,                  // 概预算查看
         };
         mb.Entity<SysRoleMenu>().HasData(
             engMenuIds.Select(mid => new SysRoleMenu { RoleId = 4, MenuId = mid }).ToArray()

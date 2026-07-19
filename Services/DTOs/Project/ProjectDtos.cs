@@ -163,25 +163,31 @@ public class ProjectQueryDto
 
 public class CreateProjectDto
 {
-    public string   ProjNo          { get; set; } = "";
-    public string   ProjName        { get; set; } = "";
-    public long?    DeptId          { get; set; }
-    public string   BizType         { get; set; } = "";
-    public string   OwnerName       { get; set; } = "";
-    public string?  OwnerContact    { get; set; }
-    public string?  OwnerPhone      { get; set; }
-    public string?  ProcurementType { get; set; }
-    public decimal? LimitPrice      { get; set; }
-    public decimal  ContractAmount  { get; set; }
-    public bool     IsJointVenture  { get; set; }
-    public decimal? OurRatio        { get; set; }
-    public long?    TechLeaderId    { get; set; }
-    public long?    BizLeaderId     { get; set; }
-    public DateTime? SignDate       { get; set; }
-    public DateTime? PlanEndDate    { get; set; }
-    public DateTime? BidDeadline    { get; set; }
-    public string?  BuildingScale   { get; set; }
-    public string?  Remark          { get; set; }
+    public string   ProjNo           { get; set; } = "";
+    public string   ProjName         { get; set; } = "";
+    public long?    DeptId           { get; set; }
+    public string   BizType          { get; set; } = "";
+    public string   OwnerName        { get; set; } = "";
+    public string?  OwnerContact     { get; set; }
+    public string?  OwnerPhone       { get; set; }
+    public string?  ProcurementType  { get; set; }
+    public decimal? LimitPrice       { get; set; }
+    public decimal  ContractAmount   { get; set; }
+    public bool     IsJointVenture   { get; set; }
+    public decimal? OurRatio         { get; set; }
+    public long?    TechLeaderId     { get; set; }
+    public long?    BizLeaderId      { get; set; }
+    public DateTime? SignDate        { get; set; }
+    public DateTime? PlanEndDate     { get; set; }
+    public DateTime? BidDeadline     { get; set; }
+    public string?  BuildingScale    { get; set; }
+    public string?  Remark           { get; set; }
+    // 新增字段
+    public string?  ProjectCategory  { get; set; }
+    public long?    ProjectLeaderId  { get; set; }
+    public string?  ProjectOverview  { get; set; }
+    public bool     ContractSigned   { get; set; }
+    public DateTime? ContractSignedDate { get; set; }
     public List<CreateMilestoneDto> Milestones { get; set; } = new();
     public List<CreateMemberDto>    Members    { get; set; } = new();
 }

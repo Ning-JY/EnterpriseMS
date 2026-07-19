@@ -86,13 +86,49 @@ public class OperationLogFilter : IAsyncActionFilter
     public async Task OnActionExecutionAsync(
         ActionExecutingContext ctx, ActionExecutionDelegate next)
     {
+        // 先检查是否有显式的 OperLogAttribute
         var attr = ctx.ActionDescriptor.EndpointMetadata
                       .OfType<OperLogAttribute>().FirstOrDefault();
         var result = await next();
-        if (attr == null || result.Exception != null) return;
+        if (result.Exception != null) return;
+
         try
         {
-            await _logSvc.LogAsync(attr.Title, null, attr.BusinessType);
+            if (attr != null)
+            {
+                // 使用显式标记的日志
+                await _logSvc.LogAsync(attr.Title, null, attr.BusinessType);
+            }
+            else
+            {
+                // 自动记录 POST 写操作（create/update/delete）
+                var method = ctx.HttpContext.Request.Method;
+                if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase))
+                {
+                    var actionName = ctx.ActionDescriptor.RouteValues["action"]?.ToString() ?? "";
+                    var controllerName = ctx.ActionDescriptor.RouteValues["controller"]?.ToString() ?? "";
+                    var path = ctx.HttpContext.Request.Path.Value ?? "";
+
+                    // 只记录实际的写操作，跳过 CSRF token 等无关请求
+                    bool isWriteOp = actionName.Contains("Create", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Update", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Delete", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Save", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Formal", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Leave", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Complete", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Status", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Terminate", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Received", StringComparison.OrdinalIgnoreCase)
+                                  || actionName.Contains("Import", StringComparison.OrdinalIgnoreCase);
+
+                    if (isWriteOp)
+                    {
+                        var title = $"{controllerName}/{actionName}";
+                        await _logSvc.LogAsync(title, null, method);
+                    }
+                }
+            }
         }
         catch { /* 日志失败不影响主流程 */ }
     }

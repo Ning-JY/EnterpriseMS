@@ -20,13 +20,57 @@ public class Employee : BaseEntity
     [Column("probation_end_date")] public DateTime? ProbationEndDate{ get; set; }
     [Column("formal_date")]        public DateTime? FormalDate      { get; set; }
     [Column("leave_date")]         public DateTime? LeaveDate       { get; set; }
-    /// <summary>学历。补充字段——原代码 BidService.MatchPersonnelAsync 引用了 emp.Education，
-    /// 但该属性此前未在实体中定义，导致编译失败，这里补上（不属于本次招标解析模块范围，是顺手修复的阻塞性bug）。</summary>
     [Column("education")]          public string?  Education        { get; set; }
     [Column("remark")]             public string?  Remark           { get; set; }
+    // 人事档案扩充字段
+    [Column("nationality")]        public string?  Nationality      { get; set; }
+    [Column("birth_date")]         public DateTime? BirthDate       { get; set; }
+    [Column("political_status")]   public string?  PoliticalStatus  { get; set; }
+    [Column("native_place")]       public string?  NativePlace      { get; set; }
+    [Column("address")]            public string?  Address          { get; set; }
+    [Column("highest_degree")]     public string?  HighestDegree    { get; set; }
+    [Column("graduate_school")]    public string?  GraduateSchool   { get; set; }
+    [Column("major")]              public string?  Major            { get; set; }
+    [Column("work_start_date")]    public DateTime? WorkStartDate   { get; set; }
+    [Column("technical_title")]    public string?  TechnicalTitle   { get; set; }
+    [Column("technical_level")]    public string?  TechnicalLevel   { get; set; }
+    [Column("emergency_contact")]  public string?  EmergencyContact { get; set; }
+    [Column("emergency_phone")]    public string?  EmergencyPhone   { get; set; }
+    [Column("bank_account")]       public string?  BankAccount      { get; set; }
+    [Column("bank_name")]          public string?  BankName         { get; set; }
+    [Column("social_insurance_no")]public string?  SocialInsuranceNo{ get; set; }
+    [Column("profile_photo")]      public string?  ProfilePhoto     { get; set; }
     public SysDept? Dept { get; set; }
-    public ICollection<EmployeeContract>    Contracts    { get; set; } = new List<EmployeeContract>();
-    public ICollection<EmployeeCertificate> Certificates { get; set; } = new List<EmployeeCertificate>();
+    public ICollection<EmployeeContract>    Contracts      { get; set; } = new List<EmployeeContract>();
+    public ICollection<EmployeeCertificate> Certificates   { get; set; } = new List<EmployeeCertificate>();
+    public ICollection<EmployeeEducation>   EducationList  { get; set; } = new List<EmployeeEducation>();
+    public ICollection<EmployeeWorkExp>     WorkExperiences{ get; set; } = new List<EmployeeWorkExp>();
+}
+
+[Table("hr_education")]
+public class EmployeeEducation : BaseEntity
+{
+    [Column("employee_id")]  public long     EmployeeId  { get; set; }
+    [Column("school_name")]  public string   SchoolName  { get; set; } = "";
+    [Column("major")]        public string   Major       { get; set; } = "";
+    [Column("degree")]       public string   Degree      { get; set; } = "";
+    [Column("start_date")]   public DateTime? StartDate { get; set; }
+    [Column("end_date")]     public DateTime? EndDate   { get; set; }
+    [Column("is_full_time")] public bool     IsFullTime  { get; set; } = true;
+    [Column("remark")]       public string?  Remark      { get; set; }
+    public Employee? Employee { get; set; }
+}
+
+[Table("hr_work_experience")]
+public class EmployeeWorkExp : BaseEntity
+{
+    [Column("employee_id")]   public long     EmployeeId   { get; set; }
+    [Column("company_name")]  public string   CompanyName  { get; set; } = "";
+    [Column("position")]      public string   Position     { get; set; } = "";
+    [Column("start_date")]    public DateTime? StartDate  { get; set; }
+    [Column("end_date")]      public DateTime? EndDate    { get; set; }
+    [Column("remark")]        public string?  Remark       { get; set; }
+    public Employee? Employee { get; set; }
 }
 
 [Table("hr_contract")]

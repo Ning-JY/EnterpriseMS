@@ -9,6 +9,7 @@
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item"><a href="/system">系统管理</a></li>
                     <li class="breadcrumb-item active">菜单管理</li>
                 </ol>
             </div>
@@ -19,11 +20,14 @@
 <section class="content"><div class="container-fluid">
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">菜单树（仅查看，修改请直接操作数据库或迁移文件）</h3>
+        <h3 class="card-title">菜单树</h3>
         <div class="card-tools">
-            <span class="badge badge-info mr-2">M=目录</span>
-            <span class="badge badge-primary mr-2">C=页面</span>
-            <span class="badge badge-secondary">F=按钮</span>
+            <button class="btn btn-sm btn-success" onclick="openAddMenu(0)">
+                <i class="fas fa-plus"></i> 新增顶级菜单
+            </button>
+            <span class="badge badge-info ml-2">M=目录</span>
+            <span class="badge badge-primary ml-2">C=页面</span>
+            <span class="badge badge-secondary ml-2">F=按钮</span>
         </div>
     </div>
     <div class="card-body p-0">
@@ -36,6 +40,7 @@
                     <th width="50">排序</th>
                     <th width="60">图标</th>
                     <th width="60">状态</th>
+                    <th width="100">操作</th>
                 </tr>
             </thead>
             <tbody>
@@ -76,6 +81,22 @@
                                 else
                                 { <span class="badge badge-danger">禁用</span> }
                             </td>
+                            <td>
+                                <div class="btn-group">
+                                    @if (menu.MenuType != "F")
+                                    {
+                                        <button class="btn btn-xs btn-outline-success" onclick="openAddMenu(@menu.Id)" title="新增子菜单">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    }
+                                    <button class="btn btn-xs btn-outline-warning" onclick="openEditMenu(@menu.Id)" title="编辑">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteMenu(@menu.Id,'@menu.MenuName')" title="删除">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
                         </tr>
                         @foreach (var child in menu.Children)
                         {
@@ -91,9 +112,190 @@
             </tbody>
         </table>
     </div>
-    <div class="card-footer text-muted small">
-        <i class="fas fa-info-circle mr-1"></i>
-        菜单结构通过种子数据（AppDbContext.cs）和数据库迁移进行管理，如需调整请修改后重新迁移。
-    </div>
 </div>
 </div></section>
+
+<!-- 新增/编辑菜单弹窗 -->
+<div class="modal fade" id="menuModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="menuModalTitle">新增菜单</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="menuId">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>上级菜单</label>
+                        <select id="menuParentId" class="form-control">
+                            <option value="0">顶级菜单</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>菜单类型</label>
+                        <select id="menuType" class="form-control">
+                            <option value="M">M - 目录</option>
+                            <option value="C" selected>C - 页面菜单</option>
+                            <option value="F">F - 按钮权限</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>菜单名称 <span class="text-danger">*</span></label>
+                        <input type="text" id="menuName" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>路由地址</label>
+                        <input type="text" id="menuPath" class="form-control" placeholder="如：/system/user">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>权限标识</label>
+                        <input type="text" id="menuPerms" class="form-control" placeholder="如：sys:user:list">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>图标</label>
+                        <input type="text" id="menuIcon" class="form-control" placeholder="如：fa-user">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>排序</label>
+                        <input type="number" id="menuSort" class="form-control" value="0">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>状态</label>
+                        <select id="menuStatus" class="form-control">
+                            <option value="1">正常</option>
+                            <option value="0">停用</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>是否可见</label>
+                        <select id="menuVisible" class="form-control">
+                            <option value="1">可见</option>
+                            <option value="0">隐藏</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-primary" onclick="saveMenu()">保存</button>
+        </div>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var af = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+var allMenus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+    Model.Select(m => new { id = m.Id, name = m.MenuName, type = m.MenuType })));
+
+function buildParentOptions() {
+    var html = '<option value="0">顶级菜单</option>';
+    allMenus.forEach(function(m) {
+        if (m.type !== 'F') {
+            html += '<option value="' + m.id + '">' + m.name + '</option>';
+        }
+    });
+    $('#menuParentId').html(html);
+}
+
+function openAddMenu(parentId) {
+    $('#menuModalTitle').text('新增菜单');
+    $('#menuId').val(0);
+    buildParentOptions();
+    $('#menuParentId').val(parentId);
+    $('#menuType').val(parentId === 0 ? 'M' : 'C');
+    $('#menuName, #menuPath, #menuPerms, #menuIcon').val('');
+    $('#menuSort').val(0);
+    $('#menuStatus, #menuVisible').val(1);
+    $('#menuModal').modal('show');
+}
+
+function openEditMenu(id) {
+    // 从页面表格中获取当前菜单信息
+    $('#menuModalTitle').text('编辑菜单');
+    $('#menuId').val(id);
+    buildParentOptions();
+
+    // 找到当前行数据（从DOM中读取）
+    var row = $('button[onclick*="openEditMenu(' + id + ')"]').closest('tr');
+    var name = row.find('strong').text().trim();
+    var typeBadge = row.find('.badge').first().text().trim();
+    var codeRow = row.find('code').first().text().trim();
+    var permsRow = row.find('.badge-light').text().trim();
+    var sort = row.find('td:eq(3)').text().trim();
+    var iconCode = row.find('td:eq(4) code').text().trim();
+
+    $('#menuName').val(name);
+    $('#menuType').val(typeBadge);
+    $('#menuPath').val(codeRow);
+    $('#menuPerms').val(permsRow);
+    $('#menuIcon').val(iconCode);
+    $('#menuSort').val(parseInt(sort) || 0);
+    $('#menuModal').modal('show');
+}
+
+function saveMenu() {
+    var name = $('#menuName').val().trim();
+    if (!name) { layer.msg('请填写菜单名称', {icon:2}); return; }
+    var id = parseInt($('#menuId').val()) || 0;
+    var data = {
+        MenuName: name,
+        ParentId: parseInt($('#menuParentId').val()) || 0,
+        MenuType: $('#menuType').val(),
+        Path: $('#menuPath').val() || null,
+        Perms: $('#menuPerms').val() || null,
+        Icon: $('#menuIcon').val() || null,
+        Sort: parseInt($('#menuSort').val()) || 0,
+        Visible: parseInt($('#menuVisible').val()),
+        Status: parseInt($('#menuStatus').val())
+    };
+    var url;
+    if (id > 0) {
+        data.Id = id;
+        url = '/system/menu/update';
+    } else {
+        url = '/system/menu/create';
+    }
+    ajaxPost(url, data, function(r) {
+        layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+            if (r.success) location.reload();
+        });
+    });
+}
+
+function deleteMenu(id, name) {
+    layer.confirm('确认删除菜单「' + name + '」？子菜单也将被删除。', {icon:3}, function(i) {
+        layer.close(i);
+        $.post('/system/menu/delete/' + id, {__RequestVerificationToken: af}, function(r) {
+            layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+                if (r.success) location.reload();
+            });
+        });
+    });
+}
+</script>
+}

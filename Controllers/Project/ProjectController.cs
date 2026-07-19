@@ -104,9 +104,16 @@ public class ProjectController : BaseAuthController
     {
         var depts   = await _deptSvc.GetTreeAsync();
         var members = await _empQrySvc.GetAllOnJobAsync();
-        ViewBag.Depts   = depts;
-        ViewBag.Members = members;
-        ViewBag.ProjNo  = await _projSvc.GenerateProjNoAsync();
+        // 从系统参数读取项目编号前缀
+        var prefix = await _db.SysConfigs
+            .Where(c => c.ConfigKey == "project_no_prefix")
+            .Select(c => c.ConfigValue)
+            .FirstOrDefaultAsync() ?? "";
+        var suffix = await _projSvc.GenerateProjNoSuffixAsync();
+        ViewBag.Depts       = depts;
+        ViewBag.Members     = members;
+        ViewBag.ProjNoPrefix = prefix;
+        ViewBag.GeneratedNo  = suffix;
         return View();
     }
 
