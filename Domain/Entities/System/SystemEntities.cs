@@ -144,13 +144,12 @@ public class SysLoginLog
 }
 
 [Table("sys_config")]
-public class SysConfig
+public class SysConfig : BaseEntity
 {
-    public long      Id         { get; set; }
     [Column("config_key")]   public string  ConfigKey   { get; set; } = "";
     [Column("config_value")] public string  ConfigValue { get; set; } = "";
-    [Column("config_type")]  public string  ConfigType  { get; set; } = "text"; // text/number/boolean/color
-    [Column("group_name")]   public string  GroupName   { get; set; } = "system"; // system/display/navigation
+    [Column("config_type")]  public string  ConfigType  { get; set; } = "text";
+    [Column("group_name")]   public string  GroupName   { get; set; } = "system";
     [Column("sort")]         public int     Sort        { get; set; }
     [Column("remark")]       public string? Remark      { get; set; }
 }

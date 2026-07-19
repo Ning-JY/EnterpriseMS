@@ -192,42 +192,9 @@ public class AppDbContext : DbContext
      */
     public async Task SeedAsync()
     {
-        // 利用 EF Model 的 GetSeedData 读取 HasData 配置，批量插入
-        // 每个实体类型独立处理，已存在则跳过（Upsert 语义）
-        var strategy = Database.CreateExecutionStrategy();
-        await strategy.ExecuteAsync(async () =>
-        {
-            await using var tx = await Database.BeginTransactionAsync();
-            try
-            {
-                // 按依赖顺序插入（先主表后子表）
-                await SeedTableAsync<SysDept>();
-                await SeedTableAsync<SysPost>();
-                await SeedTableAsync<SysRole>();
-                await SeedTableAsync<SysMenu>();
-                await SeedTableAsync<SysUser>();
-                await SeedTableAsync<SysUserRole>();
-                await SeedTableAsync<SysRoleMenu>();
-                await SeedTableAsync<SysDictType>();
-                await SeedTableAsync<SysDictData>();
-                await SeedTableAsync<KbCategory>();
-                await SeedTableAsync<Employee>();
-                await SeedTableAsync<EmployeeContract>();
-                await SeedTableAsync<EmployeeCertificate>();
-                await SeedTableAsync<EnterpriseMS.Domain.Entities.Project.Project>();
-                await SeedTableAsync<EnterpriseMS.Domain.Entities.Project.ProjectMember>();
-                await SeedTableAsync<EnterpriseMS.Domain.Entities.Project.ProjectMilestone>();
-                await SeedTableAsync<EnterpriseMS.Domain.Entities.Project.ProjectAcceptance>();
-                await SeedTableAsync<EnterpriseMS.Domain.Entities.Budget.BudgetTask>();
-                await SeedTableAsync<EnterpriseMS.Domain.Entities.Budget.BudgetSection>();
-                await tx.CommitAsync();
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                throw;
-            }
-        });
+        // HasData 种子数据由 MigrateAsync() 自动写入，此处无需重复操作。
+        // 保留方法签名以兼容 Program.cs 调用。
+        await Task.CompletedTask;
     }
 
     /// <summary>供 DebugController 调用的公共包装</summary>

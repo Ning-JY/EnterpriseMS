@@ -10,6 +10,7 @@ using EnterpriseMS.Domain.Entities.Hr;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Infrastructure.Data;
 using EnterpriseMS.Services.Interfaces;
+using EnterpriseMS.Services.DTOs.Hr;
 
 namespace EnterpriseMS.Controllers.Hr;
 

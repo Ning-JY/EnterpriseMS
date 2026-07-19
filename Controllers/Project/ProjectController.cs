@@ -10,6 +10,8 @@ using EnterpriseMS.Services.DTOs.Project;
 using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.Interfaces;
 using EnterpriseMS.Services.Impl;
+using EnterpriseMS.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace EnterpriseMS.Controllers.Project;
 
@@ -23,15 +25,16 @@ public class ProjectController : BaseAuthController
     private readonly IOperLogService       _logSvc;
     private readonly IUnitOfWork           _uow;
     private readonly IReportGeneratorService _reportSvc;
+    private readonly AppDbContext          _db;
 
     public ProjectController(IProjectService projSvc, IDeptService deptSvc,
         IDictService dictSvc, IEmployeeQueryService empQrySvc,
         IOperLogService logSvc, IUnitOfWork uow, IPermissionService permSvc,
-        IReportGeneratorService reportSvc)
+        IReportGeneratorService reportSvc, AppDbContext db)
         : base(permSvc)
     {
         _projSvc = projSvc; _deptSvc = deptSvc; _dictSvc = dictSvc;
-        _empQrySvc = empQrySvc; _logSvc = logSvc; _uow = uow; _reportSvc = reportSvc;
+        _empQrySvc = empQrySvc; _logSvc = logSvc; _uow = uow; _reportSvc = reportSvc; _db = db;
     }  [HasPermission("proj:project:list")]
     public async Task<IActionResult> Index(ProjectQueryDto query)
     {
