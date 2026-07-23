@@ -34,8 +34,10 @@ Desktop.ini
 # 日志文件
 logs/
 
-# 静态资源目录（不上传）
-wwwroot/
+# 静态资源：放开 wwwroot 以便纳入版本库（css/js/lib/templates 等应用资源）
+# 运行时用户上传目录 uploads/ 仅忽略其内容，保留目录结构（.gitkeep 纳入版本库）
+wwwroot/uploads/*
+!wwwroot/uploads/.gitkeep
 
 # 数据库迁移文件
 Migrations/
