@@ -7,31 +7,6 @@
 
 @* 招标文件解析模块专用样式：刻意自包含、不依赖 AdminLTE/Bootstrap 之外的任何库，
    否决性条款用警示色单独提出，不与普通要求混排——这是本模块最重要的视觉原则。 *@
-<style>
-    .tp-stage-bar{display:flex;align-items:stretch;gap:0;margin-bottom:14px;border:1px solid #dee2e6;border-radius:4px;overflow:hidden;}
-    .tp-stage{flex:1;padding:8px 10px;font-size:12px;text-align:center;background:#f8f9fa;color:#868e96;border-right:1px solid #dee2e6;position:relative;}
-    .tp-stage:last-child{border-right:none;}
-    .tp-stage.tp-done{background:#eaf4ee;color:#2f7a4f;}
-    .tp-stage.tp-live{background:#fdf3e3;color:#a9690e;font-weight:600;}
-    .tp-stage .tp-stage-num{display:block;font-size:10px;opacity:.7;margin-bottom:2px;}
-
-    .tp-veto-box{background:#fdf3e3;border:1px solid #f0c178;border-left:4px solid #d9822b;border-radius:4px;padding:12px 14px;margin-bottom:14px;}
-    .tp-veto-box .tp-veto-title{font-weight:600;color:#a9690e;font-size:13px;margin-bottom:8px;}
-    .tp-veto-item{font-size:12.5px;line-height:1.7;padding:5px 0;color:#6b4a1e;border-top:1px solid #f0c178;}
-    .tp-veto-item:first-of-type{border-top:none;}
-
-    .tp-review-box{background:#e9f1fb;border:1px solid #b9d3ef;border-left:4px solid #3a6ea5;border-radius:4px;padding:12px 14px;margin-bottom:14px;}
-    .tp-review-box .tp-review-title{font-weight:600;color:#2c5a8c;font-size:13px;margin-bottom:8px;}
-
-    .tp-req-row{padding:8px 4px;border-bottom:1px solid #eee;font-size:12.5px;}
-    .tp-req-row:last-child{border-bottom:none;}
-    .tp-req-row .tp-src{font-family:Consolas,monospace;font-size:10.5px;color:#868e96;margin-left:6px;}
-    .tp-badge-veto{display:inline-block;font-size:10px;background:#a9690e;color:#fff;border-radius:3px;padding:1px 6px;margin-right:6px;}
-    .tp-badge-review{display:inline-block;font-size:10px;background:#3a6ea5;color:#fff;border-radius:3px;padding:1px 6px;margin-right:6px;}
-
-    .tp-confirm-bar{display:flex;align-items:center;justify-content:space-between;background:#f8f9fa;border:1px dashed #ced4da;border-radius:4px;padding:10px 14px;margin-top:10px;}
-</style>
-
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">

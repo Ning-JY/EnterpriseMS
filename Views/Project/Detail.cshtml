@@ -44,12 +44,6 @@
         <a href="/templatereport/project/@Model.Id" class="btn btn-sm btn-success mr-1">
           <i class="fas fa-file-export"></i> 生成报告
         </a>
-        <button class="btn btn-sm btn-outline-secondary mr-1" onclick="layer.msg('用章申请功能开发中',{icon:0})">
-          <i class="fas fa-stamp"></i> 用章申请
-        </button>
-        <button class="btn btn-sm btn-outline-secondary" onclick="layer.msg('审批流程功能开发中',{icon:0})">
-          <i class="fas fa-project-diagram"></i> 审批流程
-        </button>
         @if (canStatus && Model.ProgressStatus < 9) {
           <button class="btn btn-sm btn-primary ml-1" data-toggle="modal" data-target="#statusModal">
             <i class="fas fa-arrow-right"></i> 变更状态
@@ -63,14 +57,15 @@
 <section class="content"><div class="container-fluid">
 
 <!-- 顶部摘要 -->
-<div class="row mb-3">
+<div class="row mb-3 proj-summary-row">
   <div class="col-md-3">
     <div class="info-box shadow-sm">
       <span class="info-box-icon bg-primary"><i class="fas fa-file-contract"></i></span>
       <div class="info-box-content">
         <span class="info-box-text">合同金额</span>
-        <span class="info-box-number">¥@Model.ContractAmount.ToString("N2")万</span>
-        @if (Model.IsJointVenture) { <small class="text-white-50">联合体·我方@Model.OurRatio%</small> }
+        <span class="info-box-number">¥@Model.ContractAmount.ToString("N2")万
+          @if (Model.IsJointVenture) { <small>联合体·我方@Model.OurRatio%</small> }
+        </span>
       </div>
     </div>
   </div>
@@ -79,9 +74,10 @@
       <span class="info-box-icon bg-success"><i class="fas fa-hand-holding-usd"></i></span>
       <div class="info-box-content">
         <span class="info-box-text">已收款</span>
-        <span class="info-box-number">¥@Model.TotalReceived.ToString("N2")万</span>
-        @{ var rate = Model.ActualAmount > 0 ? Model.TotalReceived / Model.ActualAmount * 100 : 0; }
-        <small class="text-white-50">收款率 @rate.ToString("N1")%</small>
+        <span class="info-box-number">¥@Model.TotalReceived.ToString("N2")万
+          @{ var rate = Model.ActualAmount > 0 ? Model.TotalReceived / Model.ActualAmount * 100 : 0; }
+          <small>收款率 @rate.ToString("N1")%</small>
+        </span>
       </div>
     </div>
   </div>
@@ -90,8 +86,9 @@
       <span class="info-box-icon bg-warning"><i class="fas fa-tasks"></i></span>
       <div class="info-box-content">
         <span class="info-box-text">里程碑</span>
-        <span class="info-box-number">@Model.MilestoneDone / @Model.MilestoneTotal</span>
-        <small class="text-white-50">已完成/共计</small>
+        <span class="info-box-number">@Model.MilestoneDone / @Model.MilestoneTotal
+          <small>已完成/共计</small>
+        </span>
       </div>
     </div>
   </div>
@@ -100,8 +97,9 @@
       <span class="info-box-icon bg-info"><i class="fas fa-users"></i></span>
       <div class="info-box-content">
         <span class="info-box-text">服务团队</span>
-        <span class="info-box-number">@Model.Members.Count(m=>m.Status==0) 人</span>
-        <small class="text-white-50">合计占比 @Model.Members.Where(m=>m.Status==0).Sum(m=>m.Ratio).ToString("N1")%</small>
+        <span class="info-box-number">@Model.Members.Count(m=>m.Status==0) 人
+          <small>合计占比 @Model.Members.Where(m=>m.Status==0).Sum(m=>m.Ratio).ToString("N1")%</small>
+        </span>
       </div>
     </div>
   </div>

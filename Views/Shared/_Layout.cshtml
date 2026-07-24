@@ -32,6 +32,7 @@
                     <i class="fas fa-chart-line"></i>
                 </a>
             </li>
+            @await Component.InvokeAsync("NotificationBell")
             <li class="nav-item dropdown">
                 <a class="nav-link" data-toggle="dropdown" href="#">
                     <i class="far fa-user"></i> @User.GetRealName()
@@ -132,7 +133,7 @@
 <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="~/lib/adminlte/js/adminlte.min.js"></script>
 <script src="~/lib/layer/layer.js"></script>
-<script src="~/js/site.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
 <script>
 // layer未加载时降级为原生弹窗，避免页面无任何反馈
 if (typeof layer === 'undefined') {

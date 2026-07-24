@@ -5,10 +5,11 @@
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">菜单管理</h1></div>
+            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-list-ul mr-2"></i>菜单管理</h1></div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item"><a href="/system">系统管理</a></li>
                     <li class="breadcrumb-item"><a href="/system">系统管理</a></li>
                     <li class="breadcrumb-item active">菜单管理</li>
                 </ol>
@@ -179,7 +180,13 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>排序</label>
+                        <input type="number" id="menuSort" class="form-control" value="0">
+                    </div>
+                </div>
+                <div class="col-md-4">
                     <div class="form-group">
                         <label>状态</label>
                         <select id="menuStatus" class="form-control">
@@ -188,7 +195,7 @@
                         </select>
                     </div>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <div class="form-group">
                         <label>是否可见</label>
                         <select id="menuVisible" class="form-control">
@@ -235,27 +242,29 @@ function openAddMenu(parentId) {
 }
 
 function openEditMenu(id) {
-    // 从页面表格中获取当前菜单信息
     $('#menuModalTitle').text('编辑菜单');
     $('#menuId').val(id);
     buildParentOptions();
 
-    // 找到当前行数据（从DOM中读取）
-    var row = $('button[onclick*="openEditMenu(' + id + ')"]').closest('tr');
-    var name = row.find('strong').text().trim();
-    var typeBadge = row.find('.badge').first().text().trim();
-    var codeRow = row.find('code').first().text().trim();
-    var permsRow = row.find('.badge-light').text().trim();
-    var sort = row.find('td:eq(3)').text().trim();
-    var iconCode = row.find('td:eq(4) code').text().trim();
-
-    $('#menuName').val(name);
-    $('#menuType').val(typeBadge);
-    $('#menuPath').val(codeRow);
-    $('#menuPerms').val(permsRow);
-    $('#menuIcon').val(iconCode);
-    $('#menuSort').val(parseInt(sort) || 0);
-    $('#menuModal').modal('show');
+    var load = layer.load(1);
+    $.get('/system/menu/detail/' + id, function(r) {
+        layer.close(load);
+        if (!r.success) { layer.msg(r.message || '加载失败', {icon: 2}); return; }
+        var m = r.data.menu;
+        $('#menuParentId').val(m.ParentId || 0);
+        $('#menuType').val(m.MenuType || 'C');
+        $('#menuName').val(m.MenuName || '');
+        $('#menuPath').val(m.Path || '');
+        $('#menuPerms').val(m.Perms || '');
+        $('#menuIcon').val(m.Icon || '');
+        $('#menuSort').val(m.Sort || 0);
+        $('#menuStatus').val(m.Status != null ? m.Status : 1);
+        $('#menuVisible').val(m.Visible != null ? m.Visible : 1);
+        $('#menuModal').modal('show');
+    }).fail(function() {
+        layer.close(load);
+        layer.msg('加载菜单信息失败', {icon: 2});
+    });
 }
 
 function saveMenu() {

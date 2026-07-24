@@ -26,15 +26,23 @@ public static class ApiResult
         => new ApiResult<object> { code = code, message = msg };
 }
 
-public class PagedResult<T>
+/// <summary>
+/// 分页结果基类（无泛型 Items），供视图层强类型引用
+/// </summary>
+public class PagedResultBase
 {
-    public List<T> Items      { get; set; } = new();
-    public int     Total      { get; set; }
-    public int     Page       { get; set; } = 1;
-    public int     PageSize   { get; set; } = 10;
-    public int     TotalPages => PageSize > 0 ? (int)Math.Ceiling(Total / (double)PageSize) : 0;
-    public bool    HasPrev    => Page > 1;
-    public bool    HasNext    => Page < TotalPages;
+    public int Total      { get; set; }
+    public int WarnCount  { get; set; }
+    public int Page       { get; set; } = 1;
+    public int PageSize   { get; set; } = 10;
+    public int TotalPages => PageSize > 0 ? (int)Math.Ceiling(Total / (double)PageSize) : 0;
+    public bool HasPrev   => Page > 1;
+    public bool HasNext   => Page < TotalPages;
+}
+
+public class PagedResult<T> : PagedResultBase
+{
+    public List<T> Items { get; set; } = new();
 }
 
 public class BusinessException : Exception
