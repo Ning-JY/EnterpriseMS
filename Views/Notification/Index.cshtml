@@ -1,0 +1,75 @@
+@model EnterpriseMS.Services.DTOs.System.NotificationSummary
+@{
+    ViewData["Title"] = "通知中心";
+}
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">通知中心</h1>
+            </div>
+            <div class="col-sm-6 text-right">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-notif-mark-all>
+                    <i class="fas fa-check-double mr-1"></i> 全部标为已读
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card card-primary card-outline">
+            <div class="card-header">
+                <h3 class="card-title">
+                    共 <span class="badge badge-warning">@Model.UnreadCount</span> 条未读
+                </h3>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Items.Count == 0)
+                {
+                    <div class="text-center text-muted py-5">
+                        <i class="far fa-bell fa-2x mb-2"></i>
+                        <p class="mb-0">暂无通知</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var item in Model.Items)
+                    {
+                        var href = item.Link ?? "javascript:void(0)";
+                        string icon = item.Level switch
+                        {
+                            "danger"  => "fa-exclamation-circle text-danger",
+                            "warning" => "fa-exclamation-triangle text-warning",
+                            "success" => "fa-check-circle text-success",
+                            _         => "fa-info-circle text-info"
+                        };
+                        <a href="@href"
+                           data-notif-id="@item.Id"
+                           data-notif-link="@item.Link"
+                           class="notif-item d-block px-3 py-3 border-bottom @(item.IsRead ? "is-read text-muted" : "")">
+                            <div class="d-flex">
+                                <i class="fas @icon mt-1 mr-3 fa-fw"></i>
+                                <div class="flex-grow-1" style="min-width:0">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="notif-title font-weight-@(item.IsRead ? "normal" : "bold")">@item.Title</span>
+                                        <span class="text-muted text-sm ml-2">@item.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                                    </div>
+                                    <div class="text-sm text-muted text-truncate">@item.Content</div>
+                                </div>
+                                @if (!item.IsRead)
+                                {
+                                    <span class="notif-dot bg-warning ml-2 mt-2"></span>
+                                }
+                            </div>
+                        </a>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+}

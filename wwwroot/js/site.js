@@ -50,6 +50,25 @@ $(function () {
             ? (body.slideUp(200), icon.removeClass('fa-minus').addClass('fa-plus'))
             : (body.slideDown(200), icon.removeClass('fa-plus').addClass('fa-minus'));
     });
+
+    // ── 通知中心：事件委托 ─────────────────────────────────
+    // 不依赖内联 onclick 调全局函数（避免缓存/作用域导致的 ReferenceError），
+    // 同时兼容页眉铃铛与列表页动态渲染的项。
+    $(document).on('click', 'a[data-notif-id]', function (e) {
+        var $a = $(this);
+        var id = $a.data('notif-id');
+        var link = $a.data('notif-link') || '';
+        if (id) markNotificationRead(id, link);
+        // 无真实跳转链接时阻止默认行为
+        if (!link || link.indexOf('javascript:') === 0 || link === '#') {
+            e.preventDefault();
+        }
+    });
+
+    $(document).on('click', '[data-notif-mark-all]', function (e) {
+        e.preventDefault();
+        markAllNotificationsRead();
+    });
 });
 
 // 通用确认删除
@@ -98,3 +117,45 @@ function fmtDate(d) {
     var dt = new Date(d); if (isNaN(dt.getTime())) return '—';
     return dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0');
 }
+
+// ── 通知中心 ────────────────────────────────────────────────
+// 标记单条通知已读。link 参数保留以兼容铃铛内联调用；
+// 使用 keepalive 确保页面跳转时请求仍完成。
+function markNotificationRead(id, link) {
+    if (!id) return;
+    fetch('/notifications/mark-read?id=' + id, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        keepalive: true
+    }).then(function () {
+        // 视觉上更新相关元素（铃铛下拉 + 列表页）
+        document.querySelectorAll('[data-notif-id="' + id + '"]').forEach(function (el) {
+            el.classList.add('is-read', 'text-muted');
+            el.classList.remove('font-weight-bold');
+            var dot = el.querySelector('.notif-dot'); if (dot) dot.remove();
+        });
+        // 页眉徽标 -1
+        var badge = document.querySelector('.navbar-badge');
+        if (badge) {
+            var n = parseInt(badge.textContent, 10) - 1;
+            if (isNaN(n) || n <= 0) badge.remove();
+            else badge.textContent = n > 99 ? '99+' : n;
+        }
+    }).catch(function () { /* 已读失败不影响导航 */ });
+}
+
+// 全部标为已读
+function markAllNotificationsRead() {
+    var load = layer.load(1);
+    fetch('/notifications/mark-all-read', {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    }).then(function () {
+        layer.close(load);
+        location.reload();
+    }).catch(function () {
+        layer.close(load);
+        layer.msg('操作失败', { icon: 2 });
+    });
+}
+

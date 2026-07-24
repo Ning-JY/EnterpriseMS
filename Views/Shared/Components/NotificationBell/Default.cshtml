@@ -1,0 +1,52 @@
+@model EnterpriseMS.Services.DTOs.System.NotificationSummary
+@using EnterpriseMS.Common
+@{
+    // 等级 -> 图标/颜色映射
+    string IconFor(string level) => level switch
+    {
+        "danger"  => "fa-exclamation-circle text-danger",
+        "warning" => "fa-exclamation-triangle text-warning",
+        "success" => "fa-check-circle text-success",
+        _         => "fa-info-circle text-info"
+    };
+    string BadgeText(int n) => n > 99 ? "99+" : n.ToString();
+}
+<li class="nav-item dropdown">
+    <a class="nav-link" data-toggle="dropdown" href="#" aria-label="通知">
+        <i class="far fa-bell"></i>
+        @if (Model.UnreadCount > 0)
+        {
+            <span class="navbar-badge badge badge-warning">@BadgeText(Model.UnreadCount)</span>
+        }
+    </a>
+    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+        <span class="dropdown-item dropdown-header">@Model.UnreadCount 条未读通知</span>
+        <div class="dropdown-divider"></div>
+
+        @if (Model.Items.Count == 0)
+        {
+            <div class="dropdown-item text-center text-muted py-3">暂无通知</div>
+        }
+        else
+        {
+            @foreach (var item in Model.Items)
+            {
+                var href = item.Link ?? "javascript:void(0)";
+                <a href="@href"
+                   data-notif-id="@item.Id"
+                   data-notif-link="@item.Link"
+                   class="dropdown-item @(item.IsRead ? "text-muted" : "") @(item.IsRead ? "" : "font-weight-bold")">
+                    <i class="fas @IconFor(item.Level) mr-2"></i>
+                    <span>@item.Title</span>
+                    <span class="float-right text-muted text-sm">@item.CreatedAt.ToString("MM-dd")</span>
+                    <div class="text-sm text-muted text-truncate">@item.Content</div>
+                </a>
+                <div class="dropdown-divider"></div>
+            }
+        }
+
+        <a href="/notifications" class="dropdown-item dropdown-footer">
+            查看全部通知 <i class="fas fa-arrow-circle-right ml-1"></i>
+        </a>
+    </div>
+</li>
