@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Services.Interfaces;
 
@@ -27,4 +28,17 @@ public abstract class BaseAuthController : Controller
 
         await next();
     }
+
+    // ── 统一 API 响应辅助：消除各 Controller 手写 Json(ApiResult ...) 的重复样板 ──
+    // 说明：Controller 基类已有 Ok()，为避免命名冲突，这里统一用 ApiOk / ApiFail。
+    // 行为与原 Json(ApiResult<object>.Ok/Fail(...)) 完全一致（data 承载业务数据，
+    // message 默认“操作成功”），前端解析逻辑无需改动。
+
+    /// <summary>成功：返回业务数据 data（message 默认“操作成功”）</summary>
+    protected JsonResult ApiOk<T>(T data, string msg = "操作成功")
+        => Json(ApiResult<T>.Ok(data, msg));
+
+    /// <summary>失败：返回错误消息（code 默认 400）</summary>
+    protected JsonResult ApiFail(string msg, int code = 400)
+        => Json(ApiResult.Fail(msg, code));
 }

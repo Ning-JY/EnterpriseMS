@@ -16,7 +16,7 @@
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">员工信息</h1></div>
+            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-id-card mr-2"></i>员工信息</h1></div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item"><a href="/">首页</a></li>
@@ -29,42 +29,65 @@
 </div>
 
 <section class="content"><div class="container-fluid">
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">员工列表（共 @ViewBag.Total 人）</h3>
-        <div class="card-tools d-flex align-items-center gap-2">
-                    <form id="searchForm" method="get" action="/hr/employee" class="d-inline-flex mr-2">
-                <input name="keyword" class="form-control form-control-sm mr-1"
-                       placeholder="姓名/工号/手机" value="@ViewBag.Keyword" style="width:120px">
-                <select name="deptId" class="form-control form-control-sm mr-1" style="width:110px">
-                    <option value="">全部部门</option>
-                    @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
-                    {
-                        <option value="@d.Id" selected="@(ViewBag.DeptId?.ToString()==d.Id.ToString() ? "selected" : null)">@d.DeptName</option>
-                        @foreach (var c in d.Children)
+
+    <!-- 搜索 -->
+    <div class="card card-default">
+        <div class="card-body">
+            <form id="searchForm" method="get" action="/hr/employee">
+                <div class="row">
+                    <div class="col-md-3">
+                        <input name="keyword" class="form-control form-control-sm"
+                               placeholder="姓名 / 工号 / 手机" value="@ViewBag.Keyword">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="deptId" class="form-control form-control-sm">
+                            <option value="">全部部门</option>
+                            @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
+                            {
+                                <option value="@d.Id" selected="@(ViewBag.DeptId?.ToString()==d.Id.ToString() ? "selected" : null)">@d.DeptName</option>
+                                @foreach (var c in d.Children)
+                                {
+                                    <option value="@c.Id" selected="@(ViewBag.DeptId?.ToString()==c.Id.ToString() ? "selected" : null)">&nbsp;&nbsp;└ @c.DeptName</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="status" class="form-control form-control-sm">
+                            <option value="">全部状态</option>
+                            <option value="0" selected="@(ViewBag.Status?.ToString()=="0" ? "selected" : null)">试用期</option>
+                            <option value="1" selected="@(ViewBag.Status?.ToString()=="1" ? "selected" : null)">在职</option>
+                            <option value="2" selected="@(ViewBag.Status?.ToString()=="2" ? "selected" : null)">离职</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm mr-1">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <a href="/hr/employee" class="btn btn-default btn-sm">
+                            <i class="fas fa-redo"></i> 重置
+                        </a>
+                    </div>
+                    <div class="col-md-2 text-right">
+                        @if (canAdd)
                         {
-                            <option value="@c.Id" selected="@(ViewBag.DeptId?.ToString()==c.Id.ToString() ? "selected" : null)">&nbsp;&nbsp;└ @c.DeptName</option>
+                            <button class="btn btn-success btn-sm" onclick="openAddModal()">
+                                <i class="fas fa-plus"></i> 新增员工
+                            </button>
                         }
-                    }
-                </select>
-                <select name="status" class="form-control form-control-sm mr-1" style="width:80px">
-                    <option value="">全部</option>
-                    <option value="0" selected="@(ViewBag.Status?.ToString()=="0" ? "selected" : null)">试用期</option>
-                    <option value="1" selected="@(ViewBag.Status?.ToString()=="1" ? "selected" : null)">在职</option>
-                    <option value="2" selected="@(ViewBag.Status?.ToString()=="2" ? "selected" : null)">离职</option>
-                </select>
+                    </div>
+                </div>
                 <input type="hidden" name="page" id="pageInput" value="1">
-                <button class="btn btn-sm btn-primary">搜索</button>
             </form>
-            @if (canAdd)
-            {
-                <button class="btn btn-sm btn-success" onclick="openAddModal()">
-                    <i class="fas fa-plus"></i> 新增员工
-                </button>
-            }
         </div>
     </div>
-    <div class="card-body table-responsive p-0">
+
+    <!-- 列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">共 @ViewBag.Total 名员工</h3>
+        </div>
+        <div class="card-body table-responsive p-0">
         <table class="table table-hover table-sm">
             <thead class="thead-light">
                 <tr>

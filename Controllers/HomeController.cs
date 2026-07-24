@@ -64,6 +64,7 @@ public class HomeController : BaseAuthController
 
         var empId   = userInfo.EmployeeId.Value;
         var members = await _db.Set<EnterpriseMS.Domain.Entities.Project.ProjectMember>()
+            .AsNoTracking()
             .Include(m => m.Project).ThenInclude(p => p!.Dept)
             .Where(m => m.EmployeeId == empId && m.Status == 0 && !m.IsDeleted)
             .ToListAsync();

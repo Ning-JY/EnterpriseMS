@@ -166,3 +166,44 @@ public class GlobalExceptionFilter : IAsyncExceptionFilter
         return Task.CompletedTask;
     }
 }
+
+// ── 统一模型校验过滤器 ─────────────────────────────────────
+// 配合 FluentValidation（及 DataAnnotations）使用：当模型绑定后 ModelState 不合法时，
+// 对 API / Ajax 请求统一返回 ApiResult.Fail（携带全部错误信息）；
+// 对表单提交（返回 View）不拦截，交由视图层展示校验信息。
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
+public class ValidateModelAttribute : TypeFilterAttribute
+{
+    public ValidateModelAttribute() : base(typeof(ValidationFilter)) { }
+}
+
+public class ValidationFilter : IAsyncActionFilter
+{
+    public async Task OnActionExecutionAsync(
+        ActionExecutingContext ctx, ActionExecutionDelegate next)
+    {
+        if (ctx.ModelState.IsValid)
+        {
+            await next();
+            return;
+        }
+
+        var isAjax = ctx.HttpContext.Request.Headers["X-Requested-With"] == "XMLHttpRequest"
+                  || ctx.HttpContext.Request.ContentType?.Contains("application/json") == true;
+        if (!isAjax)
+        {
+            // 表单提交：交还 action / 视图处理校验信息
+            await next();
+            return;
+        }
+
+        var errors = ctx.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+            .Where(m => !string.IsNullOrWhiteSpace(m))
+            .ToList();
+
+        ctx.Result = new JsonResult(ApiResult<object>.Fail(
+            errors.Count > 0 ? string.Join("；", errors) : "请求参数校验失败"));
+    }
+}

@@ -280,32 +280,20 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> AddContract(long projectId,
         [FromForm] CreateContractDto dto, IFormFile? file)
     {
+        if (!ModelState.IsValid)
+            return Json(ApiResult<object>.Fail(GetErrors()));
         dto.ProjectId = projectId;
         try
         {
             var id = await _projSvc.AddContractAsync(dto, User.GetRealName());
 
-            // 一步上传附件
-            if (file != null && file.Length > 0)
+            // 一步上传附件：统一走 FileUploadHelper（含白名单校验）+ 服务方法持久化，
+            // 不再在 Controller 内手写 FileStream / 直连 _uow（收敛分层泄漏，达成上传校验一致）
+            var saved = await FileUploadHelper.SaveUploadFile(file, "project/contracts");
+            if (saved.HasValue)
             {
-                var dir = Path.Combine(Directory.GetCurrentDirectory(),
-                    "wwwroot", "uploads", "project", "contracts");
-                Directory.CreateDirectory(dir);
-                var ext  = Path.GetExtension(file.FileName);
-                var save = $"{id}_{Guid.NewGuid():N}{ext}";
-                var fpath = Path.Combine(dir, save);
-                using (var fs = new FileStream(fpath, FileMode.Create))
-                    await file.CopyToAsync(fs);
-
-                var contract = await _uow.ProjContracts.GetByIdAsync(id);
-                if (contract != null)
-                {
-                    contract.FilePath  = fpath;
-                    contract.FileName  = file.FileName;
-                    contract.UpdatedBy = User.GetRealName();
-                    _uow.ProjContracts.Update(contract);
-                    await _uow.SaveChangesAsync();
-                }
+                await _projSvc.UploadContractFileAsync(id, saved.Value.name,
+                    saved.Value.path, User.GetRealName());
             }
 
             return Json(ApiResult<object>.Ok(new { id }, "合同已保存"));
@@ -333,46 +321,24 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> AddInvoice(long projectId,
         [FromForm] CreateInvoiceDto dto, IFormFile? invoiceFile, IFormFile? paymentFile)
     {
+        if (!ModelState.IsValid)
+            return Json(ApiResult<object>.Fail(GetErrors()));
         dto.ProjectId = projectId;
         var id = await _projSvc.AddInvoiceAsync(dto, User.GetRealName());
 
-        // 一步上传发票附件
-        if ((invoiceFile != null && invoiceFile.Length > 0)
-            || (paymentFile != null && paymentFile.Length > 0))
+        // 一步上传发票 / 回款附件：统一走 FileUploadHelper + 服务方法，消除 Controller 手写文件流
+        var invSaved = await FileUploadHelper.SaveUploadFile(invoiceFile, "project/invoices");
+        if (invSaved.HasValue)
         {
-            var inv = await _uow.ProjInvoices.GetByIdAsync(id);
-            if (inv != null)
-            {
-                var dir = Path.Combine(Directory.GetCurrentDirectory(),
-                    "wwwroot", "uploads", "project", "invoices");
-                Directory.CreateDirectory(dir);
+            await _projSvc.UploadInvoiceFileAsync(id, "invoice", invSaved.Value.name,
+                invSaved.Value.path, User.GetRealName());
+        }
 
-                if (invoiceFile != null && invoiceFile.Length > 0)
-                {
-                    var ext  = Path.GetExtension(invoiceFile.FileName);
-                    var save = $"{id}_invoice_{Guid.NewGuid():N}{ext}";
-                    var fpath = Path.Combine(dir, save);
-                    using (var fs = new FileStream(fpath, FileMode.Create))
-                        await invoiceFile.CopyToAsync(fs);
-                    inv.InvoiceFile     = fpath;
-                    inv.InvoiceFileName = invoiceFile.FileName;
-                }
-
-                if (paymentFile != null && paymentFile.Length > 0)
-                {
-                    var ext  = Path.GetExtension(paymentFile.FileName);
-                    var save = $"{id}_payment_{Guid.NewGuid():N}{ext}";
-                    var fpath = Path.Combine(dir, save);
-                    using (var fs = new FileStream(fpath, FileMode.Create))
-                        await paymentFile.CopyToAsync(fs);
-                    inv.PaymentFile     = fpath;
-                    inv.PaymentFileName = paymentFile.FileName;
-                }
-
-                inv.UpdatedBy = User.GetRealName();
-                _uow.ProjInvoices.Update(inv);
-                await _uow.SaveChangesAsync();
-            }
+        var paySaved = await FileUploadHelper.SaveUploadFile(paymentFile, "project/invoices");
+        if (paySaved.HasValue)
+        {
+            await _projSvc.UploadInvoiceFileAsync(id, "payment", paySaved.Value.name,
+                paySaved.Value.path, User.GetRealName());
         }
 
         return Json(ApiResult<object>.Ok(new { id }, "回款记录已保存"));
@@ -390,11 +356,12 @@ public class ProjectController : BaseAuthController
     [HasPermission("proj:project:edit")]
     public async Task<IActionResult> DeleteInvoice(long invoiceId)
     {
-        var inv = await _uow.ProjInvoices.GetByIdAsync(invoiceId);
-        if (inv == null) return Json(ApiResult<object>.Fail("记录不存在"));
-        _uow.ProjInvoices.SoftDelete(inv);
-        await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok("已删除"));
+        try
+        {
+            await _projSvc.DeleteInvoiceAsync(invoiceId);
+            return Json(ApiResult<object>.Ok("已删除"));
+        }
+        catch (NotFoundException ex) { return Json(ApiResult<object>.Fail(ex.Message)); }
     }
 
     [HttpPost("invoices/file/{invoiceId}/{fileType}")]
@@ -402,36 +369,13 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> UploadInvoiceFile(long invoiceId, string fileType, IFormFile file)
     {
         if (file == null || file.Length == 0) return Json(ApiResult<object>.Fail("请选择文件"));
-        var inv = await _uow.ProjInvoices.GetByIdAsync(invoiceId);
-        if (inv == null) return Json(ApiResult<object>.Fail("记录不存在"));
-
-        var dir = global::System.IO.Path.Combine(
-            Directory.GetCurrentDirectory(), "wwwroot","uploads","project","invoices");
-        global::System.IO.Directory.CreateDirectory(dir);
-        var ext  = global::System.IO.Path.GetExtension(file.FileName);
-        var save = $"{invoiceId}_{fileType}_{Guid.NewGuid():N}{ext}";
-        var fpath = global::System.IO.Path.Combine(dir, save);
-        using (var fs = new global::System.IO.FileStream(fpath, global::System.IO.FileMode.Create))
-            await file.CopyToAsync(fs);
-
-        if (fileType == "invoice")
-        {
-            if (!string.IsNullOrEmpty(inv.InvoiceFile) && global::System.IO.File.Exists(inv.InvoiceFile))
-                global::System.IO.File.Delete(inv.InvoiceFile);
-            inv.InvoiceFile     = fpath;
-            inv.InvoiceFileName = file.FileName;
-        }
-        else
-        {
-            if (!string.IsNullOrEmpty(inv.PaymentFile) && global::System.IO.File.Exists(inv.PaymentFile))
-                global::System.IO.File.Delete(inv.PaymentFile);
-            inv.PaymentFile     = fpath;
-            inv.PaymentFileName = file.FileName;
-        }
-        inv.UpdatedBy = User.GetRealName();
-        _uow.ProjInvoices.Update(inv);
-        await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok(new { fileName = file.FileName }, "上传成功"));
+        var saved = await FileUploadHelper.SaveUploadFile(file, "project/invoices");
+        if (!saved.HasValue)
+            return Json(ApiResult<object>.Fail("文件类型不被允许或大小超过 20MB"));
+        // 经统一上传辅助 + 服务方法持久化，收敛 Controller 手写文件流
+        await _projSvc.UploadInvoiceFileAsync(invoiceId, fileType, saved.Value.name,
+            saved.Value.path, User.GetRealName());
+        return Json(ApiResult<object>.Ok(new { fileName = saved.Value.name }, "上传成功"));
     }
 
     [HttpGet("invoices/file/{invoiceId}/{fileType}")]
@@ -452,16 +396,12 @@ public class ProjectController : BaseAuthController
     [HasPermission("proj:project:edit")]
     public async Task<IActionResult> DeleteContractFile(long contractId)
     {
-        var contract = await _uow.ProjContracts.GetByIdAsync(contractId);
-        if (contract == null) return Json(ApiResult<object>.Fail("合同不存在"));
-        if (!string.IsNullOrEmpty(contract.FilePath) && global::System.IO.File.Exists(contract.FilePath))
-            global::System.IO.File.Delete(contract.FilePath);
-        contract.FilePath  = null;
-        contract.FileName  = null;
-        contract.UpdatedBy = User.GetRealName();
-        _uow.ProjContracts.Update(contract);
-        await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok("附件已删除"));
+        try
+        {
+            await _projSvc.DeleteContractFileAsync(contractId, User.GetRealName());
+            return Json(ApiResult<object>.Ok("附件已删除"));
+        }
+        catch (NotFoundException ex) { return Json(ApiResult<object>.Fail(ex.Message)); }
     }
 
     [HttpGet("contracts/download/{contractId}")]
@@ -481,26 +421,13 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> UploadContractFile(long contractId, IFormFile file)
     {
         if (file == null || file.Length == 0) return Json(ApiResult<object>.Fail("请选择文件"));
-        var contract = await _uow.ProjContracts.GetByIdAsync(contractId);
-        if (contract == null) return Json(ApiResult<object>.Fail("合同不存在"));
-
-        var dir = global::System.IO.Path.Combine(
-            Directory.GetCurrentDirectory(), "wwwroot","uploads","project","contracts");
-        global::System.IO.Directory.CreateDirectory(dir);
-        var ext  = global::System.IO.Path.GetExtension(file.FileName);
-        var save = $"{contractId}_{Guid.NewGuid():N}{ext}";
-        var fpath = global::System.IO.Path.Combine(dir, save);
-        using (var fs = new global::System.IO.FileStream(fpath, global::System.IO.FileMode.Create))
-            await file.CopyToAsync(fs);
-
-        if (!string.IsNullOrEmpty(contract.FilePath) && global::System.IO.File.Exists(contract.FilePath))
-            global::System.IO.File.Delete(contract.FilePath);
-        contract.FilePath  = fpath;
-        contract.FileName  = file.FileName;
-        contract.UpdatedBy = User.GetRealName();
-        _uow.ProjContracts.Update(contract);
-        await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok(new { fileName = file.FileName }, "上传成功"));
+        var saved = await FileUploadHelper.SaveUploadFile(file, "project/contracts");
+        if (!saved.HasValue)
+            return Json(ApiResult<object>.Fail("文件类型不被允许或大小超过 20MB"));
+        // 经统一上传辅助 + 服务方法持久化，收敛 Controller 手写文件流
+        await _projSvc.UploadContractFileAsync(contractId, saved.Value.name,
+            saved.Value.path, User.GetRealName());
+        return Json(ApiResult<object>.Ok(new { fileName = saved.Value.name }, "上传成功"));
     }
 
     // ── 文件管理 ──────────────────────────────────────────────

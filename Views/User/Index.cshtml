@@ -18,7 +18,7 @@
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">用户管理</h1></div>
+            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-users mr-2"></i>用户管理</h1></div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item"><a href="/">首页</a></li>
@@ -32,61 +32,50 @@
 <section class="content">
 <div class="container-fluid">
 
-    <!-- 搜索栏 -->
+    <!-- 搜索 -->
     <div class="card card-default">
-        <div class="card-header">
-            <h3 class="card-title">搜索条件</h3>
-            <div class="card-tools">
-                <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                    <i class="fas fa-minus"></i>
-                </button>
-            </div>
-        </div>
         <div class="card-body">
             <form id="searchForm" method="get" action="/system/user">
                 <div class="row">
                     <div class="col-md-3">
-                        <div class="form-group">
-                            <label>关键词</label>
-                            <input type="text" name="Keyword" class="form-control form-control-sm"
-                                   placeholder="用户名 / 姓名 / 手机" value="@query.Keyword">
-                        </div>
+                        <input type="text" name="Keyword" class="form-control form-control-sm"
+                               placeholder="用户名 / 姓名 / 手机" value="@query.Keyword">
                     </div>
                     <div class="col-md-3">
-                        <div class="form-group">
-                            <label>部门</label>
-                            <select name="DeptId" class="form-control form-control-sm">
-                                <option value="">全部部门</option>
-                                @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
+                        <select name="DeptId" class="form-control form-control-sm">
+                            <option value="">全部部门</option>
+                            @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
+                            {
+                                <option value="@d.Id" selected="@(query.DeptId == d.Id ? "selected" : null)">@d.DeptName</option>
+                                @foreach (var cd in d.Children)
                                 {
-                                    <option value="@d.Id" selected="@(query.DeptId == d.Id ? "selected" : null)">@d.DeptName</option>
-                                    @foreach (var cd in d.Children)
-                                    {
-                                        <option value="@cd.Id" selected="@(query.DeptId == cd.Id ? "selected" : null)">&nbsp;&nbsp;└ @cd.DeptName</option>
-                                    }
+                                    <option value="@cd.Id" selected="@(query.DeptId == cd.Id ? "selected" : null)">&nbsp;&nbsp;└ @cd.DeptName</option>
                                 }
-                            </select>
-                        </div>
+                            }
+                        </select>
                     </div>
                     <div class="col-md-2">
-                        <div class="form-group">
-                            <label>状态</label>
-                            <select name="Status" class="form-control form-control-sm">
-                                <option value="">全部</option>
-                                <option value="1" selected="@(query.Status == 1 ? "selected" : null)">正常</option>
-                                <option value="0" selected="@(query.Status == 0 ? "selected" : null)">禁用</option>
-                            </select>
-                        </div>
+                        <select name="Status" class="form-control form-control-sm">
+                            <option value="">全部状态</option>
+                            <option value="1" selected="@(query.Status == 1 ? "selected" : null)">正常</option>
+                            <option value="0" selected="@(query.Status == 0 ? "selected" : null)">禁用</option>
+                        </select>
                     </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <div class="form-group">
-                            <button type="submit" class="btn btn-primary btn-sm mr-1">
-                                <i class="fas fa-search"></i> 搜索
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm mr-1">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <a href="/system/user" class="btn btn-default btn-sm">
+                            <i class="fas fa-redo"></i> 重置
+                        </a>
+                    </div>
+                    <div class="col-md-2 text-right">
+                        @if (canAdd)
+                        {
+                            <button type="button" class="btn btn-success btn-sm" onclick="openAddModal()">
+                                <i class="fas fa-plus"></i> 新增用户
                             </button>
-                            <a href="/system/user" class="btn btn-default btn-sm">
-                                <i class="fas fa-redo"></i> 重置
-                            </a>
-                        </div>
+                        }
                     </div>
                 </div>
                 <input type="hidden" name="Page" id="pageInput" value="1">
@@ -95,18 +84,10 @@
         </div>
     </div>
 
-    <!-- 数据表格 -->
+    <!-- 列表 -->
     <div class="card">
         <div class="card-header">
-            <h3 class="card-title">用户列表（共 @Model.Total 条）</h3>
-            <div class="card-tools">
-                @if (canAdd)
-                {
-                    <button type="button" class="btn btn-success btn-sm" onclick="openAddModal()">
-                        <i class="fas fa-plus"></i> 新增用户
-                    </button>
-                }
-            </div>
+            <h3 class="card-title">共 @Model.Total 个用户</h3>
         </div>
         <div class="card-body table-responsive p-0">
             <table class="table table-hover table-sm">

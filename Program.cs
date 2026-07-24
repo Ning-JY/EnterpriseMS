@@ -4,6 +4,9 @@ using Serilog;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using FluentValidation.AspNetCore;
+using FluentValidation;
+using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Mvc;
 using EnterpriseMS.Filters;
 using EnterpriseMS.Infrastructure.Cache;
 using EnterpriseMS.Infrastructure.Data;
@@ -59,9 +62,14 @@ try
     builder.Services.AddScoped<IDeptService,          DeptService>();
     builder.Services.AddScoped<IDictService,          DictService>();
     builder.Services.AddScoped<IOperLogService,       OperLogService>();
+    builder.Services.AddScoped<IConfigService,        ConfigService>();
     builder.Services.AddScoped<IProjectService,       ProjectService>();
     builder.Services.AddScoped<IEmployeeQueryService, EmployeeQueryService>();
     builder.Services.AddScoped<IEmployeeService,      EmployeeService>();
+    builder.Services.AddScoped<IContractService,       ContractService>();
+    builder.Services.AddScoped<ICertificateService,    CertificateService>();
+    builder.Services.AddScoped<IEducationService,      EducationService>();
+    builder.Services.AddScoped<IWorkExpService,        WorkExpService>();
     builder.Services.AddScoped<IKbService,             KbService>();
     builder.Services.AddScoped<IHangfireService, HangfireService>();
 
@@ -154,10 +162,16 @@ try
     });
 
     // ── MVC ───────────────────────────────────────────────────
+    // 全局 CSRF 自动校验：对所有非匿名、非安全方法（POST/PUT/DELETE/PATCH）
+    // 强制校验 antiforgery token。前端通过 jQuery $.ajaxSetup（site.js）与
+    // fetch 包装统一在 RequestVerificationToken 头中携带 token。
+    builder.Services.AddAntiforgery(options => options.HeaderName = "RequestVerificationToken");
     builder.Services.AddControllersWithViews(opt =>
     {
         opt.Filters.Add<GlobalExceptionFilter>();
         opt.Filters.Add<OperationLogFilter>();
+        opt.Filters.Add<ValidationFilter>();
+        opt.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
     }).AddJsonOptions(opt =>
         opt.JsonSerializerOptions.PropertyNamingPolicy = null); // 保持字段名原样（小写由ApiResult控制）
 
@@ -166,6 +180,7 @@ try
 
     // ── FluentValidation ──────────────────────────────────────
     builder.Services.AddFluentValidationAutoValidation();
+    builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
     // ── Hangfire：Redis 可用则 Redis 存储，否则内存存储 ───────
     builder.Services.AddHangfire(cfg =>

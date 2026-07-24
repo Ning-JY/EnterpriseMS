@@ -232,7 +232,8 @@
                         <div class="tp-req-row" style="border-color:#b9d3ef;">
                             <span class="tp-badge-review">待确认</span>@r.Content
                             <button class="btn btn-xs btn-outline-primary float-right" style="font-size:10px;padding:1px 6px;"
-                                    onclick="resolveRequirement(@r.Id, '@Html.Raw(System.Text.Json.JsonEncodedText.Encode(r.Content))')">
+                                    data-req-id="@r.Id" data-content="@r.Content"
+                                    onclick="resolveRequirement(this)">
                                 核对
                             </button>
                         </div>
@@ -479,10 +480,11 @@
         }
 
         // 核对单条"待确认"要求：人工补充原文出处定位，并复核是否属于否决性条款。
-        async function resolveRequirement(requirementId, content) {
-            var decoded = JSON.parse('"' + content + '"');
+        async function resolveRequirement(btn) {
+            var requirementId = btn.dataset.reqId;
+            var content = btn.dataset.content;   // 浏览器已解码 HTML 实体，安全
             var sourceRef = prompt(
-                '核对以下条目，并填写在原文中的出处定位（如 "p.14" 或 "投标人须知 §3.2"）：\n\n' + decoded,
+                '核对以下条目，并填写在原文中的出处定位（如 "p.14" 或 "投标人须知 §3.2"）：\n\n' + content,
                 ''
             );
             if (sourceRef === null) return; // 用户取消

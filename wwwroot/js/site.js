@@ -1,5 +1,28 @@
 // EnterpriseMS 全局 JS
 
+// ── fetch 请求自动附加 CSRF Token ──────────────────────────
+// 与 jQuery $.ajaxSetup（下方）保持一致：均使用 RequestVerificationToken 头。
+// 服务端已开启全局 AutoValidateAntiforgeryToken，未带 token 的非安全请求会 400。
+(function () {
+    var originalFetch = window.fetch;
+    window.fetch = function (url, options) {
+        options = options || {};
+        var method = (options.method || 'GET').toUpperCase();
+        if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+            if (token) {
+                options.headers = options.headers || {};
+                if (options.headers instanceof Headers) {
+                    options.headers.set('RequestVerificationToken', token);
+                } else {
+                    options.headers['RequestVerificationToken'] = token;
+                }
+            }
+        }
+        return originalFetch.apply(this, arguments);
+    };
+})();
+
 $(function () {
     // ── 全局 CSRF Token ─────────────────────────────────────
     var token = $('input[name="__RequestVerificationToken"]').first().val();

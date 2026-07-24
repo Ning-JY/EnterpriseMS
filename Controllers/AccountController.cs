@@ -82,14 +82,14 @@ public class AccountController : Controller
             return View();
         }
 
-        _ = _userSvc.UpdateLastLoginAsync(user.Id);
+        await _userSvc.UpdateLastLoginAsync(user.Id);
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return Redirect(returnUrl);
         return RedirectToAction("Index", "Home");
     }
 
-    [HttpPost]
+    [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         var userId = User.GetUserId();
