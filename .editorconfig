@@ -1,0 +1,79 @@
+root = true
+
+# 编辑器基础配置
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{csproj,props,targets,json,json5}]
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+
+# ── C# 代码风格约束（审计 4.1：约束风格漂移）──────────────
+[*.cs]
+
+# 组织 using：System 在前，空白分隔，移除未使用
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = inside_namespace:suggestion
+dotnet_remove_unnecessary_usings = true
+
+# 语言版本
+csharp_language_version = latest
+
+# 命名约定
+dotnet_naming_rule.pascal_types.style = pascal_case
+dotnet_naming_rule.pascal_types.symbols = types
+dotnet_naming_rule.pascal_types.severity = suggestion
+
+dotnet_naming_rule.pascal_methods.style = pascal_case
+dotnet_naming_rule.pascal_methods.symbols = methods
+dotnet_naming_rule.pascal_methods.severity = suggestion
+
+dotnet_naming_rule.pascal_properties.style = pascal_case
+dotnet_naming_rule.pascal_properties.symbols = properties
+dotnet_naming_rule.pascal_properties.severity = suggestion
+
+dotnet_naming_rule.pascal_fields.style = pascal_case
+dotnet_naming_rule.pascal_fields.symbols = private_fields
+dotnet_naming_rule.pascal_fields.severity = none
+
+dotnet_naming_rule.interface_prefix.style = prefix_interface
+dotnet_naming_rule.interface_prefix.symbols = interfaces
+dotnet_naming_rule.interface_prefix.severity = suggestion
+
+dotnet_naming_symbols.types.applicable_kinds = class, struct, interface, enum
+dotnet_naming_symbols.methods.applicable_kinds = method
+dotnet_naming_symbols.properties.applicable_kinds = property
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.prefix_interface.capitalization = pascal_case
+dotnet_naming_style.prefix_interface.required_prefix = I
+
+# var 偏好：内置类型用显式，其余用 var（团队约定，审计 4.1）
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# 括号与表达式体
+csharp_prefer_braces = true:warning
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_properties = when_on_single_line:suggestion
+
+# null 检查一致性（审计 4.1：! 与 == null 混用）
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+csharp_style_conditional_delegate_call = true:suggestion
+
+# 文件头注释：不强制（保留既有风格）
+file_header_template = unset
