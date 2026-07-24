@@ -72,6 +72,7 @@ try
     builder.Services.AddScoped<IWorkExpService,        WorkExpService>();
     builder.Services.AddScoped<IKbService,             KbService>();
     builder.Services.AddScoped<IHangfireService, HangfireService>();
+    builder.Services.AddScoped<INotificationService, NotificationService>();
 
     // ── 投标管理 ──────────────────────────────────────────────
     builder.Services.AddSingleton<IAIService, OpenAIService>();
@@ -81,6 +82,12 @@ try
 
     // ── 模板化报告生成 ──────────────────────────────────────────
     builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
+
+    // ── 报表查询（从 ReportController 下沉，避免 Controller 直连 DbContext）──
+    builder.Services.AddScoped<IReportService, ReportService>();
+
+    // ── 系统种子 / 维护（从 DebugController 下沉，避免 Controller 直连 DbContext）──
+    builder.Services.AddScoped<ISystemSeedService, SystemSeedService>();
 
     // ── 缓存：Redis 可用则 Redis，否则自动降级内存缓存 ────────
     var redisConn = builder.Configuration["Redis:Connection"] ?? "";
@@ -120,6 +127,7 @@ try
         builder.Services.AddDistributedMemoryCache();
         Log.Warning("Redis 不可用，使用内存缓存（重启后权限缓存清空，功能不受影响）");
     }
+    builder.Services.AddMemoryCache(); // 通知同步等本地短缓存（与分布式缓存各自独立）
     builder.Services.AddScoped<IPermissionCache, RedisPermissionCache>();
     // ── Cookie 认证 ───────────────────────────────────────────
     // ── Cookie Secure 策略：
@@ -256,17 +264,15 @@ try
             Log.Error(ex, "数据库迁移失败，请检查连接字符串和数据库权限：{Msg}", ex.Message);
         }
 
-        // 自定义种子（HasData，Upsert 语义）：迁移后同步种子数据，
-        // 确保新增的菜单 / 角色菜单等配置在下次启动时自动生效。
+        // 启动即把证件/合同到期提醒聚合进通知中心（带 5 分钟缓存，幂等）
         try
         {
-            await db.SeedAsync();
-            Log.Information("种子数据同步完成");
+            var notifSvc = scope.ServiceProvider.GetService<INotificationService>();
+            if (notifSvc != null) await notifSvc.SyncExpiryAsync();
         }
         catch (Exception ex)
         {
-            // 种子失败（如数据库尚未就绪）只告警，不阻止启动
-            Log.Warning(ex, "种子数据同步跳过：{Msg}", ex.Message);
+            Log.Warning(ex, "通知中心到期提醒同步跳过：{Msg}", ex.Message);
         }
     }
 
@@ -279,6 +285,9 @@ try
             j => j.CheckCertExpireAsync(), Cron.Daily(9));
         RecurringJob.AddOrUpdate<IHangfireService>("check-milestone-overdue",
             j => j.CheckMilestoneOverdueAsync(), Cron.Daily(8));
+        // 通知中心：每日刷新证件/合同到期提醒（与上面检查逻辑保持一致，写入通知表）
+        RecurringJob.AddOrUpdate<INotificationService>("sync-notifications",
+            j => j.SyncExpiryAsync(), Cron.Daily(9, 0));
     }
     catch (Exception ex)
     {
