@@ -1,4 +1,5 @@
 using EnterpriseMS.Common;
+using EnterpriseMS.Domain.Entities.Project;
 using EnterpriseMS.Services.DTOs.Project;
 
 namespace EnterpriseMS.Services.Interfaces;
@@ -14,6 +15,8 @@ public interface IProjectService
     Task                              TerminateAsync(long id, string reason, string operBy);
     Task<string>                      GenerateProjNoAsync();
     Task<string>                      GenerateProjNoSuffixAsync();
+    // 批量导入（由 Excel 解析出的实体集合，统一在此持久化）
+    Task                             ImportProjectsAsync(List<Project> projects);
     // 成员
     Task<long>   AddMemberAsync(long projectId, CreateMemberDto dto, string operBy);
     Task         UpdateMemberAsync(long projectId, UpdateMemberDto dto, string operBy);

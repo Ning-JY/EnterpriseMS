@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Base;
 using EnterpriseMS.Domain.Interfaces;
@@ -56,7 +55,6 @@ public class Repository<T> : IRepository<T> where T : BaseEntity
 public class UnitOfWork : IUnitOfWork
 {
     private readonly AppDbContext _db;
-    private IDbContextTransaction? _tx;
 
     // 字段缓存：同一请求内复用仓储实例，避免重复创建开销
     private IRepository<SysUser>?             _users;
@@ -66,6 +64,8 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<SysPost>?             _posts;
     private IRepository<SysDictType>?         _dictTypes;
     private IRepository<SysDictData>?         _dictDatas;
+    private IRepository<SysConfig>?           _sysConfigs;
+    private IBasicRepository<SysOperLog>?     _sysOperLogs;
     private IRepository<Employee>?            _employees;
     private IRepository<EmployeeContract>?    _contracts;
     private IRepository<EmployeeCertificate>? _certs;
@@ -89,6 +89,9 @@ public class UnitOfWork : IUnitOfWork
     private IBasicRepository<SysUserRole>?    _userRoles;
     private IBasicRepository<SysRoleMenu>?    _roleMenus;
 
+    private IRepository<SysNotification>?     _notifications;
+    private IRepository<SysNotificationRead>? _notifReads;
+
     public UnitOfWork(AppDbContext db) => _db = db;
 
     public IRepository<SysUser>             Users          => _users          ??= new Repository<SysUser>(_db);
@@ -98,6 +101,8 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<SysPost>             Posts          => _posts          ??= new Repository<SysPost>(_db);
     public IRepository<SysDictType>         DictTypes      => _dictTypes      ??= new Repository<SysDictType>(_db);
     public IRepository<SysDictData>         DictDatas      => _dictDatas      ??= new Repository<SysDictData>(_db);
+    public IRepository<SysConfig>          SysConfigs    => _sysConfigs    ??= new Repository<SysConfig>(_db);
+    public IBasicRepository<SysOperLog>   SysOperLogs   => _sysOperLogs   ??= new BasicRepository<SysOperLog>(_db);
     public IRepository<Employee>            Employees      => _employees      ??= new Repository<Employee>(_db);
     public IRepository<EmployeeContract>    Contracts      => _contracts      ??= new Repository<EmployeeContract>(_db);
     public IRepository<EmployeeCertificate> Certificates   => _certs          ??= new Repository<EmployeeCertificate>(_db);
@@ -120,14 +125,10 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<KbCategory>          KbCategories   => _kbCategories   ??= new Repository<KbCategory>(_db);
     public IBasicRepository<SysUserRole>    UserRoles      => _userRoles      ??= new BasicRepository<SysUserRole>(_db);
     public IBasicRepository<SysRoleMenu>    RoleMenus      => _roleMenus      ??= new BasicRepository<SysRoleMenu>(_db);
+    public IRepository<SysNotification>     Notifications  => _notifications  ??= new Repository<SysNotification>(_db);
+    public IRepository<SysNotificationRead> NotifReads     => _notifReads     ??= new Repository<SysNotificationRead>(_db);
 
     public Task<int> SaveChangesAsync(CancellationToken ct = default)
         => _db.SaveChangesAsync(ct);
-    public async Task BeginTransactionAsync()
-        => _tx = await _db.Database.BeginTransactionAsync();
-    public async Task CommitAsync()
-    { await _db.SaveChangesAsync(); if (_tx != null) await _tx.CommitAsync(); }
-    public async Task RollbackAsync()
-    { if (_tx != null) await _tx.RollbackAsync(); }
-    public void Dispose() => _tx?.Dispose();
+    public void Dispose() { }
 }

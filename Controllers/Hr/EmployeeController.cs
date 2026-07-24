@@ -1,6 +1,7 @@
 using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Domain.Entities.Hr;
+using EnterpriseMS.Domain.Constants;
 using EnterpriseMS.Filters;
 using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.Interfaces;
@@ -48,9 +49,8 @@ public class EmployeeController : BaseAuthController
     {
         var emp = await _empSvc.GetDetailAsync(id);
         if (emp == null) return NotFound();
-        ViewBag.DictCertType  = await _dictSvc.GetDataByTypeAsync("cert_type");
-        ViewBag.CertTypes     = await _dictSvc.GetDataByTypeAsync("cert_type");
-        ViewBag.ContractTypes = await _dictSvc.GetDataByTypeAsync("contract_type");
+        ViewBag.CertTypes     = await _dictSvc.GetDataByTypeAsync(DictType.CertType);
+        ViewBag.ContractTypes = await _dictSvc.GetDataByTypeAsync(DictType.ContractType);
         ViewBag.Depts         = await _deptSvc.GetTreeAsync();
         return View(emp);
     }

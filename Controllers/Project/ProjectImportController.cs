@@ -8,7 +8,6 @@ using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Domain.Entities.Project;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Filters;
-using EnterpriseMS.Infrastructure.Data;
 using EnterpriseMS.Services.Interfaces;
 
 namespace EnterpriseMS.Controllers.Project;
@@ -16,15 +15,15 @@ namespace EnterpriseMS.Controllers.Project;
 [Authorize, Route("project")]
 public class ProjectImportController : BaseAuthController
 {
-    private readonly IUnitOfWork    _uow;
-    private readonly AppDbContext   _db;
-    private readonly IDeptService   _deptSvc;
+    private readonly IUnitOfWork     _uow;
+    private readonly IProjectService _projSvc;
+    private readonly IDeptService    _deptSvc;
     private readonly IOperLogService _logSvc;
 
-    public ProjectImportController(IUnitOfWork uow, AppDbContext db,
+    public ProjectImportController(IUnitOfWork uow, IProjectService projSvc,
         IDeptService deptSvc, IOperLogService logSvc, IPermissionService permSvc)
         : base(permSvc)
-    { _uow = uow; _db = db; _deptSvc = deptSvc; _logSvc = logSvc; }
+    { _uow = uow; _projSvc = projSvc; _deptSvc = deptSvc; _logSvc = logSvc; }
 
     // ── 导入页面 ─────────────────────────────────────────────
     [HttpGet("import")]
@@ -118,7 +117,7 @@ public class ProjectImportController : BaseAuthController
             d => d.DeptName.Trim(), d => d.Id, StringComparer.OrdinalIgnoreCase);
 
         // 现有项目编号集合（用于去重）
-        var existingNos = await _db.Projects
+        var existingNos = await _uow.Projects.Query()
             .Where(p => !p.IsDeleted)
             .Select(p => p.ProjNo)
             .ToHashSetAsync();
@@ -212,7 +211,7 @@ public class ProjectImportController : BaseAuthController
                     BuildingScale   = GetStrOrNull(row, "建设规模"),
                     Remark          = GetStrOrNull(row, "备注"),
                     ProgressStatus  = progress,
-                    StatusUpdatedAt = DateTime.Now,
+                    StatusUpdatedAt = DateTime.UtcNow,
                     CreatedBy       = User.GetRealName(),
                 };
 
@@ -233,8 +232,8 @@ public class ProjectImportController : BaseAuthController
             foreach (var p in toInsert)
                 if (p.Id == 0) p.Id = SnowflakeId.Next();
 
-            await _db.Projects.AddRangeAsync(toInsert);
-            await _db.SaveChangesAsync();
+            // 持久化下沉到 Service 层（IUnitOfWork 统一提交，避免 Controller 直连 DbContext）
+            await _projSvc.ImportProjectsAsync(toInsert);
             await _logSvc.LogAsync("批量导入项目",
                 $"成功导入 {toInsert.Count} 条，跳过 {skipList.Count} 条，错误 {errorList.Count} 条",
                 "INSERT", 0);

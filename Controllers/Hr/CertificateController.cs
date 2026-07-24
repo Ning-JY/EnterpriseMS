@@ -1,5 +1,6 @@
 using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
+using EnterpriseMS.Domain.Constants;
 using EnterpriseMS.Filters;
 using EnterpriseMS.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -25,13 +26,13 @@ public class CertificateController : BaseAuthController
     [HasPermission("hr:cert:list")]
     public async Task<IActionResult> Index(string? keyword, int? status, int page = 1, int size = 15)
     {
-        var (items, total, warnCount) = await _svc.GetPagedAsync(keyword, status, page, size);
-        ViewBag.WarnCount = warnCount;
-        ViewBag.CertTypes = await _dictSvc.GetDataByTypeAsync("cert_type");
+        var paged = await _svc.GetPagedAsync(keyword, status, page, size);
+        ViewBag.WarnCount = paged.WarnCount;
+        ViewBag.CertTypes = await _dictSvc.GetDataByTypeAsync(DictType.CertType);
         ViewBag.Employees = await _empQrySvc.GetAllOnJobAsync();
         ViewBag.Keyword = keyword; ViewBag.Status = status;
-        ViewBag.Page = page; ViewBag.Total = total; ViewBag.Size = size;
-        return View(items);
+        ViewBag.Page = page; ViewBag.Total = paged.Total; ViewBag.Size = size;
+        return View(paged.Items);
     }
 
     [HttpPost("create-with-file")]
@@ -66,12 +67,13 @@ public class CertificateController : BaseAuthController
     }
 
     [HttpGet("download/{id}")]
+    [HasPermission("hr:cert:list")]
     public async Task<IActionResult> Download(long id)
     {
         var info = await _svc.GetDownloadInfoAsync(id);
         if (info == null || !global::System.IO.File.Exists(info.Value.Path)) return NotFound();
-        var bytes = await global::System.IO.File.ReadAllBytesAsync(info.Value.Path);
-        return File(bytes, "application/octet-stream", info.Value.FileName);
+        return FileServingHelper.ServePhysicalFile(info.Value.Path, info.Value.FileName,
+            global::System.IO.Path.GetExtension(info.Value.Path));
     }
 
     [HttpPost("file/delete/{id}")]

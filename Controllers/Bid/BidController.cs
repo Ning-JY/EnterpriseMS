@@ -23,6 +23,7 @@ public class BidController : BaseAuthController
         _logger = logger;
     }
 
+    [HasPermission("bid:project:list")]
     public async Task<IActionResult> Index(BidListQuery query)
     {
         var result = await _bidService.GetPagedAsync(query);
@@ -30,12 +31,14 @@ public class BidController : BaseAuthController
         return View(result);
     }
 
+    [HasPermission("bid:project:list")]
     public IActionResult Create()
     {
         return View();
     }
 
     [HttpPost]
+    [HasPermission("bid:project:add")]
     public async Task<IActionResult> Create(BidProjectCreateDto dto)
     {
         if (!ModelState.IsValid)
@@ -45,6 +48,7 @@ public class BidController : BaseAuthController
         return RedirectToAction(nameof(Detail), new { id });
     }
 
+    [HasPermission("bid:project:list")]
     public async Task<IActionResult> Detail(long id)
     {
         var bid = await _bidService.GetDetailAsync(id);
@@ -52,6 +56,7 @@ public class BidController : BaseAuthController
         return View(bid);
     }
 
+    [HasPermission("bid:project:list")]
     public async Task<IActionResult> Edit(long id)
     {
         var bid = await _bidService.GetDetailAsync(id);
@@ -60,6 +65,7 @@ public class BidController : BaseAuthController
     }
 
     [HttpPost]
+    [HasPermission("bid:project:edit")]
     public async Task<IActionResult> Edit(long id, BidProjectUpdateDto dto)
     {
         await _bidService.UpdateAsync(id, dto, User.GetUsername());
@@ -67,6 +73,7 @@ public class BidController : BaseAuthController
     }
 
     [HttpPost]
+    [HasPermission("bid:project:delete")]
     public async Task<IActionResult> Delete(long id)
     {
         await _bidService.DeleteAsync(id, User.GetUsername());

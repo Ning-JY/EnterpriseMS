@@ -76,7 +76,7 @@ public class EmployeeService : IEmployeeService
         var snowId = SnowflakeId.Next();
         var emp = new Employee
         {
-            EmpNo    = $"EMP{DateTime.Now.Year}{snowId % 100000:D5}",
+            EmpNo    = $"EMP{DateTime.UtcNow.Year}{snowId % 100000:D5}",
             RealName = dto.RealName,
             Gender   = dto.Gender,
             Phone    = dto.Phone,

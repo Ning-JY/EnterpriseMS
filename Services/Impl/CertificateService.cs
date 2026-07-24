@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Entities.Hr;
 using EnterpriseMS.Domain.Interfaces;
+using EnterpriseMS.Domain.Constants;
 using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.DTOs.System;
 using EnterpriseMS.Services.Interfaces;
@@ -24,7 +25,7 @@ public class CertificateService : ICertificateService
         _uow = uow; _dictSvc = dictSvc; _empQrySvc = empQrySvc;
     }
 
-    public async Task<(List<EmployeeCertificate> Items, int Total, int WarnCount)> GetPagedAsync(
+    public async Task<PagedResult<EmployeeCertificate>> GetPagedAsync(
         string? keyword, int? status, int page, int size)
     {
         var q = _uow.Certificates.Query().Include(c => c.Employee).AsQueryable();
@@ -33,18 +34,19 @@ public class CertificateService : ICertificateService
                              c.CertName.Contains(keyword));
         if (status.HasValue) q = q.Where(c => c.Status == status);
 
-        var warnDate  = DateTime.Today.AddDays(60);
+        var warnDate  = DateTime.UtcNow.Date.AddDays(60);
         var warnCount = await q.CountAsync(c => c.Status == 0 &&
                                 c.ExpireDate.HasValue && c.ExpireDate <= warnDate);
         var paged     = await q.OrderByDescending(c => c.CreatedAt).ToPagedAsync(page, size);
-        return (paged.Items, paged.Total, warnCount);
+        paged.WarnCount = warnCount;
+        return paged;
     }
 
     public Task<List<EmployeeSimpleDto>> GetEmployeesAsync()
         => _empQrySvc.GetAllOnJobAsync();
 
     public Task<List<DictDataDto>> GetCertTypesAsync()
-        => _dictSvc.GetDataByTypeAsync("cert_type");
+        => _dictSvc.GetDataByTypeAsync(DictType.CertType);
 
     public async Task<long> CreateWithFileAsync(long employeeId, string certName, string certType,
         string? certNo, string? issueOrg, DateTime? issueDate, DateTime? expireDate,
@@ -113,15 +115,5 @@ public class CertificateService : ICertificateService
     }
 
     public async Task DeleteFileAsync(long id, string operBy)
-    {
-        var cert = await _uow.Certificates.GetByIdAsync(id);
-        if (cert == null) throw new NotFoundException("证书不存在");
-        if (cert.FilePath != null && System.IO.File.Exists(cert.FilePath))
-            System.IO.File.Delete(cert.FilePath);
-        cert.FilePath  = null;
-        cert.FileName  = null;
-        cert.UpdatedBy = operBy;
-        _uow.Certificates.Update(cert);
-        await _uow.SaveChangesAsync();
-    }
+        => await FileManageHelper.DeleteFileAsync(_uow.Certificates, () => _uow.SaveChangesAsync(), id, operBy);
 }

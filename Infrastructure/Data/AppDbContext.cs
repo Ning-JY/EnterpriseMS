@@ -61,6 +61,9 @@ public class AppDbContext : DbContext
     public DbSet<BidRequirement> BidRequirements { get; set; }
     public DbSet<BidDocument> BidDocuments { get; set; }
     public DbSet<BidTemplate> BidTemplates { get; set; }
+    // 通知中心
+    public DbSet<SysNotification> Notifications { get; set; }
+    public DbSet<SysNotificationRead> NotificationReads { get; set; }
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -124,6 +127,9 @@ public class AppDbContext : DbContext
         mb.Entity<BidDocument>().HasOne(e => e.BidProject).WithMany(b => b.Documents)
             .HasForeignKey(e => e.BidProjectId).OnDelete(DeleteBehavior.Cascade);
 
+        // 通知已读标记：同一用户对同一条通知只应有一条记录
+        mb.Entity<SysNotificationRead>().HasIndex(r => new { r.UserId, r.NotificationId }).IsUnique();
+
         // 外键索引：为频繁查询的外键字段添加索引，提升查询性能
         mb.Entity<EmployeeContract>().HasIndex(c => c.EmployeeId);
         mb.Entity<EmployeeCertificate>().HasIndex(c => c.EmployeeId);
@@ -167,10 +173,10 @@ public class AppDbContext : DbContext
                 if (entry.Entity.Id == 0)
                     entry.Entity.Id = SnowflakeId.Next();
                 if (entry.Entity.CreatedAt == default)
-                    entry.Entity.CreatedAt = DateTime.Now;
+                    entry.Entity.CreatedAt = DateTime.UtcNow;
             }
             if (entry.State == EntityState.Modified)
-                entry.Entity.UpdatedAt = DateTime.Now;
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
         }
         return base.SaveChangesAsync(ct);
     }
@@ -191,13 +197,6 @@ public class AppDbContext : DbContext
      * BudgetSeeds  → 概预算任务/分部
      * InfoSeeds    → 知识库分类/菜单
      */
-    public async Task SeedAsync()
-    {
-        // HasData 种子数据由 MigrateAsync() 自动写入，此处无需重复操作。
-        // 保留方法签名以兼容 Program.cs 调用。
-        await Task.CompletedTask;
-    }
-
     /// <summary>供 DebugController 调用的公共包装</summary>
     public async Task SeedTablePublicAsync<T>() where T : class => await SeedTableAsync<T>();
 

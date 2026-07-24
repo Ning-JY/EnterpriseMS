@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Infrastructure.Cache;
-using EnterpriseMS.Infrastructure.Data;
 using EnterpriseMS.Services.Interfaces;
 
 namespace EnterpriseMS.Controllers;
@@ -14,11 +13,10 @@ public class AccountController : Controller
 {
     private readonly IUserService _userSvc;
     private readonly IPermissionCache _cache;
-    private readonly AppDbContext _db;
 
     public AccountController(IUserService userSvc,
-        IPermissionCache cache, AppDbContext db)
-    { _userSvc = userSvc; _cache = cache; _db = db; }
+        IPermissionCache cache)
+    { _userSvc = userSvc; _cache = cache; }
 
     [HttpGet, AllowAnonymous]
     public IActionResult Login(string? returnUrl)
@@ -51,11 +49,8 @@ public class AccountController : Controller
             return View();
         }
 
-        // 查询角色
-        var roleCodes = _db.SysUserRoles
-            .Where(ur => ur.UserId == user.Id)
-            .Join(_db.SysRoles, ur => ur.RoleId, r => r.Id, (ur, r) => r.RoleCode)
-            .ToList();
+        // 查询角色（下沉到 UserService，避免 Controller 直连 DbContext）
+        var roleCodes = await _userSvc.GetRoleCodesAsync(user.Id);
 
         var claims = new List<Claim>
         {

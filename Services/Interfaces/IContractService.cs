@@ -1,4 +1,5 @@
 using EnterpriseMS.Domain.Entities.Hr;
+using EnterpriseMS.Common;
 using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.DTOs.System;
 
@@ -7,7 +8,7 @@ namespace EnterpriseMS.Services.Interfaces;
 // ── 合同管理服务 ───────────────────────────────────────────
 public interface IContractService
 {
-    Task<(List<EmployeeContract> Items, int Total, int WarnCount)> GetPagedAsync(
+    Task<PagedResult<EmployeeContract>> GetPagedAsync(
         string? keyword, int? status, int page, int size);
 
     Task<List<EmployeeSimpleDto>> GetEmployeesAsync();

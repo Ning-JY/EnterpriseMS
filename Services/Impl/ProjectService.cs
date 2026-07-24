@@ -49,19 +49,18 @@ public class ProjectService : IProjectService
         if (!string.IsNullOrWhiteSpace(query.BizType))
             q = q.Where(p => p.BizType == query.BizType);
 
-        var total = await q.CountAsync();
-        var list = await q.OrderByDescending(p => p.CreatedAt)
-                           .Skip((query.Page - 1) * query.Size).Take(query.Size)
-                           .ToListAsync();
+        var paged = await q.OrderByDescending(p => p.CreatedAt)
+                           .ToPagedAsync(query.Page, query.Size);
+        var list  = paged.Items;
 
         var items = _mapper.Map<List<ProjectListDto>>(list);
         foreach (var item in items)
-            item.ProgressText = GetProgressText(item.ProgressStatus);
+            item.ProgressText = Common.ProjectProgress.GetProgressText(item.ProgressStatus);
 
         return new PagedResult<ProjectListDto>
         {
             Items = items,
-            Total = total,
+            Total = paged.Total,
             Page = query.Page,
             PageSize = query.Size
         };
@@ -89,7 +88,7 @@ public class ProjectService : IProjectService
         if (proj == null) return null;
 
         var dto = _mapper.Map<ProjectDetailDto>(proj);
-        dto.ProgressText = GetProgressText(proj.ProgressStatus);
+        dto.ProgressText = Common.ProjectProgress.GetProgressText(proj.ProgressStatus);
         dto.TotalReceived = await GetTotalReceivedAsync(id);
         dto.StatusUpdatedAt = proj.StatusUpdatedAt;
         dto.Contracts = _mapper.Map<List<ProjectContractDto>>(
@@ -146,10 +145,9 @@ public class ProjectService : IProjectService
                 EmployeeId = dto.ProjectLeaderId.Value,
                 Role = "项目负责人",
                 Ratio = 0,
-                JoinDate = DateTime.Now,
+                JoinDate = DateTime.UtcNow,
                 Status = 0,
-                CreatedBy = operBy,
-                CreatedAt = DateTime.Now
+                CreatedBy = operBy
             });
         }
         // 写入里程碑
@@ -197,16 +195,16 @@ public class ProjectService : IProjectService
         if (dto.NewStatus == proj.ProgressStatus)
             throw new BusinessException("新状态与当前状态相同，无需变更");
 
-        var oldStatus = GetProgressText(proj.ProgressStatus);
+        var oldStatus = Common.ProjectProgress.GetProgressText(proj.ProgressStatus);
         proj.ProgressStatus = dto.NewStatus;
-        proj.StatusUpdatedAt = DateTime.Now;
-        if (dto.NewStatus == 8) proj.ActualEndDate = dto.StatusDate ?? DateTime.Today;
+        proj.StatusUpdatedAt = DateTime.UtcNow;
+        if (dto.NewStatus == 8) proj.ActualEndDate = dto.StatusDate ?? DateTime.UtcNow.Date;
         proj.UpdatedBy = operBy;
         _uow.Projects.Update(proj);
         await _uow.SaveChangesAsync();
 
         await WriteLogAsync(proj.Id, "进度状态变更",
-            $"{oldStatus} → {GetProgressText(dto.NewStatus)}" +
+            $"{oldStatus} → {Common.ProjectProgress.GetProgressText(dto.NewStatus)}" +
             (string.IsNullOrWhiteSpace(dto.Remark) ? "" : $"，备注：{dto.Remark}"), operBy);
     }
 
@@ -226,7 +224,7 @@ public class ProjectService : IProjectService
     // #1 修复：使用 MaxAsync + 解析最大序号，避免并发冲突和删除后编号重复
     public async Task<string> GenerateProjNoAsync()
     {
-        var year = DateTime.Now.Year;
+        var year = DateTime.UtcNow.Year;
         var prefix = $"PRJ-{year}-";
 
         var maxNo = await _uow.Projects.Query()
@@ -247,7 +245,7 @@ public class ProjectService : IProjectService
 
     public async Task<string> GenerateProjNoSuffixAsync()
     {
-        var year = DateTime.Now.Year;
+        var year = DateTime.UtcNow.Year;
         var prefix = $"{year}-";
         var maxNo = await _uow.Projects.Query()
             .Where(p => p.ProjNo.Contains(prefix))
@@ -261,6 +259,14 @@ public class ProjectService : IProjectService
                 maxSeq = seq;
         }
         return $"{(maxSeq + 1):D3}";
+    }
+
+    // ── 批量导入：由 Controller 解析 Excel 行得到实体集合，统一在此持久化 ──
+    public async Task ImportProjectsAsync(List<Project> projects)
+    {
+        if (projects.Count == 0) return;
+        await _uow.Projects.AddRangeAsync(projects);
+        await _uow.SaveChangesAsync();
     }
 
     // ── 成员 ────────────────────────────────────────────────
@@ -312,7 +318,7 @@ public class ProjectService : IProjectService
         var member = await _uow.ProjMembers.GetByIdAsync(memberId)
             ?? throw new NotFoundException("成员记录不存在");
         member.Status = 1;
-        member.LeaveDate = DateTime.Today;
+        member.LeaveDate = DateTime.UtcNow.Date;
         member.UpdatedBy = operBy;
         _uow.ProjMembers.Update(member);
         await _uow.SaveChangesAsync();
@@ -343,7 +349,7 @@ public class ProjectService : IProjectService
         ms.Remark = dto.Remark;
         ms.UpdatedBy = operBy;
         // 如果计划日期被延后到未来且未完成，清除逾期标记
-        if (ms.Status != 2 && dto.PlanDate >= DateTime.Today && ms.IsOverdue)
+        if (ms.Status != 2 && dto.PlanDate >= DateTime.UtcNow.Date && ms.IsOverdue)
             ms.IsOverdue = false;
         _uow.Milestones.Update(ms);
         await _uow.SaveChangesAsync();
@@ -362,8 +368,8 @@ public class ProjectService : IProjectService
         var ms = await _uow.Milestones.GetByIdAsync(milestoneId)
             ?? throw new NotFoundException("里程碑不存在");
         ms.Status = 2;
-        ms.ActualDate = DateTime.Today;
-        ms.IsOverdue = DateTime.Today > ms.PlanDate;
+        ms.ActualDate = DateTime.UtcNow.Date;
+        ms.IsOverdue = DateTime.UtcNow.Date > ms.PlanDate;
         ms.UpdatedBy = operBy;
         _uow.Milestones.Update(ms);
         await _uow.SaveChangesAsync();
@@ -642,14 +648,12 @@ public class ProjectService : IProjectService
     public async Task<PagedResult<ProjectLogDto>> GetLogsPagedAsync(long projectId, int page, int size)
     {
         var q = _uow.ProjLogs.Query().Where(l => l.ProjectId == projectId);
-        var total = await q.CountAsync();
-        var list = await q.OrderByDescending(l => l.OperAt)
-            .Skip((page - 1) * size).Take(size)
-            .ToListAsync();
+        var paged = await q.OrderByDescending(l => l.OperAt)
+            .ToPagedAsync(page, size);
         return new PagedResult<ProjectLogDto>
         {
-            Items = _mapper.Map<List<ProjectLogDto>>(list),
-            Total = total,
+            Items = _mapper.Map<List<ProjectLogDto>>(paged.Items),
+            Total = paged.Total,
             Page = page,
             PageSize = size
         };
@@ -695,7 +699,7 @@ public class ProjectService : IProjectService
                 proj.ProjNo,
                 proj.ProjName,
                 proj.ProgressStatus,
-                ProgressText = GetProgressText(proj.ProgressStatus),
+                ProgressText = Common.ProjectProgress.GetProgressText(proj.ProgressStatus),
                 ContractAmount = proj.ContractAmount,
                 ActualAmount = actual,
                 IsJoint = proj.IsJointVenture,
@@ -763,7 +767,7 @@ public class ProjectService : IProjectService
             Title = title,
             Content = content,
             OperBy = operBy,
-            OperAt = DateTime.Now,
+            OperAt = DateTime.UtcNow,
         };
         await _uow.ProjLogs.AddAsync(log);
         await _uow.SaveChangesAsync();
@@ -856,21 +860,6 @@ public class ProjectService : IProjectService
         0 => "待开始", 1 => "进行中", 2 => "已完成", _ => "未知"
     };
 
-    // #20 修复：状态文本统一维护
-    public static string GetProgressText(int status) => status switch
-    {
-        0 => "前期商务",
-        1 => "预计启动",
-        2 => "标书制作中",
-        3 => "投标/磋商中",
-        4 => "已中标·签订合同中",
-        5 => "已签回合同",
-        6 => "执行中",
-        7 => "成果提交",
-        8 => "已完成",
-        9 => "已终止",
-        _ => "未知",
-    };
 
     // #20 新增：状态 Badge 样式统一维护
     public static string GetProgressBadge(int status) => status switch

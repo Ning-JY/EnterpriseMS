@@ -49,8 +49,10 @@ public class KbUploadDto
     [Required(ErrorMessage = "请选择文件")]
     public IFormFile File { get; set; } = null!;
     public long? CategoryId { get; set; }
+    public string? DisplayName { get; set; }
     public string? Description { get; set; }
     public string? Version { get; set; }
+    public bool IsPinned { get; set; }
 }
 
 public class KbUpdateDto

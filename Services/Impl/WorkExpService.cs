@@ -38,7 +38,6 @@ public class WorkExpService : IWorkExpService
             StartDate  = dto.StartDate,
             EndDate    = dto.EndDate,
             Remark     = dto.Remark,
-            CreatedAt  = DateTime.Now,
             CreatedBy  = operBy ?? "system"
         };
         await _uow.WorkExperiences.AddAsync(entity);
@@ -54,8 +53,7 @@ public class WorkExpService : IWorkExpService
         entity.Position    = dto.Position;
         entity.StartDate   = dto.StartDate;
         entity.EndDate     = dto.EndDate;
-        entity.Remark      = dto.Remark;
-        entity.UpdatedAt   = DateTime.Now;
+            entity.Remark      = dto.Remark;
         await _uow.SaveChangesAsync();
     }
 

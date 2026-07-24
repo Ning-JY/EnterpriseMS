@@ -1,4 +1,5 @@
 using EnterpriseMS.Domain.Interfaces;
+using EnterpriseMS.Domain.Constants;
 using Microsoft.AspNetCore.Http;
 using EnterpriseMS.Controllers;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +11,6 @@ using EnterpriseMS.Services.DTOs.Project;
 using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.Interfaces;
 using EnterpriseMS.Services.Impl;
-using EnterpriseMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace EnterpriseMS.Controllers.Project;
@@ -25,16 +25,15 @@ public class ProjectController : BaseAuthController
     private readonly IOperLogService       _logSvc;
     private readonly IUnitOfWork           _uow;
     private readonly IReportGeneratorService _reportSvc;
-    private readonly AppDbContext          _db;
 
     public ProjectController(IProjectService projSvc, IDeptService deptSvc,
         IDictService dictSvc, IEmployeeQueryService empQrySvc,
         IOperLogService logSvc, IUnitOfWork uow, IPermissionService permSvc,
-        IReportGeneratorService reportSvc, AppDbContext db)
+        IReportGeneratorService reportSvc)
         : base(permSvc)
     {
         _projSvc = projSvc; _deptSvc = deptSvc; _dictSvc = dictSvc;
-        _empQrySvc = empQrySvc; _logSvc = logSvc; _uow = uow; _reportSvc = reportSvc; _db = db;
+        _empQrySvc = empQrySvc; _logSvc = logSvc; _uow = uow; _reportSvc = reportSvc;
     }  [HasPermission("proj:project:list")]
     public async Task<IActionResult> Index(ProjectQueryDto query)
     {
@@ -54,7 +53,7 @@ public class ProjectController : BaseAuthController
         var proj = await _projSvc.GetDetailAsync(id, User.GetUserId());
         if (proj == null) return NotFound();
         ViewBag.AllMembers        = await _empQrySvc.GetAllOnJobAsync();
-        ViewBag.DictMilestoneType = await _dictSvc.GetDataByTypeAsync("milestone_type");
+        ViewBag.DictMilestoneType = await _dictSvc.GetDataByTypeAsync(DictType.MilestoneType);
         return View(proj);
     }
 
@@ -107,8 +106,8 @@ public class ProjectController : BaseAuthController
     {
         var depts   = await _deptSvc.GetTreeAsync();
         var members = await _empQrySvc.GetAllOnJobAsync();
-        // 从系统参数读取项目编号前缀
-        var prefix = await _db.SysConfigs
+        // 从系统参数读取项目编号前缀（统一走 IUnitOfWork 仓储，移除 AppDbContext 直连）
+        var prefix = await _uow.SysConfigs.Query()
             .Where(c => c.ConfigKey == "project_no_prefix")
             .Select(c => c.ConfigValue)
             .FirstOrDefaultAsync() ?? "";
@@ -389,8 +388,7 @@ public class ProjectController : BaseAuthController
             : (inv.PaymentFile, inv.PaymentFileName);
         if (string.IsNullOrEmpty(fp) || !global::System.IO.File.Exists(fp))
             return NotFound("文件不存在");
-        var bytes = await global::System.IO.File.ReadAllBytesAsync(fp);
-        return File(bytes, "application/octet-stream", fn ?? "附件");
+        return FileServingHelper.ServePhysicalFile(fp, fn ?? "附件", global::System.IO.Path.GetExtension(fp));
     }
 
     [HttpPost("contracts/file/delete/{contractId}")]
@@ -413,8 +411,8 @@ public class ProjectController : BaseAuthController
         if (contract == null || string.IsNullOrEmpty(contract.FilePath)
             || !global::System.IO.File.Exists(contract.FilePath))
             return NotFound("文件不存在");
-        var bytes = await global::System.IO.File.ReadAllBytesAsync(contract.FilePath);
-        return File(bytes, "application/octet-stream", contract.FileName ?? "合同附件");
+        return FileServingHelper.ServePhysicalFile(contract.FilePath, contract.FileName ?? "合同附件",
+            global::System.IO.Path.GetExtension(contract.FilePath));
     }
 
     // 合同附件上传（项目合同）
@@ -465,10 +463,7 @@ public class ProjectController : BaseAuthController
         var f     = files.FirstOrDefault();
         if (f == null || !global::System.IO.File.Exists(f.FilePath))
             return NotFound("文件不存在");
-        var bytes = await global::System.IO.File.ReadAllBytesAsync(f.FilePath);
-        var mime  = MimeHelper.GetMimeType(f.FileExt ?? "bin");
-        // File(..., fileDownloadName) 始终以 Content-Disposition: attachment 返回，杜绝浏览器内联渲染
-        return File(bytes, mime, f.FileName);
+        return FileServingHelper.ServePhysicalFile(f.FilePath, f.FileName, f.FileExt);
     }
 
     [HttpPost("files/delete/{fileId}")]
@@ -493,6 +488,4 @@ public class ProjectController : BaseAuthController
     }
 
     // ── 工具方法 ──────────────────────────────────────────────
-    private string GetErrors() => string.Join("；",
-        ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 }

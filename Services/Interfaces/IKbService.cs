@@ -12,6 +12,7 @@ public interface IKbService
     Task                          UpdateAsync(KbUpdateDto dto, string operBy);
     Task                          TogglePinAsync(long id, string operBy);
     Task                          DeleteAsync(long id, string operBy);
+    Task                          IncrementDownloadCountAsync(long id);
     Task<(string path, string name, string mime, long size)?> GetDownloadInfoAsync(long id);
     Task<List<KbCategoryDto>>     GetCategoriesAsync();
 }

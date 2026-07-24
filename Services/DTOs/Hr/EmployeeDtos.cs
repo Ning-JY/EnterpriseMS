@@ -145,9 +145,9 @@ public class EmployeeContractDto
     public string?   FileName    { get; set; }
     public string?   Remark      { get; set; }
     /// <summary>是否即将到期（30天内）</summary>
-    public bool IsExpiringSoon => Status == 0 && EndDate <= DateTime.Now.AddDays(30) && EndDate > DateTime.Now;
+    public bool IsExpiringSoon => Status == 0 && EndDate <= DateTime.UtcNow.AddDays(30) && EndDate > DateTime.UtcNow;
     /// <summary>是否已过期</summary>
-    public bool IsExpired => EndDate < DateTime.Now && Status == 0;
+    public bool IsExpired => EndDate < DateTime.UtcNow && Status == 0;
 }
 
 // ── 证书子 DTO ─────────────────────────────────────────────
@@ -172,7 +172,7 @@ public class EmployeeCertificateDto
     public string?   Remark     { get; set; }
     /// <summary>是否即将到期（90天内）</summary>
     public bool IsExpiringSoon => Status == 0 && ExpireDate.HasValue
-        && ExpireDate.Value <= DateTime.Now.AddDays(90) && ExpireDate.Value > DateTime.Now;
+        && ExpireDate.Value <= DateTime.UtcNow.AddDays(90) && ExpireDate.Value > DateTime.UtcNow;
 }
 
 // ── 教育经历 DTOs ──

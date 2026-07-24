@@ -140,6 +140,4 @@ public class UserController : BaseAuthController
         return Json(ApiResult<object>.Ok(roles));
     }
 
-    private string GetErrors() => string.Join("；",
-        ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 }

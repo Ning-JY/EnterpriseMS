@@ -365,7 +365,7 @@ public class ReportGeneratorService : IReportGeneratorService
     private string GenerateTemplateId(string name)
     {
         var sanitized = Regex.Replace(name, @"[^\w\u4e00-\u9fa5]", "-").ToLower();
-        return $"{sanitized}-{DateTime.Now:yyyyMMddHHmmss}";
+        return $"{sanitized}-{DateTime.UtcNow:yyyyMMddHHmmss}";
     }
 
     private void UpdateManifest(ConfigureTemplateRequest request, string fileName, string templateId)
@@ -385,7 +385,7 @@ public class ReportGeneratorService : IReportGeneratorService
             Name = request.TemplateName,
             FileName = fileName,
             Description = request.TemplateDescription,
-            CreatedAt = DateTime.Now.ToString("yyyy-MM-dd"),
+            CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd"),
             Fields = request.Replacements.Select(r => new TemplateFieldDto
             {
                 Name = r.FieldName,

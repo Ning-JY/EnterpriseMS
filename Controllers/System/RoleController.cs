@@ -100,6 +100,4 @@ public class RoleController : BaseAuthController
         return Json(ApiResult<object>.Ok("权限分配成功"));
     }
 
-    private string GetErrors() => string.Join("；",
-        ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 }

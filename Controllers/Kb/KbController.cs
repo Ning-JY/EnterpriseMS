@@ -5,6 +5,7 @@ using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Domain.Entities.Info;
 using EnterpriseMS.Domain.Interfaces;
+using EnterpriseMS.Services.DTOs.Kb;
 using EnterpriseMS.Filters;
 using EnterpriseMS.Services.Interfaces;
 
@@ -14,10 +15,10 @@ namespace EnterpriseMS.Controllers.Kb;
 public class KbController : BaseAuthController
 {
     private readonly IUnitOfWork    _uow;
-    private readonly IOperLogService _logSvc;
-    public KbController(IUnitOfWork uow, IOperLogService logSvc, IPermissionService permSvc)
+    private readonly IKbService     _kbSvc;
+    public KbController(IUnitOfWork uow, IKbService kbSvc, IPermissionService permSvc)
         : base(permSvc)
-    { _uow = uow; _logSvc = logSvc; }
+    { _uow = uow; _kbSvc = kbSvc; }
 
     // ── 文件浏览（所有登录用户）──────────────────────────────
     [HasPermission("kb:file:list")]
@@ -91,32 +92,17 @@ public class KbController : BaseAuthController
 
         // 扩展名白名单由 FileUploadHelper.DefaultAllowedExts 单一管控；大小由全局 500MB 限制；
         // 文件落非 Web 根目录，避免静态文件中间件直接渲染用户文件。
-        var saved = await FileUploadHelper.SaveUploadFile(file, $"kb/{categoryId}");
-        if (!saved.HasValue)
-            return Json(ApiResult<object>.Fail("不支持的文件类型"));
-
-        var category = await _uow.KbCategories.GetByIdAsync(categoryId);
-        if (category == null) return Json(ApiResult<object>.Fail("分类不存在"));
-
-        var kbFile = new KbFile
+        var dto = new KbUploadDto
         {
-            CategoryId   = categoryId,
-            FileName     = string.IsNullOrWhiteSpace(displayName)
-                           ? Path.GetFileNameWithoutExtension(file.FileName) : displayName,
-            OriginalName = file.FileName,
-            FilePath     = saved.Value.path,
-            FileSize     = file.Length,
-            FileExt      = Path.GetExtension(file.FileName).TrimStart('.').ToLower(),
-            Description  = description,
-            Version      = version,
-            IsPinned     = isPinned,
-            Status       = 1,
-            CreatedBy    = User.GetRealName(),
+            File = file,
+            CategoryId = categoryId,
+            DisplayName = displayName,
+            Description = description,
+            Version = version,
+            IsPinned = isPinned,
         };
-        await _uow.KbFiles.AddAsync(kbFile);
-        await _uow.SaveChangesAsync();
-        await _logSvc.LogAsync("上传知识库文件", $"[{category.Name}] {kbFile.FileName}", "INSERT", kbFile.Id);
-        return Json(ApiResult<object>.Ok(new { kbFile.Id }, "上传成功"));
+        var id = await _kbSvc.UploadAsync(dto, User.GetRealName());
+        return Json(ApiResult<object>.Ok(new { id }, "上传成功"));
     }
 
     // ── 下载文件（计数 + 返回文件）──────────────────────────
@@ -128,16 +114,10 @@ public class KbController : BaseAuthController
         if (f == null || !global::System.IO.File.Exists(f.FilePath))
             return NotFound("文件不存在或已删除");
 
-        // 更新下载次数（不影响主流程）
-        f.DownloadCount++;
-        _uow.KbFiles.Update(f);
-        await _uow.SaveChangesAsync();
+        // 下载计数下沉到 Service（不影响主流程）
+        await _kbSvc.IncrementDownloadCountAsync(id);
 
-        var bytes   = await global::System.IO.File.ReadAllBytesAsync(f.FilePath);
-        var mime    = MimeHelper.GetMimeType(f.FileExt ?? "bin");
-        var dlName  = Uri.EscapeDataString(f.OriginalName);
-        Response.Headers["Content-Disposition"] = $"attachment; filename*=UTF-8''{dlName}";
-        return File(bytes, mime);
+        return FileServingHelper.ServePhysicalFile(f.FilePath, f.OriginalName, f.FileExt);
     }
 
     // ── 预览（PDF/图片内嵌，其他跳下载）───────────────────
@@ -153,10 +133,7 @@ public class KbController : BaseAuthController
         if (!previewExts.Contains(f.FileExt?.ToLower()))
             return RedirectToAction("Download", new { id });
 
-        var bytes = await global::System.IO.File.ReadAllBytesAsync(f.FilePath);
-        var mime  = MimeHelper.GetMimeType(f.FileExt ?? "bin");
-        // 内嵌预览不设 Content-Disposition: attachment
-        return File(bytes, mime);
+        return FileServingHelper.ServePhysicalFile(f.FilePath, f.OriginalName, f.FileExt, inline: true);
     }
 
     // ── 置顶切换 ────────────────────────────────────────────
@@ -166,11 +143,9 @@ public class KbController : BaseAuthController
     {
         var f = await _uow.KbFiles.GetByIdAsync(id);
         if (f == null) return Json(ApiResult<object>.Fail("文件不存在"));
-        f.IsPinned   = !f.IsPinned;
-        f.UpdatedBy  = User.GetRealName();
-        _uow.KbFiles.Update(f);
-        await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok(f.IsPinned ? "已置顶" : "已取消置顶"));
+        await _kbSvc.TogglePinAsync(id, User.GetRealName());
+        var newPinned = !f.IsPinned;
+        return Json(ApiResult<object>.Ok(newPinned ? "已置顶" : "已取消置顶"));
     }
 
     // ── 删除文件 ────────────────────────────────────────────
@@ -180,10 +155,7 @@ public class KbController : BaseAuthController
     {
         var f = await _uow.KbFiles.GetByIdAsync(id);
         if (f == null) return Json(ApiResult<object>.Fail("文件不存在"));
-        // 软删除（物理文件保留，管理员可恢复）
-        _uow.KbFiles.SoftDelete(f);
-        await _uow.SaveChangesAsync();
-        await _logSvc.LogAsync("删除知识库文件", f.FileName, "DELETE", id);
+        await _kbSvc.DeleteAsync(id, User.GetRealName());
         return Json(ApiResult<object>.Ok("已删除"));
     }
 

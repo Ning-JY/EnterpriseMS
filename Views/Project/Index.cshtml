@@ -43,7 +43,7 @@
                             @for (int i = 0; i <= 9; i++)
                             {
                                 <option value="@i" selected="@(query.ProgressStatus == i ? "selected" : null)">
-                                    @EnterpriseMS.Services.Impl.ProjectService.GetProgressText(i)
+                                    @EnterpriseMS.Common.ProjectProgress.GetProgressText(i)
                                 </option>
                             }
                         </select>

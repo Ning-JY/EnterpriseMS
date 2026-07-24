@@ -192,10 +192,10 @@ public class OpenAIService : IAIService
         return new BidAnalysisResult
         {
             ProjectName = hasKeyword ? ExtractProjectName(content) : "示例项目名称",
-            ProjectCode = $"BID-{DateTime.Now:yyyyMMdd}-{rng.Next(1000, 9999)}",
+            ProjectCode = $"BID-{DateTime.UtcNow:yyyyMMdd}-{rng.Next(1000, 9999)}",
             Tenderer = "XX市建设局",
             Budget = Math.Round((decimal)(rng.Next(50, 500) + rng.NextDouble()), 2),
-            Deadline = DateTime.Now.AddDays(rng.Next(30, 90)),
+            Deadline = DateTime.UtcNow.AddDays(rng.Next(30, 90)),
             Qualifications = new List<QualificationItem>
             {
                 new() { Content = "具有工程咨询甲级资质，未提供资质证明的不予资格审查通过", IsVeto = true, SourceRef = "p.14（演示数据）" },

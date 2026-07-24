@@ -37,10 +37,9 @@ public class UserService : IUserService
         if (query.DeptId.HasValue) q = q.Where(u => u.DeptId == query.DeptId);
         if (query.Status.HasValue)  q = q.Where(u => u.Status == query.Status);
 
-        var total = await q.CountAsync();
-        var list  = await q.OrderByDescending(u => u.CreatedAt)
-                           .Skip((query.Page - 1) * query.Size).Take(query.Size)
-                           .ToListAsync();
+        var paged = await q.OrderByDescending(u => u.CreatedAt)
+                           .ToPagedAsync(query.Page, query.Size);
+        var list  = paged.Items;
 
         var dtos = _mapper.Map<List<UserListDto>>(list);
 
@@ -64,7 +63,7 @@ public class UserService : IUserService
         return new PagedResult<UserListDto>
         {
             Items    = dtos,
-            Total    = total,
+            Total    = paged.Total,
             Page     = query.Page,
             PageSize = query.Size,
         };
@@ -233,9 +232,20 @@ public class UserService : IUserService
     {
         var user = await _uow.Users.GetByIdAsync(id);
         if (user == null) return;
-        user.LastLoginTime = DateTime.Now;
+        user.LastLoginTime = DateTime.UtcNow;
         _uow.Users.Update(user);
         await _uow.SaveChangesAsync();
+    }
+
+    // 登录时根据用户ID取角色代码集合（原在 AccountController 内直查 SysUserRoles/SysRoles）
+    public async Task<List<string>> GetRoleCodesAsync(long userId)
+    {
+        return await _uow.UserRoles.Query()
+            .Where(ur => ur.UserId == userId)
+            .Join(_uow.Roles.Query(),
+                ur => ur.RoleId, r => r.Id,
+                (ur, r) => r.RoleCode)
+            .ToListAsync();
     }
 
     public async Task<bool> ValidatePasswordAsync(string username, string password)

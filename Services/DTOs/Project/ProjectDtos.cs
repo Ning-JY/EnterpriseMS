@@ -209,7 +209,7 @@ public class CreateMemberDto
     public string   Role       { get; set; } = "参与人员";
     public string?  DutyDesc   { get; set; }
     public decimal  Ratio      { get; set; }
-    public DateTime JoinDate   { get; set; } = DateTime.Today;
+    public DateTime JoinDate   { get; set; } = DateTime.UtcNow.Date;
 }
 
 public class UpdateMemberDto

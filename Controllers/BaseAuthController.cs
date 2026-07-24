@@ -41,4 +41,9 @@ public abstract class BaseAuthController : Controller
     /// <summary>失败：返回错误消息（code 默认 400）</summary>
     protected JsonResult ApiFail(string msg, int code = 400)
         => Json(ApiResult.Fail(msg, code));
+
+    /// <summary>收集模型校验错误（消除各 Controller 重复的 GetErrors 私有方法）</summary>
+    protected string GetErrors()
+        => string.Join("；",
+            ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 }

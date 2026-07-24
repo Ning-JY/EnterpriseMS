@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using EnterpriseMS.Domain.Base;
 using EnterpriseMS.Domain.Entities.System;
+using EnterpriseMS.Domain.Interfaces;
 
 namespace EnterpriseMS.Domain.Entities.Hr;
 
@@ -74,7 +75,7 @@ public class EmployeeWorkExp : BaseEntity
 }
 
 [Table("hr_contract")]
-public class EmployeeContract : BaseEntity
+public class EmployeeContract : BaseEntity, IFileEntity
 {
     [Column("employee_id")]   public long     EmployeeId   { get; set; }
     [Column("contract_no")]   public string   ContractNo   { get; set; } = "";
@@ -90,7 +91,7 @@ public class EmployeeContract : BaseEntity
 }
 
 [Table("hr_certificate")]
-public class EmployeeCertificate : BaseEntity
+public class EmployeeCertificate : BaseEntity, IFileEntity
 {
     [Column("employee_id")]  public long     EmployeeId  { get; set; }
     [Column("cert_name")]    public string   CertName    { get; set; } = "";

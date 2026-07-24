@@ -266,7 +266,7 @@ public class WordExportService : IWordExportService
         if (!string.IsNullOrWhiteSpace(tenderer))
             elements.Add(BuildCoverInfoLine($"招  标  人：{tenderer}"));
         elements.Add(BuildCoverInfoLine($"项目编号：{projectCode}"));
-        elements.Add(BuildCoverInfoLine($"编制日期：{DateTime.Now:yyyy 年 MM 月 dd 日}"));
+        elements.Add(BuildCoverInfoLine($"编制日期：{DateTime.UtcNow:yyyy 年 MM 月 dd 日}"));
 
         return elements;
     }

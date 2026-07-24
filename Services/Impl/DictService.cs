@@ -40,7 +40,6 @@ public class DictService : IDictService
             DictType = dictType,
             Status = status,
             Remark = remark,
-            CreatedAt = DateTime.Now,
             CreatedBy = "system"
         };
         await _uow.DictTypes.AddAsync(entity);
@@ -81,7 +80,6 @@ public class DictService : IDictService
             Sort = sort,
             IsDefault = isDefault,
             Status = status,
-            CreatedAt = DateTime.Now,
             CreatedBy = "system"
         };
         await _uow.DictDatas.AddAsync(entity);

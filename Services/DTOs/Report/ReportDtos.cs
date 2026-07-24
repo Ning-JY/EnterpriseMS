@@ -69,3 +69,65 @@ public class MappedExcelColumnDto
     public string ColumnName { get; set; } = "";
     public int ColumnIndex { get; set; }
 }
+
+// ── 报表（回款 / 产值）结果 DTO：承载视图所需的全部数据 ──
+public class ReceiptReportDto
+{
+    public List<EnterpriseMS.Domain.Entities.System.SysDept> Depts { get; set; } = new();
+    public int? Year { get; set; }
+    public long? DeptId { get; set; }
+    public string? Keyword { get; set; }
+    public decimal TotalAmount { get; set; }
+    public decimal TotalReceived { get; set; }
+    public decimal TotalPending { get; set; }
+    public List<ReceiptByDeptDto> ByDept { get; set; } = new();
+    public List<ReceiptByMonthDto> ByMonth { get; set; } = new();
+    public List<EnterpriseMS.Domain.Entities.Project.ProjectInvoice> Invoices { get; set; } = new();
+}
+
+public class ReceiptByDeptDto
+{
+    public string DeptName { get; set; } = "";
+    public decimal TotalAmount { get; set; }
+    public decimal ReceivedAmount { get; set; }
+    public decimal PendingAmount { get; set; }
+    public int ReceivedCount { get; set; }
+    public int TotalCount { get; set; }
+}
+
+public class ReceiptByMonthDto
+{
+    public int Month { get; set; }
+    public decimal Amount { get; set; }
+}
+
+public class OutputReportDto
+{
+    public List<EnterpriseMS.Domain.Entities.System.SysDept> Depts { get; set; } = new();
+    public int? Year { get; set; }
+    public long? DeptId { get; set; }
+    public string? Keyword { get; set; }
+    public decimal TotalContract { get; set; }
+    public decimal TotalReceived { get; set; }
+    public List<OutputByDeptDto> ByDept { get; set; } = new();
+    public List<OutputEmployeeRowDto> Employees { get; set; } = new();
+}
+
+public class OutputByDeptDto
+{
+    public string DeptName { get; set; } = "";
+    public int EmpCount { get; set; }
+    public decimal ContractValue { get; set; }
+    public decimal ReceivedValue { get; set; }
+}
+
+public class OutputEmployeeRowDto
+{
+    public long EmpId { get; set; }
+    public string EmpName { get; set; } = "";
+    public string DeptName { get; set; } = "";
+    public int ProjectCount { get; set; }
+    public decimal ContractValue { get; set; }
+    public decimal ReceivedValue { get; set; }
+    public List<EnterpriseMS.Domain.Entities.Project.ProjectMember> Projects { get; set; } = new();
+}

@@ -22,10 +22,9 @@ public class RoleService : IRoleService
         var q = _uow.Roles.Query();
         if (!string.IsNullOrWhiteSpace(keyword))
             q = q.Where(r => r.RoleName.Contains(keyword) || r.RoleCode.Contains(keyword));
-        var total = await q.CountAsync();
-        var list  = await q.OrderBy(r => r.Sort).Skip((page-1)*size).Take(size).ToListAsync();
+        var paged = await q.OrderBy(r => r.Sort).ToPagedAsync(page, size);
         return new PagedResult<RoleListDto>
-        { Items = _mapper.Map<List<RoleListDto>>(list), Total = total, Page = page, PageSize = size };
+        { Items = _mapper.Map<List<RoleListDto>>(paged.Items), Total = paged.Total, Page = page, PageSize = size };
     }
 
     public async Task<List<RoleListDto>> GetAllActiveAsync()

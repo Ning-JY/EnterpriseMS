@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using EnterpriseMS.Common;
+using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Services.DTOs.System;
@@ -24,8 +25,7 @@ public class MenuService : IMenuService
     }
 
     private List<MenuTreeDto> BuildTree(List<MenuTreeDto> all, long parentId)
-        => all.Where(m => m.ParentId == parentId)
-              .Select(m => { m.Children = BuildTree(all, m.Id); return m; }).ToList();
+        => all.BuildTree(parentId, m => m.Id, m => m.ParentId, (m, c) => m.Children = c);
 
     public async Task<MenuTreeDto?> GetByIdAsync(long id)
     {

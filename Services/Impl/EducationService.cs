@@ -42,7 +42,6 @@ public class EducationService : IEducationService
             EndDate    = dto.EndDate,
             IsFullTime = dto.IsFullTime,
             Remark     = dto.Remark,
-            CreatedAt  = DateTime.Now,
             CreatedBy  = operBy ?? "system"
         };
         await _uow.Educations.AddAsync(entity);
@@ -60,8 +59,7 @@ public class EducationService : IEducationService
         entity.StartDate  = dto.StartDate;
         entity.EndDate    = dto.EndDate;
         entity.IsFullTime = dto.IsFullTime;
-        entity.Remark     = dto.Remark;
-        entity.UpdatedAt  = DateTime.Now;
+            entity.Remark     = dto.Remark;
         await _uow.SaveChangesAsync();
     }
 

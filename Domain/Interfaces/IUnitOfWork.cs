@@ -16,6 +16,8 @@ public interface IUnitOfWork : IDisposable
     IRepository<SysPost>     Posts       { get; }
     IRepository<SysDictType> DictTypes   { get; }
     IRepository<SysDictData> DictDatas   { get; }
+    IRepository<SysConfig>   SysConfigs  { get; }
+    IBasicRepository<SysOperLog>  SysOperLogs { get; }
     // HR
     IRepository<Employee>             Employees      { get; }
     IRepository<EmployeeContract>     Contracts      { get; }
@@ -41,13 +43,13 @@ public interface IUnitOfWork : IDisposable
     // 知识库
     IRepository<KbFile>     KbFiles      { get; }
     IRepository<KbCategory> KbCategories { get; }
+    // 通知中心
+    IRepository<SysNotification>     Notifications { get; }
+    IRepository<SysNotificationRead> NotifReads    { get; }
 
     // 联合表（非 BaseEntity，使用 BasicRepository）
     IBasicRepository<SysUserRole> UserRoles { get; }
     IBasicRepository<SysRoleMenu> RoleMenus { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
-    Task BeginTransactionAsync();
-    Task CommitAsync();
-    Task RollbackAsync();
 }

@@ -9,6 +9,7 @@ public interface IUserService
     Task<PagedResult<UserListDto>> GetPagedAsync(UserQueryDto query);
     Task<UserDetailDto?>          GetDetailAsync(long id);
     Task<SysUser?>                GetByUsernameAsync(string username);
+    Task<List<string>>            GetRoleCodesAsync(long userId);
     Task<long>                    CreateAsync(CreateUserDto dto, string operBy);
     Task                          UpdateAsync(UpdateUserDto dto, string operBy);
     Task                          DeleteAsync(long id, string operBy);

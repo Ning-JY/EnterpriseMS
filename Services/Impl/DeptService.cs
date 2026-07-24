@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using EnterpriseMS.Common;
+using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Services.DTOs.System;
@@ -22,8 +23,7 @@ public class DeptService : IDeptService
     }
 
     private List<DeptTreeDto> BuildTree(List<DeptTreeDto> all, long parentId)
-        => all.Where(d => d.ParentId == parentId)
-              .Select(d => { d.Children = BuildTree(all, d.Id); return d; }).ToList();
+        => all.BuildTree(parentId, d => d.Id, d => d.ParentId, (d, c) => d.Children = c);
 
     public async Task<DeptTreeDto?> GetByIdAsync(long id)
     {

@@ -273,7 +273,7 @@ public class BidService : IBidService
             throw new BusinessException($"仍有 {stillNeedsReview.Count} 项待人工确认的条目未处理，请先在列表中核对（编辑后清除\"待确认\"标记）");
 
         bidProject.ParseStage = (int)BidParseStage.Confirmed;
-        bidProject.ElementsConfirmedAt = DateTime.Now;
+        bidProject.ElementsConfirmedAt = DateTime.UtcNow;
         bidProject.ElementsConfirmedBy = operBy;
         _bidProjectRepo.Update(bidProject);
         await _uow.SaveChangesAsync();
@@ -499,7 +499,7 @@ public class BidService : IBidService
         var result = new BidAssembleResult
         {
             ProjectName = bidProject.ProjectName,
-            AssembleTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+            AssembleTime = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss")
         };
 
         if (part == "all" || part == "technical")
@@ -558,7 +558,7 @@ public class BidService : IBidService
         var (bytes, warnings) = _wordExportService.BuildDocx(
             bidProject.ProjectName, bidProject.ProjectCode, bidProject.Tenderer, assemblePart, formatRule);
 
-        var fileName = $"{bidProject.ProjectName}_{assemblePart.Title}_{DateTime.Now:yyyyMMddHHmm}.docx";
+        var fileName = $"{bidProject.ProjectName}_{assemblePart.Title}_{DateTime.UtcNow:yyyyMMddHHmm}.docx";
         return new BidExportResult { FileBytes = bytes, FileName = fileName, Warnings = warnings };
     }
 
@@ -604,7 +604,7 @@ public class BidService : IBidService
                 unrecognized.Add(req);
         }
 
-        var deadline = bidProject.Deadline ?? DateTime.Now.AddMonths(3);
+        var deadline = bidProject.Deadline ?? DateTime.UtcNow.AddMonths(3);
         var employees = await _employeeRepo.GetListAsync(e => e.Status == (int)EmployeeStatus.OnJob);
 
         // 批量预加载所有在职员工的有效证书，避免 N+1 查询
@@ -645,7 +645,7 @@ public class BidService : IBidService
                 Name = emp.RealName,
                 DeptName = emp.Dept?.DeptName,
                 Education = emp.Education,
-                WorkYears = emp.EntryDate.HasValue ? (int)((DateTime.Now - emp.EntryDate.Value).TotalDays / 365) : 0,
+                WorkYears = emp.EntryDate.HasValue ? (int)((DateTime.UtcNow - emp.EntryDate.Value).TotalDays / 365) : 0,
                 Certificates = certs.Select(c => new MatchedCertificate
                 {
                     CertName = c.CertName,
@@ -723,7 +723,7 @@ public class BidService : IBidService
     private string ComputeValidityStatus(DateTime? expireDate, DateTime deadline)
     {
         if (!expireDate.HasValue) return "Unknown";
-        if (expireDate.Value < DateTime.Now) return "Expired";
+        if (expireDate.Value < DateTime.UtcNow) return "Expired";
         if (expireDate.Value < deadline) return "ExpiringSoon";
         return "Valid";
     }

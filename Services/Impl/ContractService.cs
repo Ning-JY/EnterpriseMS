@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Entities.Hr;
 using EnterpriseMS.Domain.Interfaces;
+using EnterpriseMS.Domain.Constants;
 using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.DTOs.System;
 using EnterpriseMS.Services.Interfaces;
@@ -24,7 +25,7 @@ public class ContractService : IContractService
         _uow = uow; _dictSvc = dictSvc; _empQrySvc = empQrySvc;
     }
 
-    public async Task<(List<EmployeeContract> Items, int Total, int WarnCount)> GetPagedAsync(
+    public async Task<PagedResult<EmployeeContract>> GetPagedAsync(
         string? keyword, int? status, int page, int size)
     {
         var q = _uow.Contracts.Query().Include(c => c.Employee).AsQueryable();
@@ -33,17 +34,18 @@ public class ContractService : IContractService
                              c.ContractNo.Contains(keyword));
         if (status.HasValue) q = q.Where(c => c.Status == status);
 
-        var warnDate  = DateTime.Today.AddDays(30);
+        var warnDate  = DateTime.UtcNow.Date.AddDays(30);
         var warnCount = await q.CountAsync(c => c.Status == 0 && c.EndDate <= warnDate);
         var paged     = await q.OrderByDescending(c => c.CreatedAt).ToPagedAsync(page, size);
-        return (paged.Items, paged.Total, warnCount);
+        paged.WarnCount = warnCount;
+        return paged;
     }
 
     public Task<List<EmployeeSimpleDto>> GetEmployeesAsync()
         => _empQrySvc.GetAllOnJobAsync();
 
     public Task<List<DictDataDto>> GetContractTypesAsync()
-        => _dictSvc.GetDataByTypeAsync("contract_type");
+        => _dictSvc.GetDataByTypeAsync(DictType.ContractType);
 
     public async Task<long> CreateWithFileAsync(long employeeId, string contractNo, string contractType,
         DateTime startDate, DateTime endDate, DateTime? signDate, string? remark,
@@ -112,17 +114,7 @@ public class ContractService : IContractService
     }
 
     public async Task DeleteFileAsync(long id, string operBy)
-    {
-        var ct = await _uow.Contracts.GetByIdAsync(id);
-        if (ct == null) throw new NotFoundException("合同不存在");
-        if (ct.FilePath != null && System.IO.File.Exists(ct.FilePath))
-            System.IO.File.Delete(ct.FilePath);
-        ct.FilePath  = null;
-        ct.FileName  = null;
-        ct.UpdatedBy = operBy;
-        _uow.Contracts.Update(ct);
-        await _uow.SaveChangesAsync();
-    }
+        => await FileManageHelper.DeleteFileAsync(_uow.Contracts, () => _uow.SaveChangesAsync(), id, operBy);
 
     public async Task TerminateAsync(long id, string operBy)
     {

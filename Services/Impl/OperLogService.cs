@@ -2,18 +2,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Entities.System;
-using EnterpriseMS.Infrastructure.Data;
+using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Services.Interfaces;
 
 namespace EnterpriseMS.Services.Impl;
 
 public class OperLogService : IOperLogService
 {
-    private readonly AppDbContext _db;
+    private readonly IUnitOfWork _uow;
     private readonly IHttpContextAccessor _httpCtx;
 
-    public OperLogService(AppDbContext db, IHttpContextAccessor httpCtx)
-    { _db = db; _httpCtx = httpCtx; }
+    public OperLogService(IUnitOfWork uow, IHttpContextAccessor httpCtx)
+    { _uow = uow; _httpCtx = httpCtx; }
 
     public async Task LogAsync(string title, string? content = null,
         string? businessType = null, long? businessId = null)
@@ -29,16 +29,16 @@ public class OperLogService : IOperLogService
             OperUrl      = ctx?.Request.Path,
             OperIp       = ctx?.Connection.RemoteIpAddress?.ToString(),
             Status       = 1,
-            OperTime     = DateTime.Now,
+            OperTime     = DateTime.UtcNow,
         };
-        log.Id = EnterpriseMS.Common.SnowflakeId.Next();
-        await _db.SysOperLogs.AddAsync(log);
-        await _db.SaveChangesAsync();
+        log.Id = SnowflakeId.Next();
+        await _uow.SysOperLogs.AddAsync(log);
+        await _uow.SaveChangesAsync();
     }
 
     public async Task<PagedResult<SysOperLog>> GetPagedAsync(string? keyword, int page, int size)
     {
-        var q = _db.SysOperLogs.AsQueryable();
+        var q = _uow.SysOperLogs.Query();
         if (!string.IsNullOrWhiteSpace(keyword))
             q = q.Where(l => l.Title.Contains(keyword) ||
                              (l.OperName != null && l.OperName.Contains(keyword)));
