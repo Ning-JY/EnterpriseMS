@@ -371,7 +371,7 @@ public class ProjectController : BaseAuthController
         if (file == null || file.Length == 0) return Json(ApiResult<object>.Fail("请选择文件"));
         var saved = await FileUploadHelper.SaveUploadFile(file, "project/invoices");
         if (!saved.HasValue)
-            return Json(ApiResult<object>.Fail("文件类型不被允许或大小超过 20MB"));
+            return Json(ApiResult<object>.Fail("文件类型不被允许"));
         // 经统一上传辅助 + 服务方法持久化，收敛 Controller 手写文件流
         await _projSvc.UploadInvoiceFileAsync(invoiceId, fileType, saved.Value.name,
             saved.Value.path, User.GetRealName());
@@ -379,6 +379,7 @@ public class ProjectController : BaseAuthController
     }
 
     [HttpGet("invoices/file/{invoiceId}/{fileType}")]
+    [HasPermission("proj:project:list")]
     public async Task<IActionResult> DownloadInvoiceFile(long invoiceId, string fileType)
     {
         var inv = await _uow.ProjInvoices.GetByIdAsync(invoiceId);
@@ -405,6 +406,7 @@ public class ProjectController : BaseAuthController
     }
 
     [HttpGet("contracts/download/{contractId}")]
+    [HasPermission("proj:project:list")]
     public async Task<IActionResult> DownloadContractFile(long contractId)
     {
         var contract = await _uow.ProjContracts.GetByIdAsync(contractId);
@@ -423,7 +425,7 @@ public class ProjectController : BaseAuthController
         if (file == null || file.Length == 0) return Json(ApiResult<object>.Fail("请选择文件"));
         var saved = await FileUploadHelper.SaveUploadFile(file, "project/contracts");
         if (!saved.HasValue)
-            return Json(ApiResult<object>.Fail("文件类型不被允许或大小超过 20MB"));
+            return Json(ApiResult<object>.Fail("文件类型不被允许"));
         // 经统一上传辅助 + 服务方法持久化，收敛 Controller 手写文件流
         await _projSvc.UploadContractFileAsync(contractId, saved.Value.name,
             saved.Value.path, User.GetRealName());
@@ -433,41 +435,30 @@ public class ProjectController : BaseAuthController
     // ── 文件管理 ──────────────────────────────────────────────
     [HttpPost("{projectId}/files")]
     [HasPermission("proj:project:edit")]
-    [RequestSizeLimit(long.MaxValue)]
-    [RequestFormLimits(MultipartBodyLengthLimit = long.MaxValue)]
-
     public async Task<IActionResult> UploadFile(long projectId, IFormFile file,
         string category, string? description, string? version)
     {
         if (file == null || file.Length == 0)
             return Json(ApiResult<object>.Fail("请选择文件"));
-        if (file.Length > 1000 * 1024 * 1024)
-            return Json(ApiResult<object>.Fail("文件大小不能超过1000MB"));
 
-        var uploadDir = Path.Combine(Directory.GetCurrentDirectory(),
-            "wwwroot", "uploads", "project", projectId.ToString());
-        Directory.CreateDirectory(uploadDir);
+        // 经统一上传辅助（白名单由 FileUploadHelper 单一管控，大小由全局 500MB 限制），
+        // 文件落非 Web 根目录，从根上消除存储型 XSS 与手写文件流。
+        var saved = await FileUploadHelper.SaveUploadFile(file, $"project/{projectId}");
+        if (!saved.HasValue)
+            return Json(ApiResult<object>.Fail("文件类型不被允许"));
 
-        var ext      = Path.GetExtension(file.FileName);
-        var saveName = $"{Guid.NewGuid():N}{ext}";
-        var savePath = Path.Combine(uploadDir, saveName);
-
-        using (var fs = new FileStream(savePath, FileMode.Create))
-            await file.CopyToAsync(fs);
-
-        var relativePath = $"/uploads/project/{projectId}/{saveName}";
         var fileId = await _projSvc.AddFileAsync(projectId, category,
-            file.FileName, savePath, file.Length,
+            saved.Value.name, saved.Value.path, file.Length,
             description, version, User.GetRealName());
 
         return Json(ApiResult<object>.Ok(new
         {
-            id = fileId, fileName = file.FileName,
-            filePath = relativePath, fileSize = file.Length
+            id = fileId, fileName = saved.Value.name, fileSize = file.Length
         }, "文件上传成功"));
     }
 
     [HttpGet("files/download/{fileId}")]
+    [HasPermission("proj:project:list")]
     public async Task<IActionResult> DownloadFile(long fileId)
     {
         var files = await _uow.ProjFiles.GetListAsync(f => f.Id == fileId);
@@ -475,7 +466,8 @@ public class ProjectController : BaseAuthController
         if (f == null || !global::System.IO.File.Exists(f.FilePath))
             return NotFound("文件不存在");
         var bytes = await global::System.IO.File.ReadAllBytesAsync(f.FilePath);
-        var mime  = GetMimeType(f.FileExt ?? "bin");
+        var mime  = MimeHelper.GetMimeType(f.FileExt ?? "bin");
+        // File(..., fileDownloadName) 始终以 Content-Disposition: attachment 返回，杜绝浏览器内联渲染
         return File(bytes, mime, f.FileName);
     }
 
@@ -501,36 +493,6 @@ public class ProjectController : BaseAuthController
     }
 
     // ── 工具方法 ──────────────────────────────────────────────
-    private async Task<IActionResult> UploadFileToEntity(string folder, long entityId, IFormFile file)
-    {
-        if (file == null || file.Length == 0) return Json(ApiResult<object>.Fail("请选择文件"));
-        var dir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", folder);
-        Directory.CreateDirectory(dir);
-        var ext = Path.GetExtension(file.FileName);
-        var saveName = $"{entityId}_{Guid.NewGuid():N}{ext}";
-        var savePath = Path.Combine(dir, saveName);
-        using (var fs = new FileStream(savePath, FileMode.Create))
-            await file.CopyToAsync(fs);
-        return Json(ApiResult<object>.Ok(new
-        {
-            filePath = $"/uploads/{folder}/{saveName}",
-            fileName = file.FileName
-        }, "上传成功"));
-    }
-
-    private static string GetMimeType(string ext) => ext.ToLower() switch
-    {
-        "pdf"  => "application/pdf",
-        "doc"  => "application/msword",
-        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "xls"  => "application/vnd.ms-excel",
-        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "jpg" or "jpeg" => "image/jpeg",
-        "png"  => "image/png",
-        "zip"  => "application/zip",
-        _      => "application/octet-stream",
-    };
-
     private string GetErrors() => string.Join("；",
         ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
 }

@@ -149,16 +149,18 @@ try
             opt.Cookie.SecurePolicy = securePolicy;  // 由配置文件控制
         });
 
-    // ── 请求体大小限制（无限制，支持大文件上传）────────────────
+    // ── 请求体大小限制（统一 500MB，单一来源）─────────────────
+    // 大小上限只在「此处」设定；各 Controller 不再单独限制（避免 Kestrel 缓冲期 DoS）。
+    const long MaxUploadBytes = 500L * 1024 * 1024; // 500MB
     builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(opt =>
     {
-        opt.MultipartBodyLengthLimit = long.MaxValue;
+        opt.MultipartBodyLengthLimit = MaxUploadBytes;
         opt.ValueLengthLimit = int.MaxValue;
         opt.MultipartHeadersLengthLimit = int.MaxValue;
     });
     builder.WebHost.ConfigureKestrel(serverOptions =>
     {
-        serverOptions.Limits.MaxRequestBodySize = null; // 无限制
+        serverOptions.Limits.MaxRequestBodySize = MaxUploadBytes;
     });
 
     // ── MVC ───────────────────────────────────────────────────

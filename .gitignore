@@ -39,6 +39,16 @@ logs/
 wwwroot/uploads/*
 !wwwroot/uploads/.gitkeep
 
+# 运行时用户上传目录（已迁至应用根 uploads/，非 Web 根）
+uploads/*
+!uploads/.gitkeep
+
+# 发布产物
+publish/
+
+# macOS
+**/.DS_Store
+
 # 数据库迁移文件
 Migrations/
 

@@ -15,11 +15,6 @@ public class KbController : BaseAuthController
 {
     private readonly IUnitOfWork    _uow;
     private readonly IOperLogService _logSvc;
-    private static readonly string[] AllowedExts =
-        { ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
-          ".txt", ".png", ".jpg", ".jpeg", ".zip", ".rar" };
-    private const long MaxFileSize = 50 * 1024 * 1024; // 50MB
-
     public KbController(IUnitOfWork uow, IOperLogService logSvc, IPermissionService permSvc)
         : base(permSvc)
     { _uow = uow; _logSvc = logSvc; }
@@ -93,24 +88,15 @@ public class KbController : BaseAuthController
     {
         if (file == null || file.Length == 0)
             return Json(ApiResult<object>.Fail("请选择文件"));
-        if (file.Length > MaxFileSize)
-            return Json(ApiResult<object>.Fail("文件大小不能超过50MB"));
 
-        var ext = Path.GetExtension(file.FileName).ToLower();
-        if (!AllowedExts.Contains(ext))
-            return Json(ApiResult<object>.Fail($"不支持的文件类型 {ext}，支持：{string.Join(" ", AllowedExts)}"));
+        // 扩展名白名单由 FileUploadHelper.DefaultAllowedExts 单一管控；大小由全局 500MB 限制；
+        // 文件落非 Web 根目录，避免静态文件中间件直接渲染用户文件。
+        var saved = await FileUploadHelper.SaveUploadFile(file, $"kb/{categoryId}");
+        if (!saved.HasValue)
+            return Json(ApiResult<object>.Fail("不支持的文件类型"));
 
         var category = await _uow.KbCategories.GetByIdAsync(categoryId);
         if (category == null) return Json(ApiResult<object>.Fail("分类不存在"));
-
-        var saveDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "kb",
-                                   categoryId.ToString());
-        Directory.CreateDirectory(saveDir);
-        var saveName = $"{DateTime.Now:yyyyMMdd}_{Guid.NewGuid():N}{ext}";
-        var savePath = Path.Combine(saveDir, saveName);
-
-        using (var fs = new FileStream(savePath, FileMode.Create))
-            await file.CopyToAsync(fs);
 
         var kbFile = new KbFile
         {
@@ -118,9 +104,9 @@ public class KbController : BaseAuthController
             FileName     = string.IsNullOrWhiteSpace(displayName)
                            ? Path.GetFileNameWithoutExtension(file.FileName) : displayName,
             OriginalName = file.FileName,
-            FilePath     = savePath,
+            FilePath     = saved.Value.path,
             FileSize     = file.Length,
-            FileExt      = ext.TrimStart('.'),
+            FileExt      = Path.GetExtension(file.FileName).TrimStart('.').ToLower(),
             Description  = description,
             Version      = version,
             IsPinned     = isPinned,
@@ -135,6 +121,7 @@ public class KbController : BaseAuthController
 
     // ── 下载文件（计数 + 返回文件）──────────────────────────
     [HttpGet("download/{id}")]
+    [HasPermission("kb:file:list")]
     public async Task<IActionResult> Download(long id)
     {
         var f = await _uow.KbFiles.GetByIdAsync(id);
@@ -147,7 +134,7 @@ public class KbController : BaseAuthController
         await _uow.SaveChangesAsync();
 
         var bytes   = await global::System.IO.File.ReadAllBytesAsync(f.FilePath);
-        var mime    = GetMimeType(f.FileExt ?? "bin");
+        var mime    = MimeHelper.GetMimeType(f.FileExt ?? "bin");
         var dlName  = Uri.EscapeDataString(f.OriginalName);
         Response.Headers["Content-Disposition"] = $"attachment; filename*=UTF-8''{dlName}";
         return File(bytes, mime);
@@ -155,6 +142,7 @@ public class KbController : BaseAuthController
 
     // ── 预览（PDF/图片内嵌，其他跳下载）───────────────────
     [HttpGet("preview/{id}")]
+    [HasPermission("kb:file:list")]
     public async Task<IActionResult> Preview(long id)
     {
         var f = await _uow.KbFiles.GetByIdAsync(id);
@@ -166,7 +154,7 @@ public class KbController : BaseAuthController
             return RedirectToAction("Download", new { id });
 
         var bytes = await global::System.IO.File.ReadAllBytesAsync(f.FilePath);
-        var mime  = GetMimeType(f.FileExt ?? "bin");
+        var mime  = MimeHelper.GetMimeType(f.FileExt ?? "bin");
         // 内嵌预览不设 Content-Disposition: attachment
         return File(bytes, mime);
     }
@@ -199,20 +187,4 @@ public class KbController : BaseAuthController
         return Json(ApiResult<object>.Ok("已删除"));
     }
 
-    private static string GetMimeType(string ext) => ext.ToLower() switch
-    {
-        "pdf"  => "application/pdf",
-        "doc"  => "application/msword",
-        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "xls"  => "application/vnd.ms-excel",
-        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "ppt"  => "application/vnd.ms-powerpoint",
-        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "txt"  => "text/plain",
-        "jpg" or "jpeg" => "image/jpeg",
-        "png"  => "image/png",
-        "zip"  => "application/zip",
-        "rar"  => "application/x-rar-compressed",
-        _      => "application/octet-stream",
-    };
 }

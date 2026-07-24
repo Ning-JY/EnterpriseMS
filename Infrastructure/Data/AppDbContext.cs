@@ -9,6 +9,7 @@ using EnterpriseMS.Domain.Entities.Budget;
 using EnterpriseMS.Domain.Entities.Info;
 using EnterpriseMS.Domain.Entities.Bid;
 using EnterpriseMS.Infrastructure.Data.Seeds;
+using Serilog;
 
 namespace EnterpriseMS.Infrastructure.Data;
 
@@ -224,7 +225,10 @@ public class AppDbContext : DbContext
                     var targetType = Nullable.GetUnderlyingType(pi.PropertyType) ?? pi.PropertyType;
                     pi.SetValue(entity, Convert.ChangeType(kv.Value, targetType));
                 }
-                catch { /* 忽略转换失败的字段 */ }
+                catch (Exception ex)
+                {
+                    Log.Warning(ex, "种子字段转换失败：{Entity}.{Property}", typeof(T).Name, pi?.Name);
+                }
             }
 
             // 检查是否已存在（按主键）
