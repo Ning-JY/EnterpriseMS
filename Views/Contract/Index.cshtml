@@ -123,7 +123,7 @@
                                 </button>
                             }
                             <button class="btn btn-xs btn-danger"
-                                    onclick="deleteContract(@ct.Id,'@ct.ContractNo')" title="删除">
+                                    onclick="deleteContract(@ct.Id,'@JavaScriptEncoder.Default.Encode(ct.ContractNo)')" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>

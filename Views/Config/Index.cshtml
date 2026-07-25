@@ -1,0 +1,121 @@
+@using EnterpriseMS.Domain.Entities.System
+@{
+    ViewData["Title"] = "系统参数设置";
+    Layout = "_Layout";
+    var configs = (ViewBag.Configs as List<SysConfig>) ?? new List<SysConfig>();
+    var groups = configs
+        .GroupBy(c => c.GroupName ?? "system")
+        .OrderBy(g => g.Key)
+        .ToList();
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-sliders-h mr-2"></i>系统参数设置</h1></div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item">系统管理</li>
+                    <li class="breadcrumb-item active">系统参数</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="content">
+<div class="container-fluid">
+    <div class="card card-primary card-outline">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title"><i class="fas fa-cogs mr-1"></i>参数列表</h3>
+            <button type="button" class="btn btn-primary btn-sm" onclick="saveConfigs()">
+                <i class="fas fa-save mr-1"></i>保存
+            </button>
+        </div>
+        <div class="card-body">
+            <form id="configForm">
+                @if (!configs.Any())
+                {
+                    <div class="text-center text-muted py-4">暂无系统参数</div>
+                }
+                @foreach (var g in groups)
+                {
+                    <h5 class="text-muted mt-3 mb-2"><i class="fas fa-folder mr-1"></i>@g.Key</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="width:32%">参数</th>
+                                    <th>值</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var c in g.OrderBy(x => x.Sort))
+                                {
+                                    <tr>
+                                        <td>
+                                            <code>@c.ConfigKey</code>
+                                            @if (!string.IsNullOrEmpty(c.Remark))
+                                            {
+                                                <div class="small text-muted mt-1">@c.Remark</div>
+                                            }
+                                        </td>
+                                        <td>
+                                            <input class="form-control form-control-sm"
+                                                   data-key="@c.ConfigKey"
+                                                   data-type="@c.ConfigType"
+                                                   data-group="@c.GroupName"
+                                                   data-sort="@c.Sort"
+                                                   value="@c.ConfigValue" />
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </form>
+        </div>
+        <div class="card-footer text-right">
+            <button type="button" class="btn btn-primary" onclick="saveConfigs()">
+                <i class="fas fa-save mr-1"></i>保存修改
+            </button>
+        </div>
+    </div>
+</div>
+</section>
+
+@section Scripts {
+    <script>
+        function saveConfigs() {
+            var list = [];
+            $('#configForm [data-key]').each(function () {
+                list.push({
+                    ConfigKey: $(this).data('key'),
+                    ConfigValue: $(this).val(),
+                    ConfigType: $(this).data('type') || 'text',
+                    GroupName: $(this).data('group') || 'system',
+                    Sort: parseInt($(this).data('sort')) || 0
+                });
+            });
+            if (!list.length) { layer.msg('没有可保存的参数', { icon: 2 }); return; }
+            var load = layer.load(1);
+            // CSRF Token 由 site.js 的全局 $.ajaxSetup 自动注入
+            $.ajax({
+                url: '/system/config/save',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(list),
+                success: function (r) {
+                    layer.close(load);
+                    layer.msg(r.message || '保存成功', { icon: r.success ? 1 : 2 });
+                },
+                error: function () {
+                    layer.close(load);
+                    layer.msg('保存失败，请重试', { icon: 2 });
+                }
+            });
+        }
+    </script>
+}

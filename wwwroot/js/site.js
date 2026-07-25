@@ -1,5 +1,18 @@
 // EnterpriseMS 全局 JS
 
+// ── 全局 HTML 转义（防 XSS）──────────────────────────────
+// 视图内拼接 DB 来源文本到 innerHTML / .html() 时必须经过本函数。
+// 已加载的视图若自带同名函数，会覆盖此全局定义（逻辑一致，无冲突）。
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // ── fetch 请求自动附加 CSRF Token ──────────────────────────
 // 与 jQuery $.ajaxSetup（下方）保持一致：均使用 RequestVerificationToken 头。
 // 服务端已开启全局 AutoValidateAntiforgeryToken，未带 token 的非安全请求会 400。

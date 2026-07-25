@@ -134,13 +134,13 @@
                             }
                             @if (canFormal && e.Status == 0)
                             {
-                                <button class="btn btn-xs btn-success" onclick="doFormal(@e.Id, '@e.RealName')" title="转正">
+                                <button class="btn btn-xs btn-success" onclick="doFormal(@e.Id, '@JavaScriptEncoder.Default.Encode(e.RealName)')" title="转正">
                                     <i class="fas fa-user-check"></i>
                                 </button>
                             }
                             @if (canLeave && e.Status != 2)
                             {
-                                <button class="btn btn-xs btn-secondary" onclick="doLeave(@e.Id, '@e.RealName')" title="离职">
+                                <button class="btn btn-xs btn-secondary" onclick="doLeave(@e.Id, '@JavaScriptEncoder.Default.Encode(e.RealName)')" title="离职">
                                     <i class="fas fa-sign-out-alt"></i>
                                 </button>
                             }
@@ -166,7 +166,7 @@
 </div></section>
 
 <!-- 新增/编辑弹窗 -->
-<div class="modal fade" id="empModal" tabindex="-1">
+<div class="modal fade" id="empModal" tabindex="-1" data-backdrop="static" data-keyboard="false">
     <div class="modal-dialog modal-lg"><div class="modal-content">
         <div class="modal-header">
             <h5 class="modal-title" id="empModalTitle">新增员工</h5>
@@ -255,8 +255,6 @@
 
 @section Scripts {
 <script>
-var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
-
 function openAddModal() {
     $('#empModalTitle').text('新增员工');
     $('#empId').val('');
@@ -302,12 +300,12 @@ function saveEmp() {
     if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
     var url = id ? '/hr/employee/update' : '/hr/employee/create';
     var load = layer.load(1);
-    $.ajax({ url, type:'POST', contentType:'application/json',
-        headers:{'RequestVerificationToken': antiForgery},
+    // CSRF Token 由 site.js 的全局 $.ajaxSetup 自动注入，无需在此手动拼接
+    $.ajax({ url: url, type:'POST', contentType:'application/json',
         data: JSON.stringify(data),
         success: function(r) {
             layer.close(load);
-            if (r.success) { $('#empModal').modal('hide'); layer.msg(r.message, {icon:1, time:1500}, ()=>location.reload()); }
+            if (r.success) { $('#empModal').modal('hide'); layer.msg(r.message, {icon:1, time:1500}, function(){ location.reload(); }); }
             else layer.msg(r.message, {icon:2});
         }
     });
@@ -322,7 +320,7 @@ function doFormal(id, name) {
         yes: function(idx) {
             var val = $('#formalDate').val();
             if (!val) { layer.msg('请选择日期', {icon:2}); return; }
-            $.post('/hr/employee/formal', {id, formalDate: val, __RequestVerificationToken: antiForgery}, function(r) {
+            $.post('/hr/employee/formal', {id: id, formalDate: val}, function(r) {
                 layer.close(idx);
                 layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
             });
@@ -339,7 +337,7 @@ function doLeave(id, name) {
         yes: function(idx) {
             var val = $('#leaveDate').val();
             if (!val) { layer.msg('请选择日期', {icon:2}); return; }
-            $.post('/hr/employee/leave', {id, leaveDate: val, __RequestVerificationToken: antiForgery}, function(r) {
+            $.post('/hr/employee/leave', {id: id, leaveDate: val}, function(r) {
                 layer.close(idx);
                 layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
             });

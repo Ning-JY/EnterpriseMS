@@ -116,6 +116,14 @@ public class EmployeeController : BaseAuthController
                 Phone = req.Phone, Email = req.Email, IdCard = req.IdCard,
                 DeptId = req.DeptId, PostId = req.PostId, EntryDate = req.EntryDate,
                 ProbationEndDate = req.ProbationEndDate, Remark = req.Remark,
+                BirthDate = req.BirthDate, NativePlace = req.NativePlace,
+                Education = req.Education, Major = req.Major, GraduateSchool = req.GraduateSchool,
+                EmergencyContact = req.EmergencyContact, EmergencyPhone = req.EmergencyPhone,
+                Address = req.Address, BankAccount = req.BankAccount, BankName = req.BankName,
+                Nationality = req.Nationality, PoliticalStatus = req.PoliticalStatus,
+                HighestDegree = req.HighestDegree, WorkStartDate = req.WorkStartDate,
+                TechnicalTitle = req.TechnicalTitle, TechnicalLevel = req.TechnicalLevel,
+                SocialInsuranceNo = req.SocialInsuranceNo, ProfilePhoto = req.ProfilePhoto,
             }, User.GetRealName());
             return ApiOk("修改成功");
         }
@@ -180,5 +188,24 @@ public class CreateEmployeeRequest
     public DateTime? EntryDate { get; set; }
     public DateTime? ProbationEndDate { get; set; }
     public string?   Remark   { get; set; }
+    // ── 扩充字段（人事档案）──
+    public DateTime? BirthDate        { get; set; }
+    public string?   NativePlace      { get; set; }
+    public string?   Education        { get; set; }
+    public string?   Major            { get; set; }
+    public string?   GraduateSchool   { get; set; }
+    public string?   EmergencyContact { get; set; }
+    public string?   EmergencyPhone   { get; set; }
+    public string?   Address          { get; set; }
+    public string?   BankAccount      { get; set; }
+    public string?   BankName         { get; set; }
+    public string?   Nationality      { get; set; }
+    public string?   PoliticalStatus  { get; set; }
+    public string?   HighestDegree    { get; set; }
+    public DateTime? WorkStartDate    { get; set; }
+    public string?   TechnicalTitle   { get; set; }
+    public string?   TechnicalLevel   { get; set; }
+    public string?   SocialInsuranceNo{ get; set; }
+    public string?   ProfilePhoto     { get; set; }
 }
 public class UpdateEmployeeRequest : CreateEmployeeRequest { public long Id { get; set; } }

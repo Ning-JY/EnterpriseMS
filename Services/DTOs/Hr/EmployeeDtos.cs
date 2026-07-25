@@ -105,6 +105,14 @@ public class CreateEmployeeDto
     [MaxLength(200)] public string? Address { get; set; }
     [MaxLength(30)]  public string? BankAccount { get; set; }
     [MaxLength(100)] public string? BankName { get; set; }
+    [MaxLength(30)]  public string? Nationality       { get; set; }
+    [MaxLength(30)]  public string? PoliticalStatus    { get; set; }
+    [MaxLength(50)]  public string? HighestDegree      { get; set; }
+    public DateTime? WorkStartDate   { get; set; }
+    [MaxLength(50)]  public string? TechnicalTitle     { get; set; }
+    [MaxLength(50)]  public string? TechnicalLevel     { get; set; }
+    [MaxLength(50)]  public string? SocialInsuranceNo  { get; set; }
+    [MaxLength(255)] public string? ProfilePhoto       { get; set; }
 }
 
 // ── 更新 ───────────────────────────────────────────────────

@@ -159,7 +159,7 @@
                                         @if (previewExts.Contains(f.FileExt?.ToLower() ?? ""))
                                         {
                                             <button class="btn btn-xs btn-info mr-1"
-                                                    onclick="previewFile(@f.Id,'@f.FileName','@f.FileExt')"
+                                                    onclick="previewFile(@f.Id,'@JavaScriptEncoder.Default.Encode(f.FileName)','@JavaScriptEncoder.Default.Encode(f.FileExt)')"
                                                     title="预览">
                                                 <i class="fas fa-eye"></i>
                                             </button>

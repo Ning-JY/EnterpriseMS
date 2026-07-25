@@ -93,7 +93,7 @@
                                     <button class="btn btn-xs btn-outline-warning" onclick="openEditMenu(@menu.Id)" title="编辑">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteMenu(@menu.Id,'@menu.MenuName')" title="删除">
+                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteMenu(@menu.Id,'@JavaScriptEncoder.Default.Encode(menu.MenuName)')" title="删除">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -223,7 +223,7 @@ function buildParentOptions() {
     var html = '<option value="0">顶级菜单</option>';
     allMenus.forEach(function(m) {
         if (m.type !== 'F') {
-            html += '<option value="' + m.id + '">' + m.name + '</option>';
+            html += '<option value="' + m.id + '">' + escapeHtml(m.name) + '</option>';
         }
     });
     $('#menuParentId').html(html);

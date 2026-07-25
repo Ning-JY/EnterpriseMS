@@ -26,6 +26,14 @@ public class ProjectListDto
     public DateTime? StatusUpdatedAt { get; set; }
 }
 
+/// <summary>投标建项时用于按名称选择关联项目的精简条目。</summary>
+public class ProjectSelectItemDto
+{
+    public long   Id      { get; set; }
+    public string ProjNo  { get; set; } = "";
+    public string ProjName { get; set; } = "";
+}
+
 public class ProjectDetailDto : ProjectListDto
 {
     public long?    DeptId          { get; set; }
@@ -190,6 +198,12 @@ public class CreateProjectDto
     public DateTime? ContractSignedDate { get; set; }
     public List<CreateMilestoneDto> Milestones { get; set; } = new();
     public List<CreateMemberDto>    Members    { get; set; } = new();
+}
+
+/// <summary>一键转项目：仅需项目名称即可快速建项，其余字段留空后续补全。</summary>
+public class QuickCreateProjectDto
+{
+    public string ProjName { get; set; } = "";
 }
 
 public class UpdateProjectDto : CreateProjectDto { public long Id { get; set; } }

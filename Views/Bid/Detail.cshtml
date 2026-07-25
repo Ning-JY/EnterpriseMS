@@ -308,8 +308,8 @@
                                                 <small class="text-muted ms-2">@(doc.WordCount ?? 0) 字</small>
                                             </div>
                                             <div>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="previewChapter(@doc.Id, '@doc.ChapterName')">预览</button>
-                                                <button class="btn btn-sm btn-outline-success" onclick="regenerateChapter('@doc.ChapterName')">重新生成</button>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="previewChapter(@doc.Id, '@JavaScriptEncoder.Default.Encode(doc.ChapterName)')">预览</button>
+                                                <button class="btn btn-sm btn-outline-success" onclick="regenerateChapter('@JavaScriptEncoder.Default.Encode(doc.ChapterName)')">重新生成</button>
                                             </div>
                                         </div>
                                     </div>

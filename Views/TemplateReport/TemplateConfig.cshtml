@@ -10,13 +10,13 @@
     <div class="container-fluid">
         <div class="row mb-2">
             <div class="col-sm-6">
-                <h1 class="m-0">妯℃澘閰嶇疆</h1>
+                <h1 class="m-0">模板配置</h1>
             </div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">棣栭〉</a></li>
-                    <li class="breadcrumb-item">閫犱环灏忓伐鍏?/li>
-                    <li class="breadcrumb-item active">妯℃澘閰嶇疆</li>
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item">造价小工具</li>
+                    <li class="breadcrumb-item active">模板配置</li>
                 </ol>
             </div>
         </div>
@@ -26,7 +26,7 @@
 <section class="content">
     <div class="container-fluid">
 
-        @** 姝ラ鎸囩ず鍣?*@
+        @* 步骤指示器 *@
         <div class="card card-outline card-primary mb-3">
             <div class="card-body py-3">
                 <div class="step-indicator">
@@ -35,94 +35,94 @@
                     <div class="step-dot" id="step3Dot">3</div>
                 </div>
                 <div class="text-center text-muted small">
-                    <span id="step1Label" class="font-weight-bold">涓婁紶妯℃澘</span>
-                    <span class="mx-2">鈫?/span>
-                    <span id="step2Label">鏍囪鏇挎崲</span>
-                    <span class="mx-2">鈫?/span>
-                    <span id="step3Label">淇濆瓨妯℃澘</span>
+                    <span id="step1Label" class="font-weight-bold">上传模板</span>
+                    <span class="mx-2">→</span>
+                    <span id="step2Label">标记替换</span>
+                    <span class="mx-2">→</span>
+                    <span id="step3Label">保存模板</span>
                 </div>
             </div>
         </div>
 
-        @** 姝ラ1: 涓婁紶妯℃澘 *@
+        @* 步骤1: 上传模板 *@
         <div id="step1" class="card">
             <div class="card-header bg-info text-white">
-                <i class="fas fa-upload mr-1"></i>姝ラ1: 涓婁紶Word妯℃澘
+                <i class="fas fa-upload mr-1"></i>步骤1: 上传Word模板
             </div>
             <div class="card-body">
                 <div class="form-group">
-                    <label>妯℃澘鍚嶇О <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="templateName" placeholder="璇疯緭鍏ユā鏉垮悕绉?>
+                    <label>模板名称 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="templateName" placeholder="请输入模板名称">
                 </div>
                 <div class="form-group">
-                    <label>妯℃澘鎻忚堪</label>
-                    <textarea class="form-control" id="templateDescription" rows="2" placeholder="璇疯緭鍏ユā鏉挎弿杩?></textarea>
+                    <label>模板描述</label>
+                    <textarea class="form-control" id="templateDescription" rows="2" placeholder="请输入模板描述"></textarea>
                 </div>
                 <div class="form-group">
-                    <label>閫夋嫨Word妯℃澘鏂囦欢 <span class="text-danger">*</span></label>
+                    <label>选择Word模板文件 <span class="text-danger">*</span></label>
                     <div class="custom-file">
                         <input type="file" class="custom-file-input" id="templateFile" accept=".docx">
-                        <label class="custom-file-label" for="templateFile">閫夋嫨鏂囦欢...</label>
+                        <label class="custom-file-label" for="templateFile">选择文件...</label>
                     </div>
-                    <small class="form-text text-muted">鏀寔.docx鏍煎紡鐨刉ord鏂囨。</small>
+                    <small class="form-text text-muted">支持.docx格式的Word文档。</small>
                 </div>
                 <button class="btn btn-primary" onclick="uploadAndParse()">
-                    <i class="fas fa-cloud-upload-alt mr-1"></i>涓婁紶骞惰В鏋?
+                    <i class="fas fa-cloud-upload-alt mr-1"></i>上传并解析
                 </button>
             </div>
         </div>
 
-        @** 姝ラ2: 鏍囪鏇挎崲 *@
+        @* 步骤2: 标记替换 *@
         <div id="step2" class="card" style="display:none;">
             <div class="card-header bg-info text-white d-flex justify-content-between">
-                <span><i class="fas fa-edit mr-1"></i>姝ラ2: 鏍囪闇€瑕佹浛鎹㈢殑鍐呭</span>
+                <span><i class="fas fa-edit mr-1"></i>步骤2: 标记需要替换的内容</span>
                 <button class="btn btn-sm btn-light" onclick="goToStep(1)">
-                    <i class="fas fa-arrow-left mr-1"></i>杩斿洖
+                    <i class="fas fa-arrow-left mr-1"></i>返回
                 </button>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-7">
                         <h6 class="text-muted mb-2">
-                            <i class="fas fa-info-circle mr-1"></i>鐐瑰嚮娈佃惤/琛ㄦ牸鍐呭杩涜閫夋嫨锛屽凡閫変腑鐨勫唴瀹瑰皢琚浛鎹负鍗犱綅绗?
+                            <i class="fas fa-info-circle mr-1"></i>点击段落/表格内容进行选择，已选中的内容将被替换为占位符
                         </h6>
                         <div id="templateContentList" class="border rounded p-2" style="max-height:500px;overflow-y:auto;">
-                            <div class="text-muted text-center py-3">鍔犺浇涓?..</div>
+                            <div class="text-muted text-center py-3">加载中...</div>
                         </div>
                     </div>
                     <div class="col-md-5">
                         <h6 class="text-muted mb-2">
-                            <i class="fas fa-exchange-alt mr-1"></i>鏇挎崲瑙勫垯鍒楄〃
+                            <i class="fas fa-exchange-alt mr-1"></i>替换规则列表
                         </h6>
                         <div id="replacementList" class="border rounded replacement-list p-2">
-                            <div class="text-muted text-center py-3">璇峰湪宸︿晶閫夋嫨闇€瑕佹浛鎹㈢殑鍐呭</div>
+                            <div class="text-muted text-center py-3">请在左侧选择需要替换的内容</div>
                         </div>
                         <button class="btn btn-success mt-3 w-100" onclick="goToStep(3)" id="btnNextStep3" disabled>
-                            <i class="fas fa-arrow-right mr-1"></i>涓嬩竴姝ワ細淇濆瓨妯℃澘
+                            <i class="fas fa-arrow-right mr-1"></i>下一步：保存模板
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        @** 姝ラ3: 淇濆瓨妯℃澘 *@
+        @* 步骤3: 确认并保存模板 *@
         <div id="step3" class="card" style="display:none;">
             <div class="card-header bg-info text-white d-flex justify-content-between">
-                <span><i class="fas fa-save mr-1"></i>姝ラ3: 纭骞朵繚瀛樻ā鏉?/span>
+                <span><i class="fas fa-save mr-1"></i>步骤3: 确认并保存模板</span>
                 <button class="btn btn-sm btn-light" onclick="goToStep(2)">
-                    <i class="fas fa-arrow-left mr-1"></i>杩斿洖
+                    <i class="fas fa-arrow-left mr-1"></i>返回
                 </button>
             </div>
             <div class="card-body">
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle mr-1"></i>
-                    绯荤粺灏嗘妸鎮ㄦ爣璁扮殑鍐呭鏇挎崲涓?<code>{{瀛楁鍚峿}</code> 鏍煎紡鐨勫崰浣嶇锛屽苟淇濆瓨涓烘柊妯℃澘銆?
+                    系统将把您标记的内容替换为 <code>{{字段名}}</code> 格式的占位符，并保存为新模板。
                 </div>
-                <h6>鏇挎崲棰勮:</h6>
+                <h6>替换预览:</h6>
                 <div id="replacementPreview" class="border rounded p-3 mb-3" style="max-height:300px;overflow-y:auto;">
                 </div>
                 <button class="btn btn-success btn-lg" onclick="saveTemplate()">
-                    <i class="fas fa-save mr-1"></i>淇濆瓨妯℃澘
+                    <i class="fas fa-save mr-1"></i>保存模板
                 </button>
             </div>
         </div>
@@ -130,34 +130,34 @@
     </div>
 </section>
 
-@** 瀛楁鍚嶈緭鍏ュ脊绐?*@
+@* 字段名输入弹窗 *@
 <div class="modal fade" id="fieldNameModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">璁剧疆瀛楁鍚?/h5>
+                <h5 class="modal-title">设置字段名</h5>
                 <button type="button" class="close" data-dismiss="modal">
                     <span>&times;</span>
                 </button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label>閫変腑鐨勬枃鏈?</label>
+                    <label>选中的文本</label>
                     <div id="selectedTextDisplay" class="form-control-plaintext text-danger" style="text-decoration:line-through;"></div>
                 </div>
                 <div class="form-group">
-                    <label>瀛楁鍚?<span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="fieldNameInput" placeholder="渚嬪锛氶」鐩悕绉般€佽瘎瀹℃棩鏈?>
-                    <small class="form-text text-muted">鐢ㄤ簬鐢熸垚鍗犱綅绗?{{瀛楁鍚峿}锛屽缓璁娇鐢ㄤ腑鏂?/small>
+                    <label>字段名 <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="fieldNameInput" placeholder="例如：项目名称、评审日期">
+                    <small class="form-text text-muted">用于生成占位符 {{字段名}}，建议使用中文</small>
                 </div>
                 <div class="form-group">
-                    <label>瀛楁鏍囩锛堟樉绀哄悕绉帮級</label>
-                    <input type="text" class="form-control" id="fieldLabelInput" placeholder="涓庡瓧娈靛悕鐩稿悓鍒欑暀绌?>
+                    <label>字段标签（显示名称）</label>
+                    <input type="text" class="form-control" id="fieldLabelInput" placeholder="与字段名相同则留空">
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">鍙栨秷</button>
-                <button type="button" class="btn btn-primary" onclick="confirmFieldName()">纭</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="confirmFieldName()">确认</button>
             </div>
         </div>
     </div>
@@ -196,11 +196,11 @@
             let file = fileInput.files[0];
 
             if (!name) {
-                layer.msg('璇疯緭鍏ユā鏉垮悕绉?, { icon: 2 });
+                layer.msg('请输入模板名称', { icon: 2 });
                 return;
             }
             if (!file) {
-                layer.msg('璇烽€夋嫨Word妯℃澘鏂囦欢', { icon: 2 });
+                layer.msg('请选择Word模板文件', { icon: 2 });
                 return;
             }
 
@@ -228,7 +228,7 @@
                 reader.readAsArrayBuffer(file);
             } catch (err) {
                 layer.closeAll();
-                layer.msg('瑙ｆ瀽澶辫触: ' + err.message, { icon: 2 });
+                layer.msg('解析失败: ' + err.message, { icon: 2 });
             }
         }
 
@@ -287,8 +287,8 @@
                     });
                 });
             } catch (err) {
-                console.error('瑙ｆ瀽閿欒:', err);
-                parsedContent = [{ index: 0, type: 'error', text: '瑙ｆ瀽澶辫触: ' + err.message }];
+                console.error('解析错误:', err);
+                parsedContent = [{ index: 0, type: 'error', text: '解析失败: ' + err.message }];
                 renderTemplateContent();
             }
             return items;
@@ -320,15 +320,15 @@
             let html = '';
             for (let item of parsedContent) {
                 let isSelected = selectedItems.has(item.index);
-                let typeLabel = item.type === 'paragraph' ? '娈佃惤' : '琛ㄦ牸琛?;
+                let typeLabel = item.type === 'paragraph' ? '段落' : '表格行';
                 let typeIcon = item.type === 'paragraph' ? 'fa-align-left' : 'fa-table';
-                html += `<div class="template-content-item ${isSelected ? 'selected' : ''}" 
+                html += `<div class="template-content-item ${isSelected ? 'selected' : ''}"
                               onclick="toggleItem(${item.index})" data-index="${item.index}">
                     <span class="item-type"><i class="fas ${typeIcon} mr-1"></i>${typeLabel}</span>
                     <span class="item-text">${escapeHtml(item.text.substring(0, 100))}${item.text.length > 100 ? '...' : ''}</span>
                 </div>`;
             }
-            if (!html) html = '<div class="text-muted text-center py-3">鏈В鏋愬埌鍐呭</div>';
+            if (!html) html = '<div class="text-muted text-center py-3">未解析到内容</div>';
             document.getElementById('templateContentList').innerHTML = html;
         }
 
@@ -358,12 +358,12 @@
             let index = window._pendingItemIndex;
 
             if (!fieldName) {
-                layer.msg('璇疯緭鍏ュ瓧娈靛悕', { icon: 2 });
+                layer.msg('请输入字段名', { icon: 2 });
                 return;
             }
 
             if (replacements.some(r => r.fieldName === fieldName)) {
-                layer.msg('瀛楁鍚嶅凡瀛樺湪锛岃浣跨敤鍏朵粬鍚嶇О', { icon: 2 });
+                layer.msg('字段名已存在，请使用其他名称', { icon: 2 });
                 return;
             }
 
@@ -395,14 +395,14 @@
             for (let r of replacements) {
                 html += `<div class="replacement-item">
                     <span class="old-text">${escapeHtml(r.oldText.substring(0, 30))}${r.oldText.length > 30 ? '...' : ''}</span>
-                    <span class="arrow">鈫?/span>
+                    <span class="arrow">→</span>
                     <span class="new-text">{{${escapeHtml(r.fieldName)}}}</span>
                     <button class="btn btn-sm btn-outline-danger ml-2" onclick="removeReplacement(${r.index})">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>`;
             }
-            if (!html) html = '<div class="text-muted text-center py-3">璇峰湪宸︿晶閫夋嫨闇€瑕佹浛鎹㈢殑鍐呭</div>';
+            if (!html) html = '<div class="text-muted text-center py-3">请在左侧选择需要替换的内容</div>';
             document.getElementById('replacementList').innerHTML = html;
 
             document.getElementById('btnNextStep3').disabled = replacements.length === 0;
@@ -417,7 +417,7 @@
 
         function goToStep3() {
             if (replacements.length === 0) {
-                layer.msg('璇疯嚦灏戞爣璁颁竴涓浛鎹㈤」', { icon: 2 });
+                layer.msg('请至少标记一个替换项', { icon: 2 });
                 return;
             }
 
@@ -439,7 +439,7 @@
             let file = fileInput.files[0];
 
             if (!name || !file) {
-                layer.msg('璇峰畬鎴愭ā鏉夸俊鎭?, { icon: 2 });
+                layer.msg('请完善模板信息', { icon: 2 });
                 return;
             }
 
@@ -464,16 +464,16 @@
                 layer.closeAll();
 
                 if (result.code === 200) {
-                    layer.msg('妯℃澘淇濆瓨鎴愬姛锛?, { icon: 1 });
+                    layer.msg('模板保存成功，', { icon: 1 });
                     setTimeout(() => {
                         window.location.href = '/templatereport/index';
                     }, 1500);
                 } else {
-                    layer.msg(result.message || '淇濆瓨澶辫触', { icon: 2 });
+                    layer.msg(result.message || '保存失败', { icon: 2 });
                 }
             } catch (err) {
                 layer.closeAll();
-                layer.msg('淇濆瓨澶辫触: ' + err.message, { icon: 2 });
+                layer.msg('保存失败: ' + err.message, { icon: 2 });
             }
         }
 
@@ -484,7 +484,7 @@
         }
 
         document.getElementById('templateFile').addEventListener('change', function(e) {
-            let fileName = e.target.files[0] ? e.target.files[0].name : '閫夋嫨鏂囦欢...';
+            let fileName = e.target.files[0] ? e.target.files[0].name : '选择文件...';
             $(this).next('.custom-file-label').html(fileName);
         });
     </script>

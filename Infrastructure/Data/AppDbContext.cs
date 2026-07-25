@@ -184,6 +184,8 @@ public class AppDbContext : DbContext
     private static void SeedData(ModelBuilder mb)
     {
         SystemSeeds.Seed(mb);
+        MenuSeeds.Seed(mb);
+        DictSeeds.Seed(mb);
         HrSeeds.Seed(mb);
         ProjectSeeds.Seed(mb);
         BudgetSeeds.Seed(mb);

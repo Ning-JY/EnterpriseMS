@@ -112,7 +112,7 @@
                         </td>
                         <td>
                             <button class="btn btn-xs btn-danger"
-                                    onclick="deleteCert(@cert.Id,'@cert.CertName')" title="删除">
+                                    onclick="deleteCert(@cert.Id,'@JavaScriptEncoder.Default.Encode(cert.CertName)')" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>

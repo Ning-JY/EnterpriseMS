@@ -5,6 +5,7 @@ using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Services.DTOs.Project;
 using EnterpriseMS.Services.Interfaces;
+using EnterpriseMS.Services.DTOs.Report;
 using Microsoft.EntityFrameworkCore;
 
 namespace EnterpriseMS.Services.Impl;
@@ -163,6 +164,42 @@ public class ProjectService : IProjectService
         await WriteLogAsync(proj.Id, "项目创建",
             $"项目：{proj.ProjName}，合同额：{proj.ContractAmount}万元", operBy);
         return proj.Id;
+    }
+
+    /// <summary>一键转项目：仅传入项目名称，自动生成项目编号，其余字段留空，便于后续在投标创建页直接关联。</summary>
+    public async Task<long> QuickCreateAsync(QuickCreateProjectDto dto, string operBy)
+    {
+        var proj = new Project
+        {
+            Id        = SnowflakeId.Next(),
+            ProjNo    = await GenerateProjNoAsync(),
+            ProjName  = dto.ProjName.Trim(),
+            CreatedBy = operBy,
+            ProgressStatus = 0,
+            ContractAmount = 0,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        };
+        await _uow.Projects.AddAsync(proj);
+        await _uow.SaveChangesAsync();
+        await WriteLogAsync(proj.Id, "快速建项", $"项目：{proj.ProjName}", operBy);
+        return proj.Id;
+    }
+
+    /// <summary>返回精简项目列表（id + 编号 + 名称），供投标创建页按名称选择关联项目。</summary>
+    public async Task<List<ProjectSelectItemDto>> GetSimpleListAsync()
+    {
+        var list = await _uow.Projects.Query()
+            .Where(p => !p.IsDeleted)
+            .OrderByDescending(p => p.CreatedAt)
+            .Select(p => new ProjectSelectItemDto
+            {
+                Id      = p.Id,
+                ProjNo  = p.ProjNo,
+                ProjName = p.ProjName,
+            })
+            .ToListAsync();
+        return list;
     }
 
     public async Task UpdateAsync(UpdateProjectDto dto, string operBy)
@@ -853,6 +890,58 @@ public class ProjectService : IProjectService
                 .Select(a => $"· {a.AcceptBatch}  金额 {a.AcceptAmount:N2} 万元  日期 {a.AcceptDate:yyyy-MM-dd}")),
         };
         return ms;
+    }
+
+    // ── 成果报告：按模板字段 Source 解析占位符值（project/config/computed/manual）──
+    // 模板字段通过 manifest 的 source/binding/configKey 声明取值来源，实现「按项目自动带出」。
+    public async Task<Dictionary<string, string>> BuildReportFieldValuesAsync(
+        ProjectDetailDto p, TemplateInfoDto tpl, Dictionary<string, string>? manual)
+    {
+        var values = new Dictionary<string, string>();
+
+        var projectBindings = new Dictionary<string, string>
+        {
+            ["ProjName"]       = p.ProjName,
+            ["OwnerName"]      = p.OwnerName,
+            ["BuildingScale"]  = p.BuildingScale ?? "",
+            ["ProjNo"]         = p.ProjNo,
+            ["LimitPrice"]     = p.LimitPrice?.ToString() ?? "",
+            ["ContractAmount"] = p.ContractAmount.ToString(),
+        };
+
+        foreach (var f in tpl.Fields)
+        {
+            if (f.Source == "project" && !string.IsNullOrEmpty(f.Binding))
+            {
+                values[f.Name] = projectBindings.TryGetValue(f.Binding, out var v) ? v : "";
+            }
+            else if (f.Source == "config" && !string.IsNullOrEmpty(f.ConfigKey))
+            {
+                var cfg = await _uow.SysConfigs.Query()
+                    .Where(c => c.ConfigKey == f.ConfigKey)
+                    .Select(c => c.ConfigValue)
+                    .FirstOrDefaultAsync() ?? "";
+                values[f.Name] = cfg;
+            }
+            else if (f.Source == "manual")
+            {
+                values[f.Name] = (manual != null && manual.TryGetValue(f.Name, out var mv) && !string.IsNullOrWhiteSpace(mv))
+                    ? mv
+                    : (f.DefaultValue ?? "");
+            }
+            // computed 字段在下方统一计算
+        }
+
+        // 计算字段：审减金额 = 送审 - 审定；审减率 = 审减 / 送审
+        if (values.TryGetValue("送审金额", out var s) && values.TryGetValue("审定金额", out var d)
+            && decimal.TryParse(s, out var sd) && decimal.TryParse(d, out var dd))
+        {
+            var diff = sd - dd;
+            values["审减金额"] = diff.ToString("F2");
+            values["审减率"]   = (sd != 0 ? diff / sd * 100 : 0).ToString("F2") + "%";
+        }
+
+        return values;
     }
 
     private static string MilestoneStatusText(int status) => status switch

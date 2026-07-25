@@ -6,7 +6,7 @@ namespace EnterpriseMS.Domain.Entities.Bid;
 [Table("bid_project")]
 public class BidProject : BaseEntity
 {
-    [Column("project_id")]     public long      ProjectId   { get; set; }
+    [Column("project_id")]     public long?     ProjectId   { get; set; }
     [Column("project_name")]   public string    ProjectName { get; set; } = "";
     [Column("project_code")]   public string    ProjectCode { get; set; } = "";
     [Column("tenderer")]       public string?   Tenderer    { get; set; }

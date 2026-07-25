@@ -17,6 +17,8 @@ public class TemplateFieldDto
     public bool Required { get; set; }
     public string Type { get; set; } = "text";
     public string Source { get; set; } = "manual";
+    public string? Binding { get; set; }
+    public string? ConfigKey { get; set; }
     public string? DefaultValue { get; set; }
     public string? HelpText { get; set; }
     public List<OptionItemDto>? Options { get; set; }
@@ -61,6 +63,13 @@ public class ReportFillRequest
     public Dictionary<string, string> SupplementaryFields { get; set; } = new();
     public List<MappedExcelColumnDto> ExcelColumns { get; set; } = new();
     public List<Dictionary<string, string>> ExcelRows { get; set; } = new();
+}
+
+// ── 项目快捷生成报告：POST 请求体 ──
+public class ReportGenerateFromProjectRequest
+{
+    public string TemplateId { get; set; } = "";
+    public Dictionary<string, string> Fields { get; set; } = new();
 }
 
 public class MappedExcelColumnDto

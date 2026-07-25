@@ -85,7 +85,7 @@
                         <td>
                             @if (canPerm)
                             {
-                                <button class="btn btn-xs btn-warning" onclick="openPermModal(@r.Id, '@r.RoleName')">
+                                <button class="btn btn-xs btn-warning" onclick="openPermModal(@r.Id, '@JavaScriptEncoder.Default.Encode(r.RoleName)')">
                                     <i class="fas fa-key"></i> 分配权限
                                 </button>
                             }
@@ -97,7 +97,7 @@
                             }
                             @if (canDel && r.RoleCode != "superadmin")
                             {
-                                <button class="btn btn-xs btn-danger" onclick="deleteRole(@r.Id, '@r.RoleName')">
+                                <button class="btn btn-xs btn-danger" onclick="deleteRole(@r.Id, '@JavaScriptEncoder.Default.Encode(r.RoleName)')">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             }
@@ -264,7 +264,7 @@ function renderMenuTree(nodes, checkedIds) {
         var icon = n.MenuType==='M' ? 'fa-folder text-warning' : n.MenuType==='C' ? 'fa-file text-info' : 'fa-circle text-muted';
         html += '<li style="margin-left:'+(n.MenuType==='F'?'32px':'16px')+';padding:3px 0">';
         html += '<label class="mb-0"><input type="checkbox" class="mr-2 menu-chk" value="'+n.Id+'" '+checked+'>';
-        html += '<i class="fas '+icon+' mr-1" style="font-size:12px"></i>'+n.MenuName+'</label>';
+        html += '<i class="fas '+icon+' mr-1" style="font-size:12px"></i>'+escapeHtml(n.MenuName)+'</label>';
         if (n.Children && n.Children.length) html += renderMenuTree(n.Children, checkedIds);
         html += '</li>';
     });

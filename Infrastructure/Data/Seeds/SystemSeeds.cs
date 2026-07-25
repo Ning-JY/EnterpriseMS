@@ -62,81 +62,10 @@ public static class SystemSeeds
             new SysUserRole { UserId = 6, RoleId = 4 }
         );
 
-        // ── 字典类型 ──────────────────────────────────────────
-        mb.Entity<SysDictType>().HasData(
-            new SysDictType { Id = 1, DictName = "业务类型", DictType = "biz_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 2, DictName = "采购方式", DictType = "procurement_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 3, DictName = "合同类型", DictType = "contract_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 4, DictName = "证书类型", DictType = "cert_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 5, DictName = "里程碑类型", DictType = "milestone_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 7, DictName = "项目进度状态", DictType = "proj_status", Status = 1, CreatedAt = dt, CreatedBy = "system" }
-        );
-
-        // ── 字典数据 ──────────────────────────────────────────
-        mb.Entity<SysDictData>().HasData(
-            // 业务类型
-            new SysDictData { Id = 101, DictType = "biz_type", DictLabel = "可行性研究报告", DictValue = "可行性研究报告", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 102, DictType = "biz_type", DictLabel = "节能评估报告", DictValue = "节能评估报告", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 103, DictType = "biz_type", DictLabel = "稳评报告", DictValue = "稳评报告", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 104, DictType = "biz_type", DictLabel = "概算编制", DictValue = "概算编制", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 105, DictType = "biz_type", DictLabel = "预算编制", DictValue = "预算编制", Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 106, DictType = "biz_type", DictLabel = "结算编制", DictValue = "结算编制", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 107, DictType = "biz_type", DictLabel = "概算评审", DictValue = "概算评审", Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 108, DictType = "biz_type", DictLabel = "预算评审", DictValue = "预算评审", Sort = 8, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 109, DictType = "biz_type", DictLabel = "结算评审", DictValue = "结算评审", Sort = 9, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 110, DictType = "biz_type", DictLabel = "控制性详细规划", DictValue = "控制性详细规划", Sort = 10, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 111, DictType = "biz_type", DictLabel = "专项规划", DictValue = "专项规划", Sort = 11, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 112, DictType = "biz_type", DictLabel = "城市更新规划", DictValue = "城市更新规划", Sort = 12, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 113, DictType = "biz_type", DictLabel = "施工图设计", DictValue = "施工图设计", Sort = 13, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 114, DictType = "biz_type", DictLabel = "战略咨询", DictValue = "战略咨询", Sort = 14, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 115, DictType = "biz_type", DictLabel = "施工阶段全过程管控", DictValue = "施工阶段全过程管控", Sort = 15, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            // 采购方式
-            new SysDictData { Id = 201, DictType = "procurement_type", DictLabel = "竞争性磋商", DictValue = "竞争性磋商", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 202, DictType = "procurement_type", DictLabel = "询价", DictValue = "询价", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 203, DictType = "procurement_type", DictLabel = "公开招标", DictValue = "公开招标", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 204, DictType = "procurement_type", DictLabel = "邀请招标", DictValue = "邀请招标", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 205, DictType = "procurement_type", DictLabel = "公开招选", DictValue = "公开招选", Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 206, DictType = "procurement_type", DictLabel = "框架协议采购", DictValue = "框架协议采购", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 207, DictType = "procurement_type", DictLabel = "单一来源", DictValue = "单一来源", Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            // 合同类型
-            new SysDictData { Id = 301, DictType = "contract_type", DictLabel = "固定期限", DictValue = "固定期限", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 302, DictType = "contract_type", DictLabel = "无固定期限", DictValue = "无固定期限", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 303, DictType = "contract_type", DictLabel = "劳务合同", DictValue = "劳务合同", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 304, DictType = "contract_type", DictLabel = "实习协议", DictValue = "实习协议", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            // 证书类型
-            new SysDictData { Id = 401, DictType = "cert_type", DictLabel = "注册规划师", DictValue = "注册规划师", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 402, DictType = "cert_type", DictLabel = "造价工程师", DictValue = "造价工程师", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 403, DictType = "cert_type", DictLabel = "注册建筑师", DictValue = "注册建筑师", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 404, DictType = "cert_type", DictLabel = "注册工程师", DictValue = "注册工程师", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 405, DictType = "cert_type", DictLabel = "建造师", DictValue = "建造师", Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 406, DictType = "cert_type", DictLabel = "职称证书", DictValue = "职称证书", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 407, DictType = "cert_type", DictLabel = "岗位证书", DictValue = "岗位证书", Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            // 里程碑类型
-            new SysDictData { Id = 501, DictType = "milestone_type", DictLabel = "资料收集", DictValue = "资料收集", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 502, DictType = "milestone_type", DictLabel = "现状调研", DictValue = "现状调研", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 503, DictType = "milestone_type", DictLabel = "方案设计", DictValue = "方案设计", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 504, DictType = "milestone_type", DictLabel = "内部评审", DictValue = "内部评审", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 505, DictType = "milestone_type", DictLabel = "专家评审", DictValue = "专家评审", Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 506, DictType = "milestone_type", DictLabel = "报批上报", DictValue = "报批上报", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 507, DictType = "milestone_type", DictLabel = "成果交付", DictValue = "成果交付", Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 508, DictType = "milestone_type", DictLabel = "回款", DictValue = "回款", Sort = 8, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            // 项目进度状态
-            new SysDictData { Id = 701, DictType = "proj_status", DictLabel = "前期商务", DictValue = "0", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 702, DictType = "proj_status", DictLabel = "预计启动", DictValue = "1", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 703, DictType = "proj_status", DictLabel = "标书制作中", DictValue = "2", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 704, DictType = "proj_status", DictLabel = "投标/磋商中", DictValue = "3", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 705, DictType = "proj_status", DictLabel = "已中标·签订合同中", DictValue = "4", Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 706, DictType = "proj_status", DictLabel = "已签回合同", DictValue = "5", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 707, DictType = "proj_status", DictLabel = "执行中", DictValue = "6", Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 708, DictType = "proj_status", DictLabel = "成果提交", DictValue = "7", Sort = 8, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 709, DictType = "proj_status", DictLabel = "已完成", DictValue = "8", Sort = 9, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 710, DictType = "proj_status", DictLabel = "已终止", DictValue = "9", Sort = 10, Status = 1, CreatedAt = dt, CreatedBy = "system" }
-        );
-
-        // ── 超管拥有全部权限 ──────────────────────────────────
+        // ── 超管拥有全部权限（含资讯公告菜单 41/411-414）────────
         var allMenuIds = new long[]
         {
-            1,2,3,5,6,7,8,9,
+            1,2,3,5,6,7,8,
             11,12,13,14,15,16,17,
             111,112,113,114,
             121,122,123,124,
@@ -152,13 +81,14 @@ public static class SystemSeeds
             21,22,23,
             211,212,213,214,
             31, 311,312,313,314,315,316,317,318,319,320,
-            91, 911,912,913,914,915,916
+            91, 911,912,913,914,915,916,
+            41, 411, 412, 413, 414
         };
         mb.Entity<SysRoleMenu>().HasData(
             allMenuIds.Select(mid => new SysRoleMenu { RoleId = 1, MenuId = mid }).ToArray()
         );
 
-        // 项目经理角色菜单（员工档案只读 + 项目管理全部 + 投标管理）
+        // 项目经理角色菜单（员工档案只读 + 项目管理全部 + 投标管理 + 资讯公告只读）
         var pmMenuIds = new long[]
         {
             5, 51, 52,              // 个人中心（所有人可见）
@@ -166,6 +96,7 @@ public static class SystemSeeds
             3, 31, 311,312,313,315,316,317,318,319,  // 项目管理全部
             9, 91, 911,912,913,914,917,915,918,919,916,  // 投标管理全部
             8, 83,                  // 造价小工具：成果报告模板管理
+            41, 411, 412,            // 资讯公告（查看）
         };
         mb.Entity<SysRoleMenu>().HasData(
             pmMenuIds.Select(mid => new SysRoleMenu { RoleId = 3, MenuId = mid }).ToArray()
@@ -176,6 +107,7 @@ public static class SystemSeeds
         {
             5, 51, 52,              // 个人中心（所有人可见）
             3, 31, 317, 318, 319,   // 项目台账+完成节点+录入验收
+            41, 411,                // 资讯公告（查看）
         };
         mb.Entity<SysRoleMenu>().HasData(
             engMenuIds.Select(mid => new SysRoleMenu { RoleId = 4, MenuId = mid }).ToArray()

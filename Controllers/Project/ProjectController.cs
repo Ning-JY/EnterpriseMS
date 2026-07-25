@@ -8,6 +8,7 @@ using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Filters;
 using EnterpriseMS.Services.DTOs.Project;
+using EnterpriseMS.Services.DTOs.Report;
 using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.Interfaces;
 using EnterpriseMS.Services.Impl;
@@ -83,6 +84,70 @@ public class ProjectController : BaseAuthController
         }
     }
 
+    // ── 成果报告：预览字段（自动带入 + 待补填），供弹窗展示 ──
+    [HttpGet("{projectId}/report/preview-fields")]
+    [HasPermission("proj:project:list")]
+    public async Task<IActionResult> ReportPreviewFields(long projectId, string templateId)
+    {
+        var proj = await _projSvc.GetDetailAsync(projectId, User.GetUserId());
+        if (proj == null) return NotFound("项目不存在");
+        var tpl = _reportSvc.GetTemplate(templateId);
+        if (tpl == null) return BadRequest("模板不存在");
+
+        // 用默认值预填 manual 字段，便于预览时计算字段也能显示
+        var defaults = tpl.Fields
+            .Where(f => f.Source == "manual")
+            .ToDictionary(f => f.Name, f => f.DefaultValue ?? "");
+        var all = await _projSvc.BuildReportFieldValuesAsync(proj, tpl, defaults);
+
+        var autoFields = tpl.Fields
+            .Where(f => f.Source != "manual")
+            .Select(f => new { name = f.Name, label = f.Label, value = all.GetValueOrDefault(f.Name, ""), source = f.Source })
+            .ToList();
+        var manualFields = tpl.Fields
+            .Where(f => f.Source == "manual")
+            .Select(f => new
+            {
+                name = f.Name,
+                label = f.Label,
+                required = f.Required,
+                type = f.Type,
+                defaultValue = f.DefaultValue ?? "",
+                helpText = f.HelpText ?? "",
+                options = f.Options
+            })
+            .ToList();
+
+        return Json(ApiResult<object>.Ok(new { templateId, templateName = tpl.Name, autoFields, manualFields }));
+    }
+
+    // ── 成果报告：根据项目 + 用户补填字段生成 Word ──
+    [HttpPost("{projectId}/report/generate")]
+    [HasPermission("proj:project:list")]
+    public async Task<IActionResult> ReportGenerateFromProject(long projectId, [FromBody] ReportGenerateFromProjectRequest req)
+    {
+        if (string.IsNullOrWhiteSpace(req.TemplateId))
+            return BadRequest("请选择报告模板");
+        var proj = await _projSvc.GetDetailAsync(projectId, User.GetUserId());
+        if (proj == null) return NotFound("项目不存在");
+        var tpl = _reportSvc.GetTemplate(req.TemplateId);
+        if (tpl == null) return BadRequest("模板不存在");
+
+        try
+        {
+            var fields = await _projSvc.BuildReportFieldValuesAsync(proj, tpl, req.Fields);
+            var bytes = _reportSvc.GenerateDocument(tpl.Id, fields);
+            var fileName = $"{proj.ProjName}_{tpl.Name}.docx";
+            return File(bytes,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                fileName);
+        }
+        catch (BusinessException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
     [HttpGet("edit/{id}")]
     [HasPermission("proj:project:edit")]
     public async Task<IActionResult> Edit(long id)
@@ -130,6 +195,30 @@ public class ProjectController : BaseAuthController
             var id = await _projSvc.CreateAsync(dto, User.GetRealName());
             await _logSvc.LogAsync("新建项目", $"项目：{dto.ProjName}", "INSERT", id);
             return Json(ApiResult<object>.Ok(new { id }, "项目创建成功"));
+        }
+        catch (BusinessException ex)
+        { return Json(ApiResult<object>.Fail(ex.Message)); }
+    }
+
+    // ── 投标建项：精简列表 + 一键转项目 ──────────────────────
+    [HttpGet("simple-list")]
+    [HasPermission("proj:project:list")]
+    public async Task<IActionResult> SimpleList()
+    {
+        var list = await _projSvc.GetSimpleListAsync();
+        return Json(ApiResult<object>.Ok(list));
+    }
+
+    [HttpPost("quick-create"), ValidateAntiForgeryToken]
+    [HasPermission("proj:project:add")]
+    public async Task<IActionResult> QuickCreate([FromBody] QuickCreateProjectDto dto)
+    {
+        if (!ModelState.IsValid)
+            return Json(ApiResult<object>.Fail(GetErrors()));
+        try
+        {
+            var id = await _projSvc.QuickCreateAsync(dto, User.GetRealName());
+            return Json(ApiResult<object>.Ok(new { id, projName = dto.ProjName }, "项目已创建"));
         }
         catch (BusinessException ex)
         { return Json(ApiResult<object>.Fail(ex.Message)); }

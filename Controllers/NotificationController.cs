@@ -31,7 +31,7 @@ public class NotificationController : BaseAuthController
         return View(summary);
     }
 
-    [HttpPost]
+    [HttpPost("mark-read")]
     public async Task<IActionResult> MarkRead(long id)
     {
         var userId = User.GetUserId();
@@ -41,7 +41,7 @@ public class NotificationController : BaseAuthController
         return Json(ApiResult.Ok("已标记已读"));
     }
 
-    [HttpPost]
+    [HttpPost("mark-all-read")]
     public async Task<IActionResult> MarkAllRead()
     {
         var userId = User.GetUserId();

@@ -48,6 +48,8 @@ public class EmployeeService : IEmployeeService
             .Include(e => e.Dept)
             .Include(e => e.Contracts)
             .Include(e => e.Certificates)
+            .Include(e => e.EducationList)
+            .Include(e => e.WorkExperiences)
             .FirstOrDefaultAsync(e => e.Id == id);
 
     public async Task<List<SysPost>> GetPostsAsync()
@@ -111,6 +113,24 @@ public class EmployeeService : IEmployeeService
         emp.EntryDate        = dto.EntryDate;
         emp.ProbationEndDate = dto.ProbationEndDate;
         emp.Remark           = dto.Remark;
+        emp.Nationality      = dto.Nationality;
+        emp.BirthDate        = dto.BirthDate;
+        emp.PoliticalStatus  = dto.PoliticalStatus;
+        emp.NativePlace      = dto.NativePlace;
+        emp.Address          = dto.Address;
+        emp.HighestDegree    = dto.HighestDegree;
+        emp.GraduateSchool   = dto.GraduateSchool;
+        emp.Education        = dto.Education;
+        emp.Major            = dto.Major;
+        emp.WorkStartDate    = dto.WorkStartDate;
+        emp.TechnicalTitle   = dto.TechnicalTitle;
+        emp.TechnicalLevel   = dto.TechnicalLevel;
+        emp.EmergencyContact = dto.EmergencyContact;
+        emp.EmergencyPhone   = dto.EmergencyPhone;
+        emp.BankAccount      = dto.BankAccount;
+        emp.BankName         = dto.BankName;
+        emp.SocialInsuranceNo= dto.SocialInsuranceNo;
+        emp.ProfilePhoto     = dto.ProfilePhoto;
         emp.UpdatedBy        = operBy;
         _uow.Employees.Update(emp);
 

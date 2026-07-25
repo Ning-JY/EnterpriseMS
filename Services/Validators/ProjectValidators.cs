@@ -30,6 +30,15 @@ public class UpdateProjectDtoValidator : AbstractValidator<UpdateProjectDto>
     }
 }
 
+public class QuickCreateProjectDtoValidator : AbstractValidator<QuickCreateProjectDto>
+{
+    public QuickCreateProjectDtoValidator()
+    {
+        RuleFor(x => x.ProjName).NotEmpty().MaximumLength(200)
+            .WithMessage("请输入项目名称");
+    }
+}
+
 public class ChangeStatusDtoValidator : AbstractValidator<ChangeStatusDto>
 {
     public ChangeStatusDtoValidator()

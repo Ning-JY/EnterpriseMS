@@ -1,6 +1,7 @@
 using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Entities.Project;
 using EnterpriseMS.Services.DTOs.Project;
+using EnterpriseMS.Services.DTOs.Report;
 
 namespace EnterpriseMS.Services.Interfaces;
 
@@ -9,7 +10,10 @@ public interface IProjectService
     Task<PagedResult<ProjectListDto>> GetPagedAsync(ProjectQueryDto query, long operUserId);
     Task<ProjectDetailDto?>           GetDetailAsync(long id, long operUserId);
     Dictionary<string, string>        BuildReportFieldValues(ProjectDetailDto p);
+    Task<Dictionary<string, string>>  BuildReportFieldValuesAsync(ProjectDetailDto p, TemplateInfoDto tpl, Dictionary<string, string>? manual);
     Task<long>                        CreateAsync(CreateProjectDto dto, string operBy);
+    Task<long>                        QuickCreateAsync(QuickCreateProjectDto dto, string operBy);
+    Task<List<ProjectSelectItemDto>>  GetSimpleListAsync();
     Task                              UpdateAsync(UpdateProjectDto dto, string operBy);
     Task                              ChangeStatusAsync(ChangeStatusDto dto, string operBy);
     Task                              TerminateAsync(long id, string reason, string operBy);

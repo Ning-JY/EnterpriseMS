@@ -5,7 +5,7 @@ namespace EnterpriseMS.Services.DTOs.Bid;
 public class BidProjectDto
 {
     public long Id { get; set; }
-    public long ProjectId { get; set; }
+    public long? ProjectId { get; set; }
     public string ProjectName { get; set; } = "";
     public string ProjectCode { get; set; } = "";
     public string? Tenderer { get; set; }
@@ -30,7 +30,7 @@ public class BidProjectDto
 
 public class BidProjectCreateDto
 {
-    public long ProjectId { get; set; }
+    public long? ProjectId { get; set; }
     public string? Tenderer { get; set; }
     public decimal? Budget { get; set; }
     public DateTime? Deadline { get; set; }

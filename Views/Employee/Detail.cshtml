@@ -61,6 +61,35 @@
                     {
                         <tr><td class="text-muted pl-3">备注</td><td class="small">@Model.Remark</td></tr>
                     }
+                    @if (!string.IsNullOrEmpty(Model.BankAccount))
+                    {
+                        <tr><td class="text-muted pl-3">银行卡号</td><td class="small"><code>@Model.BankAccount</code></td></tr>
+                        <tr><td class="text-muted pl-3">开户行</td><td class="small">@(Model.BankName ?? "-")</td></tr>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Nationality))
+                    { <tr><td class="text-muted pl-3">民族</td><td>@Model.Nationality</td></tr> }
+                    @if (Model.BirthDate.HasValue)
+                    { <tr><td class="text-muted pl-3">出生日期</td><td>@Model.BirthDate.Value.ToString("yyyy-MM-dd")</td></tr> }
+                    @if (!string.IsNullOrEmpty(Model.PoliticalStatus))
+                    { <tr><td class="text-muted pl-3">政治面貌</td><td>@Model.PoliticalStatus</td></tr> }
+                    @if (!string.IsNullOrEmpty(Model.NativePlace))
+                    { <tr><td class="text-muted pl-3">籍贯</td><td>@Model.NativePlace</td></tr> }
+                    @if (!string.IsNullOrEmpty(Model.HighestDegree))
+                    { <tr><td class="text-muted pl-3">最高学位</td><td>@Model.HighestDegree</td></tr> }
+                    @if (!string.IsNullOrEmpty(Model.GraduateSchool))
+                    { <tr><td class="text-muted pl-3">毕业院校</td><td class="small">@Model.GraduateSchool</td></tr> }
+                    @if (!string.IsNullOrEmpty(Model.Major))
+                    { <tr><td class="text-muted pl-3">专业</td><td class="small">@Model.Major</td></tr> }
+                    @if (Model.WorkStartDate.HasValue)
+                    { <tr><td class="text-muted pl-3">参加工作</td><td>@Model.WorkStartDate.Value.ToString("yyyy-MM-dd")</td></tr> }
+                    @if (!string.IsNullOrEmpty(Model.TechnicalTitle))
+                    { <tr><td class="text-muted pl-3">技术职称</td><td>@Model.TechnicalTitle</td></tr> }
+                    @if (!string.IsNullOrEmpty(Model.EmergencyContact))
+                    { <tr><td class="text-muted pl-3">紧急联系人</td><td class="small">@Model.EmergencyContact / @(Model.EmergencyPhone ?? "-")</td></tr> }
+                    @if (!string.IsNullOrEmpty(Model.SocialInsuranceNo))
+                    { <tr><td class="text-muted pl-3">社保号</td><td class="small">@Model.SocialInsuranceNo</td></tr> }
+                    @if (!string.IsNullOrEmpty(Model.Address))
+                    { <tr><td class="text-muted pl-3">住址</td><td class="small">@Model.Address</td></tr> }
                 </table>
             </div>
             <div class="card-footer">
@@ -245,6 +274,92 @@
                 }
             </div>
         </div>
+
+        <!-- 教育经历 -->
+        <div class="card card-warning card-outline">
+            <div class="card-header">
+                <h3 class="card-title">教育经历</h3>
+                <div class="card-tools">
+                    @if (canEdit)
+                    {
+                        <button class="btn btn-sm btn-warning mr-1" onclick="openAddEduModal()" title="新增教育经历"><i class="fas fa-plus"></i> 新增</button>
+                    }
+                </div>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.EducationList.Any())
+                {
+                    <table class="table table-sm">
+                        <thead class="thead-light"><tr><th>学校</th><th>专业</th><th>学历</th><th>起止</th><th class="text-right">操作</th></tr></thead>
+                        <tbody>
+                        @foreach (var edu in Model.EducationList.OrderByDescending(x => x.StartDate))
+                        {
+                            <tr>
+                                <td>@edu.SchoolName</td>
+                                <td>@edu.Major</td>
+                                <td>@edu.Degree</td>
+                                <td class="small">@(edu.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(edu.EndDate?.ToString("yyyy-MM-dd") ?? "至今")</td>
+                                <td class="text-right">
+                                    @if (canEdit)
+                                    {
+                                        <button class="btn btn-xs btn-outline-primary" data-id="@edu.Id" data-school="@edu.SchoolName" data-major="@edu.Major" data-degree="@edu.Degree" data-start="@(edu.StartDate?.ToString("yyyy-MM-dd"))" data-end="@(edu.EndDate?.ToString("yyyy-MM-dd"))" data-full="@(edu.IsFullTime ? "1" : "0")" data-remark="@edu.Remark" onclick="openEditEduModal(this)">编辑</button>
+                                        <button class="btn btn-xs btn-outline-danger" onclick="deleteEdu(@edu.Id)">删除</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-3">暂无教育经历</div>
+                }
+            </div>
+        </div>
+
+        <!-- 工作经历 -->
+        <div class="card card-secondary card-outline">
+            <div class="card-header">
+                <h3 class="card-title">工作经历</h3>
+                <div class="card-tools">
+                    @if (canEdit)
+                    {
+                        <button class="btn btn-sm btn-secondary mr-1" onclick="openAddWorkModal()" title="新增工作经历"><i class="fas fa-plus"></i> 新增</button>
+                    }
+                </div>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.WorkExperiences.Any())
+                {
+                    <table class="table table-sm">
+                        <thead class="thead-light"><tr><th>公司</th><th>职位</th><th>起止</th><th class="text-right">操作</th></tr></thead>
+                        <tbody>
+                        @foreach (var w in Model.WorkExperiences.OrderByDescending(x => x.StartDate))
+                        {
+                            <tr>
+                                <td>@w.CompanyName</td>
+                                <td>@w.Position</td>
+                                <td class="small">@(w.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(w.EndDate?.ToString("yyyy-MM-dd") ?? "至今")</td>
+                                <td class="text-right">
+                                    @if (canEdit)
+                                    {
+                                        <button class="btn btn-xs btn-outline-primary" data-id="@w.Id" data-company="@w.CompanyName" data-position="@w.Position" data-start="@(w.StartDate?.ToString("yyyy-MM-dd"))" data-end="@(w.EndDate?.ToString("yyyy-MM-dd"))" data-remark="@w.Remark" onclick="openEditWorkModal(this)">编辑</button>
+                                        <button class="btn btn-xs btn-outline-danger" onclick="deleteWork(@w.Id)">删除</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-3">暂无工作经历</div>
+                }
+            </div>
+        </div>
+
     </div>
 </div>
 </div></section>
@@ -461,10 +576,130 @@
                     <label class="custom-file-label" for="certFile2">选择文件（可选）</label>
                 </div>
             </div>
+
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
             <button type="button" class="btn btn-info" id="certSaveBtn2" onclick="saveEmpCert()">
+                <i class="fas fa-save mr-1"></i> 保存
+            </button>
+        </div>
+    </div></div>
+</div>
+
+<!-- ── 教育经历弹窗（新增/编辑共用）── -->
+<div class="modal fade" id="eduModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="eduModalTitle">新增教育经历</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="eduId">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>学校名称 <span class="text-danger">*</span></label>
+                        <input type="text" id="eduSchool" class="form-control" maxlength="100">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>专业 <span class="text-danger">*</span></label>
+                        <input type="text" id="eduMajor" class="form-control" maxlength="100">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>学历 <span class="text-danger">*</span></label>
+                        <input type="text" id="eduDegree" class="form-control" maxlength="50" placeholder="如：本科">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>是否全日制</label>
+                        <select id="eduFull" class="form-control">
+                            <option value="1">全日制</option>
+                            <option value="0">非全日制</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>开始日期</label>
+                        <input type="date" id="eduStart" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>结束日期</label>
+                        <input type="date" id="eduEnd" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="eduRemark" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-warning" id="eduSaveBtn" onclick="saveEdu()">
+                <i class="fas fa-save mr-1"></i> 保存
+            </button>
+        </div>
+    </div></div>
+</div>
+
+<!-- ── 工作经历弹窗（新增/编辑共用）── -->
+<div class="modal fade" id="workModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="workModalTitle">新增工作经历</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="workId">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>公司名称 <span class="text-danger">*</span></label>
+                        <input type="text" id="workCompany" class="form-control" maxlength="100">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>职位 <span class="text-danger">*</span></label>
+                        <input type="text" id="workPosition" class="form-control" maxlength="100">
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>开始日期</label>
+                        <input type="date" id="workStart" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label>结束日期</label>
+                        <input type="date" id="workEnd" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <textarea id="workRemark" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+            <button type="button" class="btn btn-secondary" id="workSaveBtn" onclick="saveWork()">
                 <i class="fas fa-save mr-1"></i> 保存
             </button>
         </div>
@@ -499,6 +734,25 @@ function saveEdit() {
         DeptId:   parseInt($('#editDeptId').val()) || null,
         EntryDate: $('#editEntryDate').val() || null,
         Remark:   $('#editRemark').val(),
+        // 回传扩展字段，避免快捷编辑时清空人事档案数据
+        BirthDate:       '@(Model.BirthDate?.ToString("yyyy-MM-dd") ?? "")' || null,
+        NativePlace:     '@(Model.NativePlace ?? "")' || null,
+        Education:       '@(Model.Education ?? "")' || null,
+        Major:           '@(Model.Major ?? "")' || null,
+        GraduateSchool:  '@(Model.GraduateSchool ?? "")' || null,
+        EmergencyContact:'@(Model.EmergencyContact ?? "")' || null,
+        EmergencyPhone:  '@(Model.EmergencyPhone ?? "")' || null,
+        Address:         '@(Model.Address ?? "")' || null,
+        BankAccount:     '@(Model.BankAccount ?? "")' || null,
+        BankName:        '@(Model.BankName ?? "")' || null,
+        Nationality:     '@(Model.Nationality ?? "")' || null,
+        PoliticalStatus: '@(Model.PoliticalStatus ?? "")' || null,
+        HighestDegree:   '@(Model.HighestDegree ?? "")' || null,
+        WorkStartDate:   '@(Model.WorkStartDate?.ToString("yyyy-MM-dd") ?? "")' || null,
+        TechnicalTitle:  '@(Model.TechnicalTitle ?? "")' || null,
+        TechnicalLevel:  '@(Model.TechnicalLevel ?? "")' || null,
+        SocialInsuranceNo:'@(Model.SocialInsuranceNo ?? "")' || null,
+        ProfilePhoto:    '@(Model.ProfilePhoto ?? "")' || null,
     };
     if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
     ajaxPost('/hr/employee/update', data, function(r) {
@@ -667,6 +921,116 @@ function saveEmpCert() {
             if (r.success) { $('#addCertModal').modal('hide'); location.reload(); }
             else layer.msg(r.message, {icon:2});
         }
+    });
+}
+
+// ── 教育经历 ────────────────────────────────────────────────
+function openAddEduModal() {
+    $('#eduId').val('');
+    $('#eduSchool,#eduMajor,#eduDegree,#eduRemark').val('');
+    $('#eduFull').val('1');
+    var today = new Date().toISOString().split('T')[0];
+    $('#eduStart').val(today);
+    $('#eduEnd').val('');
+    $('#eduModalTitle').text('新增教育经历');
+    $('#eduModal').modal('show');
+}
+
+function openEditEduModal(btn) {
+    $('#eduId').val($(btn).data('id'));
+    $('#eduSchool').val($(btn).data('school') || '');
+    $('#eduMajor').val($(btn).data('major') || '');
+    $('#eduDegree').val($(btn).data('degree') || '');
+    $('#eduFull').val($(btn).data('full') === '1' ? '1' : '0');
+    $('#eduStart').val($(btn).data('start') || '');
+    $('#eduEnd').val($(btn).data('end') || '');
+    $('#eduRemark').val($(btn).data('remark') || '');
+    $('#eduModalTitle').text('编辑教育经历');
+    $('#eduModal').modal('show');
+}
+
+function saveEdu() {
+    var school = $('#eduSchool').val(), major = $('#eduMajor').val(), degree = $('#eduDegree').val();
+    if (!school || !major || !degree) { layer.msg('请填写学校、专业和学历', {icon:2}); return; }
+    var id = $('#eduId').val();
+    var dto = {
+        SchoolName: school, Major: major, Degree: degree,
+        StartDate: $('#eduStart').val() || null,
+        EndDate:   $('#eduEnd').val() || null,
+        IsFullTime: $('#eduFull').val() === '1',
+        Remark:    $('#eduRemark').val(),
+    };
+    $('#eduSaveBtn').prop('disabled', true);
+    var done = function(r) {
+        $('#eduSaveBtn').prop('disabled', false);
+        if (r && r.success) { $('#eduModal').modal('hide'); location.reload(); }
+        else layer.msg((r && r.message) || '保存失败', {icon:2});
+    };
+    var fail = function(r) { $('#eduSaveBtn').prop('disabled', false); layer.msg((r && r.message) || '保存失败', {icon:2}); };
+    if (id) { dto.Id = parseInt(id); ajaxPost('/hr/education/update', dto, done, fail); }
+    else    { ajaxPost('/hr/education/create?employeeId=' + empId, dto, done, fail); }
+}
+
+function deleteEdu(id) {
+    layer.confirm('确认删除该教育经历？', {icon:3, btn:['确认删除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/hr/education/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
+            if (r && r.success) location.reload();
+            else layer.msg((r && r.message) || '删除失败', {icon:2});
+        });
+    });
+}
+
+// ── 工作经历 ────────────────────────────────────────────────
+function openAddWorkModal() {
+    $('#workId').val('');
+    $('#workCompany,#workPosition,#workRemark').val('');
+    var today = new Date().toISOString().split('T')[0];
+    $('#workStart').val(today);
+    $('#workEnd').val('');
+    $('#workModalTitle').text('新增工作经历');
+    $('#workModal').modal('show');
+}
+
+function openEditWorkModal(btn) {
+    $('#workId').val($(btn).data('id'));
+    $('#workCompany').val($(btn).data('company') || '');
+    $('#workPosition').val($(btn).data('position') || '');
+    $('#workStart').val($(btn).data('start') || '');
+    $('#workEnd').val($(btn).data('end') || '');
+    $('#workRemark').val($(btn).data('remark') || '');
+    $('#workModalTitle').text('编辑工作经历');
+    $('#workModal').modal('show');
+}
+
+function saveWork() {
+    var company = $('#workCompany').val(), position = $('#workPosition').val();
+    if (!company || !position) { layer.msg('请填写公司和职位', {icon:2}); return; }
+    var id = $('#workId').val();
+    var dto = {
+        CompanyName: company, Position: position,
+        StartDate: $('#workStart').val() || null,
+        EndDate:   $('#workEnd').val() || null,
+        Remark:    $('#workRemark').val(),
+    };
+    $('#workSaveBtn').prop('disabled', true);
+    var done = function(r) {
+        $('#workSaveBtn').prop('disabled', false);
+        if (r && r.success) { $('#workModal').modal('hide'); location.reload(); }
+        else layer.msg((r && r.message) || '保存失败', {icon:2});
+    };
+    var fail = function(r) { $('#workSaveBtn').prop('disabled', false); layer.msg((r && r.message) || '保存失败', {icon:2}); };
+    if (id) { dto.Id = parseInt(id); ajaxPost('/hr/workexp/update', dto, done, fail); }
+    else    { ajaxPost('/hr/workexp/create?employeeId=' + empId, dto, done, fail); }
+}
+
+function deleteWork(id) {
+    layer.confirm('确认删除该工作经历？', {icon:3, btn:['确认删除','取消']}, function(i) {
+        layer.close(i);
+        $.post('/hr/workexp/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
+            if (r && r.success) location.reload();
+            else layer.msg((r && r.message) || '删除失败', {icon:2});
+        });
     });
 }
 </script>

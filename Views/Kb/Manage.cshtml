@@ -105,7 +105,7 @@
                             @if (canDelete)
                             {
                                 <button class="btn btn-xs btn-danger"
-                                        onclick="deleteFile(@f.Id,'@f.FileName')" title="删除">
+                                        onclick="deleteFile(@f.Id,'@JavaScriptEncoder.Default.Encode(f.FileName)')" title="删除">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             }

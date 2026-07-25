@@ -1,0 +1,25 @@
+@using EnterpriseMS.Domain.Entities.Info
+@model InfoArticle
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<section class="content"><div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-bullhorn mr-2 text-primary"></i>@Model.Title</h3>
+            <div class="card-tools">
+                <a href="/pub" class="btn btn-sm btn-default"><i class="fas fa-arrow-left mr-1"></i>返回列表</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="text-muted small mb-3 border-bottom pb-2">
+                <span class="badge badge-info mr-1">@(Model.Category?.CategoryName ?? "未分类")</span>
+                <i class="far fa-clock mr-1"></i>发布时间：@(Model.PublishTime?.ToString("yyyy-MM-dd HH:mm") ?? Model.CreatedAt.ToString("yyyy-MM-dd HH:mm"))
+                <span class="ml-2"><i class="far fa-eye mr-1"></i>阅读 @Model.ViewCount</span>
+                @if (Model.IsTop == 1) { <span class="ml-2 badge badge-danger">置顶</span> }
+            </div>
+            <div style="white-space: pre-wrap; line-height: 1.8; font-size: 15px;">@Model.Content</div>
+        </div>
+    </div>
+</div></section>

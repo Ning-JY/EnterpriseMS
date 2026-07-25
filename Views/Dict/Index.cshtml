@@ -41,10 +41,10 @@
                                     <br><code class="text-muted small">@t.DictType</code>
                                 </div>
                                 <div class="btn-group">
-                                    <button class="btn btn-xs btn-outline-warning" onclick="event.stopPropagation();openEditType(@t.Id,'@t.DictName','@t.DictType',@t.Status)" title="编辑">
+                                    <button class="btn btn-xs btn-outline-warning" onclick="event.stopPropagation();openEditType(@t.Id,'@JavaScriptEncoder.Default.Encode(t.DictName)','@JavaScriptEncoder.Default.Encode(t.DictType)',@t.Status)" title="编辑">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-xs btn-outline-danger" onclick="event.stopPropagation();deleteType(@t.Id,'@t.DictName')" title="删除">
+                                    <button class="btn btn-xs btn-outline-danger" onclick="event.stopPropagation();deleteType(@t.Id,'@JavaScriptEncoder.Default.Encode(t.DictName)')" title="删除">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -186,12 +186,12 @@ function loadData(dictType, dictName, typeId) {
         var rows = r.data.map(function(d) {
             return '<tr>' +
                 '<td>' + d.Sort + '</td>' +
-                '<td>' + d.DictLabel + '</td>' +
-                '<td><code>' + d.DictValue + '</code></td>' +
+                '<td>' + escapeHtml(d.DictLabel) + '</td>' +
+                '<td><code>' + escapeHtml(d.DictValue) + '</code></td>' +
                 '<td>' + (d.IsDefault ? '<span class="badge badge-primary">默认</span>' : '') + '</td>' +
                 '<td>' +
-                    '<button class="btn btn-xs btn-outline-warning mr-1" onclick="openEditData(' + d.Id + ',\'' + d.DictLabel + '\',\'' + d.DictValue + '\',' + d.Sort + ',' + d.IsDefault + ',1)" title="编辑"><i class="fas fa-edit"></i></button>' +
-                    '<button class="btn btn-xs btn-outline-danger" onclick="deleteData(' + d.Id + ',\'' + d.DictLabel + '\')" title="删除"><i class="fas fa-trash"></i></button>' +
+                    '<button class="btn btn-xs btn-outline-warning mr-1" onclick=\'openEditData(' + d.Id + ', ' + JSON.stringify(d.DictLabel) + ', ' + JSON.stringify(d.DictValue) + ', ' + d.Sort + ', ' + d.IsDefault + ', 1)\' title="编辑"><i class="fas fa-edit"></i></button>' +
+                    '<button class="btn btn-xs btn-outline-danger" onclick=\'deleteData(' + d.Id + ', ' + JSON.stringify(d.DictLabel) + ')\' title="删除"><i class="fas fa-trash"></i></button>' +
                 '</td></tr>';
         }).join('');
         $('#dataArea').html(

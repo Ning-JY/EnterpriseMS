@@ -20,6 +20,7 @@ using EnterpriseMS.Services.AI;
 using EnterpriseMS.Services.Export;
 using Hangfire.Dashboard;
 using StackExchange.Redis;
+using Hangfire.Redis;
 using Hangfire.Redis.StackExchange;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
@@ -192,14 +193,16 @@ try
     builder.Services.AddFluentValidationAutoValidation();
     builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
-    // ── Hangfire：Redis 可用则 Redis 存储，否则内存存储 ───────
+    // ── Hangfire：有 Redis 缓存则 Redis 存储，否则降级为内存存储 ─
     builder.Services.AddHangfire(cfg =>
     {
         cfg.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
            .UseSimpleAssemblyNameTypeSerializer()
            .UseRecommendedSerializerSettings();
-        // 开发环境始终使用内存存储，避免 Redis 配置问题
-        cfg.UseMemoryStorage();
+        if (redisOk)
+            cfg.UseRedisStorage(redisConn);
+        else
+            cfg.UseMemoryStorage();
     });
     builder.Services.AddHangfireServer(opt =>
     {

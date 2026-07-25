@@ -1,45 +1,24 @@
-{
-  "templates": [
+﻿{
+  "Templates": [
     {
-      "id": "review-report",
-      "name": "评审报告",
-      "fileName": "评审报告.docx",
-      "description": "工程评审报告模板，包含项目基本信息、审核明细和评审结论",
-      "createdAt": "2024-01-01",
-      "fields": [
-        { "name": "项目名称", "label": "项目名称", "required": true, "type": "text", "source": "excel" },
-        { "name": "项目编码", "label": "项目编码", "required": false, "type": "text", "source": "excel" },
-        { "name": "送审金额", "label": "送审金额(元)", "required": true, "type": "money", "source": "excel" },
-        { "name": "审定金额", "label": "审定金额(元)", "required": true, "type": "money", "source": "excel" },
-        { "name": "审核差额", "label": "审核差额(元)", "required": false, "type": "money", "source": "excel" },
-        { "name": "送审工程量", "label": "送审工程量", "required": false, "type": "number", "source": "excel" },
-        { "name": "审定工程量", "label": "审定工程量", "required": false, "type": "number", "source": "excel" },
-        { "name": "送审单价", "label": "送审单价(元)", "required": false, "type": "money", "source": "excel" },
-        { "name": "审定单价", "label": "审定单价(元)", "required": false, "type": "money", "source": "excel" },
-        { "name": "审核原因", "label": "审核原因", "required": false, "type": "text", "source": "excel" },
-        { "name": "评审日期", "label": "评审日期", "required": true, "type": "date", "source": "manual" },
-        { "name": "评审人员", "label": "评审人员", "required": true, "type": "text", "source": "manual" },
-        { "name": "委托单位", "label": "委托单位", "required": false, "type": "text", "source": "manual" },
-        { "name": "施工单位", "label": "施工单位", "required": false, "type": "text", "source": "manual" }
-      ]
-    },
-    {
-      "id": "budget-review-report",
-      "name": "初步预算评审报告（财政）",
-      "fileName": "初步预算评审报告模板（财政）征求意见2024.docx",
-      "description": "财政初步预算评审报告模板，适用于预算评审场景",
-      "createdAt": "2024-01-01",
-      "fields": [
-        { "name": "项目名称", "label": "项目名称", "required": true, "type": "text", "source": "excel" },
-        { "name": "项目编码", "label": "项目编码", "required": false, "type": "text", "source": "excel" },
-        { "name": "送审金额", "label": "送审金额(元)", "required": true, "type": "money", "source": "excel" },
-        { "name": "审定金额", "label": "审定金额(元)", "required": true, "type": "money", "source": "excel" },
-        { "name": "审核差额", "label": "审核差额(元)", "required": false, "type": "money", "source": "excel" },
-        { "name": "评审日期", "label": "评审日期", "required": true, "type": "date", "source": "manual" },
-        { "name": "评审人员", "label": "评审人员", "required": true, "type": "text", "source": "manual" },
-        { "name": "委托单位", "label": "委托单位", "required": false, "type": "text", "source": "manual" },
-        { "name": "项目地址", "label": "项目地址", "required": false, "type": "text", "source": "manual" },
-        { "name": "建设规模", "label": "建设规模", "required": false, "type": "text", "source": "manual" }
+      "Id": "111-20260725163203",
+      "Name": "111",
+      "FileName": "111-20260725163203.docx",
+      "Description": "\u6D4B\u8BD5",
+      "CreatedAt": "2026-07-25",
+      "Fields": [
+        {
+          "Name": "\u9879\u76EE\u540D\u79F0",
+          "Label": "\u9879\u76EE\u540D\u79F0",
+          "Required": true,
+          "Type": "text",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": null,
+          "HelpText": null,
+          "Options": null
+        }
       ]
     }
   ]

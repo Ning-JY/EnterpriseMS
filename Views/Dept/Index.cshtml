@@ -55,13 +55,13 @@
                         <td>
                             @if (canAdd)
                             {
-                                <button class="btn btn-xs btn-outline-success" onclick="openAddModal(@dept.Id, '@dept.DeptName')">
+                                <button class="btn btn-xs btn-outline-success" onclick="openAddModal(@dept.Id, '@JavaScriptEncoder.Default.Encode(dept.DeptName)')">
                                     <i class="fas fa-plus"></i> 新增子部门
                                 </button>
                             }
                             @if (canEdit)
                             {
-                                <button class="btn btn-xs btn-info" onclick="openEditModal(@dept.Id, '@dept.DeptName', @dept.ParentId, '@dept.Leader', '@dept.Phone', @dept.Sort)">
+                                <button class="btn btn-xs btn-info" onclick="openEditModal(@dept.Id, '@JavaScriptEncoder.Default.Encode(dept.DeptName)', @dept.ParentId, '@JavaScriptEncoder.Default.Encode(dept.Leader)', '@JavaScriptEncoder.Default.Encode(dept.Phone)', @dept.Sort)">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             }
@@ -78,13 +78,13 @@
                             <td>
                                 @if (canEdit)
                                 {
-                                    <button class="btn btn-xs btn-info" onclick="openEditModal(@child.Id, '@child.DeptName', @child.ParentId, '@child.Leader', '@child.Phone', @child.Sort)">
+                                    <button class="btn btn-xs btn-info" onclick="openEditModal(@child.Id, '@JavaScriptEncoder.Default.Encode(child.DeptName)', @child.ParentId, '@JavaScriptEncoder.Default.Encode(child.Leader)', '@JavaScriptEncoder.Default.Encode(child.Phone)', @child.Sort)">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                 }
                                 @if (canDel)
                                 {
-                                    <button class="btn btn-xs btn-danger" onclick="deleteDept(@child.Id, '@child.DeptName')">
+                                    <button class="btn btn-xs btn-danger" onclick="deleteDept(@child.Id, '@JavaScriptEncoder.Default.Encode(child.DeptName)')">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 }

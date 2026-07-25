@@ -189,12 +189,12 @@
                   @if (canMember && m.Status == 0)
                   {
                     <button class="btn btn-xs btn-info mr-1"
-                        onclick="openEditMember(@m.Id,'@m.Role','@(m.DutyDesc??"")',@m.Ratio)"
+                        onclick="openEditMember(@m.Id,'@JavaScriptEncoder.Default.Encode(m.Role)','@JavaScriptEncoder.Default.Encode(m.DutyDesc??"")',@m.Ratio)"
                         title="编辑">
                       <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn btn-xs btn-danger"
-                        onclick="removeMember(@m.Id,'@m.EmployeeName')"
+                        onclick="removeMember(@m.Id,'@JavaScriptEncoder.Default.Encode(m.EmployeeName)')"
                         title="移除">
                       <i class="fas fa-user-minus"></i>
                     </button>
@@ -288,7 +288,7 @@
               @if (canEdit)
               {
                 <button class="btn btn-xs btn-danger"
-                        onclick="delContract(@ct.Id,'@ct.ContractNo')">
+                        onclick="delContract(@ct.Id,'@JavaScriptEncoder.Default.Encode(ct.ContractNo)')">
                   <i class="fas fa-trash"></i>
                 </button>
               }
@@ -327,12 +327,51 @@
         </div>
       </div>
       <div class="col-lg-4 text-lg-right mt-3 mt-lg-0">
-        <button id="btnGenerateReport" class="btn btn-lg btn-primary" onclick="generateReport()">
+        <button id="btnGenerateReport" class="btn btn-lg btn-primary" onclick="openReportModal()">
           <i class="fas fa-file-download mr-1"></i> 生成成果报告
         </button>
         <div class="small text-muted mt-2" id="reportHint">
-          <i class="fas fa-lightbulb mr-1"></i>模板占位符需与系统字段同名（如「项目名称」「成员明细」）
+          <i class="fas fa-lightbulb mr-1"></i>选择模板后，系统自动带入项目信息并提示补填缺失项，再一键生成 Word。
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 成果报告生成弹窗：自动带入 + 补填缺失字段 -->
+<div class="modal fade" id="reportGenModal" tabindex="-1" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-brand">
+        <h5 class="modal-title"><i class="fas fa-file-export mr-1"></i>生成成果报告</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="关闭">&times;</button>
+      </div>
+      <div class="modal-body">
+        @Html.AntiForgeryToken()
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label">报告模板</label>
+          <div class="col-sm-9">
+            <select id="modalReportTemplate" class="form-control" onchange="loadReportPreview()">
+              <option value="">请选择…</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 border-right">
+            <h6 class="text-muted"><i class="fas fa-magic mr-1"></i>自动带入（来自项目）</h6>
+            <div id="autoFields" class="small mb-2"><span class="text-muted">请选择模板</span></div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-muted"><i class="fas fa-edit mr-1"></i>需要补填</h6>
+            <div id="manualFields"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmGen" onclick="confirmReportGenerate()">
+          <i class="fas fa-file-download mr-1"></i>生成并下载
+        </button>
       </div>
     </div>
   </div>
@@ -381,8 +420,8 @@
                     @if (canMSAdd)
                     {
                       <button class="btn btn-xs btn-info mr-1"
-                        onclick="openEditMs(@ms.Id,'@ms.MilestoneName','@(ms.MilestoneType??"")',
-                          '@ms.PlanDate.ToString("yyyy-MM-dd")','@ms.Sort','@(ms.Remark??"")')">
+                        onclick="openEditMs(@ms.Id,'@JavaScriptEncoder.Default.Encode(ms.MilestoneName)','@JavaScriptEncoder.Default.Encode(ms.MilestoneType??"")',
+                          '@ms.PlanDate.ToString("yyyy-MM-dd")','@ms.Sort','@JavaScriptEncoder.Default.Encode(ms.Remark??"")')">
                         <i class="fas fa-edit"></i>
                       </button>
                       @if (ms.Status != 2)
@@ -584,7 +623,7 @@
                 <td>
                   @if (canEdit)
                   {
-                    <button class="btn btn-xs btn-danger" onclick="delContract(@ct.Id,'@ct.ContractNo')">
+                    <button class="btn btn-xs btn-danger" onclick="delContract(@ct.Id,'@JavaScriptEncoder.Default.Encode(ct.ContractNo)')">
                       <i class="fas fa-trash"></i>
                     </button>
                   }
@@ -1172,44 +1211,117 @@ function loadReportTemplates() {
         });
 }
 
-function generateReport() {
-    var tplId = $('#reportTemplate').val();
-    if (!tplId) { layer.msg('请先选择报告模板', { icon: 2 }); return; }
+if (typeof projId === 'undefined') { var projId = @Model.Id; }
+if (typeof escapeHtml !== 'function') {
+    escapeHtml = function (s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    };
+}
 
-    var btn = $('#btnGenerateReport');
+function getAntiForgery() {
+    var el = document.querySelector('input[name="__RequestVerificationToken"]');
+    return el ? el.value : '';
+}
+
+// ── 成果报告弹窗流程 ────────────────────────────────────────
+function openReportModal() {
+    var $src = $('#reportTemplate');
+    var $dst = $('#modalReportTemplate');
+    if ($dst.children().length === 0) $dst.html($src.html());
+    var tid = $src.val();
+    if (tid) $dst.val(tid);
+    $('#reportGenModal').modal('show');
+    loadReportPreview();
+}
+
+function loadReportPreview() {
+    var tid = $('#modalReportTemplate').val();
+    if (!tid) {
+        $('#autoFields').html('<span class="text-muted">请先选择模板</span>');
+        $('#manualFields').html('');
+        return;
+    }
+    var load = layer.load(1);
+    fetch('/project/' + projId + '/report/preview-fields?templateId=' + encodeURIComponent(tid))
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+            layer.close(load);
+            if (res.code !== 200 || !res.data) { layer.msg(res.message || '加载失败', { icon: 2 }); return; }
+            var d = res.data;
+            var ah = '';
+            (d.autoFields || []).forEach(function (f) {
+                ah += '<div class="mb-1"><span class="text-muted">' + escapeHtml(f.label) + '：</span> '
+                    + escapeHtml(f.value || '（空）') + '</div>';
+            });
+            $('#autoFields').html(ah || '<span class="text-muted">无</span>');
+            var mh = '';
+            (d.manualFields || []).forEach(function (f) {
+                var req = f.required ? ' <span class="text-danger">*</span>' : '';
+                var val = f.defaultValue || '';
+                var ctrl;
+                if (f.type === 'textarea') {
+                    ctrl = '<textarea class="form-control form-control-sm" data-name="' + escapeHtml(f.name)
+                        + '" data-required="' + (f.required ? '1' : '0') + '" rows="3">' + escapeHtml(val) + '</textarea>';
+                } else if (f.type === 'date') {
+                    ctrl = '<input type="date" class="form-control form-control-sm" data-name="' + escapeHtml(f.name)
+                        + '" data-required="' + (f.required ? '1' : '0') + '" value="' + escapeHtml(val) + '">';
+                } else {
+                    ctrl = '<input type="text" class="form-control form-control-sm" data-name="' + escapeHtml(f.name)
+                        + '" data-required="' + (f.required ? '1' : '0') + '" value="' + escapeHtml(val) + '">';
+                }
+                mh += '<div class="form-group mb-2"><label class="small mb-0">' + escapeHtml(f.label) + req + '</label>'
+                    + ctrl
+                    + (f.helpText ? '<small class="form-text text-muted">' + escapeHtml(f.helpText) + '</small>' : '')
+                    + '</div>';
+            });
+            $('#manualFields').html(mh);
+        })
+        .catch(function () { layer.close(load); layer.msg('加载失败', { icon: 2 }); });
+}
+
+function confirmReportGenerate() {
+    var tid = $('#modalReportTemplate').val();
+    if (!tid) { layer.msg('请先选择模板', { icon: 2 }); return; }
+    var fields = {};
+    var missing = [];
+    $('#manualFields [data-name]').each(function () {
+        var n = $(this).data('name');
+        var v = $(this).val();
+        fields[n] = v;
+        if ($(this).attr('data-required') === '1' && !v) missing.push(n);
+    });
+    if (missing.length) { layer.msg('请填写必填项：' + missing.join('、'), { icon: 2 }); return; }
+
+    var btn = $('#btnConfirmGen');
     btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> 生成中…');
     var load = layer.load(1);
-
-    fetch('/project/' + projId + '/report/generate?templateId=' + encodeURIComponent(tplId))
+    fetch('/project/' + projId + '/report/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getAntiForgery() },
+        body: JSON.stringify({ templateId: tid, fields: fields })
+    })
         .then(function (res) {
-            if (!res.ok) {
-                return res.text().then(function (msg) { throw new Error(msg || '生成失败'); });
-            }
-            var ct = res.headers.get('content-type') || '';
-            if (ct.indexOf('application') === -1) {
-                return res.text().then(function (msg) { throw new Error(msg || '生成失败'); });
-            }
-            return res.blob().then(function (blob) {
-                var disp = res.headers.get('content-disposition') || '';
-                var fname = '@(Model.ProjName)_成果报告.docx';
-                var m = disp.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)/i);
-                if (m) fname = decodeURIComponent(m[1].replace(/^["']|["']$/g, ''));
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a');
-                a.href = url; a.download = fname;
-                document.body.appendChild(a); a.click();
-                document.body.removeChild(a);
-                setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-                layer.msg('报告已生成，开始下载', { icon: 1, time: 1500 });
-            });
+            if (!res.ok) return res.text().then(function (t) { throw new Error(t || '生成失败'); });
+            return res.blob();
         })
-        .catch(function (err) {
-            layer.msg(err.message || '生成失败', { icon: 2 });
+        .then(function (blob) {
+            var tname = $('#modalReportTemplate option:selected').text() || '成果报告';
+            var fname = '@(Model.ProjName)_' + tname + '.docx';
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url; a.download = fname;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a);
+            setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+            layer.msg('报告已生成，开始下载', { icon: 1, time: 1500 });
+            $('#reportGenModal').modal('hide');
         })
+        .catch(function (err) { layer.msg(err.message || '生成失败', { icon: 2 }); })
         .finally(function () {
             layer.closeAll();
-            btn.prop('disabled', false)
-               .html('<i class="fas fa-file-download mr-1"></i> 生成成果报告');
+            btn.prop('disabled', false).html('<i class="fas fa-file-download mr-1"></i> 生成并下载');
         });
 }
 

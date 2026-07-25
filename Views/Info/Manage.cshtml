@@ -1,0 +1,240 @@
+@using EnterpriseMS.Domain.Entities.Info
+@using System.Text.Encodings.Web
+@model List<InfoArticle>
+@{
+    ViewData["Title"] = "公告管理";
+    var categories = ViewBag.Categories as List<InfoCategory> ?? new();
+    var curCatId   = ViewBag.CategoryId as long?;
+    var keyword    = ViewBag.Keyword as string;
+    var total      = (int)(ViewBag.Total ?? 0);
+    var page       = (int)(ViewBag.Page ?? 1);
+}
+@section Styles {
+    <style>.article-content { max-width: 480px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }</style>
+}
+
+<div class="content-header"><div class="container-fluid">
+    <div class="row mb-2">
+        <div class="col-sm-6">
+            <h1 class="m-0">
+                <a href="/" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
+                公告管理
+            </h1>
+        </div>
+        <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="/">首页</a></li>
+                <li class="breadcrumb-item"><a href="/info/manage">资讯公告</a></li>
+                <li class="breadcrumb-item active">公告管理</li>
+            </ol>
+        </div>
+    </div>
+</div></div>
+
+<section class="content"><div class="container-fluid">
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">公告列表（共 @total 条）</h3>
+        <div class="card-tools">
+            <form id="searchForm" method="get" action="/info/manage" class="d-inline-flex mr-2">
+                <select name="categoryId" class="form-control form-control-sm mr-1" style="width:130px" onchange="this.form.submit()">
+                    <option value="">全部分类</option>
+                    @foreach (var c in categories)
+                    {
+                        <option value="@c.Id" selected="@(curCatId == c.Id ? "selected" : null)">@c.CategoryName</option>
+                    }
+                </select>
+                <input name="keyword" class="form-control form-control-sm mr-1" placeholder="搜索标题" value="@keyword" style="width:160px">
+                <input type="hidden" name="page" value="1">
+                <button class="btn btn-sm btn-primary">搜索</button>
+            </form>
+            <button class="btn btn-sm btn-success" onclick="openArticleModal(0)">
+                <i class="fas fa-plus mr-1"></i> 新建公告
+            </button>
+        </div>
+    </div>
+    <div class="card-body table-responsive p-0">
+        <table class="table table-sm table-hover">
+            <thead class="thead-light">
+                <tr>
+                    <th>标题</th><th>分类</th><th>状态</th><th>置顶</th><th>公开</th>
+                    <th>发布时间</th><th>阅读</th><th class="text-center">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr class="@(a.Status == 0 ? "table-secondary" : "")">
+                        <td>
+                            @if (a.IsTop == 1) { <span class="badge badge-danger mr-1">顶</span> }
+                            <strong>@a.Title</strong>
+                            @if (!string.IsNullOrEmpty(a.Content))
+                            { <div class="article-content text-muted small">@a.Content</div> }
+                        </td>
+                        <td><small>@(a.Category?.CategoryName ?? "未分类")</small></td>
+                        <td>
+                            @if (a.Status == 1) { <span class="badge badge-success">已发布</span> }
+                            else { <span class="badge badge-secondary">草稿</span> }
+                        </td>
+                        <td>@(a.IsTop == 1 ? "是" : "否")</td>
+                        <td>@(a.IsPublic == 1 ? "是" : "否")</td>
+                        <td><small>@(a.PublishTime?.ToString("yyyy-MM-dd") ?? "-")</small></td>
+                        <td><span class="badge badge-info">@a.ViewCount</span></td>
+                        <td class="text-center">
+                            <button class="btn btn-xs btn-primary mr-1" onclick="openArticleModal(@a.Id)" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-xs btn-danger"
+                                    onclick="deleteArticle(@a.Id, '@JavaScriptEncoder.Default.Encode(a.Title)')" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="8" class="text-center text-muted py-4">暂无公告</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @{
+        var paged = new EnterpriseMS.Common.PagedResult<InfoArticle>
+        {
+            Items = Model, Total = total, Page = page, PageSize = 15,
+        };
+    }
+    <partial name="_Pagination" model="paged" />
+</div>
+</div></section>
+
+<!-- 公告编辑弹窗 -->
+<div class="modal fade" id="articleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title"><i class="fas fa-bullhorn mr-2"></i>公告编辑</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <form id="articleForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="articleId" name="id" value="0">
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label>标题 <span class="text-danger">*</span></label>
+                            <input type="text" id="articleTitle" name="title" class="form-control" placeholder="公告标题" maxlength="200">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>分类 <span class="text-danger">*</span></label>
+                            <select id="articleCategory" name="categoryId" class="form-control">
+                                <option value="">请选择分类</option>
+                                @foreach (var c in categories)
+                                {
+                                    <option value="@c.Id">@c.CategoryName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>内容</label>
+                    <textarea id="articleContent" name="content" class="form-control" rows="6" placeholder="公告正文（纯文本）"></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>状态</label>
+                            <select id="articleStatus" name="status" class="form-control">
+                                <option value="1">已发布</option>
+                                <option value="0">草稿</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="custom-control custom-switch mb-3">
+                            <input type="checkbox" class="custom-control-input" id="articleTop" name="isTop" value="true">
+                            <label class="custom-control-label" for="articleTop">置顶</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="custom-control custom-switch mb-3">
+                            <input type="checkbox" class="custom-control-input" id="articlePublic" name="isPublic" value="true">
+                            <label class="custom-control-label" for="articlePublic">公开展示（/pub 可见）</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveArticle()">
+                    <i class="fas fa-save mr-1"></i> 保存
+                </button>
+            </div>
+        </form>
+    </div></div>
+</div>
+
+@section Scripts {
+<script>
+var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+
+function openArticleModal(id) {
+    var form = document.getElementById('articleForm');
+    form.reset();
+    $('#articleId').val(id || 0);
+    $('#articleTop').prop('checked', false);
+    $('#articlePublic').prop('checked', false);
+    $('#articleStatus').val(1);
+    if (id && id > 0) {
+        $.get('/Info/Article/' + id, function (r) {
+            if (r && r.success) {
+                var d = r.data;
+                $('#articleCategory').val(d.categoryId);
+                $('#articleTitle').val(d.title);
+                $('#articleContent').val(d.content);
+                $('#articleTop').prop('checked', d.isTop == 1);
+                $('#articlePublic').prop('checked', d.isPublic == 1);
+                $('#articleStatus').val(d.status);
+            } else {
+                layer.msg((r && r.message) || '加载失败', { icon: 2 });
+            }
+        });
+    }
+    $('#articleModal').modal('show');
+}
+
+function saveArticle() {
+    var form = document.getElementById('articleForm');
+    if (!$('#articleTitle').val().trim()) { layer.msg('请填写标题', { icon: 2 }); return; }
+    if (!$('#articleCategory').val()) { layer.msg('请选择分类', { icon: 2 }); return; }
+
+    var fd = new FormData(form);
+    $.ajax({
+        url: '/Info/Save', type: 'POST', data: fd,
+        processData: false, contentType: false,
+        success: function (r) {
+            handleResult(r, function () { $('#articleModal').modal('hide'); location.reload(); });
+        },
+        error: function () { layer.msg('保存失败，请重试', { icon: 2 }); }
+    });
+}
+
+function deleteArticle(id, name) {
+    layer.confirm('确认删除公告 <b>' + name + '</b>？', { icon: 3, btn: ['确认删除', '取消'] },
+        function (i) {
+            layer.close(i);
+            var fd = new FormData();
+            fd.append('__RequestVerificationToken', antiForgery);
+            $.ajax({
+                url: '/Info/Delete/' + id, type: 'POST', data: fd,
+                processData: false, contentType: false,
+                success: function (r) { handleResult(r, function () { location.reload(); }); },
+                error: function () { layer.msg('删除失败', { icon: 2 }); }
+            });
+        });
+}
+</script>
+}

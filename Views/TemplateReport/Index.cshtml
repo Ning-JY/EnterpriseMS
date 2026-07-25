@@ -8,14 +8,14 @@
     <div class="container-fluid">
         <div class="row mb-2">
             <div class="col-sm-6">
-                <h1 class="m-0">妯℃澘鍖栨姤鍛婄敓鎴?/h1>
+                <h1 class="m-0">模板化报告生成</h1>
             </div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">棣栭〉</a></li>
-                    <li class="breadcrumb-item">閫犱环灏忓伐鍏?/li>
-                    <li class="breadcrumb-item"><a href="/templatereport/manage">鎴愭灉鎶ュ憡妯℃澘</a></li>
-                    <li class="breadcrumb-item active">妯℃澘鍖栨姤鍛婄敓鎴?/li>
+                    <li class="breadcrumb-item"><a href="/">首页</a></li>
+                    <li class="breadcrumb-item">造价小工具</li>
+                    <li class="breadcrumb-item"><a href="/templatereport/manage">成果报告模板</a></li>
+                    <li class="breadcrumb-item active">模板化报告生成</li>
                 </ol>
             </div>
         </div>
@@ -25,69 +25,69 @@
 <section class="content">
     <div class="container-fluid">
 
-        @** 鍚戝姝ラ鏉?*@
+        @* 向导步骤条 *@
         <div class="card card-outline card-primary mb-3">
             <div class="card-body py-3">
                 <div class="wizard-stepper">
                     <div class="wizard-step active" id="wizStep1">
                         <div class="step-circle">1</div>
-                        <div class="step-label">閫夋嫨妯℃澘</div>
+                        <div class="step-label">选择模板</div>
                     </div>
                     <div class="wizard-step" id="wizStep2">
                         <div class="step-circle">2</div>
-                        <div class="step-label">瀵煎叆Excel</div>
+                        <div class="step-label">导入Excel</div>
                     </div>
                     <div class="wizard-step" id="wizStep3">
                         <div class="step-circle">3</div>
-                        <div class="step-label">瀛楁鏄犲皠</div>
+                        <div class="step-label">字段映射</div>
                     </div>
                     <div class="wizard-step" id="wizStep4">
                         <div class="step-circle">4</div>
-                        <div class="step-label">琛ュ厖濉啓</div>
+                        <div class="step-label">补充填写</div>
                     </div>
                     <div class="wizard-step" id="wizStep5">
                         <div class="step-circle">5</div>
-                        <div class="step-label">棰勮</div>
+                        <div class="step-label">预览</div>
                     </div>
                     <div class="wizard-step" id="wizStep6">
                         <div class="step-circle">6</div>
-                        <div class="step-label">鐢熸垚涓嬭浇</div>
+                        <div class="step-label">生成下载</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        @** 姝ラ1: 閫夋嫨妯℃澘 *@
+        @* 步骤1: 选择模板 *@
         <div id="wizContent1" class="card">
             <div class="card-header bg-primary text-white">
-                <i class="fas fa-file-word mr-1"></i>姝ラ1: 閫夋嫨鎶ュ憡妯℃澘
+                <i class="fas fa-file-word mr-1"></i>步骤1: 选择报告模板
             </div>
             <div class="card-body">
                 <div class="row" id="templateList">
                     <div class="col-12 text-center text-muted py-4">
                         <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
-                        <p>鍔犺浇妯℃澘鍒楄〃...</p>
+                        <p>加载模板列表...</p>
                     </div>
                 </div>
                 <div class="text-right mt-3">
                     <button class="btn btn-primary" onclick="goWizardStep(2)" id="btnStep1Next" disabled>
-                        涓嬩竴姝?<i class="fas fa-arrow-right ml-1"></i>
+                        下一步<i class="fas fa-arrow-right ml-1"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        @** 姝ラ2: 瀵煎叆Excel *@
+        @* 步骤2: 导入Excel *@
         <div id="wizContent2" class="card" style="display:none;">
             <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <span><i class="fas fa-file-excel mr-1"></i>姝ラ2: 瀵煎叆Excel鏁版嵁</span>
-                <button class="btn btn-sm btn-light" onclick="goWizardStep(1)"><i class="fas fa-arrow-left mr-1"></i>杩斿洖</button>
+                <span><i class="fas fa-file-excel mr-1"></i>步骤2: 导入Excel数据</span>
+                <button class="btn btn-sm btn-light" onclick="goWizardStep(1)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
             </div>
             <div class="card-body">
                 <div class="mb-3">
                     <input type="file" id="excelUpload" accept=".xlsx,.xls" style="display:none">
                     <button class="btn btn-primary" onclick="document.getElementById('excelUpload').click()">
-                        <i class="fas fa-folder-open mr-1"></i>閫夋嫨Excel鏂囦欢
+                        <i class="fas fa-folder-open mr-1"></i>选择Excel文件
                     </button>
                     <span id="excelFileName" class="ml-2 text-muted"></span>
                 </div>
@@ -95,112 +95,112 @@
                     <div class="col-md-3">
                         <div class="card">
                             <div class="card-header bg-info text-white py-2">
-                                <i class="fas fa-folder-open mr-1"></i>椤圭洰缁撴瀯
+                                <i class="fas fa-folder-open mr-1"></i>项目结构
                             </div>
                             <div class="card-body p-2 tree-scroll" id="excelTree">
-                                <div class="text-muted small">璇峰厛瀵煎叆Excel</div>
+                                <div class="text-muted small">请先导入Excel</div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-9">
                         <div class="alert alert-info small mb-0">
                             <i class="fas fa-info-circle mr-1"></i>
-                            瀵煎叆Excel鍚庯紝鐐瑰嚮宸︿晶椤圭洰鍚嶇О鏌ョ湅鏁版嵁棰勮
+                            导入Excel后，点击左侧项目名称查看数据预览
                         </div>
                         <div id="excelPreview" class="mt-3"></div>
                     </div>
                 </div>
                 <div class="text-right mt-3">
-                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(1)"><i class="fas fa-arrow-left mr-1"></i>涓婁竴姝?/button>
+                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(1)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
                     <button class="btn btn-primary" onclick="goWizardStep(3)" id="btnStep2Next" disabled>
-                        涓嬩竴姝?<i class="fas fa-arrow-right ml-1"></i>
+                        下一步<i class="fas fa-arrow-right ml-1"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        @** 姝ラ3: 瀛楁鏄犲皠 *@
+        @* 步骤3: 字段映射 *@
         <div id="wizContent3" class="card" style="display:none;">
             <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <span><i class="fas fa-map mr-1"></i>姝ラ3: 瀛楁鏄犲皠</span>
-                <button class="btn btn-sm btn-light" onclick="goWizardStep(2)"><i class="fas fa-arrow-left mr-1"></i>杩斿洖</button>
+                <span><i class="fas fa-map mr-1"></i>步骤3: 字段映射</span>
+                <button class="btn btn-sm btn-light" onclick="goWizardStep(2)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
             </div>
             <div class="card-body">
                 <div class="alert alert-info small">
                     <i class="fas fa-info-circle mr-1"></i>
-                    涓篍xcel涓殑姣忎竴鍒楅€夋嫨瀵瑰簲鐨勬ā鏉垮瓧娈点€傚甫 <span class="text-danger">*</span> 鐨勪负蹇呭～瀛楁銆?
+                    为Excel中的每一列选择对应的模板字段。带 <span class="text-danger">*</span> 的为必填字段。
                 </div>
                 <div class="mapping-scroll" id="mappingTable">
-                    <div class="text-muted text-center py-3">璇峰厛瀵煎叆Excel骞堕€夋嫨椤圭洰</div>
+                    <div class="text-muted text-center py-3">请先导入Excel并选择项目</div>
                 </div>
                 <div class="text-right mt-3">
-                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(2)"><i class="fas fa-arrow-left mr-1"></i>涓婁竴姝?/button>
+                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(2)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
                     <button class="btn btn-success" onclick="confirmMappingAndNext()">
-                        <i class="fas fa-check mr-1"></i>纭鏄犲皠骞剁户缁?
+                        <i class="fas fa-check mr-1"></i>确认映射并继续
                     </button>
                 </div>
             </div>
         </div>
 
-        @** 姝ラ4: 琛ュ厖濉啓 *@
+        @* 步骤4: 补充填写 *@
         <div id="wizContent4" class="card" style="display:none;">
             <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <span><i class="fas fa-edit mr-1"></i>姝ラ4: 琛ュ厖濉啓淇℃伅</span>
-                <button class="btn btn-sm btn-light" onclick="goWizardStep(3)"><i class="fas fa-arrow-left mr-1"></i>杩斿洖</button>
+                <span><i class="fas fa-edit mr-1"></i>步骤4: 补充填写信息</span>
+                <button class="btn btn-sm btn-light" onclick="goWizardStep(3)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
             </div>
             <div class="card-body">
                 <div class="alert alert-info small">
                     <i class="fas fa-info-circle mr-1"></i>
-                    浠ヤ笅瀛楁闇€瑕佹墜鍔ㄥ～鍐欙紙鏈粠Excel鏄犲皠鐨勫瓧娈碉級銆?
+                    以下字段需要手动填写（未从Excel映射的字段）。
                 </div>
                 <div class="row" id="supplementaryFields">
-                    <div class="col-12 text-muted text-center py-3">鍔犺浇涓?..</div>
+                    <div class="col-12 text-muted text-center py-3">加载中...</div>
                 </div>
                 <div class="text-right mt-3">
-                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(3)"><i class="fas fa-arrow-left mr-1"></i>涓婁竴姝?/button>
+                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(3)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
                     <button class="btn btn-primary" onclick="goWizardStep(5)">
-                        涓嬩竴姝?<i class="fas fa-arrow-right ml-1"></i>
+                        下一步<i class="fas fa-arrow-right ml-1"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        @** 姝ラ5: 棰勮 *@
+        @* 步骤5: 预览 *@
         <div id="wizContent5" class="card" style="display:none;">
             <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <span><i class="fas fa-eye mr-1"></i>姝ラ5: 棰勮鎶ュ憡</span>
-                <button class="btn btn-sm btn-light" onclick="goWizardStep(4)"><i class="fas fa-arrow-left mr-1"></i>杩斿洖</button>
+                <span><i class="fas fa-eye mr-1"></i>步骤5: 预览报告</span>
+                <button class="btn btn-sm btn-light" onclick="goWizardStep(4)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
             </div>
             <div class="card-body">
                 <div id="previewContent" style="max-height:60vh;overflow-y:auto;">
                     <div class="text-muted text-center py-4">
                         <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
-                        <p>姝ｅ湪鐢熸垚棰勮...</p>
+                        <p>正在生成预览...</p>
                     </div>
                 </div>
                 <div class="text-right mt-3">
-                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(4)"><i class="fas fa-arrow-left mr-1"></i>涓婁竴姝?/button>
+                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(4)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
                     <button class="btn btn-success" onclick="goWizardStep(6)">
-                        <i class="fas fa-download mr-1"></i>鐢熸垚骞朵笅杞?
+                        <i class="fas fa-download mr-1"></i>生成并下载
                     </button>
                 </div>
             </div>
         </div>
 
-        @** 姝ラ6: 鐢熸垚涓嬭浇 *@
+        @* 步骤6: 生成下载 *@
         <div id="wizContent6" class="card" style="display:none;">
             <div class="card-header bg-success text-white">
-                <i class="fas fa-check-circle mr-1"></i>姝ラ6: 鎶ュ憡宸茬敓鎴?
+                <i class="fas fa-check-circle mr-1"></i>步骤6: 报告已生成
             </div>
             <div class="card-body text-center py-5">
                 <i class="fas fa-file-word fa-4x text-success mb-3"></i>
-                <h4>鎶ュ憡鐢熸垚鎴愬姛锛?/h4>
-                <p class="text-muted">鏂囦欢宸茶嚜鍔ㄤ笅杞斤紝濡傛湭涓嬭浇璇风偣鍑讳笅鏂规寜閽?/p>
+                <h4>报告生成成功！</h4>
+                <p class="text-muted">文件已自动下载，如未下载请点击下方按钮</p>
                 <button class="btn btn-success btn-lg mt-3" onclick="downloadReport()">
-                    <i class="fas fa-download mr-1"></i>閲嶆柊涓嬭浇
+                    <i class="fas fa-download mr-1"></i>重新下载
                 </button>
                 <button class="btn btn-outline-primary mt-3 ml-2" onclick="resetWizard()">
-                    <i class="fas fa-redo mr-1"></i>閲嶆柊寮€濮?
+                    <i class="fas fa-redo mr-1"></i>重新开始
                 </button>
             </div>
         </div>
@@ -213,9 +213,7 @@
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
     <script>
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-        //  鍏ㄥ眬鐘舵€?
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        // ============ 全局状态 ============
         let currentWizardStep = 1;
         let selectedTemplate = null;
         let workbookSheets = [];
@@ -228,9 +226,7 @@
         let currentChildNode = null;
         let supplementaryFieldValues = {};
 
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-        //  鍚戝瀵艰埅
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        // ============ 向导导航 ============
         function goWizardStep(step) {
             currentWizardStep = step;
 
@@ -251,9 +247,7 @@
             if (step === 5) generatePreview();
         }
 
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-        //  姝ラ1: 鍔犺浇妯℃澘鍒楄〃
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        // ============ 步骤1: 加载模板列表 ============
         async function loadTemplates() {
             try {
                 let resp = await fetch('/templatereport/templates');
@@ -262,7 +256,7 @@
                     renderTemplateList(result.data);
                 }
             } catch (err) {
-                console.error('鍔犺浇妯℃澘澶辫触:', err);
+                console.error('加载模板失败:', err);
             }
         }
 
@@ -275,14 +269,14 @@
                             <h5 class="card-title"><i class="fas fa-file-word text-primary mr-1"></i>${escapeHtml(t.name)}</h5>
                             <p class="card-text text-muted small">${escapeHtml(t.description || '')}</p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge badge-info">${t.fields ? t.fields.length : 0} 涓瓧娈?/span>
+                                <span class="badge badge-info">${t.fields ? t.fields.length : 0} 个字段</span>
                                 <small class="text-muted">${escapeHtml(t.createdAt || '')}</small>
                             </div>
                         </div>
                     </div>
                 </div>`;
             }
-            if (!html) html = '<div class="col-12 text-center text-muted py-4"><p>鏆傛棤鍙敤妯℃澘</p><a href="/templatereport/templateconfig" class="btn btn-primary">鍓嶅線閰嶇疆妯℃澘</a></div>';
+            if (!html) html = '<div class="col-12 text-center text-muted py-4"><p>暂无可用的模板</p><a href="/templatereport/templateconfig" class="btn btn-primary">前往配置模板</a></div>';
             document.getElementById('templateList').innerHTML = html;
         }
 
@@ -294,9 +288,7 @@
             document.getElementById('btnStep1Next').disabled = false;
         }
 
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-        //  姝ラ2: 瀵煎叆Excel
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        // ============ 步骤2: 导入Excel ============
         document.getElementById('excelUpload').addEventListener('change', async (e) => {
             let file = e.target.files[0];
             if (!file) return;
@@ -313,7 +305,7 @@
             }
 
             if (!workbookSheets.length) {
-                layer.msg('鏃犳湁鏁堝伐浣滆〃', { icon: 2 });
+                layer.msg('无有效工作表', { icon: 2 });
                 return;
             }
 
@@ -337,8 +329,8 @@
                 if (!parsed) continue;
 
                 let cid = `child_${sIdx}_${childId++}`;
-                childNodes.push({ id: cid, label: parsed.child || "鏈懡鍚?, sheetIdx: sIdx, parentName: parsed.parent });
-                let pKey = parsed.parent || "鏈垎缁?;
+                childNodes.push({ id: cid, label: parsed.child || "未命名", sheetIdx: sIdx, parentName: parsed.parent });
+                let pKey = parsed.parent || "未分组";
                 if (!parentMap.has(pKey)) parentMap.set(pKey, { id: `parent_${pKey}`, name: pKey, childrenIds: [] });
                 parentMap.get(pKey).childrenIds.push(cid);
             }
@@ -427,29 +419,27 @@
             document.getElementById('excelPreview').innerHTML = html;
         }
 
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-        //  姝ラ3: 瀛楁鏄犲皠
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        // ============ 步骤3: 字段映射 ============
         async function goWizardStep3() {
             if (!selectedTemplate) {
-                layer.msg('璇峰厛閫夋嫨妯℃澘', { icon: 2 });
+                layer.msg('请先选择模板', { icon: 2 });
                 return;
             }
             if (!workbookSheets.length) {
-                layer.msg('璇峰厛瀵煎叆Excel', { icon: 2 });
+                layer.msg('请先导入Excel', { icon: 2 });
                 return;
             }
 
             let template = await fetchTemplate(selectedTemplate);
             if (!template || !template.fields) {
-                layer.msg('鏃犳硶鍔犺浇妯℃澘瀛楁', { icon: 2 });
+                layer.msg('无法加载模板字段', { icon: 2 });
                 return;
             }
 
             let sheet = workbookSheets[0];
             let headers = sheet.data[2] || [];
 
-            let html = '<table class="table table-sm"><thead><tr><th>Excel鍒?/th><th>绀轰緥鏁版嵁</th><th>鏄犲皠鍒版ā鏉垮瓧娈?/th></tr></thead><tbody>';
+            let html = '<table class="table table-sm"><thead><tr><th>Excel列</th><th>示例数据</th><th>映射到模板字段</th></tr></thead><tbody>';
             for (let i = 0; i < headers.length; i++) {
                 let headerName = String(headers[i] || '');
                 let sampleData = sheet.data.slice(3, 4).map(r => r[i]).join(', ');
@@ -458,7 +448,7 @@
                     <td class="text-muted" style="font-size:12px;">${escapeHtml(sampleData.substring(0, 30))}</td>
                     <td>
                         <select class="form-control form-control-sm mapping-select" data-colidx="${i}">
-                            <option value="">涓嶆槧灏?/option>`;
+                            <option value="">不映射</option>`;
                 for (let f of template.fields) {
                     if (f.source === 'excel') {
                         html += `<option value="${escapeHtml(f.name)}">${escapeHtml(f.label)}${f.required ? ' *' : ''}</option>`;
@@ -493,7 +483,7 @@
             });
 
             if (mappedCount === 0) {
-                layer.msg('璇疯嚦灏戞槧灏勪竴涓瓧娈?, { icon: 2 });
+                layer.msg('请至少映射一个字段', { icon: 2 });
                 return;
             }
 
@@ -508,7 +498,7 @@
                     for (let [field, col] of Object.entries(currentMapping)) {
                         item[field] = row[col] !== undefined ? String(row[col]) : '';
                     }
-                    if (item['椤圭洰鍚嶇О'] || item['椤圭洰缂栫爜']) parsed.push(item);
+                    if (item['项目名称'] || item['项目编码']) parsed.push(item);
                 }
                 sheetsStore.push({ sheetIdx: sIdx, sheetName: sheet.name, parsedRows: parsed });
             }
@@ -518,9 +508,7 @@
             buildSupplementaryFields();
         }
 
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-        //  姝ラ4: 琛ュ厖濉啓
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        // ============ 步骤4: 补充填写 ============
         async function buildSupplementaryFields() {
             let template = await fetchTemplate(selectedTemplate);
             if (!template || !template.fields) return;
@@ -534,13 +522,13 @@
                     html += `<input type="date" class="form-control" data-field="${escapeHtml(f.name)}" value="${escapeHtml(f.defaultValue || '')}">`;
                 } else if (f.type === 'select' && f.options) {
                     html += `<select class="form-control" data-field="${escapeHtml(f.name)}">
-                        <option value="">璇烽€夋嫨</option>`;
+                        <option value="">请选择</option>`;
                     for (let opt of f.options) {
                         html += `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>`;
                     }
                     html += '</select>';
                 } else {
-                    html += `<input type="text" class="form-control" data-field="${escapeHtml(f.name)}" placeholder="璇疯緭鍏?{escapeHtml(f.label)}" value="${escapeHtml(f.defaultValue || '')}">`;
+                    html += `<input type="text" class="form-control" data-field="${escapeHtml(f.name)}" placeholder="请输入${escapeHtml(f.label)}" value="${escapeHtml(f.defaultValue || '')}">`;
                 }
                 if (f.helpText) html += `<small class="form-text text-muted">${escapeHtml(f.helpText)}</small>`;
                 html += '</div>';
@@ -558,11 +546,9 @@
             });
         }
 
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-        //  姝ラ5: 棰勮
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        // ============ 步骤5: 预览 ============
         async function generatePreview() {
-            document.getElementById('previewContent').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x mb-2"></i><p>姝ｅ湪鐢熸垚棰勮...</p></div>';
+            document.getElementById('previewContent').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x mb-2"></i><p>正在生成预览...</p></div>';
 
             let excelRows = [];
             if (sheetsStore.length > 0 && currentChildNode) {
@@ -593,18 +579,16 @@
                 });
                 let result = await resp.json();
                 if (result.code === 200 && result.data) {
-                    document.getElementById('previewContent').innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle mr-1"></i>棰勮宸茬敓鎴愶紝璇风‘璁ゆ暟鎹棤璇悗鐐瑰嚮"鐢熸垚骞朵笅杞?</div>';
+                    document.getElementById('previewContent').innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle mr-1"></i>预览已生成，请确认数据无误后点击"生成并下载"</div>';
                 } else {
-                    document.getElementById('previewContent').innerHTML = `<div class="alert alert-warning">${escapeHtml(result.message || '棰勮鐢熸垚澶辫触')}</div>`;
+                    document.getElementById('previewContent').innerHTML = `<div class="alert alert-warning">${escapeHtml(result.message || '预览生成失败')}</div>`;
                 }
             } catch (err) {
-                document.getElementById('previewContent').innerHTML = `<div class="alert alert-danger">棰勮澶辫触: ${escapeHtml(err.message)}</div>`;
+                document.getElementById('previewContent').innerHTML = `<div class="alert alert-danger">预览失败: ${escapeHtml(err.message)}</div>`;
             }
         }
 
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-        //  姝ラ6: 鐢熸垚涓嬭浇
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        // ============ 步骤6: 生成下载 ============
         async function downloadReport() {
             let excelRows = [];
             if (sheetsStore.length > 0) {
@@ -633,16 +617,16 @@
 
                 if (resp.ok) {
                     let blob = await resp.blob();
-                    let fileName = resp.headers.get('content-disposition')?.split('filename=')[1] || '鎶ュ憡.docx';
+                    let fileName = resp.headers.get('content-disposition')?.split('filename=')[1] || '报告.docx';
                     saveAs(blob, fileName);
                     goWizardStep(6);
                 } else {
                     let result = await resp.json();
-                    layer.msg(result.message || '鐢熸垚澶辫触', { icon: 2 });
+                    layer.msg(result.message || '生成失败', { icon: 2 });
                 }
             } catch (err) {
                 layer.closeAll();
-                layer.msg('鐢熸垚澶辫触: ' + err.message, { icon: 2 });
+                layer.msg('生成失败: ' + err.message, { icon: 2 });
             }
         }
 
@@ -671,9 +655,7 @@
             })[m]);
         }
 
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
-        //  鍒濆鍖?
-        // 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
+        // ============ 初始化 ============
         loadTemplates();
     </script>
 }
