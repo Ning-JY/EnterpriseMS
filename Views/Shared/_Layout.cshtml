@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="~/lib/adminlte/css/adminlte.min.css">
     <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
+    <link rel="stylesheet" href="~/css/ems-widgets.css" asp-append-version="true">
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
@@ -117,6 +118,13 @@
 
     <!-- Content Wrapper -->
     <div class="content-wrapper">
+        <!-- 公告走马灯（navbar 下方细条；无公告时自动隐藏） -->
+        <div class="ems-marquee d-none d-md-flex" id="emsMarquee">
+            <span class="ems-marquee-label"><i class="fas fa-bullhorn mr-1"></i>公告</span>
+            <div class="ems-marquee-viewport">
+                <div class="ems-marquee-track" id="emsMarqueeTrack"></div>
+            </div>
+        </div>
         @RenderBody()
     </div>
 
@@ -133,6 +141,8 @@
 <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="~/lib/adminlte/js/adminlte.min.js"></script>
 <script src="~/lib/layer/layer.js"></script>
+<script src="~/js/ems-alert.js" asp-append-version="true"></script>
+<script src="~/js/ems-multiselect.js" asp-append-version="true"></script>
 <script src="~/js/site.js" asp-append-version="true"></script>
 <script>
 // layer未加载时降级为原生弹窗，避免页面无任何反馈

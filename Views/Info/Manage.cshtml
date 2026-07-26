@@ -15,12 +15,7 @@
 
 <div class="content-header"><div class="container-fluid">
     <div class="row mb-2">
-        <div class="col-sm-6">
-            <h1 class="m-0">
-                <a href="/" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
-                公告管理
-            </h1>
-        </div>
+        <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-bullhorn mr-2"></i>公告管理</h1></div>
         <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
                 <li class="breadcrumb-item"><a href="/">首页</a></li>
@@ -32,27 +27,44 @@
 </div></div>
 
 <section class="content"><div class="container-fluid">
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">公告列表（共 @total 条）</h3>
-        <div class="card-tools">
-            <form id="searchForm" method="get" action="/info/manage" class="d-inline-flex mr-2">
-                <select name="categoryId" class="form-control form-control-sm mr-1" style="width:130px" onchange="this.form.submit()">
-                    <option value="">全部分类</option>
-                    @foreach (var c in categories)
-                    {
-                        <option value="@c.Id" selected="@(curCatId == c.Id ? "selected" : null)">@c.CategoryName</option>
-                    }
-                </select>
-                <input name="keyword" class="form-control form-control-sm mr-1" placeholder="搜索标题" value="@keyword" style="width:160px">
-                <input type="hidden" name="page" value="1">
-                <button class="btn btn-sm btn-primary">搜索</button>
+
+    <!-- 搜索 -->
+    <div class="card card-default search-card">
+        <div class="card-body">
+            <form id="searchForm" method="get" action="/info/manage">
+                <div class="row">
+                    <div class="col-md-3">
+                        <input name="keyword" class="form-control form-control-sm" placeholder="搜索标题" value="@keyword">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="categoryId" class="form-control form-control-sm" onchange="this.form.submit()">
+                            <option value="">全部分类</option>
+                            @foreach (var c in categories)
+                            {
+                                <option value="@c.Id" selected="@(curCatId == c.Id ? "selected" : null)">@c.CategoryName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm mr-1"><i class="fas fa-search"></i> 搜索</button>
+                        <a href="/info/manage" class="btn btn-default btn-sm"><i class="fas fa-redo"></i> 重置</a>
+                    </div>
+                    <div class="col-md-2 text-right">
+                        <button type="button" class="btn btn-success btn-sm" onclick="openArticleModal(0)">
+                            <i class="fas fa-plus"></i> 新建公告
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" name="page" id="pageInput" value="1">
             </form>
-            <button class="btn btn-sm btn-success" onclick="openArticleModal(0)">
-                <i class="fas fa-plus mr-1"></i> 新建公告
-            </button>
         </div>
     </div>
+
+    <!-- 列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">共 @total 条</h3>
+        </div>
     <div class="card-body table-responsive p-0">
         <table class="table table-sm table-hover">
             <thead class="thead-light">
@@ -85,7 +97,7 @@
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button class="btn btn-xs btn-danger"
-                                    onclick="deleteArticle(@a.Id, '@JavaScriptEncoder.Default.Encode(a.Title)')" title="删除">
+                                    onclick="deleteArticle(@a.Id, '@EncodeHelper.SafeEncode(a.Title)')" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -199,7 +211,7 @@ function openArticleModal(id) {
                 $('#articlePublic').prop('checked', d.isPublic == 1);
                 $('#articleStatus').val(d.status);
             } else {
-                layer.msg((r && r.message) || '加载失败', { icon: 2 });
+                ems.msg((r && r.message) || '加载失败', { icon: 2 });
             }
         });
     }
@@ -208,8 +220,8 @@ function openArticleModal(id) {
 
 function saveArticle() {
     var form = document.getElementById('articleForm');
-    if (!$('#articleTitle').val().trim()) { layer.msg('请填写标题', { icon: 2 }); return; }
-    if (!$('#articleCategory').val()) { layer.msg('请选择分类', { icon: 2 }); return; }
+    if (!$('#articleTitle').val().trim()) { ems.msg('请填写标题', { icon: 2 }); return; }
+    if (!$('#articleCategory').val()) { ems.msg('请选择分类', { icon: 2 }); return; }
 
     var fd = new FormData(form);
     $.ajax({
@@ -218,21 +230,21 @@ function saveArticle() {
         success: function (r) {
             handleResult(r, function () { $('#articleModal').modal('hide'); location.reload(); });
         },
-        error: function () { layer.msg('保存失败，请重试', { icon: 2 }); }
+        error: function () { ems.msg('保存失败，请重试', { icon: 2 }); }
     });
 }
 
 function deleteArticle(id, name) {
-    layer.confirm('确认删除公告 <b>' + name + '</b>？', { icon: 3, btn: ['确认删除', '取消'] },
+    ems.confirm('确认删除公告 <b>' + name + '</b>？', { icon: 3, btn: ['确认删除', '取消'] },
         function (i) {
-            layer.close(i);
+            ems.close(i);
             var fd = new FormData();
             fd.append('__RequestVerificationToken', antiForgery);
             $.ajax({
                 url: '/Info/Delete/' + id, type: 'POST', data: fd,
                 processData: false, contentType: false,
                 success: function (r) { handleResult(r, function () { location.reload(); }); },
-                error: function () { layer.msg('删除失败', { icon: 2 }); }
+                error: function () { ems.msg('删除失败', { icon: 2 }); }
             });
         });
 }

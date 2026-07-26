@@ -10,12 +10,7 @@
 
 <div class="content-header"><div class="container-fluid">
     <div class="row mb-2">
-        <div class="col-sm-6">
-            <h1 class="m-0">
-                <a href="/info/manage" class="text-muted mr-2"><i class="fas fa-arrow-left"></i></a>
-                分类管理
-            </h1>
-        </div>
+        <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-tags mr-2"></i>分类管理</h1></div>
         <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
                 <li class="breadcrumb-item"><a href="/">首页</a></li>
@@ -27,15 +22,26 @@
 </div></div>
 
 <section class="content"><div class="container-fluid">
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">分类列表（共 @Model.Count 个）</h3>
-        <div class="card-tools">
-            <button class="btn btn-sm btn-success" onclick="openCategoryModal(0)">
-                <i class="fas fa-plus mr-1"></i> 新建分类
-            </button>
+
+    <!-- 操作区 -->
+    <div class="card card-default search-card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-10"></div>
+                <div class="col-md-2 text-right">
+                    <button type="button" class="btn btn-success btn-sm" onclick="openCategoryModal(0)">
+                        <i class="fas fa-plus"></i> 新建分类
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- 列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">共 @Model.Count 个</h3>
+        </div>
     <div class="card-body table-responsive p-0">
         <table class="table table-sm table-hover">
             <thead class="thead-light">
@@ -48,13 +54,22 @@
                         <td><strong>@c.CategoryName</strong></td>
                         <td>@c.Sort</td>
                         <td>@(c.IsPublic == 1 ? "是" : "否")</td>
-                        <td>@(c.Status == 1 ? "<span class='badge badge-success'>启用</span>" : "<span class='badge badge-secondary'>禁用</span>")</td>
+                        <td>
+                            @if (c.Status == 1)
+                            {
+                                <span class="badge badge-success">启用</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-secondary">禁用</span>
+                            }
+                        </td>
                         <td class="text-center">
                             <button class="btn btn-xs btn-primary mr-1" onclick="openCategoryModal(@c.Id)" title="编辑">
                                 <i class="fas fa-edit"></i>
                             </button>
                             <button class="btn btn-xs btn-danger"
-                                    onclick="deleteCategory(@c.Id, '@JavaScriptEncoder.Default.Encode(c.CategoryName)')" title="删除">
+                                    onclick="deleteCategory(@c.Id, '@EncodeHelper.SafeEncode(c.CategoryName)')" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -137,7 +152,7 @@ function openCategoryModal(id) {
                 $('#catStatus').val(d.status);
                 $('#catPublic').prop('checked', d.isPublic == 1);
             } else {
-                layer.msg((r && r.message) || '加载失败', { icon: 2 });
+                ems.msg((r && r.message) || '加载失败', { icon: 2 });
             }
         });
     }
@@ -145,27 +160,27 @@ function openCategoryModal(id) {
 }
 
 function saveCategory() {
-    if (!$('#catName').val().trim()) { layer.msg('请填写分类名称', { icon: 2 }); return; }
+    if (!$('#catName').val().trim()) { ems.msg('请填写分类名称', { icon: 2 }); return; }
     var fd = new FormData(document.getElementById('catForm'));
     $.ajax({
         url: '/Info/SaveCategory', type: 'POST', data: fd,
         processData: false, contentType: false,
         success: function (r) { handleResult(r, function () { $('#catModal').modal('hide'); location.reload(); }); },
-        error: function () { layer.msg('保存失败，请重试', { icon: 2 }); }
+        error: function () { ems.msg('保存失败，请重试', { icon: 2 }); }
     });
 }
 
 function deleteCategory(id, name) {
-    layer.confirm('确认删除分类 <b>' + name + '</b>？', { icon: 3, btn: ['确认删除', '取消'] },
+    ems.confirm('确认删除分类 <b>' + name + '</b>？', { icon: 3, btn: ['确认删除', '取消'] },
         function (i) {
-            layer.close(i);
+            ems.close(i);
             var fd = new FormData();
             fd.append('__RequestVerificationToken', antiForgery);
             $.ajax({
                 url: '/Info/DeleteCategory/' + id, type: 'POST', data: fd,
                 processData: false, contentType: false,
                 success: function (r) { handleResult(r, function () { location.reload(); }); },
-                error: function () { layer.msg('删除失败', { icon: 2 }); }
+                error: function () { ems.msg('删除失败', { icon: 2 }); }
             });
         });
 }

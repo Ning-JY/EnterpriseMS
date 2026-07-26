@@ -131,28 +131,28 @@
                     var name = prompt('请输入项目名称（一键建项并关联）：');
                     if (name) doQuickCreate(name.trim());
                 } else {
-                    layer.prompt({
+                    ems.prompt({
                         title: '一键转项目',
                         formType: 0,
                         btn: ['创建并关联', '取消']
                     }, function (name, index) {
                         name = (name || '').trim();
-                        if (!name) { layer.msg('请输入项目名称', { icon: 2 }); return; }
-                        layer.close(index);
+                        if (!name) { ems.msg('请输入项目名称', { icon: 2 }); return; }
+                        ems.close(index);
                         doQuickCreate(name);
                     });
                 }
             });
 
             function doQuickCreate(name) {
-                var load = (typeof layer !== 'undefined') ? layer.load() : null;
+                var load = (typeof layer !== 'undefined') ? ems.loading() : null;
                 $.ajax({
                     url: '/project/quick-create',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ ProjName: name }),
                     success: function (r) {
-                        if (load) layer.close(load);
+                        if (load) ems.close(load);
                         if (r && r.success && r.data) {
                             $.get('/project/simple-list', function (res2) {
                                 if (res2 && res2.success && res2.data) {
@@ -160,14 +160,14 @@
                                     $sel.val(r.data.id);
                                 }
                             });
-                            if (typeof layer !== 'undefined') layer.msg('已创建项目并关联：' + name, { icon: 1 });
+                            if (typeof layer !== 'undefined') ems.msg('已创建项目并关联：' + name, { icon: 1 });
                         } else {
-                            if (typeof layer !== 'undefined') layer.msg((r && r.message) || '创建失败', { icon: 2 });
+                            if (typeof layer !== 'undefined') ems.msg((r && r.message) || '创建失败', { icon: 2 });
                         }
                     },
                     error: function () {
-                        if (load) layer.close(load);
-                        if (typeof layer !== 'undefined') layer.msg('请求失败', { icon: 2 });
+                        if (load) ems.close(load);
+                        if (typeof layer !== 'undefined') ems.msg('请求失败', { icon: 2 });
                     }
                 });
             }

@@ -43,17 +43,12 @@
                                placeholder="姓名 / 工号 / 手机" value="@ViewBag.Keyword">
                     </div>
                     <div class="col-md-3">
-                        <select name="deptId" class="form-control form-control-sm">
-                            <option value="">全部部门</option>
-                            @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
-                            {
-                                <option value="@d.Id" selected="@(ViewBag.DeptId?.ToString()==d.Id.ToString() ? "selected" : null)">@d.DeptName</option>
-                                @foreach (var c in d.Children)
-                                {
-                                    <option value="@c.Id" selected="@(ViewBag.DeptId?.ToString()==c.Id.ToString() ? "selected" : null)">&nbsp;&nbsp;└ @c.DeptName</option>
-                                }
-                            }
-                        </select>
+                        @await Component.InvokeAsync("DeptSelect", new {
+                            id = "deptId", name = "deptId",
+                            selectedId = (ViewBag.DeptId as long? ?? 0),
+                            emptyText = "全部部门",
+                            cssClass = "form-control form-control-sm"
+                        })
                     </div>
                     <div class="col-md-2">
                         <select name="status" class="form-control form-control-sm">
@@ -138,13 +133,13 @@
                             }
                             @if (canFormal && e.Status == 0)
                             {
-                                <button class="btn btn-xs btn-success" onclick="doFormal(@e.Id, '@JavaScriptEncoder.Default.Encode(e.RealName)')" title="转正">
+                                <button class="btn btn-xs btn-success" onclick="doFormal(@e.Id, '@EncodeHelper.SafeEncode(e.RealName)')" title="转正">
                                     <i class="fas fa-user-check"></i>
                                 </button>
                             }
                             @if (canLeave && e.Status != 2)
                             {
-                                <button class="btn btn-xs btn-secondary" onclick="doLeave(@e.Id, '@JavaScriptEncoder.Default.Encode(e.RealName)')" title="离职">
+                                <button class="btn btn-xs btn-secondary" onclick="doLeave(@e.Id, '@EncodeHelper.SafeEncode(e.RealName)')" title="离职">
                                     <i class="fas fa-sign-out-alt"></i>
                                 </button>
                             }
@@ -270,7 +265,7 @@ function openAddModal() {
 
 function openEditModal(id) {
     $.get('/hr/employee/json/' + id, function(r) {
-        if (!r.success) { layer.msg(r.message || '加载失败', {icon:2}); return; }
+        if (!r.success) { ems.msg(r.message || '加载失败', {icon:2}); return; }
         var e = r.data;
         $('#empModalTitle').text('编辑员工');
         $('#empId').val(e.Id);
@@ -285,7 +280,7 @@ function openEditModal(id) {
         $('#empRemark').val(e.Remark || '');
         $('#empModal').modal('show');
     }).fail(function() {
-        layer.msg('加载员工信息失败', {icon:2});
+        ems.msg('加载员工信息失败', {icon:2});
     });
 }
 
@@ -301,32 +296,32 @@ function saveEmp() {
         ProbationEndDate: $('#empProbationEnd').val() || null,
         Remark: $('#empRemark').val()
     };
-    if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
+    if (!data.RealName) { ems.msg('请填写姓名', {icon:2}); return; }
     var url = id ? '/hr/employee/update' : '/hr/employee/create';
-    var load = layer.load(1);
+    var load = ems.loading(1);
     // CSRF Token 由 site.js 的全局 $.ajaxSetup 自动注入，无需在此手动拼接
     $.ajax({ url: url, type:'POST', contentType:'application/json',
         data: JSON.stringify(data),
         success: function(r) {
-            layer.close(load);
-            if (r.success) { $('#empModal').modal('hide'); layer.msg(r.message, {icon:1, time:1500}, function(){ location.reload(); }); }
-            else layer.msg(r.message, {icon:2});
+            ems.close(load);
+            if (r.success) { $('#empModal').modal('hide'); ems.msg(r.message, {icon:1, time:1500}, function(){ location.reload(); }); }
+            else ems.msg(r.message, {icon:2});
         }
     });
 }
 
 function doFormal(id, name) {
     var today = new Date().toISOString().split('T')[0];
-    layer.open({
+    ems.open({
         type: 1, title: name + ' - 办理转正', area: ['350px', '180px'],
         content: '<div class="form-group" style="padding:15px"><label>转正日期</label><input type="date" id="formalDate" class="form-control" value="' + today + '"></div>',
         btn: ['确认转正', '取消'],
         yes: function(idx) {
             var val = $('#formalDate').val();
-            if (!val) { layer.msg('请选择日期', {icon:2}); return; }
+            if (!val) { ems.msg('请选择日期', {icon:2}); return; }
             $.post('/hr/employee/formal', {id: id, formalDate: val}, function(r) {
-                layer.close(idx);
-                layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
+                ems.close(idx);
+                ems.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
             });
         }
     });
@@ -334,16 +329,16 @@ function doFormal(id, name) {
 
 function doLeave(id, name) {
     var today = new Date().toISOString().split('T')[0];
-    layer.open({
+    ems.open({
         type: 1, title: name + ' - 办理离职', area: ['350px', '180px'],
         content: '<div class="form-group" style="padding:15px"><label>离职日期</label><input type="date" id="leaveDate" class="form-control" value="' + today + '"></div>',
         btn: ['确认离职', '取消'],
         yes: function(idx) {
             var val = $('#leaveDate').val();
-            if (!val) { layer.msg('请选择日期', {icon:2}); return; }
+            if (!val) { ems.msg('请选择日期', {icon:2}); return; }
             $.post('/hr/employee/leave', {id: id, leaveDate: val}, function(r) {
-                layer.close(idx);
-                layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
+                ems.close(idx);
+                ems.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
             });
         }
     });

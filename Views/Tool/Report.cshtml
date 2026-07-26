@@ -517,7 +517,7 @@
         function confirmMapping() {
             let selects = document.querySelectorAll(".mapping-select");
             if (!selects.length) {
-                layer.msg('请先导入 Excel 并点击左侧子节点', { icon: 2 });
+                ems.msg('请先导入 Excel 并点击左侧子节点', { icon: 2 });
                 return;
             }
             let mapping = {
@@ -531,7 +531,7 @@
                 if (field && mapping[field] !== undefined) mapping[field] = col;
             });
             if (mapping.项目名称 === -1 || mapping.送审金额 === -1) {
-                layer.msg('至少需要映射「项目名称」和「送审金额」', { icon: 2 });
+                ems.msg('至少需要映射「项目名称」和「送审金额」', { icon: 2 });
                 return;
             }
             currentMapping = mapping;
@@ -593,7 +593,7 @@
             isMapped = true;
             collapseMappingCard();
             let totalRows = sheetsStore.reduce((s, sh) => s + sh.parsedRows.length, 0);
-            layer.msg(`映射完成！共加载 ${sheetsStore.length} 个 Sheet，共 ${totalRows} 条明细`, { icon: 1 });
+            ems.msg(`映射完成！共加载 ${sheetsStore.length} 个 Sheet，共 ${totalRows} 条明细`, { icon: 1 });
             if (currentChildNode) {
                 let child = childNodes.find(c => c.id === currentChildNode);
                 if (child && sheetsStore[child.sheetIdx]) {
@@ -607,7 +607,7 @@
         // ═══════════════════════════════════════════════════════
         function applyFilters() {
             if (!isMapped || !currentChildNode) {
-                layer.msg('请先确认映射并选择左侧子节点', { icon: 2 });
+                ems.msg('请先确认映射并选择左侧子节点', { icon: 2 });
                 return;
             }
             let type = document.getElementById("type").value;
@@ -752,7 +752,7 @@
                 if (data.length >= 3) workbookSheets.push({ name, data });
             }
             if (!workbookSheets.length) {
-                layer.msg('无有效工作表（每个 Sheet 至少需要 3 行数据）', { icon: 2 });
+                ems.msg('无有效工作表（每个 Sheet 至少需要 3 行数据）', { icon: 2 });
                 return;
             }
             isMapped = false;
@@ -774,12 +774,12 @@
         // ═══════════════════════════════════════════════════════
         function previewReport() {
             if (!isMapped) {
-                layer.msg('请先确认映射', { icon: 2 });
+                ems.msg('请先确认映射', { icon: 2 });
                 return;
             }
             let selected = childNodes.filter(c => nodeChecked.get(c.id) === true);
             if (!selected.length) {
-                layer.msg('请勾选至少一个子节点', { icon: 2 });
+                ems.msg('请勾选至少一个子节点', { icon: 2 });
                 return;
             }
             let html = '';
@@ -807,7 +807,7 @@
                 html += `</ul>`;
             }
             if (!html) {
-                layer.msg('所选节点在当前筛选条件下无数据', { icon: 3 });
+                ems.msg('所选节点在当前筛选条件下无数据', { icon: 3 });
                 return;
             }
             document.getElementById("previewContent").innerHTML = html;

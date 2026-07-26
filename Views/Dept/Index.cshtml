@@ -55,13 +55,13 @@
                         <td>
                             @if (canAdd)
                             {
-                                <button class="btn btn-xs btn-outline-success" onclick="openAddModal(@dept.Id, '@JavaScriptEncoder.Default.Encode(dept.DeptName)')">
+                                <button class="btn btn-xs btn-outline-success" onclick="openAddModal(@dept.Id, '@EncodeHelper.SafeEncode(dept.DeptName)')">
                                     <i class="fas fa-plus"></i> 新增子部门
                                 </button>
                             }
                             @if (canEdit)
                             {
-                                <button class="btn btn-xs btn-info" onclick="openEditModal(@dept.Id, '@JavaScriptEncoder.Default.Encode(dept.DeptName)', @dept.ParentId, '@JavaScriptEncoder.Default.Encode(dept.Leader)', '@JavaScriptEncoder.Default.Encode(dept.Phone)', @dept.Sort)">
+                                <button class="btn btn-xs btn-info" onclick="openEditModal(@dept.Id, '@EncodeHelper.SafeEncode(dept.DeptName)', @dept.ParentId, '@EncodeHelper.SafeEncode(dept.Leader)', '@EncodeHelper.SafeEncode(dept.Phone)', @dept.Sort)">
                                     <i class="fas fa-edit"></i>
                                 </button>
                             }
@@ -78,13 +78,13 @@
                             <td>
                                 @if (canEdit)
                                 {
-                                    <button class="btn btn-xs btn-info" onclick="openEditModal(@child.Id, '@JavaScriptEncoder.Default.Encode(child.DeptName)', @child.ParentId, '@JavaScriptEncoder.Default.Encode(child.Leader)', '@JavaScriptEncoder.Default.Encode(child.Phone)', @child.Sort)">
+                                    <button class="btn btn-xs btn-info" onclick="openEditModal(@child.Id, '@EncodeHelper.SafeEncode(child.DeptName)', @child.ParentId, '@EncodeHelper.SafeEncode(child.Leader)', '@EncodeHelper.SafeEncode(child.Phone)', @child.Sort)">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                 }
                                 @if (canDel)
                                 {
-                                    <button class="btn btn-xs btn-danger" onclick="deleteDept(@child.Id, '@JavaScriptEncoder.Default.Encode(child.DeptName)')">
+                                    <button class="btn btn-xs btn-danger" onclick="deleteDept(@child.Id, '@EncodeHelper.SafeEncode(child.DeptName)')">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 }
@@ -169,23 +169,23 @@ function saveDept() {
         Leader: $('#deptLeader').val(), Phone: $('#deptPhone').val(),
         Sort: parseInt($('#deptSort').val()) || 10
     };
-    if (!data.DeptName) { layer.msg('请填写部门名称', {icon:2}); return; }
+    if (!data.DeptName) { ems.msg('请填写部门名称', {icon:2}); return; }
     var url = id ? '/system/dept/update' : '/system/dept/create';
     $.ajax({ url, type:'POST', contentType:'application/json',
         headers:{'RequestVerificationToken': antiForgery},
         data: JSON.stringify(data),
         success: function(r) {
-            if (r.success) { $('#deptModal').modal('hide'); layer.msg('保存成功', {icon:1, time:1200}, ()=>location.reload()); }
-            else layer.msg(r.message, {icon:2});
+            if (r.success) { $('#deptModal').modal('hide'); ems.msg('保存成功', {icon:1, time:1200}, ()=>location.reload()); }
+            else ems.msg(r.message, {icon:2});
         }
     });
 }
 
 function deleteDept(id, name) {
-    layer.confirm('确认删除部门 <b>' + name + '</b>？', {icon:3, btn:['确认','取消']}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除部门 <b>' + name + '</b>？', {icon:3, btn:['确认','取消']}, function(i) {
+        ems.close(i);
         $.post('/system/dept/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
-            layer.msg(r.message, {icon: r.success?1:2, time:1200}, function() { if(r.success) location.reload(); });
+            ems.msg(r.message, {icon: r.success?1:2, time:1200}, function() { if(r.success) location.reload(); });
         });
     });
 }

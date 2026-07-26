@@ -42,9 +42,13 @@ public class BidController : BaseAuthController
     public async Task<IActionResult> Create(BidProjectCreateDto dto)
     {
         if (!ModelState.IsValid)
-            return View(dto);
+            return Request.IsAjaxRequest()
+                ? ApiFail("请检查必填项是否填写完整")
+                : View(dto);
 
         var id = await _bidService.CreateAsync(dto, User.GetUsername());
+        if (Request.IsAjaxRequest())
+            return ApiOk(new { id }, "创建成功");
         return RedirectToAction(nameof(Detail), new { id });
     }
 
@@ -64,12 +68,34 @@ public class BidController : BaseAuthController
         return View(bid);
     }
 
+    /// <summary>模态框编辑：返回投标项目可编辑字段（JSON）。</summary>
+    [HttpGet]
+    [HasPermission("bid:project:list")]
+    public async Task<IActionResult> Get(long id)
+    {
+        var bid = await _bidService.GetDetailAsync(id);
+        if (bid == null) return ApiFail("未找到投标项目");
+        return ApiOk(bid);
+    }
+
     [HttpPost]
     [HasPermission("bid:project:edit")]
     public async Task<IActionResult> Edit(long id, BidProjectUpdateDto dto)
     {
-        await _bidService.UpdateAsync(id, dto, User.GetUsername());
-        return RedirectToAction(nameof(Detail), new { id });
+        try
+        {
+            await _bidService.UpdateAsync(id, dto, User.GetUsername());
+            if (Request.IsAjaxRequest())
+                return ApiOk(new { id }, "保存成功");
+            return RedirectToAction(nameof(Detail), new { id });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating bid project {Id}", id);
+            return Request.IsAjaxRequest()
+                ? ApiFail(ex.Message)
+                : RedirectToAction(nameof(Detail), new { id });
+        }
     }
 
     [HttpPost]

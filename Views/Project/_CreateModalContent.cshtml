@@ -30,7 +30,7 @@
     <div class="card-body">
       <!-- 第一行：编号 + 名称 -->
       <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-6">
           <div class="form-group">
             <label>项目编号 <small class="text-muted">前缀-序号</small></label>
             <div class="input-group">
@@ -45,7 +45,7 @@
             <small class="text-muted" id="projNoCheck"></small>
           </div>
         </div>
-        <div class="col-md-8">
+        <div class="col-md-6">
           <div class="form-group">
             <label>项目名称 <span class="text-danger">*</span></label>
             <input type="text" id="projName" class="form-control"
@@ -53,9 +53,9 @@
           </div>
         </div>
       </div>
-      <!-- 第二行：工程类别 + 项目负责人 -->
+                <!-- 第二行：工程类别 + 业务类型 -->
       <div class="row">
-        <div class="col-md-4">
+        <div class="col-md-6">
           <div class="form-group">
             <label>工程类别 <span class="text-danger">*</span></label>
             <select id="projectCategory" class="form-control">
@@ -66,56 +66,81 @@
             </select>
           </div>
         </div>
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>项目负责人 <span class="text-danger">*</span></label>
-            <select id="projectLeaderId" class="form-control" onchange="syncLeaderRow()">
-              <option value="">请选择</option>
-              @foreach (var m in members)
-              { <option value="@m.Id">@m.Display</option> }
-            </select>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>承接部门 <span class="text-danger">*</span></label>
-            <select id="deptId" class="form-control">
-              <option value="">请选择</option>
-              @foreach (var d in depts)
-              {
-                <option value="@d.Id">@d.DeptName</option>
-                @foreach (var c in d.Children)
-                { <option value="@c.Id">&nbsp;&nbsp;@c.DeptName</option> }
-              }
-            </select>
-          </div>
-        </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>业务类型 <span class="text-danger">*</span></label>
+                            <select id="bizType" class="form-control">
+                                <option value="">请选择</option>
+                                @if (ViewBag.BizTypes != null)
+                                {
+                                    foreach (var bt in (List<EnterpriseMS.Services.DTOs.System.DictDataDto>)ViewBag.BizTypes)
+                                    {
+                                        <option value="@bt.DictValue">@bt.DictLabel</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+        
       </div>
-      <!-- 第三行：业务类型 -->
+      <!-- 第三行：项目负责人 -->
       <div class="row">
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>业务类型 <span class="text-danger">*</span></label>
-            <select id="bizType" class="form-control">
-              <option value="">请选择</option>
-              <optgroup label="工程咨询">
-                <option>可行性研究报告</option><option>节能评估报告</option>
-                <option>稳评报告</option><option>项目后评价</option>
-                <option>概算编制</option><option>预算编制</option><option>结算编制</option>
-                <option>概算评审</option><option>预算评审</option><option>结算评审</option>
-              </optgroup>
-              <optgroup label="规划设计">
-                <option>控制性详细规划</option><option>专项规划</option>
-                <option>城市更新规划</option><option>概念方案设计</option><option>施工图设计</option>
-              </optgroup>
-              <optgroup label="其他咨询">
-                <option>战略咨询</option><option>专家评审服务</option><option>框架协议服务</option>
-              </optgroup>
-            </select>
-          </div>
-        </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>承接部门 <span class="text-danger">*</span></label>
+                            <select id="deptId" class="form-control">
+                                <option value="">请选择</option>
+                                @foreach (var d in depts)
+                                {
+                                    <option value="@d.Id">@d.DeptName</option>
+                                    @foreach (var c in d.Children)
+                                    {
+                                        <option value="@c.Id">&nbsp;&nbsp;@c.DeptName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>项目负责人 <span class="text-danger">*</span></label>
+                            <select id="projectLeaderId" class="form-control" onchange="syncLeaderRow()">
+                                <option value="">请选择</option>
+                                @foreach (var m in members)
+                                {
+                                    <option value="@m.Id">@m.Display</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
       </div>
-      <!-- 第四行：业主信息 -->
+                <!-- 第四行：造价+状态 -->
+                <div class="row">
+                    <div class="col-md-6">
+                            <div class="form-group">
+                                <label>预估造价金额（万元）</label>
+                                <div class="input-group" style="max-width:320px">
+                                    <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
+                                    <input type="number" id="limitPrice" class="form-control" placeholder="选填" step="0.01" min="0">
+                                </div>
+                            </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                                <label>进度状态 <span class="text-danger">*</span></label>
+                                <select id="progressStatus" class="form-control">
+                                    <option value="0">前期商务</option>
+                                    <option value="1">预计启动</option>
+                                    <option value="2">标书制作中</option>
+                                    <option value="3">投标/磋商中</option>
+                                    <option value="4">已中标·签订合同中</option>
+                                    <option value="5" selected>已签回合同</option>
+                                    <option value="6">执行中</option>
+                                </select>
+                            </div>
+                    </div>                    
+                </div>
+      <!-- 第五行：业主信息 -->
       <div class="row">
         <div class="col-md-4">
           <div class="form-group">
@@ -134,24 +159,6 @@
             <label>联系人手机</label>
             <input type="text" id="ownerPhone" class="form-control" placeholder="手机号码">
           </div>
-        </div>
-      </div>
-      <!-- 进度状态（从原 step2 移入 step1） -->
-      <div class="form-group">
-        <label>进度状态 <span class="text-danger">*</span></label>
-        <select id="progressStatus" class="form-control">
-          <option value="0">前期商务</option><option value="1">预计启动</option>
-          <option value="2">标书制作中</option><option value="3">投标/磋商中</option>
-          <option value="4">已中标·签订合同中</option>
-          <option value="5" selected>已签回合同</option><option value="6">执行中</option>
-        </select>
-      </div>
-      <!-- 预估造价金额（从原金额信息卡移入 step1） -->
-      <div class="form-group">
-        <label>预估造价金额（万元）</label>
-        <div class="input-group" style="max-width:320px">
-          <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
-          <input type="number" id="limitPrice" class="form-control" placeholder="选填" step="0.01" min="0">
         </div>
       </div>
       <!-- 项目概况 -->
@@ -192,6 +199,7 @@
           </div>
         </div>
       </div>
+                
       <!-- 是否联合体项目：从原“项目属性”卡移入合同信息内 -->
       <div class="form-check mb-2">
         <input type="checkbox" class="form-check-input" id="isJointVenture" onchange="toggleJoint(this.checked)">
@@ -501,21 +509,21 @@ function collectData() {
 
 function submitProj() {
     var d=collectData();
-    if(!d.ProjectCategory){layer.msg('请选择工程类别',{icon:2});goStep(1);return;}
-    if(!d.ProjName){layer.msg('请填写项目名称',{icon:2});goStep(1);return;}
-    if(!d.OwnerName){layer.msg('请填写项目业主',{icon:2});goStep(1);return;}
-    if(!d.ProjectLeaderId){layer.msg('请选择项目负责人',{icon:2});goStep(1);return;}
-    if(d.ContractAmount<=0){layer.msg('请填写合同金额',{icon:2});goStep(2);return;}
-    if(d.IsJointVenture&&!d.OurRatio){layer.msg('联合体须填写我方占比',{icon:2});goStep(2);return;}
-    var load=layer.load(1);
+    if(!d.ProjectCategory){ems.msg('请选择工程类别',{icon:2});goStep(1);return;}
+    if(!d.ProjName){ems.msg('请填写项目名称',{icon:2});goStep(1);return;}
+    if(!d.OwnerName){ems.msg('请填写项目业主',{icon:2});goStep(1);return;}
+    if(!d.ProjectLeaderId){ems.msg('请选择项目负责人',{icon:2});goStep(1);return;}
+    if(d.ContractAmount<=0){ems.msg('请填写合同金额',{icon:2});goStep(2);return;}
+    if(d.IsJointVenture&&!d.OurRatio){ems.msg('联合体须填写我方占比',{icon:2});goStep(2);return;}
+    var load=ems.loading(1);
     $.ajax({url:'/project/create',type:'POST',contentType:'application/json',
         headers:{'RequestVerificationToken':af}, data:JSON.stringify(d),
         success:function(r){
-            layer.close(load);
-            if(r.success){layer.msg('创建成功！',{icon:1,time:1500},function(){window.location='/project/'+r.data.id;});}
-            else{layer.msg(r.message,{icon:2});}
+            ems.close(load);
+            if(r.success){ems.msg('创建成功！',{icon:1,time:1500},function(){window.location='/project/'+r.data.id;});}
+            else{ems.msg(r.message,{icon:2});}
         },
-        error:function(){layer.close(load);layer.msg('请求失败',{icon:2});}
+        error:function(){ems.close(load);ems.msg('请求失败',{icon:2});}
     });
 }
 </script>

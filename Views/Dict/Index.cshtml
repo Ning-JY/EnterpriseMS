@@ -5,7 +5,7 @@
 <div class="content-header">
     <div class="container-fluid">
         <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">字典管理</h1></div>
+            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-book mr-2"></i>字典管理</h1></div>
             <div class="col-sm-6">
                 <ol class="breadcrumb float-sm-right">
                     <li class="breadcrumb-item"><a href="/">首页</a></li>
@@ -41,10 +41,10 @@
                                     <br><code class="text-muted small">@t.DictType</code>
                                 </div>
                                 <div class="btn-group">
-                                    <button class="btn btn-xs btn-outline-warning" onclick="event.stopPropagation();openEditType(@t.Id,'@JavaScriptEncoder.Default.Encode(t.DictName)','@JavaScriptEncoder.Default.Encode(t.DictType)',@t.Status)" title="编辑">
+                                    <button class="btn btn-xs btn-outline-warning" onclick="event.stopPropagation();openEditType(@t.Id,'@EncodeHelper.SafeEncode(t.DictName)','@EncodeHelper.SafeEncode(t.DictType)',@t.Status)" title="编辑">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-xs btn-outline-danger" onclick="event.stopPropagation();deleteType(@t.Id,'@JavaScriptEncoder.Default.Encode(t.DictName)')" title="删除">
+                                    <button class="btn btn-xs btn-outline-danger" onclick="event.stopPropagation();deleteType(@t.Id,'@EncodeHelper.SafeEncode(t.DictName)')" title="删除">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -225,7 +225,7 @@ function openEditType(id, name, code, status) {
 function saveType() {
     var name = $('#typeName').val().trim();
     var code = $('#typeCode').val().trim();
-    if (!name || !code) { layer.msg('请填写类型名称和编码', {icon:2}); return; }
+    if (!name || !code) { ems.msg('请填写类型名称和编码', {icon:2}); return; }
     var id = parseInt($('#typeId').val()) || 0;
     var data = { DictName: name, DictType: code, Status: parseInt($('#typeStatus').val()), Remark: $('#typeRemark').val() };
     var url, method;
@@ -236,17 +236,17 @@ function saveType() {
         url = '/system/dict/type/create';
     }
     ajaxPost(url, data, function(r) {
-        layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+        ems.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
             if (r.success) location.reload();
         });
     });
 }
 
 function deleteType(id, name) {
-    layer.confirm('确认删除字典类型「' + name + '」及其所有数据？', {icon:3}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除字典类型「' + name + '」及其所有数据？', {icon:3}, function(i) {
+        ems.close(i);
         $.post('/system/dict/type/delete/' + id, {__RequestVerificationToken: af}, function(r) {
-            layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+            ems.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
                 if (r.success) location.reload();
             });
         });
@@ -255,7 +255,7 @@ function deleteType(id, name) {
 
 // ── 字典数据 CRUD ──
 function openAddData() {
-    if (!currentDictType) { layer.msg('请先选择字典类型', {icon:2}); return; }
+    if (!currentDictType) { ems.msg('请先选择字典类型', {icon:2}); return; }
     $('#dataModalTitle').text('新增字典数据 - ' + currentDictName);
     $('#dataId').val(0);
     $('#dataLabel, #dataValue').val('');
@@ -278,7 +278,7 @@ function openEditData(id, label, value, sort, isDefault, status) {
 function saveData() {
     var label = $('#dataLabel').val().trim();
     var value = $('#dataValue').val().trim();
-    if (!label || !value) { layer.msg('请填写标签名称和键值', {icon:2}); return; }
+    if (!label || !value) { ems.msg('请填写标签名称和键值', {icon:2}); return; }
     var id = parseInt($('#dataId').val()) || 0;
     var data = {
         DictType: currentDictType,
@@ -296,17 +296,17 @@ function saveData() {
         url = '/system/dict/data/create';
     }
     ajaxPost(url, data, function(r) {
-        layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+        ems.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
             if (r.success) { $('#dataModal').modal('hide'); loadData(currentDictType, currentDictName, currentTypeId); }
         });
     });
 }
 
 function deleteData(id, label) {
-    layer.confirm('确认删除字典数据「' + label + '」？', {icon:3}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除字典数据「' + label + '」？', {icon:3}, function(i) {
+        ems.close(i);
         $.post('/system/dict/data/delete/' + id, {__RequestVerificationToken: af}, function(r) {
-            layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+            ems.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
                 if (r.success) loadData(currentDictType, currentDictName, currentTypeId);
             });
         });

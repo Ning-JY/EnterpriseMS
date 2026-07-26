@@ -189,12 +189,12 @@
                   @if (canMember && m.Status == 0)
                   {
                     <button class="btn btn-xs btn-info mr-1"
-                        onclick="openEditMember(@m.Id,'@JavaScriptEncoder.Default.Encode(m.Role)','@JavaScriptEncoder.Default.Encode(m.DutyDesc??"")',@m.Ratio)"
+                        onclick="openEditMember(@m.Id,'@EncodeHelper.SafeEncode(m.Role)','@EncodeHelper.SafeEncode(m.DutyDesc??"")',@m.Ratio)"
                         title="编辑">
                       <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn btn-xs btn-danger"
-                        onclick="removeMember(@m.Id,'@JavaScriptEncoder.Default.Encode(m.EmployeeName)')"
+                        onclick="removeMember(@m.Id,'@EncodeHelper.SafeEncode(m.EmployeeName)')"
                         title="移除">
                       <i class="fas fa-user-minus"></i>
                     </button>
@@ -219,7 +219,20 @@
   </div>
 </div>
 
+
+<!-- ═══ Tab 选项卡区 ═══ -->
+<div class="card">
+  <div class="card-header p-0">
+    <ul class="nav nav-tabs" id="projTabs" role="tablist">
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-contract">合同与回款</a></li>
+      <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-file">项目文件</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-milestone">工作节点</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-log">操作日志</a></li>
+    </ul>
+  </div>
+  <div class="card-body tab-content">
 <!-- 固定卡片③：合同与回款（按合同分组展示） -->
+<div class="tab-pane fade" id="tab-contract">
 <div class="card card-warning card-outline">
   <div class="card-header">
     <h3 class="card-title"><i class="fas fa-file-contract mr-1"></i>合同与回款</h3>
@@ -229,9 +242,6 @@
     @if (canEdit)
     {
       <div class="card-tools">
-        <button class="btn btn-xs btn-success mr-1" onclick="openAddReceipt()">
-          <i class="fas fa-plus"></i> 新增回款
-        </button>
         <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#addContractModal">
           <i class="fas fa-plus"></i> 新增合同
         </button>
@@ -261,7 +271,7 @@
                 <button class="btn btn-xs btn-success mr-1" onclick="openAddReceipt(@ct.Id)">
                   <i class="fas fa-plus"></i> 新增回款
                 </button>
-                <button class="btn btn-xs btn-danger" onclick="delContract(@ct.Id,'@JavaScriptEncoder.Default.Encode(ct.ContractNo)')" title="删除合同">
+                <button class="btn btn-xs btn-danger" onclick="delContract(@ct.Id,'@EncodeHelper.SafeEncode(ct.ContractNo)')" title="删除合同">
                   <i class="fas fa-trash"></i>
                 </button>
               }
@@ -440,17 +450,7 @@
     }
   </div>
 </div>
-
-<!-- ═══ Tab 选项卡区 ═══ -->
-<div class="card">
-  <div class="card-header p-0">
-    <ul class="nav nav-tabs" id="projTabs" role="tablist">
-      <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-file">项目文件</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-milestone">工作节点</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-log">操作日志</a></li>
-    </ul>
-  </div>
-  <div class="card-body tab-content">
+</div>
 
     <!-- ── Tab①：工作节点 ── -->
     <div class="tab-pane fade" id="tab-milestone">
@@ -482,8 +482,8 @@
                     @if (canMSAdd)
                     {
                       <button class="btn btn-xs btn-info mr-1"
-                        onclick="openEditMs(@ms.Id,'@JavaScriptEncoder.Default.Encode(ms.MilestoneName)','@JavaScriptEncoder.Default.Encode(ms.MilestoneType??"")',
-                          '@ms.PlanDate.ToString("yyyy-MM-dd")','@ms.Sort','@JavaScriptEncoder.Default.Encode(ms.Remark??"")')">
+                        onclick="openEditMs(@ms.Id,'@EncodeHelper.SafeEncode(ms.MilestoneName)','@EncodeHelper.SafeEncode(ms.MilestoneType??"")',
+                          '@ms.PlanDate.ToString("yyyy-MM-dd")','@ms.Sort','@EncodeHelper.SafeEncode(ms.Remark??"")')">
                         <i class="fas fa-edit"></i>
                       </button>
                       @if (ms.Status != 2)
@@ -1179,6 +1179,7 @@ function getAntiForgery() {
     var el = document.querySelector('input[name="__RequestVerificationToken"]');
     return el ? el.value : '';
 }
+var antiForgery = getAntiForgery();
 
 // ── 成果报告弹窗流程 ────────────────────────────────────────
 function openReportModal() {
@@ -1205,12 +1206,12 @@ function loadReportPreview() {
         $('#manualFields').html('');
         return;
     }
-    var load = layer.load(1);
+    var load = ems.loading(1);
     fetch('/project/' + projId + '/report/preview-fields?templateId=' + encodeURIComponent(tid), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(function (r) { return r.json(); })
         .then(function (res) {
-            layer.close(load);
-            if (res.code !== 200 || !res.data) { layer.msg(res.message || '加载失败', { icon: 2 }); return; }
+            ems.close(load);
+            if (res.code !== 200 || !res.data) { ems.msg(res.message || '加载失败', { icon: 2 }); return; }
             var d = res.data;
             var ah = '';
             (d.autoFields || []).forEach(function (f) {
@@ -1240,12 +1241,12 @@ function loadReportPreview() {
             });
             $('#manualFields').html(mh);
         })
-        .catch(function () { layer.close(load); layer.msg('加载失败', { icon: 2 }); });
+        .catch(function () { ems.close(load); ems.msg('加载失败', { icon: 2 }); });
 }
 
 function confirmReportGenerate() {
     var tid = $('#modalReportTemplate').val();
-    if (!tid) { layer.msg('请先选择模板', { icon: 2 }); return; }
+    if (!tid) { ems.msg('请先选择模板', { icon: 2 }); return; }
     var fields = {};
     var missing = [];
     $('#manualFields [data-name]').each(function () {
@@ -1254,11 +1255,11 @@ function confirmReportGenerate() {
         fields[n] = v;
         if ($(this).attr('data-required') === '1' && !v) missing.push(n);
     });
-    if (missing.length) { layer.msg('请填写必填项：' + missing.join('、'), { icon: 2 }); return; }
+    if (missing.length) { ems.msg('请填写必填项：' + missing.join('、'), { icon: 2 }); return; }
 
     var btn = $('#btnConfirmGen');
     btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> 生成中…');
-    var load = layer.load(1);
+    var load = ems.loading(1);
     fetch('/project/' + projId + '/report/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getAntiForgery(), 'X-Requested-With': 'XMLHttpRequest' },
@@ -1277,12 +1278,12 @@ function confirmReportGenerate() {
             document.body.appendChild(a); a.click();
             document.body.removeChild(a);
             setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-            layer.msg('报告已生成，开始下载', { icon: 1, time: 1500 });
+            ems.msg('报告已生成，开始下载', { icon: 1, time: 1500 });
             $('#reportGenModal').modal('hide');
         })
-        .catch(function (err) { layer.msg(err.message || '生成失败', { icon: 2 }); })
+        .catch(function (err) { ems.msg(err.message || '生成失败', { icon: 2 }); })
         .finally(function () {
-            layer.closeAll();
+            ems.closeAll();
             btn.prop('disabled', false).html('<i class="fas fa-file-download mr-1"></i> 生成并下载');
         });
 }
@@ -1318,9 +1319,9 @@ function reloadWithTab() {
 
 // ── 移除成员 ─────────────────────────────────────────────────
 function removeMember(memberId, name) {
-    layer.confirm('确认移除成员 <b>' + name + '</b>？移除后可重新添加。',
+    ems.confirm('确认移除成员 <b>' + name + '</b>？移除后可重新添加。',
         {icon:3, title:'移除确认', btn:['确认移除','取消']}, function(i) {
-        layer.close(i);
+        ems.close(i);
         $.post('/project/' + projId + '/members/' + memberId + '/remove',
             {__RequestVerificationToken: antiForgery},
             function(r) { handleResult(r, reloadWithTab); });
@@ -1333,7 +1334,7 @@ function saveStatus() {
         Id: projId, NewStatus: parseInt($('#newStatus').val()),
         StatusDate: $('#statusDate').val(), Remark: $('#statusRemark').val()
     }, function(r) {
-        layer.msg(r.message, {icon:1, time:1500}, function() {
+        ems.msg(r.message, {icon:1, time:1500}, function() {
             $('#statusModal').modal('hide'); reloadWithTab();
         });
     });
@@ -1342,14 +1343,14 @@ function saveStatus() {
 // ── 成员管理 ────────────────────────────────────────────────
 function saveMember() {
     var ratio = parseFloat($('#addRatio').val());
-    if (!$('#addEmpId').val()) { layer.msg('请选择员工', {icon:2}); return; }
-    if (!ratio) { layer.msg('请填写占比', {icon:2}); return; }
+    if (!$('#addEmpId').val()) { ems.msg('请选择员工', {icon:2}); return; }
+    if (!ratio) { ems.msg('请填写占比', {icon:2}); return; }
     ajaxPost('/project/@Model.Id/members', {
         EmployeeId: parseInt($('#addEmpId').val()),
         Role: $('#addRole').val(), DutyDesc: $('#addDuty').val(),
         Ratio: ratio, JoinDate: $('#addJoinDate').val()
     }, function(r) {
-        layer.msg(r.message, {icon:1, time:1500}, function() {
+        ems.msg(r.message, {icon:1, time:1500}, function() {
             $('#addMemberModal').modal('hide'); reloadWithTab();
         });
     });
@@ -1365,14 +1366,14 @@ function openEditMember(id, role, duty, ratio) {
 
 function saveEditMember() {
     var ratio = parseFloat($('#editMemberRatio').val());
-    if (!ratio) { layer.msg('请填写占比', {icon:2}); return; }
+    if (!ratio) { ems.msg('请填写占比', {icon:2}); return; }
     ajaxPost('/project/members/update', {
         Id: parseInt($('#editMemberId').val()),
         Role: $('#editMemberRole').val(),
         DutyDesc: $('#editMemberDuty').val(),
         Ratio: ratio
     }, function(r) {
-        layer.msg(r.message, {icon:1, time:1500}, function() {
+        ems.msg(r.message, {icon:1, time:1500}, function() {
             $('#editMemberModal').modal('hide'); reloadWithTab();
         });
     });
@@ -1389,8 +1390,8 @@ function openEditMs(id, name, type, planDate, sort, remark) {
 }
 
 function saveMs() {
-    if (!$('#msName').val()) { layer.msg('请填写节点名称', {icon:2}); return; }
-    if (!$('#msPlanDate').val()) { layer.msg('请选择计划日期', {icon:2}); return; }
+    if (!$('#msName').val()) { ems.msg('请填写节点名称', {icon:2}); return; }
+    if (!$('#msPlanDate').val()) { ems.msg('请选择计划日期', {icon:2}); return; }
     var id = $('#editMsId').val();
     var url = id ? '/project/milestones/update' : '/project/@Model.Id/milestones';
     var data = {
@@ -1401,18 +1402,18 @@ function saveMs() {
     };
     if (id) data.Id = parseInt(id);
     ajaxPost(url, data, function(r) {
-        layer.msg(r.message, {icon:1, time:1500}, function() {
+        ems.msg(r.message, {icon:1, time:1500}, function() {
             $('#addMsModal').modal('hide'); reloadWithTab();
         });
     });
 }
 
 function completeMs(id) {
-    layer.confirm('确认标记该节点为已完成？', {icon:3}, function(i) {
-        layer.close(i);
+    ems.confirm('确认标记该节点为已完成？', {icon:3}, function(i) {
+        ems.close(i);
         $.post('/project/milestones/' + id + '/complete',
             {__RequestVerificationToken: antiForgery}, function(r) {
-            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+            ems.msg(r.message, {icon: r.success?1:2, time:1500},
                 function() { if (r.success) reloadWithTab(); });
         });
     });
@@ -1420,15 +1421,15 @@ function completeMs(id) {
 
 // ── 验收 ────────────────────────────────────────────────────
 function saveAccept() {
-    if (!$('#accBatch').val()) { layer.msg('请填写批次名称', {icon:2}); return; }
+    if (!$('#accBatch').val()) { ems.msg('请填写批次名称', {icon:2}); return; }
     var amount = parseFloat($('#accAmount').val());
-    if (!amount) { layer.msg('请填写验收金额', {icon:2}); return; }
+    if (!amount) { ems.msg('请填写验收金额', {icon:2}); return; }
     ajaxPost('/project/acceptances', {
         ProjectId: projId, AcceptBatch: $('#accBatch').val(),
         AcceptDate: $('#accDate').val(), AcceptAmount: amount,
         InvoiceNo: $('#accInvoice').val(), Remark: $('#accRemark').val()
     }, function(r) {
-        layer.msg(r.message, {icon:1, time:1500}, function() {
+        ems.msg(r.message, {icon:1, time:1500}, function() {
             $('#addAcceptModal').modal('hide'); reloadWithTab();
         });
     });
@@ -1443,7 +1444,7 @@ $('#ctFile').on('change', function() {
 
 function saveContract() {
     if (!$('#ctNo').val() || !$('#ctAmount').val()) {
-        layer.msg('请填写合同编号和金额', {icon:2}); return;
+        ems.msg('请填写合同编号和金额', {icon:2}); return;
     }
     var fd = new FormData();
     fd.append('__RequestVerificationToken', antiForgery);
@@ -1460,25 +1461,25 @@ function saveContract() {
     var fileInput = document.getElementById('ctFile');
     if (fileInput.files[0]) fd.append('file', fileInput.files[0]);
 
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url: '/project/' + projId + '/contracts', type: 'POST',
         data: fd, processData: false, contentType: false,
         success: function(r) {
-            layer.close(load);
-            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() {
+            ems.close(load);
+            ems.msg(r.message, {icon: r.success?1:2, time:1500}, function() {
                 if (r.success) { $('#addContractModal').modal('hide'); reloadWithTab(); }
             });
         },
-        error: function() { layer.close(load); layer.msg('请求失败', {icon:2}); }
+        error: function() { ems.close(load); ems.msg('请求失败', {icon:2}); }
     });
 }
 
 function deleteContract(id) {
-    layer.confirm('确认删除该合同？', {icon:3}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除该合同？', {icon:3}, function(i) {
+        ems.close(i);
         $.post('/project/' + projId + '/contracts/delete/' + id,
             {__RequestVerificationToken: antiForgery}, function(r) {
-            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+            ems.msg(r.message, {icon: r.success?1:2, time:1500},
                 function() { if (r.success) reloadWithTab(); });
         });
     });
@@ -1491,7 +1492,7 @@ function uploadContract(contractId, input) {
         data: formData, processData: false, contentType: false,
         headers: {'RequestVerificationToken': antiForgery},
         success: function(r) {
-            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+            ems.msg(r.message, {icon: r.success?1:2, time:1500},
                 function() { if (r.success) reloadWithTab(); });
         }
     });
@@ -1517,7 +1518,7 @@ function openAddReceipt(contractId) {
 function saveReceipt() {
     var name   = $('#rcpName').val();
     var amount = parseFloat($('#rcpAmount').val());
-    if (!name || !amount) { layer.msg('请填写回款批次名称和金额', {icon:2}); return; }
+    if (!name || !amount) { ems.msg('请填写回款批次名称和金额', {icon:2}); return; }
 
     var fd = new FormData();
     fd.append('__RequestVerificationToken', antiForgery);
@@ -1539,40 +1540,40 @@ function saveReceipt() {
     if (payFile.files[0]) fd.append('paymentFile', payFile.files[0]);
 
     $('#rcpSaveBtn').prop('disabled', true);
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url: '/project/' + projId + '/invoices', type: 'POST',
         data: fd, processData: false, contentType: false,
         success: function(r) {
-            layer.close(load);
+            ems.close(load);
             $('#rcpSaveBtn').prop('disabled', false);
-            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() {
+            ems.msg(r.message, {icon: r.success?1:2, time:1500}, function() {
                 if (r.success) { $('#addReceiptModal').modal('hide'); reloadWithTab(); }
             });
         },
         error: function() {
-            layer.close(load);
+            ems.close(load);
             $('#rcpSaveBtn').prop('disabled', false);
-            layer.msg('请求失败', {icon:2});
+            ems.msg('请求失败', {icon:2});
         }
     });
 }
 
 function confirmReceived(invoiceId) {
     var today = new Date().toISOString().split('T')[0];
-    layer.prompt({title:'请输入收款日期', formType:2, value:today}, function(val, i) {
-        layer.close(i);
+    ems.prompt({title:'请输入收款日期', formType:2, value:today}, function(val, i) {
+        ems.close(i);
         if (!val) return;
         $.post('/project/invoices/received/' + invoiceId,
             {receivedDate: val, __RequestVerificationToken: antiForgery}, function(r) {
-            layer.msg(r.message, {icon: r.success?1:2, time:1500},
+            ems.msg(r.message, {icon: r.success?1:2, time:1500},
                 function() { if (r.success) reloadWithTab(); });
         });
     });
 }
 
 function delReceipt(id) {
-    layer.confirm('确认删除该回款记录？', {icon:3, btn:['确认','取消']}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除该回款记录？', {icon:3, btn:['确认','取消']}, function(i) {
+        ems.close(i);
         $.post('/project/invoices/delete/' + id, {__RequestVerificationToken: antiForgery},
             function(r) { handleResult(r, ()=>reloadWithTab()); });
     });
@@ -1582,11 +1583,11 @@ function uploadInvoiceFile(invId, fileType, input) {
     if (!input.files[0]) return;
     var fd = new FormData();
     fd.append('file', input.files[0]);
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url: '/project/invoices/file/' + invId + '/' + fileType,
         type: 'POST', data: fd, processData: false, contentType: false,
         headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) { layer.close(load); handleResult(r, ()=>reloadWithTab()); }
+        success: function(r) { ems.close(load); handleResult(r, ()=>reloadWithTab()); }
     });
 }
 
@@ -1594,18 +1595,18 @@ function uploadContractFile(contractId, input) {
     if (!input.files[0]) return;
     var fd = new FormData();
     fd.append('file', input.files[0]);
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url: '/project/contracts/upload/' + contractId,
         type: 'POST', data: fd, processData: false, contentType: false,
         headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) { layer.close(load); handleResult(r, ()=>reloadWithTab()); }
+        success: function(r) { ems.close(load); handleResult(r, ()=>reloadWithTab()); }
     });
 }
 
 function delContractFile(contractId) {
-    layer.confirm('确认删除该合同附件？合同记录将保留。',
+    ems.confirm('确认删除该合同附件？合同记录将保留。',
         {icon:3, btn:['确认删除','取消']}, function(i) {
-        layer.close(i);
+        ems.close(i);
         $.post('/project/contracts/file/delete/' + contractId,
             {__RequestVerificationToken: antiForgery},
             function(r) { handleResult(r, reloadWithTab); });
@@ -1613,8 +1614,8 @@ function delContractFile(contractId) {
 }
 
 function delContract(id, no) {
-    layer.confirm('确认删除合同 ' + (no||'') + '？', {icon:3}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除合同 ' + (no||'') + '？', {icon:3}, function(i) {
+        ems.close(i);
         $.post('/project/' + projId + '/contracts/delete/' + id,
             {__RequestVerificationToken: antiForgery},
             function(r) { handleResult(r, ()=>reloadWithTab()); });
@@ -1679,7 +1680,7 @@ function delContract(id, no) {
         function confirmUpload() {
             var input = document.getElementById('fileInput');
             if (!input.files[0]) {
-                layer.msg('请先选择文件', {icon: 2});
+                ems.msg('请先选择文件', {icon: 2});
                 return;
             }
             var formData = new FormData();
@@ -1691,7 +1692,7 @@ function delContract(id, no) {
             $('#uploadConfirmBtn').prop('disabled', true)
                 .html('<i class="fas fa-spinner fa-spin mr-1"></i> 上传中...');
 
-            var load = layer.load(1);
+            var load = ems.loading(1);
             $.ajax({
                 url: '/project/' + projId + '/files',
                 type: 'POST',
@@ -1700,34 +1701,34 @@ function delContract(id, no) {
                 contentType: false,
                 headers: {'RequestVerificationToken': antiForgery},
                 success: function(r) {
-                    layer.close(load);
+                    ems.close(load);
                     $('#uploadConfirmBtn').prop('disabled', false)
                         .html('<i class="fas fa-upload mr-1"></i> 确认上传');
                     if (r.success) {
-                        layer.msg('上传成功', {icon: 1, time: 1500}, function() {
+                        ems.msg('上传成功', {icon: 1, time: 1500}, function() {
                             clearFileSelection();
                             reloadWithTab();
                         });
                     } else {
-                        layer.msg(r.message || '上传失败', {icon: 2});
+                        ems.msg(r.message || '上传失败', {icon: 2});
                     }
                 },
                 error: function() {
-                    layer.close(load);
+                    ems.close(load);
                     $('#uploadConfirmBtn').prop('disabled', false)
                         .html('<i class="fas fa-upload mr-1"></i> 确认上传');
-                    layer.msg('网络请求失败，请重试', {icon: 2});
+                    ems.msg('网络请求失败，请重试', {icon: 2});
                 }
             });
         }
 
         // ── 删除文件 ─────────────────────────────────────────────
         function deleteFile(fileId) {
-            layer.confirm('确认删除该文件？', {icon: 3}, function(i) {
-                layer.close(i);
+            ems.confirm('确认删除该文件？', {icon: 3}, function(i) {
+                ems.close(i);
                 $.post('/project/files/delete/' + fileId,
                     {__RequestVerificationToken: antiForgery}, function(r) {
-                    layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500},
+                    ems.msg(r.message, {icon: r.success ? 1 : 2, time: 1500},
                         function() { if (r.success) reloadWithTab(); });
                 });
             });

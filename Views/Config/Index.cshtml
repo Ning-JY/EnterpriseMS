@@ -26,12 +26,24 @@
 
 <section class="content">
 <div class="container-fluid">
-    <div class="card card-primary card-outline">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h3 class="card-title"><i class="fas fa-cogs mr-1"></i>参数列表</h3>
-            <button type="button" class="btn btn-primary btn-sm" onclick="saveConfigs()">
-                <i class="fas fa-save mr-1"></i>保存
-            </button>
+    <!-- 操作区 -->
+    <div class="card card-default search-card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-10"></div>
+                <div class="col-md-2 text-right">
+                    <button type="button" class="btn btn-success btn-sm" onclick="saveConfigs()">
+                        <i class="fas fa-save"></i> 保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 参数列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">参数列表</h3>
         </div>
         <div class="card-body">
             <form id="configForm">
@@ -99,8 +111,8 @@
                     Sort: parseInt($(this).data('sort')) || 0
                 });
             });
-            if (!list.length) { layer.msg('没有可保存的参数', { icon: 2 }); return; }
-            var load = layer.load(1);
+            if (!list.length) { ems.msg('没有可保存的参数', { icon: 2 }); return; }
+            var load = ems.loading(1);
             // CSRF Token 由 site.js 的全局 $.ajaxSetup 自动注入
             $.ajax({
                 url: '/system/config/save',
@@ -108,12 +120,12 @@
                 contentType: 'application/json',
                 data: JSON.stringify(list),
                 success: function (r) {
-                    layer.close(load);
-                    layer.msg(r.message || '保存成功', { icon: r.success ? 1 : 2 });
+                    ems.close(load);
+                    ems.msg(r.message || '保存成功', { icon: r.success ? 1 : 2 });
                 },
                 error: function () {
-                    layer.close(load);
-                    layer.msg('保存失败，请重试', { icon: 2 });
+                    ems.close(load);
+                    ems.msg('保存失败，请重试', { icon: 2 });
                 }
             });
         }

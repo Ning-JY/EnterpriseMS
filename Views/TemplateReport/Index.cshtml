@@ -305,7 +305,7 @@
             }
 
             if (!workbookSheets.length) {
-                layer.msg('无有效工作表', { icon: 2 });
+                ems.msg('无有效工作表', { icon: 2 });
                 return;
             }
 
@@ -422,17 +422,17 @@
         // ============ 步骤3: 字段映射 ============
         async function goWizardStep3() {
             if (!selectedTemplate) {
-                layer.msg('请先选择模板', { icon: 2 });
+                ems.msg('请先选择模板', { icon: 2 });
                 return;
             }
             if (!workbookSheets.length) {
-                layer.msg('请先导入Excel', { icon: 2 });
+                ems.msg('请先导入Excel', { icon: 2 });
                 return;
             }
 
             let template = await fetchTemplate(selectedTemplate);
             if (!template || !template.fields) {
-                layer.msg('无法加载模板字段', { icon: 2 });
+                ems.msg('无法加载模板字段', { icon: 2 });
                 return;
             }
 
@@ -483,7 +483,7 @@
             });
 
             if (mappedCount === 0) {
-                layer.msg('请至少映射一个字段', { icon: 2 });
+                ems.msg('请至少映射一个字段', { icon: 2 });
                 return;
             }
 
@@ -607,13 +607,13 @@
             };
 
             try {
-                layer.load(1);
+                ems.loading(1);
                 let resp = await fetch('/templatereport/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(request)
                 });
-                layer.closeAll();
+                ems.closeAll();
 
                 if (resp.ok) {
                     let blob = await resp.blob();
@@ -622,11 +622,11 @@
                     goWizardStep(6);
                 } else {
                     let result = await resp.json();
-                    layer.msg(result.message || '生成失败', { icon: 2 });
+                    ems.msg(result.message || '生成失败', { icon: 2 });
                 }
             } catch (err) {
-                layer.closeAll();
-                layer.msg('生成失败: ' + err.message, { icon: 2 });
+                ems.closeAll();
+                ems.msg('生成失败: ' + err.message, { icon: 2 });
             }
         }
 

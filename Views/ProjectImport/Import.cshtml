@@ -178,7 +178,7 @@ function handleDrop(e) {
     if (f && (f.name.endsWith('.xlsx') || f.name.endsWith('.xls'))) {
         setFile(f);
     } else {
-        layer.msg('请上传 .xlsx 或 .xls 文件', {icon:2});
+        ems.msg('请上传 .xlsx 或 .xls 文件', {icon:2});
     }
 }
 
@@ -199,7 +199,7 @@ function clearFile() {
 }
 
 function doImport() {
-    if (!selectedFile) { layer.msg('请先选择文件', {icon:2}); return; }
+    if (!selectedFile) { ems.msg('请先选择文件', {icon:2}); return; }
 
     var fd = new FormData();
     fd.append('file', selectedFile);
@@ -223,7 +223,7 @@ function doImport() {
         error: function(xhr) {
             document.getElementById('progressBar').classList.add('d-none');
             document.getElementById('importBtn').disabled = false;
-            layer.msg('请求失败：' + (xhr.responseText || '未知错误'), {icon:2});
+            ems.msg('请求失败：' + (xhr.responseText || '未知错误'), {icon:2});
         }
     });
 }

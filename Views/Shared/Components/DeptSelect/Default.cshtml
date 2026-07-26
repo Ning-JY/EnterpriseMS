@@ -1,0 +1,15 @@
+@model EnterpriseMS.ViewComponents.DeptSelectViewModel
+<select id="@Model.Id" name="@Model.Name" class="@Model.CssClass">
+    @if (!string.IsNullOrEmpty(Model.EmptyText))
+    {
+        <option value="">@Model.EmptyText</option>
+    }
+    @foreach (var d in Model.Tree)
+    {
+        <option value="@d.Id" selected="@(Model.SelectedId == d.Id ? "selected" : null)">@d.DeptName</option>
+        @foreach (var c in d.Children)
+        {
+            <option value="@c.Id" selected="@(Model.SelectedId == c.Id ? "selected" : null)">&nbsp;&nbsp;└ @c.DeptName</option>
+        }
+    }
+</select>

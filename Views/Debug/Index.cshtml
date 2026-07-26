@@ -300,10 +300,10 @@ function seedMenu() {
     if (!confirm('确认写入菜单和字典种子数据？已存在的记录会自动跳过。')) return;
     var btn = document.getElementById('seedMenuBtn');
     btn.disabled = true;
-    var load = layer.load(1, {shade: [0.3, '#000']});
+    var load = ems.loading(1, {shade: [0.3, '#000']});
     $.post('/system/debug/seed-menu', {__RequestVerificationToken: antiForgery},
         function(r) {
-            layer.close(load);
+            ems.close(load);
             btn.disabled = false;
             var el = document.getElementById('seedMenuResult');
             if (r.success) {
@@ -321,13 +321,13 @@ function seedMenu() {
 function seedAll() {
     var confirm_val = document.getElementById('seedConfirm').value;
     if (confirm_val !== 'CONFIRM') {
-        layer.msg('请输入 CONFIRM 确认操作', {icon:2}); return;
+        ems.msg('请输入 CONFIRM 确认操作', {icon:2}); return;
     }
-    var load = layer.load(1, {shade: [0.3, '#000']});
+    var load = ems.loading(1, {shade: [0.3, '#000']});
     $.post('/system/debug/seed',
         {confirm: confirm_val, __RequestVerificationToken: antiForgery},
         function(r) {
-            layer.close(load);
+            ems.close(load);
             var el = document.getElementById('seedResult');
             if (r.success) {
                 var html = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i><strong>' + r.message + '</strong>';
@@ -355,11 +355,11 @@ function seedAll() {
 
 // 清空权限缓存
 function clearCache() {
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.post('/system/debug/clear-cache',
         {__RequestVerificationToken: antiForgery},
         function(r) {
-            layer.close(load);
+            ems.close(load);
             var el = document.getElementById('cacheResult');
             el.innerHTML = r.success
                 ? '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i>' + r.message + '</div>'
@@ -372,13 +372,13 @@ function clearCache() {
 function runMigrate() {
     var confirm_val = document.getElementById('migrateConfirm').value;
     if (confirm_val !== 'CONFIRM') {
-        layer.msg('请输入 CONFIRM 确认迁移', {icon:2}); return;
+        ems.msg('请输入 CONFIRM 确认迁移', {icon:2}); return;
     }
-    var load = layer.load(1, {shade:[0.3,'#000']});
+    var load = ems.loading(1, {shade:[0.3,'#000']});
     $.post('/system/debug/migrate',
         {confirm: confirm_val, __RequestVerificationToken: antiForgery},
         function(r) {
-            layer.close(load);
+            ems.close(load);
             var el = document.getElementById('migrateResult');
             if (r.success) {
                 var html = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i><strong>' + r.message + '</strong>';
@@ -477,11 +477,11 @@ function testAiConfig() {
         model: getSelectedModel()
     };
     if (!data.apiKey) {
-        layer.msg('请先输入 API Key', {icon: 2}); return;
+        ems.msg('请先输入 API Key', {icon: 2}); return;
     }
     var btn = document.getElementById('aiTestBtn');
     btn.disabled = true;
-    var load = layer.load(1, {shade: [0.3, '#000']});
+    var load = ems.loading(1, {shade: [0.3, '#000']});
     $.ajax({
         url: '/system/debug/ai-test',
         type: 'POST',
@@ -489,7 +489,7 @@ function testAiConfig() {
         data: JSON.stringify(data),
         headers: { 'RequestVerificationToken': antiForgery },
         success: function(r) {
-            layer.close(load);
+            ems.close(load);
             btn.disabled = false;
             var el = document.getElementById('aiResult');
             if (r.success) {
@@ -499,7 +499,7 @@ function testAiConfig() {
             }
         },
         error: function() {
-            layer.close(load);
+            ems.close(load);
             btn.disabled = false;
             document.getElementById('aiResult').innerHTML = '<div class="alert alert-danger py-2">请求失败</div>';
         }

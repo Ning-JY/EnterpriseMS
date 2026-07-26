@@ -11,7 +11,7 @@
 
 <div class="content-header"><div class="container-fluid">
     <div class="row mb-2">
-        <div class="col-sm-6"><h1 class="m-0">证书管理</h1></div>
+        <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-medal mr-2"></i>证书管理</h1></div>
         <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
                 <li class="breadcrumb-item"><a href="/">首页</a></li>
@@ -33,26 +33,41 @@
     </div>
 }
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">证书列表（共 @ViewBag.Total 条）</h3>
-        <div class="card-tools">
-            <form id="searchForm" method="get" action="/hr/cert" class="d-inline-flex mr-2">
-                <input name="keyword" class="form-control form-control-sm mr-1"
-                       placeholder="员工/证书名称/编号" value="@ViewBag.Keyword" style="width:190px">
-                <select name="status" class="form-control form-control-sm mr-1" style="width:90px">
-                    <option value="">全部</option>
-                    <option value="0" selected="@(ViewBag.Status?.ToString()=="0"?"selected":null)">有效</option>
-                    <option value="1" selected="@(ViewBag.Status?.ToString()=="1"?"selected":null)">已过期</option>
-                </select>
-                <input type="hidden" name="page" value="1">
-                <button class="btn btn-sm btn-primary">搜索</button>
+    <!-- 搜索 -->
+    <div class="card card-default search-card">
+        <div class="card-body">
+            <form id="searchForm" method="get" action="/hr/cert">
+                <div class="row">
+                    <div class="col-md-3">
+                        <input name="keyword" class="form-control form-control-sm" placeholder="员工 / 证书名称 / 编号" value="@ViewBag.Keyword">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="status" class="form-control form-control-sm">
+                            <option value="">全部状态</option>
+                            <option value="0" selected="@(ViewBag.Status?.ToString()=="0"?"selected":null)">有效</option>
+                            <option value="1" selected="@(ViewBag.Status?.ToString()=="1"?"selected":null)">已过期</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary btn-sm mr-1"><i class="fas fa-search"></i> 搜索</button>
+                        <a href="/hr/cert" class="btn btn-default btn-sm"><i class="fas fa-redo"></i> 重置</a>
+                    </div>
+                    <div class="col-md-2 text-right">
+                        <button type="button" class="btn btn-success btn-sm" onclick="openAddModal()">
+                            <i class="fas fa-plus"></i> 新增证书
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" name="page" id="pageInput" value="1">
             </form>
-            <button class="btn btn-sm btn-success" onclick="openAddModal()">
-                <i class="fas fa-plus"></i> 新增证书
-            </button>
         </div>
     </div>
+
+    <!-- 列表 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">共 @ViewBag.Total 条</h3>
+        </div>
     <div class="card-body table-responsive p-0">
         <table class="table table-hover table-sm">
             <thead class="thead-light">
@@ -112,7 +127,7 @@
                         </td>
                         <td>
                             <button class="btn btn-xs btn-danger"
-                                    onclick="deleteCert(@cert.Id,'@JavaScriptEncoder.Default.Encode(cert.CertName)')" title="删除">
+                                    onclick="deleteCert(@cert.Id,'@EncodeHelper.SafeEncode(cert.CertName)')" title="删除">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -239,7 +254,7 @@ function openAddModal() {
 
 function saveCert() {
     var empId = $('#certEmpId').val(), name = $('#certName').val();
-    if (!empId || !name) { layer.msg('请填写员工和证书名称', {icon:2}); return; }
+    if (!empId || !name) { ems.msg('请填写员工和证书名称', {icon:2}); return; }
 
     var fd = new FormData();
     fd.append('EmployeeId', empId);
@@ -253,22 +268,22 @@ function saveCert() {
     if (file) fd.append('file', file);
 
     $('#certSaveBtn').prop('disabled', true);
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url: '/hr/cert/create-with-file', type: 'POST',
         data: fd, processData: false, contentType: false,
         headers: { 'RequestVerificationToken': antiForgery },
         success: function(r) {
-            layer.close(load); $('#certSaveBtn').prop('disabled', false);
+            ems.close(load); $('#certSaveBtn').prop('disabled', false);
             if (r.success) { $('#certModal').modal('hide'); handleResult(r, ()=>location.reload()); }
-            else layer.msg(r.message, {icon:2});
+            else ems.msg(r.message, {icon:2});
         },
-        error: function() { layer.close(load); $('#certSaveBtn').prop('disabled', false); layer.msg('请求失败', {icon:2}); }
+        error: function() { ems.close(load); $('#certSaveBtn').prop('disabled', false); ems.msg('请求失败', {icon:2}); }
     });
 }
 
 function deleteCert(id, name) {
-    layer.confirm('确认删除证书 <b>' + name + '</b>？', {icon:3, btn:['确认删除','取消']}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除证书 <b>' + name + '</b>？', {icon:3, btn:['确认删除','取消']}, function(i) {
+        ems.close(i);
         $.post('/hr/cert/delete/' + id, {__RequestVerificationToken: antiForgery},
             function(r) { handleResult(r, ()=>location.reload()); });
     });
@@ -277,17 +292,17 @@ function deleteCert(id, name) {
 function uploadCert(id, input) {
     if (!input.files[0]) return;
     var fd = new FormData(); fd.append('file', input.files[0]);
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url: '/hr/cert/upload/' + id, type: 'POST',
         data: fd, processData: false, contentType: false,
         headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) { layer.close(load); handleResult(r, ()=>location.reload()); }
+        success: function(r) { ems.close(load); handleResult(r, ()=>location.reload()); }
     });
 }
 
 function deleteCertFile(id) {
-    layer.confirm('确认删除该证书附件？证书记录将保留。', {icon:3, btn:['确认删除','取消']}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除该证书附件？证书记录将保留。', {icon:3, btn:['确认删除','取消']}, function(i) {
+        ems.close(i);
         $.post('/hr/cert/file/delete/' + id, {__RequestVerificationToken: antiForgery},
             function(r) { handleResult(r, ()=>location.reload()); });
     });

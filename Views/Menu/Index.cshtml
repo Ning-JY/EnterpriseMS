@@ -93,7 +93,7 @@
                                     <button class="btn btn-xs btn-outline-warning" onclick="openEditMenu(@menu.Id)" title="编辑">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteMenu(@menu.Id,'@JavaScriptEncoder.Default.Encode(menu.MenuName)')" title="删除">
+                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteMenu(@menu.Id,'@EncodeHelper.SafeEncode(menu.MenuName)')" title="删除">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -246,10 +246,10 @@ function openEditMenu(id) {
     $('#menuId').val(id);
     buildParentOptions();
 
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.get('/system/menu/detail/' + id, function(r) {
-        layer.close(load);
-        if (!r.success) { layer.msg(r.message || '加载失败', {icon: 2}); return; }
+        ems.close(load);
+        if (!r.success) { ems.msg(r.message || '加载失败', {icon: 2}); return; }
         var m = r.data.menu;
         $('#menuParentId').val(m.ParentId || 0);
         $('#menuType').val(m.MenuType || 'C');
@@ -262,14 +262,14 @@ function openEditMenu(id) {
         $('#menuVisible').val(m.Visible != null ? m.Visible : 1);
         $('#menuModal').modal('show');
     }).fail(function() {
-        layer.close(load);
-        layer.msg('加载菜单信息失败', {icon: 2});
+        ems.close(load);
+        ems.msg('加载菜单信息失败', {icon: 2});
     });
 }
 
 function saveMenu() {
     var name = $('#menuName').val().trim();
-    if (!name) { layer.msg('请填写菜单名称', {icon:2}); return; }
+    if (!name) { ems.msg('请填写菜单名称', {icon:2}); return; }
     var id = parseInt($('#menuId').val()) || 0;
     var data = {
         MenuName: name,
@@ -290,17 +290,17 @@ function saveMenu() {
         url = '/system/menu/create';
     }
     ajaxPost(url, data, function(r) {
-        layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+        ems.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
             if (r.success) location.reload();
         });
     });
 }
 
 function deleteMenu(id, name) {
-    layer.confirm('确认删除菜单「' + name + '」？子菜单也将被删除。', {icon:3}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除菜单「' + name + '」？子菜单也将被删除。', {icon:3}, function(i) {
+        ems.close(i);
         $.post('/system/menu/delete/' + id, {__RequestVerificationToken: af}, function(r) {
-            layer.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
+            ems.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
                 if (r.success) location.reload();
             });
         });

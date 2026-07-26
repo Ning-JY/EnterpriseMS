@@ -49,7 +49,7 @@
                 <div class="col-md-7 text-right">
                     @if (canAdd)
                     {
-                        <button class="btn btn-sm btn-success" onclick="openAddModal()">
+                        <button type="button" class="btn btn-sm btn-success" onclick="openAddModal()">
                             <i class="fas fa-plus"></i> 新增角色
                         </button>
                     }
@@ -85,7 +85,7 @@
                         <td>
                             @if (canPerm)
                             {
-                                <button class="btn btn-xs btn-warning" onclick="openPermModal(@r.Id, '@JavaScriptEncoder.Default.Encode(r.RoleName)')">
+                                <button class="btn btn-xs btn-warning" onclick="openPermModal(@r.Id, '@EncodeHelper.SafeEncode(r.RoleName)')">
                                     <i class="fas fa-key"></i> 分配权限
                                 </button>
                             }
@@ -97,7 +97,7 @@
                             }
                             @if (canDel && r.RoleCode != "superadmin")
                             {
-                                <button class="btn btn-xs btn-danger" onclick="deleteRole(@r.Id, '@JavaScriptEncoder.Default.Encode(r.RoleName)')">
+                                <button class="btn btn-xs btn-danger" onclick="deleteRole(@r.Id, '@EncodeHelper.SafeEncode(r.RoleName)')">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             }
@@ -199,7 +199,7 @@ function openAddModal() {
 
 function openEditModal(id) {
     $.get('/system/role/detail/' + id, function(r) {
-        if (!r.success) { layer.msg(r.message, {icon:2}); return; }
+        if (!r.success) { ems.msg(r.message, {icon:2}); return; }
         var d = r.data.role;
         $('#roleModalTitle').text('编辑角色');
         $('#roleId').val(d.Id); $('#roleName').val(d.RoleName);
@@ -217,25 +217,25 @@ function saveRole() {
         DataScope: parseInt($('#dataScope').val()), Sort: parseInt($('#roleSort').val()),
         Remark: $('#roleRemark').val(), MenuIds: []
     };
-    if (!data.RoleName || !data.RoleCode) { layer.msg('请填写角色名称和编码', {icon:2}); return; }
+    if (!data.RoleName || !data.RoleCode) { ems.msg('请填写角色名称和编码', {icon:2}); return; }
     var url = id ? '/system/role/update' : '/system/role/create';
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url, type:'POST', contentType:'application/json',
         headers:{'RequestVerificationToken': antiForgery},
         data: JSON.stringify(data),
         success: function(r) {
-            layer.close(load);
-            if (r.success) { $('#roleModal').modal('hide'); layer.msg(r.message, {icon:1, time:1500}, ()=>location.reload()); }
-            else layer.msg(r.message, {icon:2});
+            ems.close(load);
+            if (r.success) { $('#roleModal').modal('hide'); ems.msg(r.message, {icon:1, time:1500}, ()=>location.reload()); }
+            else ems.msg(r.message, {icon:2});
         }
     });
 }
 
 function deleteRole(id, name) {
-    layer.confirm('确认删除角色 <b>' + name + '</b>？', {icon:3, btn:['确认','取消']}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除角色 <b>' + name + '</b>？', {icon:3, btn:['确认','取消']}, function(i) {
+        ems.close(i);
         $.post('/system/role/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
-            layer.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
+            ems.msg(r.message, {icon: r.success?1:2, time:1500}, function() { if(r.success) location.reload(); });
         });
     });
 }
@@ -274,15 +274,15 @@ function renderMenuTree(nodes, checkedIds) {
 function savePerms() {
     var menuIds = [];
     $('.menu-chk:checked').each(function() { menuIds.push(parseInt($(this).val())); });
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url: '/system/role/assignmenus?roleId='+currentPermRoleId,
         type:'POST', contentType:'application/json',
         headers:{'RequestVerificationToken': antiForgery},
         data: JSON.stringify(menuIds),
         success: function(r) {
-            layer.close(load);
-            if (r.success) { $('#permModal').modal('hide'); layer.msg('权限分配成功', {icon:1}); }
-            else layer.msg(r.message, {icon:2});
+            ems.close(load);
+            if (r.success) { $('#permModal').modal('hide'); ems.msg('权限分配成功', {icon:1}); }
+            else ems.msg(r.message, {icon:2});
         }
     });
 }

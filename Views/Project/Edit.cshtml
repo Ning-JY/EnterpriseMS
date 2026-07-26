@@ -47,18 +47,13 @@
                 <div class="form-group">
                     <label>业务类型 <span class="text-danger">*</span></label>
                     <select id="bizType" class="form-control">
-                        @{
-                            string[] bizTypes = {
-                                "可行性研究报告","节能评估报告","稳评报告",
-                                "概算编制","预算编制","结算编制",
-                                "概算评审","预算评审","结算评审",
-                                "控制性详细规划","专项规划","城市更新规划",
-                                "施工图设计","战略咨询","施工阶段全过程管控"
-                            };
-                        }
-                        @foreach (var t in bizTypes)
+                        <option value="">请选择</option>
+                        @if (ViewBag.BizTypes != null)
                         {
-                            <option value="@t" selected="@(Model.BizType == t ? "selected" : null)">@t</option>
+                            foreach (var bt in (System.Collections.Generic.List<EnterpriseMS.Services.DTOs.System.DictDataDto>)ViewBag.BizTypes)
+                            {
+                                <option value="@bt.DictValue" selected="@(Model.BizType == bt.DictValue ? "selected" : null)">@bt.DictLabel</option>
+                            }
                         }
                     </select>
                 </div>
@@ -265,12 +260,12 @@ function submitUpdate() {
         Members:         [],
         Milestones:      [],
     };
-    if (!data.ProjName) { layer.msg('请填写项目名称', {icon:2}); return; }
-    if (!data.OwnerName){ layer.msg('请填写项目业主', {icon:2}); return; }
-    if (!data.ContractAmount){ layer.msg('请填写合同金额', {icon:2}); return; }
+    if (!data.ProjName) { ems.msg('请填写项目名称', {icon:2}); return; }
+    if (!data.OwnerName){ ems.msg('请填写项目业主', {icon:2}); return; }
+    if (!data.ContractAmount){ ems.msg('请填写合同金额', {icon:2}); return; }
 
     ajaxPost('/project/update', data, function(r) {
-        layer.msg(r.message, {icon:1, time:1500}, function() {
+        ems.msg(r.message, {icon:1, time:1500}, function() {
             window.location.href = '/project/' + projId;
         });
     });

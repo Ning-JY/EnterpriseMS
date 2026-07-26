@@ -1,0 +1,11 @@
+@model EnterpriseMS.ViewComponents.PersonSelectViewModel
+<select id="@Model.Id" name="@Model.Name" class="@Model.CssClass">
+    @if (!string.IsNullOrEmpty(Model.EmptyText))
+    {
+        <option value="">@Model.EmptyText</option>
+    }
+    @foreach (var p in Model.Persons)
+    {
+        <option value="@p.Id" selected="@(Model.SelectedId == p.Id ? "selected" : null)">@p.RealName</option>
+    }
+</select>

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 
@@ -11,7 +12,7 @@ public static class ClaimsPrincipalExtensions
         return long.TryParse(val, out var id) ? id : 0;
     }
     public static string GetRealName(this ClaimsPrincipal user)
-        => user.FindFirstValue(ClaimTypes.Name) ?? "";
+        => WebUtility.HtmlDecode(user.FindFirstValue(ClaimTypes.Name) ?? "");
     public static string GetUsername(this ClaimsPrincipal user)
         => user.FindFirstValue("Username") ?? "";
 }

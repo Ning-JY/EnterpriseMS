@@ -1,3 +1,4 @@
+using System.Net;
 using AutoMapper;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Entities.Hr;
@@ -18,9 +19,12 @@ public class AutoMapperProfile : Profile
         // User
         CreateMap<SysUser, UserListDto>()
             .ForMember(d => d.DeptName,  o => o.MapFrom(s => s.Dept != null ? s.Dept.DeptName : null))
-            .ForMember(d => d.RoleNames, o => o.MapFrom(s => s.UserRoles.Select(ur => ur.Role != null ? ur.Role.RoleName : "").ToList()));
+            // 姓名/角色名在库里可能被存成 HTML 实体串（如 肖玲 → &#x8096;&#x73B6;），展示前统一解码，避免页面显示实体原文
+            .ForMember(d => d.RealName,  o => o.MapFrom(s => WebUtility.HtmlDecode(s.RealName ?? "")))
+            .ForMember(d => d.RoleNames, o => o.MapFrom(s => s.UserRoles.Select(ur => ur.Role != null ? WebUtility.HtmlDecode(ur.Role.RoleName) : "").ToList()));
         CreateMap<SysUser, UserDetailDto>()
             .IncludeBase<SysUser, UserListDto>()
+            .ForMember(d => d.RealName, o => o.MapFrom(s => WebUtility.HtmlDecode(s.RealName ?? "")))
             .ForMember(d => d.RoleIds, o => o.MapFrom(s => s.UserRoles.Select(ur => ur.RoleId).ToList()));
         CreateMap<CreateUserDto, SysUser>();
         CreateMap<UpdateUserDto, SysUser>();
@@ -40,8 +44,8 @@ public class AutoMapperProfile : Profile
         // Project
         CreateMap<Project, ProjectListDto>()
             .ForMember(d => d.DeptName,       o => o.MapFrom(s => s.Dept != null ? s.Dept.DeptName : null))
-            .ForMember(d => d.TechLeaderName, o => o.MapFrom(s => s.TechLeader != null ? s.TechLeader.RealName : null))
-            .ForMember(d => d.BizLeaderName,  o => o.MapFrom(s => s.BizLeader  != null ? s.BizLeader.RealName  : null))
+            .ForMember(d => d.TechLeaderName, o => o.MapFrom(s => s.TechLeader != null ? WebUtility.HtmlDecode(s.TechLeader.RealName) : null))
+            .ForMember(d => d.BizLeaderName,  o => o.MapFrom(s => s.BizLeader  != null ? WebUtility.HtmlDecode(s.BizLeader.RealName)  : null))
             .ForMember(d => d.ActualAmount,   o => o.MapFrom(s => s.ActualContractAmount))
             .ForMember(d => d.MilestoneDone,  o => o.MapFrom(s => s.Milestones.Count(m => m.Status == 2)))
             .ForMember(d => d.MilestoneTotal, o => o.MapFrom(s => s.Milestones.Count))
@@ -73,12 +77,12 @@ public class AutoMapperProfile : Profile
 
         // ProjectMember
         CreateMap<ProjectMember, ProjectMemberDto>()
-            .ForMember(d => d.EmployeeName, o => o.MapFrom(s => s.Employee != null ? s.Employee.RealName : ""));
+            .ForMember(d => d.EmployeeName, o => o.MapFrom(s => s.Employee != null ? WebUtility.HtmlDecode(s.Employee.RealName) : ""));
         CreateMap<CreateMemberDto, ProjectMember>();
 
         // Milestone
         CreateMap<ProjectMilestone, ProjectMilestoneDto>()
-            .ForMember(d => d.OwnerName, o => o.MapFrom(s => s.Owner != null ? s.Owner.RealName : null));
+            .ForMember(d => d.OwnerName, o => o.MapFrom(s => s.Owner != null ? WebUtility.HtmlDecode(s.Owner.RealName) : null));
         // 新增实体映射
         CreateMap<ProjectContract, ProjectContractDto>();
         CreateMap<ProjectInvoice, ProjectInvoiceDto>();

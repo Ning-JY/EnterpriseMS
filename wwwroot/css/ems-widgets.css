@@ -1,0 +1,134 @@
+/* ============================================================
+   企业管理系统 · 统一交互组件样式
+   目的：列表页/模态框视觉一致 + 下拉多选/部门人员选择统一
+   作者：Senior Developer
+   ============================================================ */
+
+/* ---------- 多选下拉（.ems-ms）----------
+   用法：<select id="x" multiple>...</select> 后调用 $('#x').emsMultiselect();
+   底层仍用原生 multiple（保持表单提交逻辑不变），仅把展示换成下拉 checkbox。 */
+.ems-ms { position: relative; width: 100%; }
+.ems-ms-btn {
+    width: 100%;
+    text-align: left;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    padding: .375rem .75rem;
+    color: #495057;
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.ems-ms-btn::after {
+    content: "\f0d7";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    position: absolute;
+    right: .75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+.ems-ms-btn.placeholder { color: #6c757d; }
+.ems-ms-panel {
+    position: absolute;
+    z-index: 1060;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15);
+    padding: .25rem 0;
+}
+.ems-ms-panel .ems-ms-search {
+    width: calc(100% - 1rem);
+    margin: .25rem .5rem;
+    padding: .25rem .5rem;
+    border: 1px solid #ced4da;
+    border-radius: .2rem;
+    font-size: .875rem;
+}
+.ems-ms-item {
+    display: flex;
+    align-items: center;
+    padding: .35rem .75rem;
+    margin: 0;
+    font-weight: 400;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.ems-ms-item:hover { background: #f8f9fa; }
+.ems-ms-item input { margin-right: .5rem; }
+.ems-ms-empty { padding: .5rem .75rem; color: #999; font-size: .875rem; }
+
+/* ---------- 模态框标题颜色填充（统一风格）----------
+   仅作用于“无显式 bg-* 配色”的模态框，保留 danger/success 等语义色头。 */
+.modal-header:not([class*="bg-"]) {
+    background: linear-gradient(135deg, #0d6b64 0%, #0a857a 100%);
+    color: #fff;
+    border-bottom: 0;
+    border-top-left-radius: .3rem;
+    border-top-right-radius: .3rem;
+}
+.modal-header:not([class*="bg-"]) .modal-title { color: #fff; font-weight: 600; }
+.modal-header:not([class*="bg-"]) .close { color: #fff; opacity: .9; text-shadow: none; }
+.modal-header:not([class*="bg-"]) .close:hover { color: #fff; opacity: 1; }
+
+/* ---------- 公告走马灯（navbar 下方细条）---------- */
+.ems-marquee {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(90deg, #0d6b64 0%, #0a857a 100%);
+    color: #fff;
+    height: 36px;
+    font-size: .875rem;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+.ems-marquee-label {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 .9rem;
+    height: 100%;
+    background: rgba(0,0,0,.18);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.ems-marquee-viewport { flex: 1 1 auto; overflow: hidden; position: relative; height: 100%; }
+.ems-marquee-track {
+    display: inline-flex;
+    align-items: center;
+    height: 100%;
+    white-space: nowrap;
+    padding-left: 100%;
+    animation: ems-marquee-scroll 28s linear infinite;
+}
+.ems-marquee:hover .ems-marquee-track { animation-play-state: paused; }
+.ems-marquee-track a { color: #fff; text-decoration: none; padding: 0 2.5rem; position: relative; }
+.ems-marquee-track a::after {
+    content: "•"; position: absolute; right: .8rem; opacity: .6;
+}
+.ems-marquee-track a:hover { text-decoration: underline; }
+.ems-marquee-empty { padding: 0 .9rem; opacity: .85; }
+@keyframes ems-marquee-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+/* ---------- 上传控件按钮中文化 ----------
+   Bootstrap 4 的 .custom-file-label::after 默认显示英文 "Browse"，
+   全站统一覆盖为「浏览」。 */
+.custom-file-label::after {
+    content: "浏览";
+}
+
+/* ---------- 列表页基准：搜索卡片 + 列表卡片 ---------- */
+.search-card .form-control-sm { border-radius: .3rem; }
+

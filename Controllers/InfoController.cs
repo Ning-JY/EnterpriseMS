@@ -52,6 +52,20 @@ public class InfoController : BaseAuthController
         return View(list);
     }
 
+    // ── 最新公开公告（供顶部走马灯 / 前端拉取，匿名可访问）────────
+    [AllowAnonymous]
+    [HttpGet("latest")]
+    public async Task<IActionResult> Latest(int n = 8)
+    {
+        var list = await _uow.InfoArticles.Query()
+            .Where(a => !a.IsDeleted && a.Status == 1 && a.IsPublic == 1)
+            .OrderByDescending(a => a.IsTop)
+            .ThenByDescending(a => a.PublishTime ?? a.CreatedAt)
+            .Take(n).ToListAsync();
+        var data = list.Select(a => new { id = a.Id, title = a.Title });
+        return Json(new { success = true, data });
+    }
+
     // ── 公开详情（匿名可访问）──────────────────────────────
     [AllowAnonymous]
     public async Task<IActionResult> Detail(long id)

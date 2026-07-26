@@ -754,25 +754,25 @@ function saveEdit() {
         SocialInsuranceNo:'@(Model.SocialInsuranceNo ?? "")' || null,
         ProfilePhoto:    '@(Model.ProfilePhoto ?? "")' || null,
     };
-    if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
+    if (!data.RealName) { ems.msg('请填写姓名', {icon:2}); return; }
     ajaxPost('/hr/employee/update', data, function(r) {
-        layer.msg(r.message, {icon:1, time:1500}, function() { location.reload(); });
+        ems.msg(r.message, {icon:1, time:1500}, function() { location.reload(); });
     });
 }
 
 function doFormal() {
     var today = new Date().toISOString().split('T')[0];
-    layer.open({
+    ems.open({
         type: 1, title: '办理转正', area: ['350px', '180px'],
         content: '<div class="form-group" style="padding:15px"><label>转正日期</label><input type="date" id="formalDate" class="form-control" value="' + today + '"></div>',
         btn: ['确认转正', '取消'],
         yes: function(idx) {
             var val = $('#formalDate').val();
-            if (!val) { layer.msg('请选择日期', {icon:2}); return; }
+            if (!val) { ems.msg('请选择日期', {icon:2}); return; }
             $.post('/hr/employee/formal', { id: empId, formalDate: val, __RequestVerificationToken: antiForgery },
                 function(r) {
-                    layer.close(idx);
-                    layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                    ems.close(idx);
+                    ems.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
                         function() { if (r.success) location.reload(); });
                 });
         }
@@ -781,17 +781,17 @@ function doFormal() {
 
 function doLeave() {
     var today = new Date().toISOString().split('T')[0];
-    layer.open({
+    ems.open({
         type: 1, title: '办理离职', area: ['350px', '180px'],
         content: '<div class="form-group" style="padding:15px"><label>离职日期</label><input type="date" id="leaveDate" class="form-control" value="' + today + '"></div>',
         btn: ['确认离职', '取消'],
         yes: function(idx) {
             var val = $('#leaveDate').val();
-            if (!val) { layer.msg('请选择日期', {icon:2}); return; }
+            if (!val) { ems.msg('请选择日期', {icon:2}); return; }
             $.post('/hr/employee/leave', { id: empId, leaveDate: val, __RequestVerificationToken: antiForgery },
                 function(r) {
-                    layer.close(idx);
-                    layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+                    ems.close(idx);
+                    ems.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
                         function() { if (r.success) location.reload(); });
                 });
         }
@@ -802,14 +802,14 @@ function uploadContractFile(contractId, input) {
     if (!input.files[0]) return;
     var formData = new FormData();
     formData.append('file', input.files[0]);
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({
         url: '/hr/contract/upload/' + contractId, type: 'POST',
         data: formData, processData: false, contentType: false,
         headers: { 'RequestVerificationToken': antiForgery },
         success: function(r) {
-            layer.close(load);
-            layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+            ems.close(load);
+            ems.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
                 function() { if (r.success) location.reload(); });
         }
     });
@@ -819,14 +819,14 @@ function uploadCertFile(certId, input) {
     if (!input.files[0]) return;
     var formData = new FormData();
     formData.append('file', input.files[0]);
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({
         url: '/hr/cert/upload/' + certId, type: 'POST',
         data: formData, processData: false, contentType: false,
         headers: { 'RequestVerificationToken': antiForgery },
         success: function(r) {
-            layer.close(load);
-            layer.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
+            ems.close(load);
+            ems.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
                 function() { if (r.success) location.reload(); });
         }
     });
@@ -837,9 +837,9 @@ function deleteAttachment(type, id) {
     var url = type === "contract"
         ? "/hr/contract/file/delete/" + id
         : "/hr/cert/file/delete/" + id;
-    layer.confirm("确认删除附件？记录本身将保留。",
+    ems.confirm("确认删除附件？记录本身将保留。",
         {icon:3, btn:["确认删除","取消"]}, function(i) {
-        layer.close(i);
+        ems.close(i);
         $.post(url, {__RequestVerificationToken: antiForgery},
             function(r) { handleResult(r, ()=>location.reload()); });
     });
@@ -860,7 +860,7 @@ function openAddContractModal() {
 
 function saveEmpContract() {
     var no = $('#ctNo').val(), start = $('#ctStart').val(), end = $('#ctEnd').val();
-    if (!no || !start || !end) { layer.msg('请填写合同编号和起止日期', {icon:2}); return; }
+    if (!no || !start || !end) { ems.msg('请填写合同编号和起止日期', {icon:2}); return; }
     var fd = new FormData();
     fd.append('EmployeeId', empId);
     fd.append('ContractNo', no);
@@ -873,14 +873,14 @@ function saveEmpContract() {
     if (file) fd.append('file', file);
 
     $('#ctSaveBtn').prop('disabled', true);
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url: '/hr/contract/create-with-file', type: 'POST',
         data: fd, processData: false, contentType: false,
         headers: { 'RequestVerificationToken': antiForgery },
         success: function(r) {
-            layer.close(load); $('#ctSaveBtn').prop('disabled', false);
+            ems.close(load); $('#ctSaveBtn').prop('disabled', false);
             if (r.success) { $('#addContractModal').modal('hide'); location.reload(); }
-            else layer.msg(r.message, {icon:2});
+            else ems.msg(r.message, {icon:2});
         }
     });
 }
@@ -899,7 +899,7 @@ function openAddCertModal() {
 
 function saveEmpCert() {
     var name = $('#certName2').val();
-    if (!name) { layer.msg('请填写证书名称', {icon:2}); return; }
+    if (!name) { ems.msg('请填写证书名称', {icon:2}); return; }
     var fd = new FormData();
     fd.append('EmployeeId', empId);
     fd.append('CertName', name);
@@ -912,14 +912,14 @@ function saveEmpCert() {
     if (file) fd.append('file', file);
 
     $('#certSaveBtn2').prop('disabled', true);
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({ url: '/hr/cert/create-with-file', type: 'POST',
         data: fd, processData: false, contentType: false,
         headers: { 'RequestVerificationToken': antiForgery },
         success: function(r) {
-            layer.close(load); $('#certSaveBtn2').prop('disabled', false);
+            ems.close(load); $('#certSaveBtn2').prop('disabled', false);
             if (r.success) { $('#addCertModal').modal('hide'); location.reload(); }
-            else layer.msg(r.message, {icon:2});
+            else ems.msg(r.message, {icon:2});
         }
     });
 }
@@ -951,7 +951,7 @@ function openEditEduModal(btn) {
 
 function saveEdu() {
     var school = $('#eduSchool').val(), major = $('#eduMajor').val(), degree = $('#eduDegree').val();
-    if (!school || !major || !degree) { layer.msg('请填写学校、专业和学历', {icon:2}); return; }
+    if (!school || !major || !degree) { ems.msg('请填写学校、专业和学历', {icon:2}); return; }
     var id = $('#eduId').val();
     var dto = {
         SchoolName: school, Major: major, Degree: degree,
@@ -964,19 +964,19 @@ function saveEdu() {
     var done = function(r) {
         $('#eduSaveBtn').prop('disabled', false);
         if (r && r.success) { $('#eduModal').modal('hide'); location.reload(); }
-        else layer.msg((r && r.message) || '保存失败', {icon:2});
+        else ems.msg((r && r.message) || '保存失败', {icon:2});
     };
-    var fail = function(r) { $('#eduSaveBtn').prop('disabled', false); layer.msg((r && r.message) || '保存失败', {icon:2}); };
+    var fail = function(r) { $('#eduSaveBtn').prop('disabled', false); ems.msg((r && r.message) || '保存失败', {icon:2}); };
     if (id) { dto.Id = parseInt(id); ajaxPost('/hr/education/update', dto, done, fail); }
     else    { ajaxPost('/hr/education/create?employeeId=' + empId, dto, done, fail); }
 }
 
 function deleteEdu(id) {
-    layer.confirm('确认删除该教育经历？', {icon:3, btn:['确认删除','取消']}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除该教育经历？', {icon:3, btn:['确认删除','取消']}, function(i) {
+        ems.close(i);
         $.post('/hr/education/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
             if (r && r.success) location.reload();
-            else layer.msg((r && r.message) || '删除失败', {icon:2});
+            else ems.msg((r && r.message) || '删除失败', {icon:2});
         });
     });
 }
@@ -1005,7 +1005,7 @@ function openEditWorkModal(btn) {
 
 function saveWork() {
     var company = $('#workCompany').val(), position = $('#workPosition').val();
-    if (!company || !position) { layer.msg('请填写公司和职位', {icon:2}); return; }
+    if (!company || !position) { ems.msg('请填写公司和职位', {icon:2}); return; }
     var id = $('#workId').val();
     var dto = {
         CompanyName: company, Position: position,
@@ -1017,19 +1017,19 @@ function saveWork() {
     var done = function(r) {
         $('#workSaveBtn').prop('disabled', false);
         if (r && r.success) { $('#workModal').modal('hide'); location.reload(); }
-        else layer.msg((r && r.message) || '保存失败', {icon:2});
+        else ems.msg((r && r.message) || '保存失败', {icon:2});
     };
-    var fail = function(r) { $('#workSaveBtn').prop('disabled', false); layer.msg((r && r.message) || '保存失败', {icon:2}); };
+    var fail = function(r) { $('#workSaveBtn').prop('disabled', false); ems.msg((r && r.message) || '保存失败', {icon:2}); };
     if (id) { dto.Id = parseInt(id); ajaxPost('/hr/workexp/update', dto, done, fail); }
     else    { ajaxPost('/hr/workexp/create?employeeId=' + empId, dto, done, fail); }
 }
 
 function deleteWork(id) {
-    layer.confirm('确认删除该工作经历？', {icon:3, btn:['确认删除','取消']}, function(i) {
-        layer.close(i);
+    ems.confirm('确认删除该工作经历？', {icon:3, btn:['确认删除','取消']}, function(i) {
+        ems.close(i);
         $.post('/hr/workexp/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
             if (r && r.success) location.reload();
-            else layer.msg((r && r.message) || '删除失败', {icon:2});
+            else ems.msg((r && r.message) || '删除失败', {icon:2});
         });
     });
 }

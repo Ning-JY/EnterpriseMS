@@ -196,11 +196,11 @@
             let file = fileInput.files[0];
 
             if (!name) {
-                layer.msg('请输入模板名称', { icon: 2 });
+                ems.msg('请输入模板名称', { icon: 2 });
                 return;
             }
             if (!file) {
-                layer.msg('请选择Word模板文件', { icon: 2 });
+                ems.msg('请选择Word模板文件', { icon: 2 });
                 return;
             }
 
@@ -210,7 +210,7 @@
             formData.append('TemplateDescription', document.getElementById('templateDescription').value);
 
             try {
-                layer.load(1);
+                ems.loading(1);
                 let resp = await fetch('/templatereport/scan-placeholders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -223,12 +223,12 @@
                     parsedContent = parseDocxContent(content);
                     renderTemplateContent();
                     goToStep(2);
-                    layer.closeAll();
+                    ems.closeAll();
                 };
                 reader.readAsArrayBuffer(file);
             } catch (err) {
-                layer.closeAll();
-                layer.msg('解析失败: ' + err.message, { icon: 2 });
+                ems.closeAll();
+                ems.msg('解析失败: ' + err.message, { icon: 2 });
             }
         }
 
@@ -358,12 +358,12 @@
             let index = window._pendingItemIndex;
 
             if (!fieldName) {
-                layer.msg('请输入字段名', { icon: 2 });
+                ems.msg('请输入字段名', { icon: 2 });
                 return;
             }
 
             if (replacements.some(r => r.fieldName === fieldName)) {
-                layer.msg('字段名已存在，请使用其他名称', { icon: 2 });
+                ems.msg('字段名已存在，请使用其他名称', { icon: 2 });
                 return;
             }
 
@@ -417,7 +417,7 @@
 
         function goToStep3() {
             if (replacements.length === 0) {
-                layer.msg('请至少标记一个替换项', { icon: 2 });
+                ems.msg('请至少标记一个替换项', { icon: 2 });
                 return;
             }
 
@@ -439,7 +439,7 @@
             let file = fileInput.files[0];
 
             if (!name || !file) {
-                layer.msg('请完善模板信息', { icon: 2 });
+                ems.msg('请完善模板信息', { icon: 2 });
                 return;
             }
 
@@ -455,25 +455,25 @@
             }
 
             try {
-                layer.load(1);
+                ems.loading(1);
                 let resp = await fetch('/templatereport/configure-template', {
                     method: 'POST',
                     body: formData
                 });
                 let result = await resp.json();
-                layer.closeAll();
+                ems.closeAll();
 
                 if (result.code === 200) {
-                    layer.msg('模板保存成功，', { icon: 1 });
+                    ems.msg('模板保存成功，', { icon: 1 });
                     setTimeout(() => {
                         window.location.href = '/templatereport/index';
                     }, 1500);
                 } else {
-                    layer.msg(result.message || '保存失败', { icon: 2 });
+                    ems.msg(result.message || '保存失败', { icon: 2 });
                 }
             } catch (err) {
-                layer.closeAll();
-                layer.msg('保存失败: ' + err.message, { icon: 2 });
+                ems.closeAll();
+                ems.msg('保存失败: ' + err.message, { icon: 2 });
             }
         }
 

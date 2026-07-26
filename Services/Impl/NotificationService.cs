@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
+using EnterpriseMS.Domain.Entities.Info;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Services.DTOs.System;
@@ -58,11 +59,36 @@ public class NotificationService : INotificationService
             IsRead    = readSet.Contains(n.Id),
         }).ToList();
 
+        // 把最新公开公告作为 info 级提醒注入铃铛（不影响未读计数与已读状态）
+        var announce = await GetAnnouncementItemsAsync();
+        if (announce.Count > 0)
+            items.InsertRange(0, announce);
+
         return new NotificationSummary
         {
             UnreadCount = visibleIds.Count(id => !readSet.Contains(id)),
             Items       = items,
         };
+    }
+
+    /// <summary>取最新公开公告，映射为 info 级通知项（Id 取负避免与真实通知主键冲突，始终视为已读）。</summary>
+    private async Task<List<NotificationItem>> GetAnnouncementItemsAsync(int take = 5)
+    {
+        var list = await _uow.InfoArticles.Query()
+            .Where(a => !a.IsDeleted && a.Status == 1 && a.IsPublic == 1)
+            .OrderByDescending(a => a.IsTop)
+            .ThenByDescending(a => a.PublishTime ?? a.CreatedAt)
+            .Take(take).ToListAsync();
+        return list.Select(a => new NotificationItem
+        {
+            Id        = -a.Id,
+            Title     = a.Title,
+            Content   = "公告 · " + (a.Category?.CategoryName ?? "资讯公告"),
+            Link      = "/pub/Detail/" + a.Id,
+            Level     = "info",
+            CreatedAt = a.PublishTime ?? a.CreatedAt,
+            IsRead    = true,
+        }).ToList();
     }
 
     public async Task SyncExpiryAsync()

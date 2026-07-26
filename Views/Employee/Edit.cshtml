@@ -326,9 +326,9 @@ function saveEdit() {
         SocialInsuranceNo:$('#socialInsuranceNo').val() || null,
         ProfilePhoto:     $('#profilePhoto').val() || null
     };
-    if (!data.RealName) { layer.msg('请填写姓名', {icon:2}); return; }
+    if (!data.RealName) { ems.msg('请填写姓名', {icon:2}); return; }
     ajaxPost('/hr/employee/update', data, function(r) {
-        layer.msg(r.message, {icon:1, time:1500}, function() {
+        ems.msg(r.message, {icon:1, time:1500}, function() {
             window.location.href = '/hr/employee/detail/' + empId;
         });
     });

@@ -53,11 +53,11 @@ $(function () {
     // ── Ajax 全局错误 ────────────────────────────────────────
     $(document).ajaxError(function (event, xhr) {
         if (xhr.status === 401) {
-            layer.msg('登录已过期', { icon: 2, time: 2000 }, function () {
+            ems.msg('登录已过期', { icon: 2, time: 2000 }, function () {
                 window.location.href = '/Account/Login?returnUrl=' + encodeURIComponent(window.location.pathname);
             });
         } else if (xhr.status === 403) {
-            layer.msg('您没有操作权限', { icon: 2 });
+            ems.msg('您没有操作权限', { icon: 2 });
         }
     });
 
@@ -93,31 +93,31 @@ $(function () {
 
 // 通用确认删除
 function confirmDelete(url, name, cb) {
-    layer.confirm('确认删除 <b>' + (name || '该记录') + '</b>？',
+    ems.confirm('确认删除 <b>' + (name || '该记录') + '</b>？',
         { icon: 3, title: '警告', btn: ['确认删除', '取消'] },
         function (i) {
-            layer.close(i);
-            var load = layer.load(1);
+            ems.close(i);
+            var load = ems.loading(1);
             $.post(url, function (r) {
-                layer.close(load);
+                ems.close(load);
                 handleResult(r, function () { if (cb) cb(); else setTimeout(function(){ location.reload(); }, 1500); });
-            }).fail(function () { layer.close(load); layer.msg('请求失败', { icon: 2 }); });
+            }).fail(function () { ems.close(load); ems.msg('请求失败', { icon: 2 }); });
         });
 }
 
 // 通用 JSON POST
 function ajaxPost(url, data, successCb, errorCb) {
-    var load = layer.load(1);
+    var load = ems.loading(1);
     $.ajax({
         url: url, type: 'POST', contentType: 'application/json', data: JSON.stringify(data),
         success: function (r) {
-            layer.close(load);
-            if (r && r.success) { if (successCb) successCb(r); else layer.msg(r.message || '操作成功', { icon: 1 }); }
-            else { if (errorCb) errorCb(r); else layer.msg((r && r.message) || '操作失败', { icon: 2 }); }
+            ems.close(load);
+            if (r && r.success) { if (successCb) successCb(r); else ems.msg(r.message || '操作成功', { icon: 1 }); }
+            else { if (errorCb) errorCb(r); else ems.msg((r && r.message) || '操作失败', { icon: 2 }); }
         },
         error: function () {
-            layer.close(load);
-            if (errorCb) errorCb({ message: '网络请求失败' }); else layer.msg('网络请求失败', { icon: 2 });
+            ems.close(load);
+            if (errorCb) errorCb({ message: '网络请求失败' }); else ems.msg('网络请求失败', { icon: 2 });
         }
     });
 }
@@ -125,9 +125,9 @@ function ajaxPost(url, data, successCb, errorCb) {
 // 处理响应结果并弹窗
 function handleResult(r, onSuccess) {
     if (r && r.success) {
-        layer.msg(r.message || '操作成功', { icon: 1, time: 1500 }, function () { if (onSuccess) onSuccess(r); });
+        ems.msg(r.message || '操作成功', { icon: 1, time: 1500 }, function () { if (onSuccess) onSuccess(r); });
     } else {
-        layer.msg((r && r.message) || '操作失败', { icon: 2 });
+        ems.msg((r && r.message) || '操作失败', { icon: 2 });
     }
 }
 
@@ -166,16 +166,46 @@ function markNotificationRead(id, link) {
 
 // 全部标为已读
 function markAllNotificationsRead() {
-    var load = layer.load(1);
+    var load = ems.loading(1);
     fetch('/notifications/mark-all-read', {
         method: 'POST',
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
     }).then(function () {
-        layer.close(load);
+        ems.close(load);
         location.reload();
     }).catch(function () {
-        layer.close(load);
-        layer.msg('操作失败', { icon: 2 });
+        ems.close(load);
+        ems.msg('操作失败', { icon: 2 });
     });
 }
+
+// ── 公告走马灯 ──────────────────────────────────────────────
+// 拉取最新公开公告，渲染到 _Layout 顶部的走马灯细条；无公告则隐藏。
+function loadMarquee() {
+    var track = document.getElementById('emsMarqueeTrack');
+    var box = document.getElementById('emsMarquee');
+    if (!track || !box) return;
+    fetch('/info/latest?n=8')
+        .then(function (r) { return r.json(); })
+        .then(function (r) {
+            if (r && r.success && r.data && r.data.length) {
+                var html = '';
+                for (var i = 0; i < r.data.length; i++) {
+                    var t = (r.data[i].title || '').replace(/"/g, '');
+                    html += '<a href="/pub/Detail/' + r.data[i].id + '" title="' + t + '">' + t + '</a>';
+                }
+                track.innerHTML = html;
+                box.classList.remove('d-none');
+            } else {
+                box.style.display = 'none';
+            }
+        })
+        .catch(function () { box.style.display = 'none'; });
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadMarquee);
+} else {
+    loadMarquee();
+}
+
 
