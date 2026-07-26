@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Base;
 using EnterpriseMS.Domain.Entities.System;
@@ -204,7 +206,11 @@ public class AppDbContext : DbContext
 
     private async Task SeedTableAsync<T>() where T : class
     {
-        var entityType = Model.FindEntityType(typeof(T));
+        // EF Core 9：HasData 种子配置仅存在于 design-time 模型（read-optimized 运行时模型不存储），
+        // 故读取种子数据须走 IDesignTimeModel，否则会抛
+        // "The requested configuration is not stored in the read-optimized model" 异常。
+        var designTimeModel = this.GetService<IDesignTimeModel>().Model;
+        var entityType = designTimeModel.FindEntityType(typeof(T));
         if (entityType == null) return;
         var seedData = entityType.GetSeedData().ToList();
         if (!seedData.Any()) return;
