@@ -59,9 +59,9 @@
                     <div class="col-md-5 text-right">
                         @if (canAdd)
                         {
-                            <a href="/project/create" class="btn btn-success btn-sm">
+                            <button type="button" class="btn btn-success btn-sm" onclick="openCreateModal()">
                                 <i class="fas fa-plus"></i> 新建项目
-                            </a>
+                            </button>
                             <a href="/project/import" class="btn btn-info btn-sm">
                                 <i class="fas fa-file-import"></i> 批量导入
                             </a>
@@ -177,4 +177,33 @@
     </div>
 
 </div>
+
+<!-- 新建项目模态框 -->
+<div class="modal fade" id="createProjModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary">
+        <h5 class="modal-title text-white"><i class="fas fa-plus mr-1"></i> 新建项目</h5>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="关闭">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body" id="createModalBody">
+        <div class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2 mb-0">加载中…</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openCreateModal() {
+    $('#createModalBody').html('<div class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2 mb-0">加载中…</p></div>');
+    $('#createProjModal').modal('show');
+    $.get('/project/create?modal=1', function (html) {
+        $('#createModalBody').html(html);
+    }).fail(function () {
+        $('#createModalBody').html('<div class="alert alert-danger">加载失败，请刷新后重试。</div>');
+    });
+}
+</script>
 </section>

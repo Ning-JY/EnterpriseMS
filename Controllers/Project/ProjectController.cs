@@ -185,6 +185,9 @@ public class ProjectController : BaseAuthController
         ViewBag.ProjNoPrefixes = prefixes;
         ViewBag.ProjNoPrefix   = defaultPrefix;
         ViewBag.GeneratedNo    = suffix;
+        // 模态框（项目台账页 AJAX 打开）只返回表单分部；直接访问 /project/create 仍渲染完整页
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Query["modal"] == "1")
+            return PartialView("_CreateModalContent");
         return View();
     }
 

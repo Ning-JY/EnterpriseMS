@@ -16,6 +16,7 @@ public class Project : BaseEntity
     [Column("owner_contact")]     public string?  OwnerContact    { get; set; }
     [Column("owner_phone")]       public string?  OwnerPhone      { get; set; }
     [Column("procurement_type")]  public string?  ProcurementType { get; set; }
+    [Column("project_source")]    public string?  ProjectSource   { get; set; } // 项目来源：自主承揽/合作承揽/投标获取/客户指定/其他
     [Column("limit_price")]       public decimal? LimitPrice      { get; set; }
     [Column("contract_amount")]   public decimal  ContractAmount  { get; set; }
     [Column("is_joint_venture")]  public bool     IsJointVenture  { get; set; }
