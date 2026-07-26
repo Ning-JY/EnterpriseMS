@@ -95,21 +95,12 @@
             <div class="col-md-4">
                 <div class="form-group">
                     <label>所属部门</label>
-                    <select id="deptId" class="form-control">
-                        <option value="">请选择</option>
-                        @foreach (var d in depts)
-                        {
-                            <option value="@d.Id" selected="@(Model.DeptId == d.Id ? "selected" : null)">
-                                @d.DeptName
-                            </option>
-                            @foreach (var cd in d.Children)
-                            {
-                                <option value="@cd.Id" selected="@(Model.DeptId == cd.Id ? "selected" : null)">
-                                    &nbsp;&nbsp;└ @cd.DeptName
-                                </option>
-                            }
-                        }
-                    </select>
+                    @await Component.InvokeAsync("DeptSelect", new {
+                        id = "deptId", name = "deptId",
+                        selectedId = (long)(Model.DeptId ?? 0),
+                        emptyText = "请选择",
+                        cssClass = "form-control"
+                    })
                 </div>
             </div>
             <div class="col-md-4">

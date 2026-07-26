@@ -15,7 +15,8 @@ public class PersonSelectViewComponent : ViewComponent
 
     public async Task<IViewComponentResult> InvokeAsync(
         string id = "employeeId", string name = null, long selectedId = 0,
-        string emptyText = "请选择人员", string cssClass = "form-control", bool required = false)
+        string emptyText = "请选择人员", string cssClass = "form-control", bool required = false,
+        string onchange = null)
     {
         var persons = await _empQrySvc.GetAllOnJobAsync();
         var model = new PersonSelectViewModel
@@ -27,6 +28,7 @@ public class PersonSelectViewComponent : ViewComponent
             EmptyText = emptyText,
             CssClass = cssClass,
             Required = required,
+            Onchange = onchange,
         };
         return View(model);
     }

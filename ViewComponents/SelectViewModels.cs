@@ -22,4 +22,6 @@ public class PersonSelectViewModel
     public string EmptyText { get; set; } = "请选择人员";
     public string CssClass { get; set; } = "form-control";
     public bool Required { get; set; }
+    /// <summary>可选的 onchange 脚本（如 "syncLeaderRow()"），渲染到 select 的 onchange 属性。</summary>
+    public string? Onchange { get; set; }
 }

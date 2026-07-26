@@ -88,29 +88,24 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>承接部门 <span class="text-danger">*</span></label>
-                            <select id="deptId" class="form-control">
-                                <option value="">请选择</option>
-                                @foreach (var d in depts)
-                                {
-                                    <option value="@d.Id">@d.DeptName</option>
-                                    @foreach (var c in d.Children)
-                                    {
-                                        <option value="@c.Id">&nbsp;&nbsp;@c.DeptName</option>
-                                    }
-                                }
-                            </select>
+                            @await Component.InvokeAsync("DeptSelect", new {
+                                id = "deptId", name = "deptId",
+                                selectedId = 0L,
+                                emptyText = "请选择",
+                                cssClass = "form-control"
+                            })
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>项目负责人 <span class="text-danger">*</span></label>
-                            <select id="projectLeaderId" class="form-control" onchange="syncLeaderRow()">
-                                <option value="">请选择</option>
-                                @foreach (var m in members)
-                                {
-                                    <option value="@m.Id">@m.Display</option>
-                                }
-                            </select>
+                            @await Component.InvokeAsync("PersonSelect", new {
+                                id = "projectLeaderId", name = "projectLeaderId",
+                                selectedId = 0L,
+                                emptyText = "请选择",
+                                cssClass = "form-control",
+                                onchange = "syncLeaderRow()"
+                            })
                         </div>
                     </div>
       </div>

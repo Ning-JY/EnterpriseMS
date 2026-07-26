@@ -401,7 +401,7 @@
         async function analyzeDocument() {
             var fileInput = document.getElementById('bidFile');
             if (!fileInput.files.length) {
-                alert('请选择招标文件');
+                ems.warn('请选择招标文件');
                 return;
             }
 
@@ -419,13 +419,13 @@
                 var result = await response.json();
 
                 if (result.success) {
-                    alert('解析完成！页面将刷新显示结果，请重点核对"否决性条款"和"待人工确认"两个区块。');
+                    ems.success('解析完成！页面将刷新显示结果，请重点核对"否决性条款"和"待人工确认"两个区块。');
                     location.reload();
                 } else {
-                    alert('解析失败：' + result.message);
+                    ems.error('解析失败：' + result.message);
                 }
             } catch (e) {
-                alert('请求失败：' + e.message);
+                ems.error('请求失败：' + e.message);
             } finally {
                 document.getElementById('analyzeProgress').style.display = 'none';
             }
@@ -444,13 +444,13 @@
                 var result = await response.json();
 
                 if (result.success) {
-                    alert('招标要素表已确认。');
+                    ems.success('招标要素表已确认。');
                     location.reload();
                 } else {
-                    alert('无法确认：' + result.message);
+                    ems.error('无法确认：' + result.message);
                 }
             } catch (e) {
-                alert('请求失败：' + e.message);
+                ems.error('请求失败：' + e.message);
             }
         }
 
@@ -464,7 +464,7 @@
             );
             if (sourceRef === null) return; // 用户取消
             if (!sourceRef.trim()) {
-                alert('出处不能为空，否则该条目会继续保留"待确认"状态');
+                ems.warn('出处不能为空，否则该条目会继续保留"待确认"状态');
                 return;
             }
             var isVeto = confirm('该条目是否为否决性条款（不满足将直接导致废标）？\n点击"确定"=是否决项，点击"取消"=不是否决项');
@@ -479,10 +479,10 @@
                 if (result.success) {
                     location.reload();
                 } else {
-                    alert('保存失败：' + result.message);
+                    ems.error('保存失败：' + result.message);
                 }
             } catch (e) {
-                alert('请求失败：' + e.message);
+                ems.error('请求失败：' + e.message);
             }
         }
 
@@ -500,13 +500,13 @@
                 var result = await response.json();
 
                 if (result.success) {
-                    alert('生成完成！页面将刷新显示结果。');
+                    ems.success('生成完成！页面将刷新显示结果。');
                     location.reload();
                 } else {
-                    alert('生成失败：' + result.message);
+                    ems.error('生成失败：' + result.message);
                 }
             } catch (e) {
-                alert('请求失败：' + e.message);
+                ems.error('请求失败：' + e.message);
             } finally {
                 document.getElementById('generatingProgress').style.display = 'none';
             }
@@ -601,13 +601,13 @@
                 var result = await response.json();
 
                 if (result.success) {
-                    alert('保存成功！');
+                    ems.success('保存成功！');
                     location.reload();
                 } else {
-                    alert('保存失败：' + result.message);
+                    ems.error('保存失败：' + result.message);
                 }
             } catch (e) {
-                alert('请求失败：' + e.message);
+                ems.error('请求失败：' + e.message);
             }
         }
 
@@ -759,7 +759,7 @@
             }
 
             navigator.clipboard.writeText(content).then(function() {
-                alert('内容已复制到剪贴板！');
+                ems.success('内容已复制到剪贴板！');
             }).catch(function() {
                 var textarea = document.createElement('textarea');
                 textarea.value = content;
@@ -767,7 +767,7 @@
                 textarea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
-                alert('内容已复制到剪贴板！');
+                ems.success('内容已复制到剪贴板！');
             });
         }
 
@@ -907,13 +907,13 @@
                 var result = await response.json();
 
                 if (result.success) {
-                    alert('人员配置文档已生成！页面将刷新显示结果。');
+                    ems.success('人员配置文档已生成！页面将刷新显示结果。');
                     location.reload();
                 } else {
-                    alert('生成失败：' + result.message);
+                    ems.error('生成失败：' + result.message);
                 }
             } catch (e) {
-                alert('请求失败：' + e.message);
+                ems.error('请求失败：' + e.message);
             }
         }
 

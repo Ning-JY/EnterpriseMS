@@ -61,17 +61,12 @@
             <div class="col-md-4">
                 <div class="form-group">
                     <label>承接部门</label>
-                    <select id="deptId" class="form-control">
-                        <option value="">请选择</option>
-                        @foreach (var d in depts)
-                        {
-                            <option value="@d.Id" selected="@(Model.DeptId == d.Id ? "selected" : null)">@d.DeptName</option>
-                            @foreach (var c in d.Children)
-                            {
-                                <option value="@c.Id" selected="@(Model.DeptId == c.Id ? "selected" : null)">&nbsp;&nbsp;└ @c.DeptName</option>
-                            }
-                        }
-                    </select>
+                    @await Component.InvokeAsync("DeptSelect", new {
+                        id = "deptId", name = "deptId",
+                        selectedId = (long)(Model.DeptId ?? 0),
+                        emptyText = "请选择",
+                        cssClass = "form-control"
+                    })
                 </div>
             </div>
             <div class="col-md-4">
@@ -183,25 +178,23 @@
             <div class="col-md-4">
                 <div class="form-group">
                     <label>技术负责人</label>
-                    <select id="techLeaderId" class="form-control">
-                        <option value="">请选择</option>
-                        @foreach (var m in members)
-                        {
-                            <option value="@m.Id" selected="@(Model.TechLeaderId == m.Id ? "selected" : null)">@m.Display</option>
-                        }
-                    </select>
+                    @await Component.InvokeAsync("PersonSelect", new {
+                        id = "techLeaderId", name = "techLeaderId",
+                        selectedId = (long)(Model.TechLeaderId ?? 0),
+                        emptyText = "请选择",
+                        cssClass = "form-control"
+                    })
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="form-group">
                     <label>商务负责人</label>
-                    <select id="bizLeaderId" class="form-control">
-                        <option value="">请选择</option>
-                        @foreach (var m in members)
-                        {
-                            <option value="@m.Id" selected="@(Model.BizLeaderId == m.Id ? "selected" : null)">@m.Display</option>
-                        }
-                    </select>
+                    @await Component.InvokeAsync("PersonSelect", new {
+                        id = "bizLeaderId", name = "bizLeaderId",
+                        selectedId = (long)(Model.BizLeaderId ?? 0),
+                        emptyText = "请选择",
+                        cssClass = "form-control"
+                    })
                 </div>
             </div>
             <div class="col-md-4">

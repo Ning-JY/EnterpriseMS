@@ -42,17 +42,12 @@
                                placeholder="用户名 / 姓名 / 手机" value="@query.Keyword">
                     </div>
                     <div class="col-md-3">
-                        <select name="DeptId" class="form-control form-control-sm">
-                            <option value="">全部部门</option>
-                            @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
-                            {
-                                <option value="@d.Id" selected="@(query.DeptId == d.Id ? "selected" : null)">@d.DeptName</option>
-                                @foreach (var cd in d.Children)
-                                {
-                                    <option value="@cd.Id" selected="@(query.DeptId == cd.Id ? "selected" : null)">&nbsp;&nbsp;└ @cd.DeptName</option>
-                                }
-                            }
-                        </select>
+                        @await Component.InvokeAsync("DeptSelect", new {
+                            id = "DeptId", name = "DeptId",
+                            selectedId = (long)(query.DeptId ?? 0),
+                            emptyText = "全部部门",
+                            cssClass = "form-control form-control-sm"
+                        })
                     </div>
                     <div class="col-md-2">
                         <select name="Status" class="form-control form-control-sm">
@@ -261,17 +256,12 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>所属部门</label>
-                                <select id="deptId" class="form-control">
-                                    <option value="">请选择部门</option>
-                                    @foreach (var d in ViewBag.Depts as List<EnterpriseMS.Services.DTOs.System.DeptTreeDto> ?? new())
-                                    {
-                                        <option value="@d.Id">@d.DeptName</option>
-                                        @foreach (var cd in d.Children)
-                                        {
-                                            <option value="@cd.Id">&nbsp;&nbsp;└ @cd.DeptName</option>
-                                        }
-                                    }
-                                </select>
+                                @await Component.InvokeAsync("DeptSelect", new {
+                                    id = "deptId", name = "deptId",
+                                    selectedId = 0L,
+                                    emptyText = "请选择部门",
+                                    cssClass = "form-control"
+                                })
                             </div>
                         </div>
                         <div class="col-md-6">
