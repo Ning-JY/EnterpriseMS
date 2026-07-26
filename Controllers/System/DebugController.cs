@@ -55,19 +55,19 @@ public class DebugController : BaseAuthController
     public async Task<IActionResult> Seed([FromForm] string confirm)
     {
         if (!IsSuperAdmin())
-            return Json(ApiResult<object>.Fail("无权限，仅超级管理员可操作"));
+            return ApiFail("无权限，仅超级管理员可操作");
         if (confirm != "CONFIRM")
-            return Json(ApiResult<object>.Fail("请输入确认字符 CONFIRM"));
+            return ApiFail("请输入确认字符 CONFIRM");
 
         var r = await _seedSvc.SeedAllAsync();
-        return Json(ApiResult<object>.Ok(new
+        return ApiOk(new
         {
             TotalAdded = r.TotalAdded,
             Details    = r.Details,
             Errors     = r.Errors,
         }, r.Errors.Any()
             ? $"种子数据写入完成，新增 {r.TotalAdded} 条，{r.Errors.Count} 个表出错"
-            : $"种子数据写入完成，共新增 {r.TotalAdded} 条"));
+            : $"种子数据写入完成，共新增 {r.TotalAdded} 条");
     }
 
     // ── 只写入菜单和权限（常用：补新菜单不重建数据库）──────────
@@ -76,10 +76,10 @@ public class DebugController : BaseAuthController
     public async Task<IActionResult> SeedMenu()
     {
         if (!IsSuperAdmin())
-            return Json(ApiResult<object>.Fail("无权限"));
+            return ApiFail("无权限");
 
         var results = await _seedSvc.SeedMenuAndDictsAsync();
-        return Json(ApiResult<object>.Ok(results, "菜单/权限/字典写入完成"));
+        return ApiOk(results, "菜单/权限/字典写入完成");
     }
 
     // ── 清空权限缓存（所有用户）──────────────────────────────
@@ -88,10 +88,10 @@ public class DebugController : BaseAuthController
     public async Task<IActionResult> ClearCache()
     {
         if (!IsSuperAdmin())
-            return Json(ApiResult<object>.Fail("无权限"));
+            return ApiFail("无权限");
 
         var count = await _seedSvc.ClearAllUserCacheAsync();
-        return Json(ApiResult<object>.Ok($"已清除 {count} 个用户的权限缓存"));
+        return ApiOk($"已清除 {count} 个用户的权限缓存");
     }
 
     // ── 执行待执行的 Migration ────────────────────────────────
@@ -100,15 +100,15 @@ public class DebugController : BaseAuthController
     public async Task<IActionResult> Migrate([FromForm] string confirm)
     {
         if (!IsSuperAdmin())
-            return Json(ApiResult<object>.Fail("无权限"));
+            return ApiFail("无权限");
         if (confirm != "CONFIRM")
-            return Json(ApiResult<object>.Fail("请输入确认字符 CONFIRM"));
+            return ApiFail("请输入确认字符 CONFIRM");
 
         var (pending, error) = await _seedSvc.MigrateAsync();
         if (error != null)
-            return Json(ApiResult<object>.Fail($"迁移失败：{error}"));
+            return ApiFail($"迁移失败：{error}");
         if (!pending.Any())
-            return Json(ApiResult<object>.Ok("无待执行的迁移，数据库已是最新版本"));
-        return Json(ApiResult<object>.Ok(pending, $"迁移完成，共执行 {pending.Count} 个迁移"));
+            return ApiOk("无待执行的迁移，数据库已是最新版本");
+        return ApiOk(pending, $"迁移完成，共执行 {pending.Count} 个迁移");
     }
 }

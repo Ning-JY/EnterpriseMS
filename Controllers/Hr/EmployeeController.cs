@@ -7,6 +7,7 @@ using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 
 namespace EnterpriseMS.Controllers.Hr;
 
@@ -37,6 +38,11 @@ public class EmployeeController : BaseAuthController
 
         ViewBag.BoundEmpIds = await _empSvc.GetBoundEmployeeIdsAsync();
         ViewBag.Depts    = await _deptSvc.GetTreeAsync();
+        var empStatusOpts = await _dictSvc.GetDataByTypeAsync(DictType.EmployeeStatus);
+        ViewBag.EmployeeStatusOptions = empStatusOpts;
+        var empStatusMap = new Dictionary<int, string>();
+        foreach (var o in empStatusOpts) if (int.TryParse(o.DictValue, out var v)) empStatusMap[v] = o.DictLabel;
+        ViewBag.EmployeeStatusMap = empStatusMap;
         ViewBag.Keyword  = keyword; ViewBag.DeptId = deptId; ViewBag.Status = status;
         ViewBag.Page = page; ViewBag.Size = size; ViewBag.Total = paged.Total;
         ViewBag.TotalPages = (int)Math.Ceiling(paged.Total / (double)size);
@@ -80,6 +86,11 @@ public class EmployeeController : BaseAuthController
         if (emp == null) return NotFound();
         ViewBag.Depts = await _deptSvc.GetTreeAsync();
         ViewBag.Posts = await _empSvc.GetPostsAsync();
+        var empStatusOpts = await _dictSvc.GetDataByTypeAsync(DictType.EmployeeStatus);
+        ViewBag.EmployeeStatusOptions = empStatusOpts;
+        var empStatusMap = new Dictionary<int, string>();
+        foreach (var o in empStatusOpts) if (int.TryParse(o.DictValue, out var v)) empStatusMap[v] = o.DictLabel;
+        ViewBag.EmployeeStatusMap = empStatusMap;
         return View(emp);
     }
 

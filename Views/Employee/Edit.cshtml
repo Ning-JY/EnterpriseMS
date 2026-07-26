@@ -1,10 +1,11 @@
 @using EnterpriseMS.Domain.Entities.Hr
 @using EnterpriseMS.Services.DTOs.System
+@using System.Collections.Generic
 @model Employee
 @{
     ViewData["Title"] = "编辑员工 - " + Model.RealName;
     var depts = ViewBag.Depts as List<DeptTreeDto> ?? new();
-    string[] statusText = { "试用期", "在职", "已离职" };
+    var empStatusMap = ViewBag.EmployeeStatusMap as Dictionary<int, string> ?? new Dictionary<int, string>();
 }
 
 <div class="content-header">
@@ -62,7 +63,7 @@
                 <div class="form-group">
                     <label>状态</label>
                     <input type="text" class="form-control"
-                           value="@statusText[Model.Status]" readonly style="background:#f8f9fa">
+                           value="@(empStatusMap.TryGetValue(Model.Status, out var st) ? st : Model.Status.ToString())" readonly style="background:#f8f9fa">
                     <small class="text-muted">状态通过转正/离职操作变更</small>
                 </div>
             </div>

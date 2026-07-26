@@ -35,19 +35,19 @@ public class NotificationController : BaseAuthController
     public async Task<IActionResult> MarkRead(long id)
     {
         var userId = User.GetUserId();
-        if (userId == 0) return Json(ApiResult<object>.Unauthorized());
+        if (userId == 0) return ApiFail("未授权", 401);
 
         await _notifSvc.MarkReadAsync(id, userId);
-        return Json(ApiResult.Ok("已标记已读"));
+        return ApiOk<object>(null!, "已标记已读");
     }
 
     [HttpPost("mark-all-read")]
     public async Task<IActionResult> MarkAllRead()
     {
         var userId = User.GetUserId();
-        if (userId == 0) return Json(ApiResult<object>.Unauthorized());
+        if (userId == 0) return ApiFail("未授权", 401);
 
         await _notifSvc.MarkAllReadAsync(userId);
-        return Json(ApiResult.Ok("已全部标记为已读"));
+        return ApiOk<object>(null!, "已全部标记为已读");
     }
 }

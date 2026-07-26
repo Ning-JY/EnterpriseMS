@@ -13,7 +13,9 @@ public class ConfigController : BaseAuthController
     private readonly IConfigService _configSvc;
     public ConfigController(IConfigService configSvc, IPermissionService permSvc)
         : base(permSvc)
-        => _configSvc = configSvc;
+    {
+        _configSvc = configSvc;
+    }
 
     [HasPermission("sys:config:list")]
     public async Task<IActionResult> Index()

@@ -88,7 +88,7 @@ public class KbController : BaseAuthController
         [FromForm] string? version, [FromForm] bool isPinned = false)
     {
         if (file == null || file.Length == 0)
-            return Json(ApiResult<object>.Fail("请选择文件"));
+            return ApiFail("请选择文件");
 
         // 扩展名白名单由 FileUploadHelper.DefaultAllowedExts 单一管控；大小由全局 500MB 限制；
         // 文件落非 Web 根目录，避免静态文件中间件直接渲染用户文件。
@@ -102,7 +102,7 @@ public class KbController : BaseAuthController
             IsPinned = isPinned,
         };
         var id = await _kbSvc.UploadAsync(dto, User.GetRealName());
-        return Json(ApiResult<object>.Ok(new { id }, "上传成功"));
+        return ApiOk(new { id }, "上传成功");
     }
 
     // ── 下载文件（计数 + 返回文件）──────────────────────────
@@ -142,10 +142,10 @@ public class KbController : BaseAuthController
     public async Task<IActionResult> TogglePin(long id)
     {
         var f = await _uow.KbFiles.GetByIdAsync(id);
-        if (f == null) return Json(ApiResult<object>.Fail("文件不存在"));
+        if (f == null) return ApiFail("文件不存在");
         await _kbSvc.TogglePinAsync(id, User.GetRealName());
         var newPinned = !f.IsPinned;
-        return Json(ApiResult<object>.Ok(newPinned ? "已置顶" : "已取消置顶"));
+        return ApiOk(newPinned ? "已置顶" : "已取消置顶");
     }
 
     // ── 删除文件 ────────────────────────────────────────────
@@ -154,9 +154,9 @@ public class KbController : BaseAuthController
     public async Task<IActionResult> Delete(long id)
     {
         var f = await _uow.KbFiles.GetByIdAsync(id);
-        if (f == null) return Json(ApiResult<object>.Fail("文件不存在"));
+        if (f == null) return ApiFail("文件不存在");
         await _kbSvc.DeleteAsync(id, User.GetRealName());
-        return Json(ApiResult<object>.Ok("已删除"));
+        return ApiOk("已删除");
     }
 
 }

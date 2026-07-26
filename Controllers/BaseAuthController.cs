@@ -16,7 +16,9 @@ public abstract class BaseAuthController : Controller
     private readonly IPermissionService _permSvc;
 
     protected BaseAuthController(IPermissionService permSvc)
-        => _permSvc = permSvc;
+    {
+        _permSvc = permSvc;
+    }
 
     public override async Task OnActionExecutionAsync(
         ActionExecutingContext context, ActionExecutionDelegate next)

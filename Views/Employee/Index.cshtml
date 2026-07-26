@@ -1,5 +1,7 @@
 @using EnterpriseMS.Common.Extensions
 @using EnterpriseMS.Domain.Entities.Hr
+@using EnterpriseMS.Services.DTOs.System
+@using System.Collections.Generic
 @model List<Employee>
 @inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
 @{
@@ -9,8 +11,9 @@
     bool canEdit   = await PermSvc.HasPermAsync(userId, "hr:employee:edit");
     bool canFormal = await PermSvc.HasPermAsync(userId, "hr:employee:formal");
     bool canLeave  = await PermSvc.HasPermAsync(userId, "hr:employee:leave");
-    string[] statusText  = ["试用期", "在职", "已离职"];
-    string[] statusBadge = ["badge-warning", "badge-success", "badge-secondary"];
+    var empStatusMap = ViewBag.EmployeeStatusMap as Dictionary<int, string> ?? new Dictionary<int, string>();
+    var empStatusOpts = ViewBag.EmployeeStatusOptions as List<DictDataDto> ?? new List<DictDataDto>();
+    var statusBadge = new Dictionary<int, string> { { 0, "badge-warning" }, { 1, "badge-success" }, { 2, "badge-secondary" } };
 }
 
 <div class="content-header">
@@ -55,9 +58,10 @@
                     <div class="col-md-2">
                         <select name="status" class="form-control form-control-sm">
                             <option value="">全部状态</option>
-                            <option value="0" selected="@(ViewBag.Status?.ToString()=="0" ? "selected" : null)">试用期</option>
-                            <option value="1" selected="@(ViewBag.Status?.ToString()=="1" ? "selected" : null)">在职</option>
-                            <option value="2" selected="@(ViewBag.Status?.ToString()=="2" ? "selected" : null)">离职</option>
+                            @foreach (var o in empStatusOpts)
+                            {
+                                <option value="@o.DictValue" selected="@(ViewBag.Status?.ToString()==o.DictValue ? "selected" : null)">@o.DictLabel</option>
+                            }
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -109,7 +113,7 @@
                         <td>@(e.Dept?.DeptName ?? "-")</td>
                         <td>@(e.Phone ?? "-")</td>
                         <td>
-                            <span class="badge @statusBadge[e.Status]">@statusText[e.Status]</span>
+                            <span class="badge @(statusBadge.TryGetValue(e.Status, out var sb) ? sb : "badge-secondary")">@(empStatusMap.TryGetValue(e.Status, out var st) ? st : e.Status.ToString())</span>
                         </td>
                         <td class="small text-muted">@(e.EntryDate?.ToString("yyyy-MM-dd") ?? "-")</td>
                         <td>

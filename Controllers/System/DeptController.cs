@@ -45,7 +45,10 @@ public class DeptController : BaseAuthController
             var id = await _deptSvc.CreateAsync(dto, User.GetRealName());
             return ApiOk(new { id }, "创建成功");
         }
-        catch (BusinessException ex) { return ApiFail(ex.Message); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpPost("update"), ValidateAntiForgeryToken]

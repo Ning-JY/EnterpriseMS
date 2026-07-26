@@ -78,9 +78,11 @@ public class ProjectController : BaseAuthController
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 fileName);
         }
-        catch (BusinessException ex)
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
         {
             return BadRequest(ex.Message);
+        
+        
         }
     }
 
@@ -118,7 +120,7 @@ public class ProjectController : BaseAuthController
             })
             .ToList();
 
-        return Json(ApiResult<object>.Ok(new { templateId, templateName = tpl.Name, autoFields, manualFields }));
+        return ApiOk(new { templateId, templateName = tpl.Name, autoFields, manualFields });
     }
 
     // ── 成果报告：根据项目 + 用户补填字段生成 Word ──
@@ -142,9 +144,11 @@ public class ProjectController : BaseAuthController
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                 fileName);
         }
-        catch (BusinessException ex)
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
         {
             return BadRequest(ex.Message);
+        
+        
         }
     }
 
@@ -189,15 +193,18 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> Create([FromBody] CreateProjectDto dto)
     {
         if (!ModelState.IsValid)
-            return Json(ApiResult<object>.Fail(GetErrors()));
+            return ApiFail(GetErrors());
         try
         {
             var id = await _projSvc.CreateAsync(dto, User.GetRealName());
             await _logSvc.LogAsync("新建项目", $"项目：{dto.ProjName}", "INSERT", id);
-            return Json(ApiResult<object>.Ok(new { id }, "项目创建成功"));
+            return ApiOk(new { id }, "项目创建成功");
         }
-        catch (BusinessException ex)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message); 
+        
+        }
     }
 
     // ── 投标建项：精简列表 + 一键转项目 ──────────────────────
@@ -206,7 +213,7 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> SimpleList()
     {
         var list = await _projSvc.GetSimpleListAsync();
-        return Json(ApiResult<object>.Ok(list));
+        return ApiOk(list);
     }
 
     [HttpPost("quick-create"), ValidateAntiForgeryToken]
@@ -214,14 +221,17 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> QuickCreate([FromBody] QuickCreateProjectDto dto)
     {
         if (!ModelState.IsValid)
-            return Json(ApiResult<object>.Fail(GetErrors()));
+            return ApiFail(GetErrors());
         try
         {
             var id = await _projSvc.QuickCreateAsync(dto, User.GetRealName());
-            return Json(ApiResult<object>.Ok(new { id, projName = dto.ProjName }, "项目已创建"));
+            return ApiOk(new { id, projName = dto.ProjName }, "项目已创建");
         }
-        catch (BusinessException ex)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message); 
+        
+        }
     }
 
     [HttpPost("update"), ValidateAntiForgeryToken]
@@ -229,14 +239,16 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> Update([FromBody] UpdateProjectDto dto)
     {
         if (!ModelState.IsValid)
-            return Json(ApiResult<object>.Fail(GetErrors()));
+            return ApiFail(GetErrors());
         try
         {
             await _projSvc.UpdateAsync(dto, User.GetRealName());
-            return Json(ApiResult<object>.Ok("修改成功"));
+            return ApiOk("修改成功");
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        {
+            return ApiFail(ex.Message); 
+        }
     }
 
     [HttpPost("status"), ValidateAntiForgeryToken]
@@ -246,10 +258,12 @@ public class ProjectController : BaseAuthController
         try
         {
             await _projSvc.ChangeStatusAsync(dto, User.GetRealName());
-            return Json(ApiResult<object>.Ok("状态已更新"));
+            return ApiOk("状态已更新");
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        {
+            return ApiFail(ex.Message); 
+        }
     }
 
     [HttpPost("terminate")]
@@ -259,10 +273,12 @@ public class ProjectController : BaseAuthController
         try
         {
             await _projSvc.TerminateAsync(id, reason, User.GetRealName());
-            return Json(ApiResult<object>.Ok("项目已终止"));
+            return ApiOk("项目已终止");
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        {
+            return ApiFail(ex.Message); 
+        }
     }
 
     // ── 成员 ───────────────────────────────────────────────
@@ -273,10 +289,13 @@ public class ProjectController : BaseAuthController
         try
         {
             var id = await _projSvc.AddMemberAsync(projectId, dto, User.GetRealName());
-            return Json(ApiResult<object>.Ok(new { id }, "成员添加成功"));
+            return ApiOk(new { id }, "成员添加成功");
         }
-        catch (BusinessException ex)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message); 
+        
+        }
     }
 
     [HttpPut("{projectId}/members/{memberId}")]
@@ -288,10 +307,12 @@ public class ProjectController : BaseAuthController
         try
         {
             await _projSvc.UpdateMemberAsync(projectId, dto, User.GetRealName());
-            return Json(ApiResult<object>.Ok("修改成功"));
+            return ApiOk("修改成功");
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        {
+            return ApiFail(ex.Message); 
+        }
     }
 
     [HttpPost("{projectId}/members/{memberId}/remove")]
@@ -302,10 +323,10 @@ public class ProjectController : BaseAuthController
         {
             await _projSvc.RemoveMemberAsync(projectId, memberId, User.GetRealName());
             await _logSvc.LogAsync("移除项目成员", $"项目ID:{projectId} 成员ID:{memberId}", "UPDATE", projectId);
-            return Json(ApiResult<object>.Ok("成员已移除"));
+            return ApiOk("成员已移除");
         }
         catch (NotFoundException ex)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        { return ApiFail(ex.Message); }
     }
 
     // ── 里程碑 ─────────────────────────────────────────────
@@ -317,10 +338,13 @@ public class ProjectController : BaseAuthController
         try
         {
             var id = await _projSvc.AddMilestoneAsync(projectId, dto, User.GetRealName());
-            return Json(ApiResult<object>.Ok(new { id }, "节点添加成功"));
+            return ApiOk(new { id }, "节点添加成功");
         }
-        catch (BusinessException ex)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message); 
+        
+        }
     }
 
     [HttpPut("{projectId}/milestones/{milestoneId}")]
@@ -330,7 +354,7 @@ public class ProjectController : BaseAuthController
     {
         dto.Id = milestoneId;
         await _projSvc.UpdateMilestoneAsync(projectId, dto, User.GetRealName());
-        return Json(ApiResult<object>.Ok("修改成功"));
+        return ApiOk("修改成功");
     }
 
     [HttpPost("milestones/{milestoneId}/complete")]
@@ -338,7 +362,7 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> CompleteMilestone(long milestoneId)
     {
         await _projSvc.CompleteMilestoneAsync(milestoneId, User.GetRealName());
-        return Json(ApiResult<object>.Ok("节点已标记完成"));
+        return ApiOk("节点已标记完成");
     }
 
     [HttpDelete("milestones/{milestoneId}")]
@@ -346,7 +370,7 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> DeleteMilestone(long milestoneId)
     {
         await _projSvc.DeleteMilestoneAsync(milestoneId);
-        return Json(ApiResult<object>.Ok("删除成功"));
+        return ApiOk("删除成功");
     }
 
     // ── 验收 ───────────────────────────────────────────────
@@ -357,9 +381,9 @@ public class ProjectController : BaseAuthController
     {
         dto.ProjectId = projectId;
         if (!ModelState.IsValid)
-            return Json(ApiResult<object>.Fail(GetErrors()));
+            return ApiFail(GetErrors());
         var id = await _projSvc.AddAcceptanceAsync(dto, User.GetRealName());
-        return Json(ApiResult<object>.Ok(new { id }, "验收记录已录入"));
+        return ApiOk(new { id }, "验收记录已录入");
     }
 
     // ── 合同管理 ──────────────────────────────────────────────
@@ -369,7 +393,7 @@ public class ProjectController : BaseAuthController
         [FromForm] CreateContractDto dto, IFormFile? file)
     {
         if (!ModelState.IsValid)
-            return Json(ApiResult<object>.Fail(GetErrors()));
+            return ApiFail(GetErrors());
         dto.ProjectId = projectId;
         try
         {
@@ -384,10 +408,12 @@ public class ProjectController : BaseAuthController
                     saved.Value.path, User.GetRealName());
             }
 
-            return Json(ApiResult<object>.Ok(new { id }, "合同已保存"));
+            return ApiOk(new { id }, "合同已保存");
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        {
+            return ApiFail(ex.Message); 
+        }
     }
 
     //[HttpPost("contracts/upload/{contractId}")]
@@ -400,7 +426,7 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> DeleteContract(long contractId)
     {
         await _projSvc.DeleteContractAsync(contractId);
-        return Json(ApiResult<object>.Ok("合同已删除"));
+        return ApiOk("合同已删除");
     }
 
     // ── 发票管理 ──────────────────────────────────────────────
@@ -410,7 +436,7 @@ public class ProjectController : BaseAuthController
         [FromForm] CreateInvoiceDto dto, IFormFile? invoiceFile, IFormFile? paymentFile)
     {
         if (!ModelState.IsValid)
-            return Json(ApiResult<object>.Fail(GetErrors()));
+            return ApiFail(GetErrors());
         dto.ProjectId = projectId;
         var id = await _projSvc.AddInvoiceAsync(dto, User.GetRealName());
 
@@ -429,7 +455,7 @@ public class ProjectController : BaseAuthController
                 paySaved.Value.path, User.GetRealName());
         }
 
-        return Json(ApiResult<object>.Ok(new { id }, "回款记录已保存"));
+        return ApiOk(new { id }, "回款记录已保存");
     }
 
     [HttpPost("invoices/received/{invoiceId}")]
@@ -437,7 +463,7 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> ConfirmReceived(long invoiceId, DateTime receivedDate)
     {
         await _projSvc.ConfirmInvoiceReceivedAsync(invoiceId, receivedDate, User.GetRealName());
-        return Json(ApiResult<object>.Ok("已确认收款"));
+        return ApiOk("已确认收款");
     }
 
     [HttpPost("invoices/delete/{invoiceId}")]
@@ -447,23 +473,23 @@ public class ProjectController : BaseAuthController
         try
         {
             await _projSvc.DeleteInvoiceAsync(invoiceId);
-            return Json(ApiResult<object>.Ok("已删除"));
+            return ApiOk("已删除");
         }
-        catch (NotFoundException ex) { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (NotFoundException ex) { return ApiFail(ex.Message); }
     }
 
     [HttpPost("invoices/file/{invoiceId}/{fileType}")]
     [HasPermission("proj:project:edit")]
     public async Task<IActionResult> UploadInvoiceFile(long invoiceId, string fileType, IFormFile file)
     {
-        if (file == null || file.Length == 0) return Json(ApiResult<object>.Fail("请选择文件"));
+        if (file == null || file.Length == 0) return ApiFail("请选择文件");
         var saved = await FileUploadHelper.SaveUploadFile(file, "project/invoices");
         if (!saved.HasValue)
-            return Json(ApiResult<object>.Fail("文件类型不被允许"));
+            return ApiFail("文件类型不被允许");
         // 经统一上传辅助 + 服务方法持久化，收敛 Controller 手写文件流
         await _projSvc.UploadInvoiceFileAsync(invoiceId, fileType, saved.Value.name,
             saved.Value.path, User.GetRealName());
-        return Json(ApiResult<object>.Ok(new { fileName = saved.Value.name }, "上传成功"));
+        return ApiOk(new { fileName = saved.Value.name }, "上传成功");
     }
 
     [HttpGet("invoices/file/{invoiceId}/{fileType}")]
@@ -487,9 +513,9 @@ public class ProjectController : BaseAuthController
         try
         {
             await _projSvc.DeleteContractFileAsync(contractId, User.GetRealName());
-            return Json(ApiResult<object>.Ok("附件已删除"));
+            return ApiOk("附件已删除");
         }
-        catch (NotFoundException ex) { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (NotFoundException ex) { return ApiFail(ex.Message); }
     }
 
     [HttpGet("contracts/download/{contractId}")]
@@ -509,14 +535,14 @@ public class ProjectController : BaseAuthController
     [HasPermission("proj:project:edit")]
     public async Task<IActionResult> UploadContractFile(long contractId, IFormFile file)
     {
-        if (file == null || file.Length == 0) return Json(ApiResult<object>.Fail("请选择文件"));
+        if (file == null || file.Length == 0) return ApiFail("请选择文件");
         var saved = await FileUploadHelper.SaveUploadFile(file, "project/contracts");
         if (!saved.HasValue)
-            return Json(ApiResult<object>.Fail("文件类型不被允许"));
+            return ApiFail("文件类型不被允许");
         // 经统一上传辅助 + 服务方法持久化，收敛 Controller 手写文件流
         await _projSvc.UploadContractFileAsync(contractId, saved.Value.name,
             saved.Value.path, User.GetRealName());
-        return Json(ApiResult<object>.Ok(new { fileName = saved.Value.name }, "上传成功"));
+        return ApiOk(new { fileName = saved.Value.name }, "上传成功");
     }
 
     // ── 文件管理 ──────────────────────────────────────────────
@@ -526,22 +552,22 @@ public class ProjectController : BaseAuthController
         string category, string? description, string? version)
     {
         if (file == null || file.Length == 0)
-            return Json(ApiResult<object>.Fail("请选择文件"));
+            return ApiFail("请选择文件");
 
         // 经统一上传辅助（白名单由 FileUploadHelper 单一管控，大小由全局 500MB 限制），
         // 文件落非 Web 根目录，从根上消除存储型 XSS 与手写文件流。
         var saved = await FileUploadHelper.SaveUploadFile(file, $"project/{projectId}");
         if (!saved.HasValue)
-            return Json(ApiResult<object>.Fail("文件类型不被允许"));
+            return ApiFail("文件类型不被允许");
 
         var fileId = await _projSvc.AddFileAsync(projectId, category,
             saved.Value.name, saved.Value.path, file.Length,
             description, version, User.GetRealName());
 
-        return Json(ApiResult<object>.Ok(new
+        return ApiOk(new
         {
             id = fileId, fileName = saved.Value.name, fileSize = file.Length
-        }, "文件上传成功"));
+        }, "文件上传成功");
     }
 
     [HttpGet("files/download/{fileId}")]
@@ -560,7 +586,7 @@ public class ProjectController : BaseAuthController
     public async Task<IActionResult> DeleteFile(long fileId)
     {
         await _projSvc.DeleteFileAsync(fileId);
-        return Json(ApiResult<object>.Ok("文件已删除"));
+        return ApiOk("文件已删除");
     }
 
     [HttpPost("members/update"), ValidateAntiForgeryToken]
@@ -570,10 +596,12 @@ public class ProjectController : BaseAuthController
         try
         {
             await _projSvc.UpdateMemberAsync(0, dto, User.GetRealName());
-            return Json(ApiResult<object>.Ok("成员信息已更新"));
+            return ApiOk("成员信息已更新");
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        {
+            return ApiFail(ex.Message); 
+        }
     }
 
     // ── 工具方法 ──────────────────────────────────────────────

@@ -14,8 +14,8 @@ KillSignal=SIGINT
 SyslogIdentifier=enterprisems
 
 # 环境变量 —— Linux 部署时在此处填写真实密码
-Environment="DB_PASSWORD=your_password_here"
-Environment="REDIS_PASSWORD=your_password_here"
+Environment="DB_PASSWORD=123456"
+Environment="REDIS_PASSWORD=123456"
 Environment="ASPNETCORE_ENVIRONMENT=Production"
 Environment="ASPNETCORE_URLS=http://+:5080"
 

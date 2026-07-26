@@ -39,7 +39,7 @@ public class TemplateReportController : BaseAuthController
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -55,7 +55,7 @@ public class TemplateReportController : BaseAuthController
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -68,11 +68,11 @@ public class TemplateReportController : BaseAuthController
         try
         {
             var templates = _reportService.GetTemplates();
-            return Json(ApiResult<List<TemplateInfoDto>>.Ok(templates));
+            return ApiOk(templates);
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -83,12 +83,12 @@ public class TemplateReportController : BaseAuthController
         {
             var template = _reportService.GetTemplate(templateId);
             if (template == null)
-                return Json(ApiResult<object>.Fail("模板不存在"));
-            return Json(ApiResult<TemplateInfoDto>.Ok(template));
+                return ApiFail("模板不存在");
+            return ApiOk(template);
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -98,11 +98,11 @@ public class TemplateReportController : BaseAuthController
         try
         {
             var placeholders = _reportService.ScanPlaceholders(request.TemplateId);
-            return Json(ApiResult<List<TemplatePlaceholderDto>>.Ok(placeholders));
+            return ApiOk(placeholders);
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -112,11 +112,11 @@ public class TemplateReportController : BaseAuthController
         try
         {
             var templateId = _reportService.ConfigureTemplate(request, templateFile);
-            return Json(ApiResult<object>.Ok(new { templateId }, "模板配置成功"));
+            return ApiOk(new { templateId }, "模板配置成功");
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -127,11 +127,11 @@ public class TemplateReportController : BaseAuthController
         {
             var fieldValues = BuildFieldValues(request);
             var base64 = _reportService.FillTemplate(request.TemplateId, fieldValues);
-            return Json(ApiResult<object>.Ok(new { base64 }));
+            return ApiOk(new { base64 });
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -148,7 +148,7 @@ public class TemplateReportController : BaseAuthController
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 

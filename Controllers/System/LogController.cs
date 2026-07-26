@@ -12,7 +12,9 @@ public class LogController : BaseAuthController
     private readonly IOperLogService _logSvc;
     public LogController(IOperLogService logSvc, IPermissionService permSvc)
         : base(permSvc)
-        => _logSvc = logSvc;
+    {
+        _logSvc = logSvc;
+    }
 
     [HasPermission("sys:log:list")]
     public async Task<IActionResult> Index(string? keyword, int page = 1, int size = 20)

@@ -5,6 +5,7 @@ using EnterpriseMS.Filters;
 using EnterpriseMS.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 
 namespace EnterpriseMS.Controllers.Hr;
 
@@ -29,6 +30,11 @@ public class ContractController : BaseAuthController
         var paged = await _svc.GetPagedAsync(keyword, status, page, size);
         ViewBag.WarnCount     = paged.WarnCount;
         ViewBag.ContractTypes = await _dictSvc.GetDataByTypeAsync(DictType.ContractType);
+        var contractStatusOpts = await _dictSvc.GetDataByTypeAsync(DictType.ContractStatus);
+        ViewBag.ContractStatusOptions = contractStatusOpts;
+        var contractStatusMap = new Dictionary<int, string>();
+        foreach (var o in contractStatusOpts) if (int.TryParse(o.DictValue, out var v)) contractStatusMap[v] = o.DictLabel;
+        ViewBag.ContractStatusMap = contractStatusMap;
         ViewBag.Employees     = await _empQrySvc.GetAllOnJobAsync();
         ViewBag.Keyword = keyword; ViewBag.Status = status;
         ViewBag.Page = page; ViewBag.Total = paged.Total; ViewBag.Size = size;

@@ -13,7 +13,10 @@ public class EducationController : BaseAuthController
 {
     private readonly IEducationService _svc;
     public EducationController(IEducationService svc, IPermissionService permSvc)
-        : base(permSvc) => _svc = svc;
+        : base(permSvc)
+    {
+        _svc = svc;
+    }
 
     [HttpGet("list/{employeeId}")]
     public async Task<IActionResult> List(long employeeId)

@@ -13,7 +13,10 @@ public class WorkExpController : BaseAuthController
 {
     private readonly IWorkExpService _svc;
     public WorkExpController(IWorkExpService svc, IPermissionService permSvc)
-        : base(permSvc) => _svc = svc;
+        : base(permSvc)
+    {
+        _svc = svc;
+    }
 
     [HttpGet("list/{employeeId}")]
     public async Task<IActionResult> List(long employeeId)

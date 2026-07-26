@@ -88,12 +88,12 @@ public class BidController : BaseAuthController
         {
             var result = await _bidService.AnalyzeBidDocumentAsync(request);
             await _bidService.SaveAnalysisResultAsync(request.BidProjectId, result);
-            return Json(ApiResult<object>.Ok(result));
+            return ApiOk(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error analyzing bid document");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -105,16 +105,18 @@ public class BidController : BaseAuthController
         try
         {
             await _bidService.ConfirmElementsAsync(request.BidProjectId, User.GetUsername());
-            return Json(ApiResult.Ok("招标要素表已确认"));
+            return ApiOk("招标要素表已确认");
         }
-        catch (BusinessException ex)
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
+        
+        
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error confirming bid elements");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -126,12 +128,12 @@ public class BidController : BaseAuthController
         {
             await _bidService.ResolveRequirementReviewAsync(
                 request.RequirementId, request.IsVeto, request.SourceRef, User.GetUsername());
-            return Json(ApiResult.Ok());
+            return ApiOk("操作成功");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error resolving requirement review");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -180,12 +182,12 @@ public class BidController : BaseAuthController
         try
         {
             var result = await _bidService.GenerateChapterAsync(request);
-            return Json(ApiResult<object>.Ok(result));
+            return ApiOk(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating chapter");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -195,12 +197,12 @@ public class BidController : BaseAuthController
         try
         {
             var results = await _bidService.GenerateFullBidAsync(request);
-            return Json(ApiResult<object>.Ok(results));
+            return ApiOk(results);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating full bid");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -210,12 +212,12 @@ public class BidController : BaseAuthController
         try
         {
             var result = await _bidService.AssembleBidDocumentAsync(request.BidProjectId, request.Part);
-            return Json(ApiResult<object>.Ok(result));
+            return ApiOk(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error assembling bid document");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -231,14 +233,16 @@ public class BidController : BaseAuthController
                 Response.Headers.Append("X-Export-Warnings", Uri.EscapeDataString(string.Join(" | ", result.Warnings)));
             return File(result.FileBytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", result.FileName);
         }
-        catch (BusinessException ex)
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
+        
+        
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error exporting bid document to Word");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -253,14 +257,16 @@ public class BidController : BaseAuthController
                 Response.Headers.Append("X-Export-Warnings", Uri.EscapeDataString(string.Join(" | ", result.Warnings)));
             return File(result.FileBytes, "application/pdf", result.FileName);
         }
-        catch (BusinessException ex)
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
+        
+        
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error exporting bid document to PDF");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -270,12 +276,12 @@ public class BidController : BaseAuthController
         try
         {
             var result = await _bidService.ReviewBidAsync(request);
-            return Json(ApiResult<object>.Ok(result));
+            return ApiOk(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error reviewing bid");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -285,11 +291,11 @@ public class BidController : BaseAuthController
         try
         {
             await _bidService.UpdateDocumentContentAsync(documentId, request.Content);
-            return Json(ApiResult.Ok());
+            return ApiOk("更新成功");
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -307,12 +313,12 @@ public class BidController : BaseAuthController
         try
         {
             var doc = await _bidService.GetDocumentAsync(docId);
-            if (doc == null) return Json(ApiResult<object>.Fail("文档不存在"));
-            return Json(ApiResult<object>.Ok(doc));
+            if (doc == null) return ApiFail("文档不存在");
+            return ApiOk(doc);
         }
         catch (Exception ex)
         {
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -323,12 +329,12 @@ public class BidController : BaseAuthController
         try
         {
             var result = await _bidService.MatchPersonnelAsync(request);
-            return Json(ApiResult<object>.Ok(result));
+            return ApiOk(result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error matching personnel");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 
@@ -343,12 +349,12 @@ public class BidController : BaseAuthController
             // 保存到文档
             await _bidService.SaveStreamedDocumentAsync(request.BidProjectId, "人员配置", 3, content);
 
-            return Json(ApiResult<object>.Ok(new { content, saved = true }, "人员配置文档已生成并保存"));
+            return ApiOk(new { content, saved = true }, "人员配置文档已生成并保存");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating personnel section");
-            return Json(ApiResult<object>.Fail(ex.Message));
+            return ApiFail(ex.Message);
         }
     }
 }

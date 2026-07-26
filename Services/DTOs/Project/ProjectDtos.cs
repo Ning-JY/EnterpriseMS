@@ -124,6 +124,7 @@ public class ProjectContractDto
 public class ProjectInvoiceDto
 {
     public long     Id              { get; set; }
+    public long?    ContractId      { get; set; }
     public string   ReceiptName     { get; set; } = "";
     public string?  InvoiceNo       { get; set; }
     public string   InvoiceType     { get; set; } = "";
@@ -275,6 +276,7 @@ public class CreateContractDto
 public class CreateInvoiceDto
 {
     public long     ProjectId    { get; set; }
+    public long?    ContractId   { get; set; }
     public string   ReceiptName  { get; set; } = "";
     public string?  InvoiceNo    { get; set; }
     public string   InvoiceType  { get; set; } = "增值税专用发票";

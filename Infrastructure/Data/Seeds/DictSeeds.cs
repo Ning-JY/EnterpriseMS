@@ -21,13 +21,16 @@ public static class DictSeeds
             new SysDictType { Id = 3,  DictName = "合同类型",         DictType = "contract_type",    Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 4,  DictName = "证书类型",         DictType = "cert_type",        Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 5,  DictName = "里程碑类型",       DictType = "milestone_type",   Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 6,  DictName = "概预算任务类型",   DictType = "budget_task_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 7,  DictName = "项目进度状态",     DictType = "proj_status",      Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 8,  DictName = "民族",             DictType = "nationality",      Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 9,  DictName = "政治面貌",         DictType = "political_status", Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 10, DictName = "学历",             DictType = "education",        Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 11, DictName = "技术职称",         DictType = "technical_title",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 12, DictName = "技术等级",         DictType = "technical_level",  Status = 1, CreatedAt = dt, CreatedBy = "system" }
+            new SysDictType { Id = 12, DictName = "技术等级",         DictType = "technical_level",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            // 以下两类原本在字典中做了枚举镜像，但代码仍以枚举为准、从不读字典，属双数据源陷阱，已移除。
+            // 项目进度(proj_status)/概预算任务(budget_task_type) 以 ProjectStatus / BudgetTaskType 枚举为唯一真源。
+            // 状态类改为字典驱动：员工状态 / 合同状态（见下）
+            new SysDictType { Id = 13, DictName = "员工状态",         DictType = "employee_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictType { Id = 14, DictName = "合同状态",         DictType = "contract_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" }
         );
 
         // ── 字典数据 ──────────────────────────────────────────
@@ -78,24 +81,15 @@ public static class DictSeeds
             new SysDictData { Id = 506, DictType = "milestone_type", DictLabel = "报批上报", DictValue = "报批上报", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 507, DictType = "milestone_type", DictLabel = "成果交付", DictValue = "成果交付", Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 508, DictType = "milestone_type", DictLabel = "回款", DictValue = "回款", Sort = 8, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            // 概预算任务类型
-            new SysDictData { Id = 601, DictType = "budget_task_type", DictLabel = "概算编制", DictValue = "0", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 602, DictType = "budget_task_type", DictLabel = "预算编制", DictValue = "1", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 603, DictType = "budget_task_type", DictLabel = "结算编制", DictValue = "2", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 604, DictType = "budget_task_type", DictLabel = "概算评审", DictValue = "3", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 605, DictType = "budget_task_type", DictLabel = "预算评审", DictValue = "4", Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 606, DictType = "budget_task_type", DictLabel = "结算评审", DictValue = "5", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            // 项目进度状态
-            new SysDictData { Id = 701, DictType = "proj_status", DictLabel = "前期商务", DictValue = "0", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 702, DictType = "proj_status", DictLabel = "预计启动", DictValue = "1", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 703, DictType = "proj_status", DictLabel = "标书制作中", DictValue = "2", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 704, DictType = "proj_status", DictLabel = "投标/磋商中", DictValue = "3", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 705, DictType = "proj_status", DictLabel = "已中标·签订合同中", DictValue = "4", Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 706, DictType = "proj_status", DictLabel = "已签回合同", DictValue = "5", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 707, DictType = "proj_status", DictLabel = "执行中", DictValue = "6", Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 708, DictType = "proj_status", DictLabel = "成果提交", DictValue = "7", Sort = 8, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 709, DictType = "proj_status", DictLabel = "已完成", DictValue = "8", Sort = 9, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 710, DictType = "proj_status", DictLabel = "已终止", DictValue = "9", Sort = 10, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            // 员工状态（字典驱动：管理员可在字典管理中增删选项）
+            // DictValue 与 EmployeeStatus 枚举 int 保持一致，作为逻辑 key
+            new SysDictData { Id = 1301, DictType = "employee_status", DictLabel = "试用期", DictValue = "0", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1302, DictType = "employee_status", DictLabel = "在职",   DictValue = "1", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1303, DictType = "employee_status", DictLabel = "离职",   DictValue = "2", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            // 合同状态（字典驱动）
+            new SysDictData { Id = 1401, DictType = "contract_status", DictLabel = "生效中", DictValue = "0", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1402, DictType = "contract_status", DictLabel = "已终止", DictValue = "1", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1403, DictType = "contract_status", DictLabel = "已到期", DictValue = "2", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             // 民族
             new SysDictData { Id = 801, DictType = "nationality", DictLabel = "汉族", DictValue = "汉族", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 802, DictType = "nationality", DictLabel = "壮族", DictValue = "壮族", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },

@@ -219,13 +219,19 @@
   </div>
 </div>
 
-<!-- 固定卡片③：合同管理 -->
+<!-- 固定卡片③：合同与回款（按合同分组展示） -->
 <div class="card card-warning card-outline">
   <div class="card-header">
-    <h3 class="card-title"><i class="fas fa-file-contract mr-1"></i>合同管理</h3>
+    <h3 class="card-title"><i class="fas fa-file-contract mr-1"></i>合同与回款</h3>
+    <span class="ml-2 small text-muted">
+      合同 @Model.Contracts.Count() 份 · 回款总额 ¥@Model.Invoices.Sum(i=>i.Amount).ToString("N2")万
+    </span>
     @if (canEdit)
     {
       <div class="card-tools">
+        <button class="btn btn-xs btn-success mr-1" onclick="openAddReceipt()">
+          <i class="fas fa-plus"></i> 新增回款
+        </button>
         <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#addContractModal">
           <i class="fas fa-plus"></i> 新增合同
         </button>
@@ -233,147 +239,205 @@
     }
   </div>
   <div class="card-body p-0">
-    <table class="table table-sm mb-0">
-      <thead class="thead-light">
-        <tr><th>合同编号</th><th>类型</th><th>甲方</th><th>合同金额(万)</th><th>签约日期</th><th>状态</th><th>附件</th><th>操作</th></tr>
-      </thead>
-      <tbody>
-        @foreach (var ct in Model.Contracts)
-        {
-          <tr>
-            <td><code class="small">@ct.ContractNo</code></td>
-            <td><span class="badge badge-light">@ct.ContractType</span></td>
-            <td class="small">@ct.PartyA</td>
-            <td class="text-primary font-weight-bold">¥@ct.Amount.ToString("N2")</td>
-            <td class="small">@(ct.SignDate?.ToString("yyyy-MM-dd")??"-")</td>
-            <td>
-              @if (ct.Status==1) { <span class="badge badge-success">生效</span> }
-              else { <span class="badge badge-secondary">无效</span> }
-            </td>
-            <td>
-              @if (ct.FileName != null)
-              {
-                <div class="d-flex align-items-center">
-                  <a href="/project/contracts/download/@ct.Id"
-                     class="btn btn-xs btn-info mr-1" title="下载">
-                    <i class="fas fa-download"></i>
-                  </a>
-                  @if (canEdit)
-                  {
-                    <label class="btn btn-xs btn-warning mb-0 mr-1" title="重新上传">
-                      <i class="fas fa-sync-alt"></i>
-                      <input type="file" style="display:none"
-                             onchange="uploadContractFile(@ct.Id,this)">
-                    </label>
-                    <button class="btn btn-xs btn-outline-danger"
-                            onclick="delContractFile(@ct.Id)" title="删除附件">
-                      <i class="fas fa-times"></i>
-                    </button>
-                  }
-                </div>
-                <small class="text-muted d-block" style="font-size:11px">
-                  @(ct.FileName.Length>16?ct.FileName[..16]+"…":ct.FileName)
-                </small>
-              }
-              else if (canEdit)
-              {
-                <label class="btn btn-xs btn-outline-secondary mb-0">
-                  <i class="fas fa-upload"></i>
-                  <input type="file" style="display:none"
-                         onchange="uploadContractFile(@ct.Id,this)">
-                </label>
-              }
-            </td>
-            <td>
+    @if (Model.Contracts.Any())
+    {
+      foreach (var ct in Model.Contracts)
+      {
+        var ctInvoices = Model.Invoices.Where(i => i.ContractId == ct.Id).ToList();
+        <div class="border-bottom px-3 py-3">
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+            <div>
+              <code class="small">@ct.ContractNo</code>
+              <span class="badge badge-light ml-1">@ct.ContractType</span>
+              <span class="ml-2 small text-muted">@ct.PartyA</span>
+              <span class="ml-2 text-primary font-weight-bold">¥@ct.Amount.ToString("N2")万</span>
+              @if (ct.Status==1) { <span class="badge badge-success ml-1">生效</span> }
+              else { <span class="badge badge-secondary ml-1">无效</span> }
+              @if (ct.SignDate.HasValue) { <span class="ml-2 small text-muted">签约：@ct.SignDate.Value.ToString("yyyy-MM-dd")</span> }
+            </div>
+            <div>
               @if (canEdit)
               {
-                <button class="btn btn-xs btn-danger"
-                        onclick="delContract(@ct.Id,'@JavaScriptEncoder.Default.Encode(ct.ContractNo)')">
+                <button class="btn btn-xs btn-success mr-1" onclick="openAddReceipt(@ct.Id)">
+                  <i class="fas fa-plus"></i> 新增回款
+                </button>
+                <button class="btn btn-xs btn-danger" onclick="delContract(@ct.Id,'@JavaScriptEncoder.Default.Encode(ct.ContractNo)')" title="删除合同">
                   <i class="fas fa-trash"></i>
                 </button>
               }
-            </td>
-          </tr>
-        }
-        @if (!Model.Contracts.Any())
-        { <tr><td colspan="8" class="text-center text-muted py-3">暂无合同记录</td></tr> }
-      </tbody>
-    </table>
-  </div>
-</div>
+            </div>
+          </div>
+          <div class="mb-2">
+            @if (ct.FileName != null)
+            {
+              <a href="/project/contracts/download/@ct.Id" class="btn btn-xs btn-info mr-1" title="下载"><i class="fas fa-download"></i></a>
+              @if (canEdit)
+              {
+                <label class="btn btn-xs btn-warning mb-0 mr-1" title="重新上传"><i class="fas fa-sync-alt"></i><input type="file" style="display:none" onchange="uploadContractFile(@ct.Id,this)"></label>
+                <button class="btn btn-xs btn-outline-danger" onclick="delContractFile(@ct.Id)" title="删除附件"><i class="fas fa-times"></i></button>
+              }
+              <small class="text-muted">@(ct.FileName.Length>16?ct.FileName[..16]+"…":ct.FileName)</small>
+            }
+            else if (canEdit)
+            {
+              <label class="btn btn-xs btn-outline-secondary mb-0"><i class="fas fa-upload"></i><input type="file" style="display:none" onchange="uploadContractFile(@ct.Id,this)"></label>
+            }
+          </div>
+          @if (ctInvoices.Any())
+          {
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0">
+                <thead class="thead-light">
+                  <tr><th>回款批次</th><th>发票号</th><th>发票类型</th><th>金额(万)</th><th>税率</th><th>开票日期</th><th>付款方</th><th>回款状态</th><th>发票附件</th><th>付款申请</th><th>操作</th></tr>
+                </thead>
+                <tbody>
+                  @foreach (var inv in ctInvoices.OrderByDescending(i=>i.CreatedAt))
+                  {
+                    <tr class="@(inv.IsReceived?"table-success":"")">
+                      <td><strong>@inv.ReceiptName</strong></td>
+                      <td><code class="small">@(inv.InvoiceNo??"-")</code></td>
+                      <td><small>@inv.InvoiceType</small></td>
+                      <td class="font-weight-bold text-primary">¥@inv.Amount.ToString("N2")</td>
+                      <td class="small">@(inv.TaxRate.HasValue?inv.TaxRate.Value.ToString("N1")+"%":"-")</td>
+                      <td class="small">@(inv.InvoiceDate?.ToString("yyyy-MM-dd")??"-")</td>
+                      <td class="small">@(inv.Payer??"-")</td>
+                      <td>
+                        @if (inv.IsReceived)
+                        {
+                          <span class="badge badge-success"><i class="fas fa-check mr-1"></i>已收款 @(inv.ReceivedDate?.ToString("yyyy-MM-dd"))</span>
+                        }
+                        else if (canEdit)
+                        {
+                          <button class="btn btn-xs btn-outline-success" onclick="confirmReceived(@inv.Id)"><i class="fas fa-check"></i> 确认收款</button>
+                        }
+                        else
+                        {
+                          <span class="badge badge-warning">待收款</span>
+                        }
+                      </td>
+                      <td>
+                        @if (inv.InvoiceFileName != null)
+                        {
+                          <a href="/project/invoices/file/@inv.Id/invoice" class="text-info small"><i class="fas fa-file-invoice"></i> @(inv.InvoiceFileName.Length>10?inv.InvoiceFileName[..10]+"…":inv.InvoiceFileName)</a>
+                        }
+                        else if (canEdit)
+                        {
+                          <label class="btn btn-xs btn-outline-secondary mb-0"><i class="fas fa-upload"></i><input type="file" style="display:none" onchange="uploadInvoiceFile(@inv.Id,'invoice',this)"></label>
+                        }
+                      </td>
+                      <td>
+                        @if (inv.PaymentFileName != null)
+                        {
+                          <a href="/project/invoices/file/@inv.Id/payment" class="text-warning small"><i class="fas fa-file-alt"></i> @(inv.PaymentFileName.Length>10?inv.PaymentFileName[..10]+"…":inv.PaymentFileName)</a>
+                        }
+                        else if (canEdit)
+                        {
+                          <label class="btn btn-xs btn-outline-secondary mb-0"><i class="fas fa-upload"></i><input type="file" style="display:none" onchange="uploadInvoiceFile(@inv.Id,'payment',this)"></label>
+                        }
+                      </td>
+                      <td>
+                        @if (canEdit)
+                        {
+                          <button class="btn btn-xs btn-danger" onclick="delReceipt(@inv.Id)"><i class="fas fa-trash"></i></button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+                <tfoot class="table-active">
+                  <tr>
+                    <td colspan="3" class="font-weight-bold">合计</td>
+                    <td class="font-weight-bold text-primary">¥@ctInvoices.Sum(i=>i.Amount).ToString("N2")</td>
+                    <td colspan="3"></td>
+                    <td class="font-weight-bold text-success">已收 ¥@ctInvoices.Where(i=>i.IsReceived).Sum(i=>i.Amount).ToString("N2")</td>
+                    <td colspan="3"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          }
+          else
+          {
+            <div class="text-muted small py-2"><i class="fas fa-info-circle mr-1"></i>该合同暂无回款记录</div>
+          }
+        </div>
+      }
+    }
+    else
+    {
+      <div class="text-center text-muted py-4">暂无合同记录</div>
+    }
 
-<!-- 固定卡片④：成果报告生成 -->
-<div class="card card-primary card-outline">
-  <div class="card-header bg-brand">
-    <h3 class="card-title"><i class="fas fa-file-export mr-1"></i>成果报告生成</h3>
-    <div class="card-tools">
-      <a href="/templatereport/manage" class="btn btn-xs btn-light">
-        <i class="fas fa-layer-group mr-1"></i>模板管理
-      </a>
-    </div>
-  </div>
-  <div class="card-body">
-    <div class="row align-items-center">
-      <div class="col-lg-8">
-        <p class="text-muted small mb-2">
-          <i class="fas fa-info-circle mr-1"></i>
-          选择模板后，系统将自动提取本项目的名称、业主、团队、里程碑、合同、回款、验收等数据填充到模板占位符，一键生成 Word 成果报告。
-        </p>
-        <div class="form-group mb-0">
-          <label class="small">报告模板 <span class="text-danger">*</span></label>
-          <select id="reportTemplate" class="form-control">
-            <option value="">加载中…</option>
-          </select>
+    @{
+      var unlinked = Model.Invoices.Where(i => !i.ContractId.HasValue).ToList();
+    }
+    @if (unlinked.Any())
+    {
+      <div class="px-3 py-3 bg-light">
+        <h6 class="text-muted mb-2"><i class="fas fa-unlink mr-1"></i>未关联合同的回款（@unlinked.Count 笔）</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead class="thead-light">
+              <tr><th>回款批次</th><th>发票号</th><th>发票类型</th><th>金额(万)</th><th>税率</th><th>开票日期</th><th>付款方</th><th>回款状态</th><th>发票附件</th><th>付款申请</th><th>操作</th></tr>
+            </thead>
+            <tbody>
+              @foreach (var inv in unlinked.OrderByDescending(i=>i.CreatedAt))
+              {
+                <tr class="@(inv.IsReceived?"table-success":"")">
+                  <td><strong>@inv.ReceiptName</strong></td>
+                  <td><code class="small">@(inv.InvoiceNo??"-")</code></td>
+                  <td><small>@inv.InvoiceType</small></td>
+                  <td class="font-weight-bold text-primary">¥@inv.Amount.ToString("N2")</td>
+                  <td class="small">@(inv.TaxRate.HasValue?inv.TaxRate.Value.ToString("N1")+"%":"-")</td>
+                  <td class="small">@(inv.InvoiceDate?.ToString("yyyy-MM-dd")??"-")</td>
+                  <td class="small">@(inv.Payer??"-")</td>
+                  <td>
+                    @if (inv.IsReceived)
+                    {
+                      <span class="badge badge-success"><i class="fas fa-check mr-1"></i>已收款 @(inv.ReceivedDate?.ToString("yyyy-MM-dd"))</span>
+                    }
+                    else if (canEdit)
+                    {
+                      <button class="btn btn-xs btn-outline-success" onclick="confirmReceived(@inv.Id)"><i class="fas fa-check"></i> 确认收款</button>
+                    }
+                    else
+                    {
+                      <span class="badge badge-warning">待收款</span>
+                    }
+                  </td>
+                  <td>
+                    @if (inv.InvoiceFileName != null)
+                    {
+                      <a href="/project/invoices/file/@inv.Id/invoice" class="text-info small"><i class="fas fa-file-invoice"></i> @(inv.InvoiceFileName.Length>10?inv.InvoiceFileName[..10]+"…":inv.InvoiceFileName)</a>
+                    }
+                    else if (canEdit)
+                    {
+                      <label class="btn btn-xs btn-outline-secondary mb-0"><i class="fas fa-upload"></i><input type="file" style="display:none" onchange="uploadInvoiceFile(@inv.Id,'invoice',this)"></label>
+                    }
+                  </td>
+                  <td>
+                    @if (inv.PaymentFileName != null)
+                    {
+                      <a href="/project/invoices/file/@inv.Id/payment" class="text-warning small"><i class="fas fa-file-alt"></i> @(inv.PaymentFileName.Length>10?inv.PaymentFileName[..10]+"…":inv.PaymentFileName)</a>
+                    }
+                    else if (canEdit)
+                    {
+                      <label class="btn btn-xs btn-outline-secondary mb-0"><i class="fas fa-upload"></i><input type="file" style="display:none" onchange="uploadInvoiceFile(@inv.Id,'payment',this)"></label>
+                    }
+                  </td>
+                  <td>
+                    @if (canEdit)
+                    {
+                      <button class="btn btn-xs btn-danger" onclick="delReceipt(@inv.Id)"><i class="fas fa-trash"></i></button>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       </div>
-      <div class="col-lg-4 text-lg-right mt-3 mt-lg-0">
-        <button id="btnGenerateReport" type="button" class="btn btn-lg btn-primary" onclick="openReportModal()">
-          <i class="fas fa-file-download mr-1"></i> 生成成果报告
-        </button>
-        <div class="small text-muted mt-2" id="reportHint">
-          <i class="fas fa-lightbulb mr-1"></i>选择模板后，系统自动带入项目信息并提示补填缺失项，再一键生成 Word。
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 成果报告生成弹窗：自动带入 + 补填缺失字段 -->
-<div class="modal fade" id="reportGenModal" tabindex="-1" data-backdrop="static" data-keyboard="false">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header bg-brand">
-        <h5 class="modal-title"><i class="fas fa-file-export mr-1"></i>生成成果报告</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="关闭">&times;</button>
-      </div>
-      <div class="modal-body">
-        @Html.AntiForgeryToken()
-        <div class="form-group row">
-          <label class="col-sm-3 col-form-label">报告模板</label>
-          <div class="col-sm-9">
-            <select id="modalReportTemplate" class="form-control" onchange="loadReportPreview()">
-              <option value="">请选择…</option>
-            </select>
-          </div>
-        </div>
-        <div class="row">
-          <div class="col-md-6 border-right">
-            <h6 class="text-muted"><i class="fas fa-magic mr-1"></i>自动带入（来自项目）</h6>
-            <div id="autoFields" class="small mb-2"><span class="text-muted">请选择模板</span></div>
-          </div>
-          <div class="col-md-6">
-            <h6 class="text-muted"><i class="fas fa-edit mr-1"></i>需要补填</h6>
-            <div id="manualFields"></div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-        <button type="button" class="btn btn-primary" id="btnConfirmGen" onclick="confirmReportGenerate()">
-          <i class="fas fa-file-download mr-1"></i>生成并下载
-        </button>
-      </div>
-    </div>
+    }
   </div>
 </div>
 
@@ -382,8 +446,6 @@
   <div class="card-header p-0">
     <ul class="nav nav-tabs" id="projTabs" role="tablist">
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-file">项目文件</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-contract">合同管理</a></li>
-      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-receipt">回款管理</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-milestone">工作节点</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-log">操作日志</a></li>
     </ul>
@@ -446,197 +508,6 @@
         </div>
       }
       else { <div class="text-center text-muted py-4">暂无工作节点</div> }
-    </div>
-
-    <!-- 验收与回款 -->
-    <!-- ── Tab③：回款管理（含验收+发票合并）── -->
-    <div class="tab-pane fade" id="tab-receipt">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <span class="text-muted small mr-3">
-            开票合计：<strong class="text-primary">¥@Model.Invoices.Sum(i=>i.Amount).ToString("N2")万</strong>
-          </span>
-          <span class="text-muted small">
-            已收款：<strong class="text-success">¥@Model.Invoices.Where(i=>i.IsReceived).Sum(i=>i.Amount).ToString("N2")万</strong>
-          </span>
-        </div>
-        @if (canEdit)
-        {
-          <button class="btn btn-sm btn-success" data-toggle="modal" data-target="#addReceiptModal">
-            <i class="fas fa-plus"></i> 新增回款记录
-          </button>
-        }
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-hover">
-          <thead class="thead-light">
-            <tr>
-              <th>回款批次</th><th>发票号</th><th>发票类型</th>
-              <th>金额(万)</th><th>税率</th><th>开票日期</th><th>付款方</th>
-              <th>回款状态</th><th>发票附件</th><th>付款申请</th><th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            @foreach (var inv in Model.Invoices.OrderByDescending(i=>i.CreatedAt))
-            {
-              <tr class="@(inv.IsReceived?"table-success":"")">
-                <td><strong>@inv.ReceiptName</strong></td>
-                <td><code class="small">@(inv.InvoiceNo??"-")</code></td>
-                <td><small>@inv.InvoiceType</small></td>
-                <td class="font-weight-bold text-primary">¥@inv.Amount.ToString("N2")</td>
-                <td class="small">@(inv.TaxRate.HasValue?inv.TaxRate.Value.ToString("N1")+"%":"-")</td>
-                <td class="small">@(inv.InvoiceDate?.ToString("yyyy-MM-dd")??"-")</td>
-                <td class="small">@(inv.Payer??"-")</td>
-                <td>
-                  @if (inv.IsReceived)
-                  {
-                    <span class="badge badge-success">
-                      <i class="fas fa-check mr-1"></i>已收款 @(inv.ReceivedDate?.ToString("yyyy-MM-dd"))
-                    </span>
-                  }
-                  else if (canEdit)
-                  {
-                    <button class="btn btn-xs btn-outline-success" onclick="confirmReceived(@inv.Id)">
-                      <i class="fas fa-check"></i> 确认收款
-                    </button>
-                  }
-                  else
-                  {
-                    <span class="badge badge-warning">待收款</span>
-                  }
-                </td>
-                <td>
-                  @if (inv.InvoiceFileName != null)
-                  {
-                    <a href="/project/invoices/file/@inv.Id/invoice" class="text-info small">
-                      <i class="fas fa-file-invoice"></i>
-                      @(inv.InvoiceFileName.Length>10?inv.InvoiceFileName[..10]+"…":inv.InvoiceFileName)
-                    </a>
-                  }
-                  else if (canEdit)
-                  {
-                    <label class="btn btn-xs btn-outline-secondary mb-0">
-                      <i class="fas fa-upload"></i>
-                      <input type="file" style="display:none"
-                             onchange="uploadInvoiceFile(@inv.Id,'invoice',this)">
-                    </label>
-                  }
-                </td>
-                <td>
-                  @if (inv.PaymentFileName != null)
-                  {
-                    <a href="/project/invoices/file/@inv.Id/payment" class="text-warning small">
-                      <i class="fas fa-file-alt"></i>
-                      @(inv.PaymentFileName.Length>10?inv.PaymentFileName[..10]+"…":inv.PaymentFileName)
-                    </a>
-                  }
-                  else if (canEdit)
-                  {
-                    <label class="btn btn-xs btn-outline-secondary mb-0">
-                      <i class="fas fa-upload"></i>
-                      <input type="file" style="display:none"
-                             onchange="uploadInvoiceFile(@inv.Id,'payment',this)">
-                    </label>
-                  }
-                </td>
-                <td>
-                  @if (canEdit)
-                  {
-                    <button class="btn btn-xs btn-danger" onclick="delReceipt(@inv.Id)">
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  }
-                </td>
-              </tr>
-            }
-            @if (!Model.Invoices.Any())
-            { <tr><td colspan="11" class="text-center text-muted py-4">暂无回款记录</td></tr> }
-          </tbody>
-          @if (Model.Invoices.Any())
-          {
-            <tfoot class="table-active">
-              <tr>
-                <td colspan="3" class="font-weight-bold">合计</td>
-                <td class="font-weight-bold text-primary">¥@Model.Invoices.Sum(i=>i.Amount).ToString("N2")</td>
-                <td colspan="3"></td>
-                <td class="font-weight-bold text-success">
-                  已收 ¥@Model.Invoices.Where(i=>i.IsReceived).Sum(i=>i.Amount).ToString("N2")
-                </td>
-                <td colspan="3"></td>
-              </tr>
-            </tfoot>
-          }
-        </table>
-      </div>
-    </div>
-    <!-- ── Tab②：合同管理 ── -->
-    <div class="tab-pane fade" id="tab-contract">
-      <div class="text-right mb-2">
-        @if (canEdit)
-        {
-          <button class="btn btn-sm btn-warning" data-toggle="modal" data-target="#addContractModal">
-            <i class="fas fa-plus"></i> 新增合同
-          </button>
-        }
-      </div>
-      @if (Model.Contracts.Any())
-      {
-        <table class="table table-sm table-hover">
-          <thead class="thead-light">
-            <tr><th>合同编号</th><th>类型</th><th>甲方</th><th>合同金额(万)</th><th>签约日期</th><th>状态</th><th>附件</th><th>操作</th></tr>
-          </thead>
-          <tbody>
-            @foreach (var ct in Model.Contracts)
-            {
-              <tr>
-                <td><code class="small">@ct.ContractNo</code></td>
-                <td><span class="badge badge-light">@ct.ContractType</span></td>
-                <td class="small">@ct.PartyA</td>
-                <td class="text-primary font-weight-bold">¥@ct.Amount.ToString("N2")</td>
-                <td class="small">@(ct.SignDate?.ToString("yyyy-MM-dd")??"-")</td>
-                <td>
-                  @if (ct.Status==1) { <span class="badge badge-success">生效</span> }
-                  else { <span class="badge badge-secondary">无效</span> }
-                </td>
-                <td>
-                  @if (ct.FileName != null)
-                  {
-                    <a href="/project/contracts/download/@ct.Id" class="btn btn-xs btn-info mr-1" title="下载">
-                      <i class="fas fa-download"></i>
-                    </a>
-                    @if (canEdit)
-                    {
-                      <label class="btn btn-xs btn-warning mb-0 mr-1" title="重新上传">
-                        <i class="fas fa-sync-alt"></i>
-                        <input type="file" style="display:none" onchange="uploadContractFile(@ct.Id,this)">
-                      </label>
-                    }
-                  }
-                  else if (canEdit)
-                  {
-                    <label class="btn btn-xs btn-outline-secondary mb-0">
-                      <i class="fas fa-upload"></i>
-                      <input type="file" style="display:none" onchange="uploadContractFile(@ct.Id,this)">
-                    </label>
-                  }
-                </td>
-                <td>
-                  @if (canEdit)
-                  {
-                    <button class="btn btn-xs btn-danger" onclick="delContract(@ct.Id,'@JavaScriptEncoder.Default.Encode(ct.ContractNo)')">
-                      <i class="fas fa-trash"></i>
-                    </button>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      }
-      else
-      {
-        <div class="text-center text-muted py-4">暂无合同记录</div>
-      }
     </div>
 
     <!-- ── Tab③：项目文件 ── -->
@@ -776,6 +647,83 @@
 
   </div><!-- tab-content -->
 </div><!-- card -->
+
+<!-- 固定卡片④：成果报告生成 -->
+<div class="card card-primary card-outline">
+  <div class="card-header bg-brand">
+    <h3 class="card-title"><i class="fas fa-file-export mr-1"></i>成果报告生成</h3>
+    <div class="card-tools">
+      <a href="/templatereport/manage" class="btn btn-xs btn-light">
+        <i class="fas fa-layer-group mr-1"></i>模板管理
+      </a>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <p class="text-muted small mb-2">
+          <i class="fas fa-info-circle mr-1"></i>
+          选择模板后，系统将自动提取本项目的名称、业主、团队、里程碑、合同、回款、验收等数据填充到模板占位符，一键生成 Word 成果报告。
+        </p>
+        <div class="form-group mb-0">
+          <label class="small">报告模板 <span class="text-danger">*</span></label>
+          <select id="reportTemplate" class="form-control">
+            <option value="">加载中…</option>
+          </select>
+        </div>
+      </div>
+      <div class="col-lg-4 text-lg-right mt-3 mt-lg-0">
+        <button id="btnGenerateReport" type="button" class="btn btn-lg btn-primary" onclick="openReportModal()">
+          <i class="fas fa-file-download mr-1"></i> 生成成果报告
+        </button>
+        <div class="small text-muted mt-2" id="reportHint">
+          <i class="fas fa-lightbulb mr-1"></i>选择模板后，系统自动带入项目信息并提示补填缺失项，再一键生成 Word。
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 成果报告生成弹窗：自动带入 + 补填缺失字段 -->
+<div class="modal fade" id="reportGenModal" tabindex="-1" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-brand">
+        <h5 class="modal-title"><i class="fas fa-file-export mr-1"></i>生成成果报告</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="关闭">&times;</button>
+      </div>
+      <div class="modal-body">
+        @Html.AntiForgeryToken()
+        <div class="form-group row">
+          <label class="col-sm-3 col-form-label">报告模板</label>
+          <div class="col-sm-9">
+            <select id="modalReportTemplate" class="form-control" onchange="loadReportPreview()">
+              <option value="">请选择…</option>
+            </select>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6 border-right">
+            <h6 class="text-muted"><i class="fas fa-magic mr-1"></i>自动带入（来自项目）</h6>
+            <div id="autoFields" class="small mb-2"><span class="text-muted">请选择模板</span></div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-muted"><i class="fas fa-edit mr-1"></i>需要补填</h6>
+            <div id="manualFields"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmGen" onclick="confirmReportGenerate()">
+          <i class="fas fa-file-download mr-1"></i>生成并下载
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 
 </div></section>
 
@@ -1093,6 +1041,14 @@
     </div>
     <div class="modal-body">
       <div class="form-group">
+      <div class="form-group">
+        <label>关联合同</label>
+        <select id="rcpContract" class="form-control">
+          <option value="">不关联（仅项目级回款）</option>
+          @foreach (var ct in Model.Contracts)
+          { <option value="@ct.Id">@ct.ContractNo（@ct.ContractType）</option> }
+        </select>
+      </div>
         <label>回款批次名称 <span class="text-danger">*</span></label>
         <input type="text" id="rcpName" class="form-control"
                placeholder="如：第一笔预付款、期中款、竣工款">
@@ -1553,6 +1509,11 @@ $('#rcpPaymentFile').on('change', function() {
     $('#rcpPayFileLabel').text(name);
 });
 
+function openAddReceipt(contractId) {
+    $('#rcpContract').val(contractId || '');
+    $('#addReceiptModal').modal('show');
+}
+
 function saveReceipt() {
     var name   = $('#rcpName').val();
     var amount = parseFloat($('#rcpAmount').val());
@@ -1561,6 +1522,8 @@ function saveReceipt() {
     var fd = new FormData();
     fd.append('__RequestVerificationToken', antiForgery);
     fd.append('ProjectId',   projId);
+    var cid = $('#rcpContract').val();
+    if (cid) fd.append('ContractId', cid);
     fd.append('ReceiptName', name);
     fd.append('InvoiceType', $('#rcpType').val());
     fd.append('Amount',      amount);

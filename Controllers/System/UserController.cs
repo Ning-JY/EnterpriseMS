@@ -24,8 +24,11 @@ public class UserController : BaseAuthController
         IUnitOfWork uow, IPermissionService permSvc)
         : base(permSvc)
     {
-        _userSvc = userSvc; _roleSvc = roleSvc; _deptSvc = deptSvc;
-        _logSvc = logSvc; _uow = uow;
+        _userSvc = userSvc;
+        _roleSvc = roleSvc;
+        _deptSvc = deptSvc;
+        _logSvc = logSvc;
+        _uow = uow;
     }
 
     [HasPermission("sys:user:list")]
@@ -44,7 +47,7 @@ public class UserController : BaseAuthController
     {
         var user = await _userSvc.GetDetailAsync(id);
         if (user == null) return NotFound();
-        return Json(ApiResult<UserDetailDto>.Ok(user));
+        return ApiOk(user);
     }
 
     [HttpPost("create"), ValidateAntiForgeryToken]
@@ -52,15 +55,17 @@ public class UserController : BaseAuthController
     public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
     {
         if (!ModelState.IsValid)
-            return Json(ApiResult<object>.Fail(GetErrors()));
+            return ApiFail(GetErrors());
         try
         {
             var id = await _userSvc.CreateAsync(dto, User.GetRealName());
             await _logSvc.LogAsync("新增用户", $"用户名：{dto.Username}", "INSERT", id);
-            return Json(ApiResult<object>.Ok("用户创建成功"));
+            return ApiOk("用户创建成功");
         }
-        catch (BusinessException ex)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpPost("update"), ValidateAntiForgeryToken]
@@ -68,15 +73,17 @@ public class UserController : BaseAuthController
     public async Task<IActionResult> Update([FromBody] UpdateUserDto dto)
     {
         if (!ModelState.IsValid)
-            return Json(ApiResult<object>.Fail(GetErrors()));
+            return ApiFail(GetErrors());
         try
         {
             await _userSvc.UpdateAsync(dto, User.GetRealName());
             await _logSvc.LogAsync("修改用户", $"用户ID：{dto.Id}", "UPDATE", dto.Id);
-            return Json(ApiResult<object>.Ok("修改成功"));
+            return ApiOk("修改成功");
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpPost("delete/{id}")]
@@ -87,10 +94,12 @@ public class UserController : BaseAuthController
         {
             await _userSvc.DeleteAsync(id, User.GetRealName());
             await _logSvc.LogAsync("删除用户", $"用户ID：{id}", "DELETE", id);
-            return Json(ApiResult<object>.Ok("删除成功"));
+            return ApiOk("删除成功");
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpPost("status")]
@@ -100,10 +109,12 @@ public class UserController : BaseAuthController
         try
         {
             await _userSvc.SetStatusAsync(id, status, User.GetRealName());
-            return Json(ApiResult<object>.Ok(status == 1 ? "已启用" : "已禁用"));
+            return ApiOk(status == 1 ? "已启用" : "已禁用");
         }
-        catch (BusinessException ex)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpPost("resetpwd")]
@@ -114,10 +125,12 @@ public class UserController : BaseAuthController
         {
             await _userSvc.ResetPasswordAsync(id, newPwd, User.GetRealName());
             await _logSvc.LogAsync("重置密码", $"用户ID：{id}", "UPDATE", id);
-            return Json(ApiResult<object>.Ok("密码已重置"));
+            return ApiOk("密码已重置");
         }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpPost("changepwd"), ValidateAntiForgeryToken]
@@ -127,17 +140,19 @@ public class UserController : BaseAuthController
         try
         {
             await _userSvc.ChangePasswordAsync(userId, dto.OldPassword, dto.NewPassword);
-            return Json(ApiResult<object>.Ok("密码修改成功"));
+            return ApiOk("密码修改成功");
         }
-        catch (BusinessException ex)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpGet("roles")]
     public async Task<IActionResult> GetRoles()
     {
         var roles = await _roleSvc.GetAllActiveAsync();
-        return Json(ApiResult<object>.Ok(roles));
+        return ApiOk(roles);
     }
 
 }

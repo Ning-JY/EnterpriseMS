@@ -102,14 +102,14 @@ public class ProjectImportController : BaseAuthController
     public async Task<IActionResult> Execute(IFormFile file)
     {
         if (file == null || file.Length == 0)
-            return Json(ApiResult<object>.Fail("请选择 Excel 文件"));
+            return ApiFail("请选择 Excel 文件");
 
         var ext = Path.GetExtension(file.FileName).ToLower();
         if (ext != ".xlsx" && ext != ".xls")
-            return Json(ApiResult<object>.Fail("仅支持 .xlsx / .xls 格式"));
+            return ApiFail("仅支持 .xlsx / .xls 格式");
 
         if (file.Length > 10 * 1024 * 1024)
-            return Json(ApiResult<object>.Fail("文件不能超过 10MB"));
+            return ApiFail("文件不能超过 10MB");
 
         // 读取部门列表（用于名称→ID 映射）
         var depts = await _uow.Depts.Query().Where(d => d.Status == 1).ToListAsync();
@@ -130,7 +130,7 @@ public class ProjectImportController : BaseAuthController
         var rows = stream.Query(useHeaderRow: true).ToList();
 
         if (!rows.Any())
-            return Json(ApiResult<object>.Fail("Excel 内容为空，请使用标准模板"));
+            return ApiFail("Excel 内容为空，请使用标准模板");
 
         var toInsert = new List<EnterpriseMS.Domain.Entities.Project.Project>();
         int rowIndex = 2; // 从第2行（数据行）开始计数（第1行是表头）
@@ -239,7 +239,7 @@ public class ProjectImportController : BaseAuthController
                 "INSERT", 0);
         }
 
-        return Json(ApiResult<object>.Ok(new
+        return ApiOk(new
         {
             SuccessCount = successList.Count,
             SkipCount    = skipList.Count,
@@ -247,7 +247,7 @@ public class ProjectImportController : BaseAuthController
             SuccessList  = successList,
             SkipList     = skipList,
             ErrorList    = errorList,
-        }, $"导入完成：成功 {successList.Count} 条，跳过 {skipList.Count} 条，错误 {errorList.Count} 条"));
+        }, $"导入完成：成功 {successList.Count} 条，跳过 {skipList.Count} 条，错误 {errorList.Count} 条");
     }
 
     // ── 工具方法 ─────────────────────────────────────────────

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using EnterpriseMS.Common;
+using EnterpriseMS.Domain.Constants;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Services.DTOs.System;
@@ -62,6 +63,10 @@ public class DictService : IDictService
     {
         var entity = await _uow.DictTypes.GetByIdAsync(id)
             ?? throw new NotFoundException("字典类型不存在");
+        // 代码依赖的字典类型受系统保护，禁止删除（避免对应下拉/逻辑整体崩溃）。
+        // 类型内部的单个选项仍可删除（满足字典“增减”需求）。
+        if (DictType.All.Contains(entity.DictType))
+            throw new BusinessException("系统字典类型（代码依赖）不可删除");
         // 同时软删除关联的字典数据
         var datas = await _uow.DictDatas.GetListAsync(d => d.DictType == entity.DictType);
         foreach (var d in datas) _uow.DictDatas.SoftDelete(d);

@@ -21,8 +21,11 @@ public class InfoController : BaseAuthController
 {
     private readonly IUnitOfWork _uow;
 
-    public InfoController(IUnitOfWork uow, IPermissionService permSvc) : base(permSvc)
-        => _uow = uow;
+    public InfoController(IUnitOfWork uow, IPermissionService permSvc)
+        : base(permSvc)
+    {
+        _uow = uow;
+    }
 
     // ── 公开列表（匿名可访问，pub 路由）─────────────────────
     [AllowAnonymous]
@@ -95,8 +98,8 @@ public class InfoController : BaseAuthController
     public async Task<IActionResult> Article(long id)
     {
         var a = await _uow.InfoArticles.GetByIdAsync(id);
-        if (a == null || a.IsDeleted) return Json(ApiResult<object>.Fail("公告不存在"));
-        return Json(ApiResult<object>.Ok(new
+        if (a == null || a.IsDeleted) return ApiFail("公告不存在");
+        return ApiOk(new
         {
             id         = a.Id,
             categoryId = a.CategoryId,
@@ -105,7 +108,7 @@ public class InfoController : BaseAuthController
             isTop      = a.IsTop,
             isPublic   = a.IsPublic,
             status     = a.Status,
-        }));
+        });
     }
 
     // ── 保存（新增 / 编辑）────────────────────────────────
@@ -114,15 +117,15 @@ public class InfoController : BaseAuthController
         string? content, bool isTop = false, bool isPublic = false, int status = 1)
     {
         if (string.IsNullOrWhiteSpace(title))
-            return Json(ApiResult<object>.Fail("标题不能为空"));
+            return ApiFail("标题不能为空");
         if (categoryId <= 0)
-            return Json(ApiResult<object>.Fail("请选择分类"));
+            return ApiFail("请选择分类");
 
         var oper = User.GetRealName();
         if (id > 0)
         {
             var a = await _uow.InfoArticles.GetByIdAsync(id);
-            if (a == null || a.IsDeleted) return Json(ApiResult<object>.Fail("公告不存在"));
+            if (a == null || a.IsDeleted) return ApiFail("公告不存在");
             a.CategoryId = categoryId;
             a.Title      = title;
             a.Content    = content ?? "";
@@ -152,7 +155,7 @@ public class InfoController : BaseAuthController
         }
 
         await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok("保存成功"));
+        return ApiOk<object>(null!, "保存成功");
     }
 
     // ── 删除（软删除）─────────────────────────────────────
@@ -160,10 +163,10 @@ public class InfoController : BaseAuthController
     public async Task<IActionResult> Delete(long id)
     {
         var a = await _uow.InfoArticles.GetByIdAsync(id);
-        if (a == null || a.IsDeleted) return Json(ApiResult<object>.Fail("公告不存在"));
+        if (a == null || a.IsDeleted) return ApiFail("公告不存在");
         _uow.InfoArticles.SoftDelete(a);
         await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok("已删除"));
+        return ApiOk<object>(null!, "已删除");
     }
 
     // ── 分类管理 ──────────────────────────────────────────
@@ -179,15 +182,15 @@ public class InfoController : BaseAuthController
     public async Task<IActionResult> CategoryApi(long id)
     {
         var c = await _uow.InfoCategories.GetByIdAsync(id);
-        if (c == null || c.IsDeleted) return Json(ApiResult<object>.Fail("分类不存在"));
-        return Json(ApiResult<object>.Ok(new
+        if (c == null || c.IsDeleted) return ApiFail("分类不存在");
+        return ApiOk(new
         {
             id           = c.Id,
             categoryName = c.CategoryName,
             sort         = c.Sort,
             status       = c.Status,
             isPublic     = c.IsPublic,
-        }));
+        });
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -195,13 +198,13 @@ public class InfoController : BaseAuthController
         int sort = 0, int status = 1, bool isPublic = false)
     {
         if (string.IsNullOrWhiteSpace(categoryName))
-            return Json(ApiResult<object>.Fail("分类名称不能为空"));
+            return ApiFail("分类名称不能为空");
 
         var oper = User.GetRealName();
         if (id > 0)
         {
             var c = await _uow.InfoCategories.GetByIdAsync(id);
-            if (c == null || c.IsDeleted) return Json(ApiResult<object>.Fail("分类不存在"));
+            if (c == null || c.IsDeleted) return ApiFail("分类不存在");
             c.CategoryName = categoryName;
             c.Sort         = sort;
             c.Status       = status;
@@ -225,20 +228,20 @@ public class InfoController : BaseAuthController
         }
 
         await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok("保存成功"));
+        return ApiOk<object>(null!, "保存成功");
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteCategory(long id)
     {
         var c = await _uow.InfoCategories.GetByIdAsync(id);
-        if (c == null || c.IsDeleted) return Json(ApiResult<object>.Fail("分类不存在"));
+        if (c == null || c.IsDeleted) return ApiFail("分类不存在");
 
         var hasArticles = await _uow.InfoArticles.AnyAsync(a => a.CategoryId == id && !a.IsDeleted);
-        if (hasArticles) return Json(ApiResult<object>.Fail("该分类下还有公告，请先迁移或删除"));
+        if (hasArticles) return ApiFail("该分类下还有公告，请先迁移或删除");
 
         _uow.InfoCategories.SoftDelete(c);
         await _uow.SaveChangesAsync();
-        return Json(ApiResult<object>.Ok("已删除"));
+        return ApiOk<object>(null!, "已删除");
     }
 }

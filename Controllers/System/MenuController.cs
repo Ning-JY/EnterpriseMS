@@ -15,7 +15,9 @@ public class MenuController : BaseAuthController
     private readonly IMenuService _menuSvc;
     public MenuController(IMenuService menuSvc, IPermissionService permSvc)
         : base(permSvc)
-        => _menuSvc = menuSvc;
+    {
+        _menuSvc = menuSvc;
+    }
 
     [HasPermission("sys:menu:list")]
     public async Task<IActionResult> Index()
@@ -40,7 +42,10 @@ public class MenuController : BaseAuthController
             var id = await _menuSvc.CreateAsync(dto, User.Identity?.Name ?? "system");
             return ApiOk(new { id }, "创建成功");
         }
-        catch (BusinessException ex) { return ApiFail(ex.Message); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpPost("update"), ValidateAntiForgeryToken]

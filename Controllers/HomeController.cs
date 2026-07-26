@@ -18,7 +18,11 @@ public class HomeController : BaseAuthController
     public HomeController(IPermissionService permSvc, IProjectService projSvc,
         IUserService userSvc, AppDbContext db)
         : base(permSvc)
-    { _projSvc = projSvc; _userSvc = userSvc; _db = db; }
+    {
+        _projSvc = projSvc;
+        _userSvc = userSvc;
+        _db = db;
+    }
 
     public async Task<IActionResult> Index()
     {
@@ -41,10 +45,12 @@ public class HomeController : BaseAuthController
         try
         {
             await _userSvc.ChangePasswordAsync(User.GetUserId(), dto.OldPassword, dto.NewPassword);
-            return Json(ApiResult<object>.Ok("密码修改成功，请重新登录"));
+            return ApiOk<object>(null!, "密码修改成功，请重新登录");
         }
-        catch (BusinessException ex)
-        { return Json(ApiResult<object>.Fail(ex.Message)); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     /// <summary>个人产值统计</summary>

@@ -1,12 +1,16 @@
 @using EnterpriseMS.Domain.Entities.Hr
 @using EnterpriseMS.Services.DTOs.System
 @using EnterpriseMS.Services.DTOs.Hr
+@using System.Collections.Generic
 @model List<EmployeeContract>
 @{
     ViewData["Title"] = "合同管理";
     var warnDate = DateTime.Today.AddDays(30);
     var employees  = ViewBag.Employees  as List<EmployeeSimpleDto>  ?? new();
     var ctTypes    = ViewBag.ContractTypes as List<DictDataDto>     ?? new();
+    var ctStatusOpts  = ViewBag.ContractStatusOptions as List<DictDataDto> ?? new List<DictDataDto>();
+    var ctStatusMap   = ViewBag.ContractStatusMap  as Dictionary<int, string>  ?? new Dictionary<int, string>();
+    var ctStatusBadge = new Dictionary<int, string> { { 0, "badge-success" }, { 1, "badge-secondary" }, { 2, "badge-danger" } };
 }
 
 <div class="content-header"><div class="container-fluid">
@@ -42,9 +46,10 @@
                        placeholder="员工姓名/合同编号" value="@ViewBag.Keyword" style="width:180px">
                 <select name="status" class="form-control form-control-sm mr-1" style="width:90px">
                     <option value="">全部</option>
-                    <option value="0" selected="@(ViewBag.Status?.ToString()=="0"?"selected":null)">生效中</option>
-                    <option value="1" selected="@(ViewBag.Status?.ToString()=="1"?"selected":null)">已终止</option>
-                    <option value="2" selected="@(ViewBag.Status?.ToString()=="2"?"selected":null)">已到期</option>
+                    @foreach (var o in ctStatusOpts)
+                    {
+                        <option value="@o.DictValue" selected="@(ViewBag.Status?.ToString()==o.DictValue?"selected":null)">@o.DictLabel</option>
+                    }
                 </select>
                 <input type="hidden" name="page" value="1">
                 <button class="btn btn-sm btn-primary">搜索</button>
@@ -76,12 +81,7 @@
                             @if (isExpiring) { <span class="badge badge-warning ml-1">即将到期</span> }
                         </td>
                         <td>
-                            @switch (ct.Status)
-                            {
-                                case 0: <span class="badge badge-success">生效中</span> break;
-                                case 1: <span class="badge badge-secondary">已终止</span> break;
-                                default:<span class="badge badge-danger">已到期</span> break;
-                            }
+                            <span class="badge @(ctStatusBadge.TryGetValue(ct.Status, out var csb) ? csb : "badge-secondary")">@(ctStatusMap.TryGetValue(ct.Status, out var cst) ? cst : ct.Status.ToString())</span>
                         </td>
                         <td>
                             @if (ct.FileName != null)

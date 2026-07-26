@@ -15,7 +15,9 @@ public class DictController : BaseAuthController
     private readonly IDictService _dictSvc;
     public DictController(IDictService dictSvc, IPermissionService permSvc)
         : base(permSvc)
-        => _dictSvc = dictSvc;
+    {
+        _dictSvc = dictSvc;
+    }
 
     [HasPermission("sys:dict:list")]
     public async Task<IActionResult> Index()
@@ -40,7 +42,10 @@ public class DictController : BaseAuthController
             var id = await _dictSvc.CreateTypeAsync(dto.DictName, dto.DictType, dto.Status, dto.Remark);
             return ApiOk(new { id }, "创建成功");
         }
-        catch (BusinessException ex) { return ApiFail(ex.Message); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpPost("type/update"), ValidateAntiForgeryToken]
@@ -78,7 +83,10 @@ public class DictController : BaseAuthController
             var id = await _dictSvc.CreateDataAsync(dto.DictType, dto.DictLabel, dto.DictValue, dto.Sort, dto.IsDefault, dto.Status);
             return ApiOk(new { id }, "创建成功");
         }
-        catch (BusinessException ex) { return ApiFail(ex.Message); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     [HttpPost("data/update"), ValidateAntiForgeryToken]

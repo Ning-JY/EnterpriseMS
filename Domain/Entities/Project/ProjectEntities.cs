@@ -155,6 +155,7 @@ public class ProjectInvoice : BaseEntity
     [Column("payment_file")]      public string?  PaymentFile      { get; set; } // 付款申请文件
     [Column("payment_file_name")] public string?  PaymentFileName  { get; set; }
     [Column("remark")]            public string?  Remark           { get; set; }
+    [Column("contract_id")]     public long?    ContractId      { get; set; }
     public Project? Project { get; set; }
 }
 

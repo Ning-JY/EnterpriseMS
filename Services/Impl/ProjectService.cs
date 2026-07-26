@@ -567,6 +567,7 @@ public class ProjectService : IProjectService
         var invoice = new ProjectInvoice
         {
             ProjectId = dto.ProjectId,
+            ContractId = dto.ContractId,
             ReceiptName = dto.ReceiptName,
             InvoiceNo = dto.InvoiceNo,
             InvoiceType = dto.InvoiceType,
