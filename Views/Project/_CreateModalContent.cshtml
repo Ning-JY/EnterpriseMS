@@ -91,9 +91,9 @@
           </div>
         </div>
       </div>
-      <!-- 第三行：业务类型 + 采购方式 -->
+      <!-- 第三行：业务类型 -->
       <div class="row">
-        <div class="col-md-6">
+        <div class="col-md-4">
           <div class="form-group">
             <label>业务类型 <span class="text-danger">*</span></label>
             <select id="bizType" class="form-control">
@@ -111,17 +111,6 @@
               <optgroup label="其他咨询">
                 <option>战略咨询</option><option>专家评审服务</option><option>框架协议服务</option>
               </optgroup>
-            </select>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="form-group">
-            <label>采购方式</label>
-            <select id="procurementType" class="form-control">
-              <option value="">请选择</option>
-              <option>竞争性磋商</option><option>询价</option><option>公开招标</option>
-              <option>邀请招标</option><option>公开招选</option>
-              <option>框架协议采购</option><option>单一来源</option>
             </select>
           </div>
         </div>
@@ -281,11 +270,12 @@
       <div class="row">
         <div class="col-md-4">
           <div class="form-group">
-            <label>项目来源</label>
-            <select id="projectSource" class="form-control">
+            <label>采购方式</label>
+            <select id="procurementType" class="form-control">
               <option value="">请选择</option>
-              <option>自主承揽</option><option>合作承揽</option>
-              <option>投标获取</option><option>客户指定</option><option>其他</option>
+              <option>竞争性磋商</option><option>询价</option><option>公开招标</option>
+              <option>邀请招标</option><option>公开招选</option>
+              <option>框架协议采购</option><option>单一来源</option>
             </select>
           </div>
         </div>
@@ -502,7 +492,6 @@ function collectData() {
         BidDeadline:$('#bidDeadline').val()||null,
         SignDate:$('#signDate').val()||null, PlanEndDate:$('#planEndDate').val()||null,
         ProgressStatus:parseInt($('#progressStatus').val()),
-        ProjectSource:$('#projectSource').val()||null,
         ProjectOverview:$('#projectOverview').val(), Remark:$('#remark').val(),
         ContractSigned:$('#contractSigned').is(':checked'),
         ContractSignedDate:$('#contractSignedDate').val()||null,

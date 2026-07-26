@@ -197,7 +197,6 @@ public class CreateProjectDto
     public string?  ProjectOverview  { get; set; }
     public bool     ContractSigned   { get; set; }
     public DateTime? ContractSignedDate { get; set; }
-    public string?  ProjectSource   { get; set; } // 项目来源
     public int      ProgressStatus  { get; set; } // 进度状态（原遗漏，需随表单保存）
     public List<CreateMilestoneDto> Milestones { get; set; } = new();
     public List<CreateMemberDto>    Members    { get; set; } = new();
