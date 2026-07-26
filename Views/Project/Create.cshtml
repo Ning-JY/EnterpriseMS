@@ -5,7 +5,9 @@
     var depts   = ViewBag.Depts   as List<DeptTreeDto> ?? new List<DeptTreeDto>();
     var members = ViewBag.Members as List<EnterpriseMS.Services.DTOs.Hr.EmployeeSimpleDto>
                   ?? new List<EnterpriseMS.Services.DTOs.Hr.EmployeeSimpleDto>();
-    var projNoPrefix = ViewBag.ProjNoPrefix as string ?? "";
+    var projNoPrefixes = ViewBag.ProjNoPrefixes as List<EnterpriseMS.Services.DTOs.System.DictDataDto>
+                  ?? new List<EnterpriseMS.Services.DTOs.System.DictDataDto>();
+    var projNoPrefix = ViewBag.ProjNoPrefix as string ?? (projNoPrefixes.FirstOrDefault()?.DictValue ?? "");
     var generatedNo  = ViewBag.GeneratedNo  as string ?? "";
 }
 <div class="content-header">
@@ -51,12 +53,14 @@
       <div class="row">
         <div class="col-md-4">
           <div class="form-group">
-            <label>项目编号 <small class="text-muted" id="projNoPrefixHint">前缀：@projNoPrefix</small></label>
+            <label>项目编号 <small class="text-muted">前缀-序号</small></label>
             <div class="input-group">
-              @if (!string.IsNullOrEmpty(projNoPrefix))
-              {
-                <div class="input-group-prepend"><span class="input-group-text">@projNoPrefix</span></div>
-              }
+              <select id="projNoPrefix" class="form-control" style="max-width:130px" onchange="onPrefixChange()">
+                @foreach (var p in projNoPrefixes)
+                {
+                  <option value="@p.DictValue" selected="@(p.IsDefault==1)">@p.DictLabel</option>
+                }
+              </select>
               <input type="text" id="projNoSuffix" class="form-control" value="@generatedNo" placeholder="自动生成">
             </div>
             <small class="text-muted" id="projNoCheck"></small>
@@ -86,7 +90,7 @@
         <div class="col-md-4">
           <div class="form-group">
             <label>项目负责人 <span class="text-danger">*</span></label>
-            <select id="projectLeaderId" class="form-control">
+            <select id="projectLeaderId" class="form-control" onchange="syncLeaderRow()">
               <option value="">请选择</option>
               @foreach (var m in members)
               { <option value="@m.Id">@m.Display</option> }
@@ -164,7 +168,34 @@
           </div>
         </div>
       </div>
-      <!-- 联合体 -->
+      <!-- 联合体与进度状态已移至 step2 项目属性卡片 -->
+      <!-- 项目概况 -->
+      <div class="form-group">
+        <label>项目概况</label>
+        <textarea id="projectOverview" class="form-control" rows="3"
+                  placeholder="项目背景、规模、主要内容等"></textarea>
+      </div>
+      <!-- 进度状态已移至 step2 项目属性卡片 -->
+      <div class="form-group">
+        <label>备注</label>
+        <textarea id="remark" class="form-control" rows="2"
+                  placeholder="如：开标截止时间、合同金额区间说明等"></textarea>
+      </div>
+    </div>
+  </div>
+  <div class="text-right mb-3">
+    <button type="button" class="btn btn-primary" onclick="goStep(2)">
+      下一步：其他信息 <i class="fas fa-arrow-right"></i>
+    </button>
+  </div>
+</div>
+
+<!-- STEP 2: 其他信息 -->
+<div id="step-2" style="display:none">
+  <!-- 项目属性（联合体 + 进度状态，从 step1 移入） -->
+  <div class="card card-secondary card-outline">
+    <div class="card-header"><h3 class="card-title">项目属性</h3></div>
+    <div class="card-body">
       <div class="form-check mb-2">
         <input type="checkbox" class="form-check-input" id="isJointVenture" onchange="toggleJoint(this.checked)">
         <label class="form-check-label" for="isJointVenture">联合体项目</label>
@@ -186,13 +217,7 @@
           </div>
         </div>
       </div>
-      <!-- 项目概况 -->
-      <div class="form-group">
-        <label>项目概况</label>
-        <textarea id="projectOverview" class="form-control" rows="3"
-                  placeholder="项目背景、规模、主要内容等"></textarea>
-      </div>
-      <div class="form-group">
+      <div class="form-group mb-0">
         <label>进度状态 <span class="text-danger">*</span></label>
         <select id="progressStatus" class="form-control">
           <option value="0">前期商务</option><option value="1">预计启动</option>
@@ -201,22 +226,8 @@
           <option value="5" selected>已签回合同</option><option value="6">执行中</option>
         </select>
       </div>
-      <div class="form-group">
-        <label>备注</label>
-        <textarea id="remark" class="form-control" rows="2"
-                  placeholder="如：开标截止时间、合同金额区间说明等"></textarea>
-      </div>
     </div>
   </div>
-  <div class="text-right mb-3">
-    <button type="button" class="btn btn-primary" onclick="goStep(2)">
-      下一步：其他信息 <i class="fas fa-arrow-right"></i>
-    </button>
-  </div>
-</div>
-
-<!-- STEP 2: 其他信息 -->
-<div id="step-2" style="display:none">
   <!-- 金额信息 -->
   <div class="card card-success card-outline">
     <div class="card-header"><h3 class="card-title">金额信息</h3></div>
@@ -224,20 +235,10 @@
       <div class="row">
         <div class="col-md-4">
           <div class="form-group">
-            <label>限价金额（万元）</label>
+            <label>预估造价金额（万元）</label>
             <div class="input-group">
               <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
               <input type="number" id="limitPrice" class="form-control" placeholder="选填" step="0.01" min="0">
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>合同金额（万元）<span class="text-danger">*</span></label>
-            <div class="input-group">
-              <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
-              <input type="number" id="contractAmount" class="form-control" placeholder="0.00" step="0.01" min="0">
-              <div class="input-group-append"><span class="input-group-text">万</span></div>
             </div>
           </div>
         </div>
@@ -274,6 +275,18 @@
   <div class="card card-warning card-outline">
     <div class="card-header"><h3 class="card-title">合同信息</h3></div>
     <div class="card-body">
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <div class="form-group">
+            <label>合同金额（万元）<span class="text-danger">*</span></label>
+            <div class="input-group">
+              <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
+              <input type="number" id="contractAmount" class="form-control" placeholder="0.00" step="0.01" min="0">
+              <div class="input-group-append"><span class="input-group-text">万</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="form-check mb-3">
         <input type="checkbox" class="form-check-input" id="contractSigned" onchange="toggleContractInfo(this.checked)">
         <label class="form-check-label" for="contractSigned">已签订合同</label>
@@ -312,7 +325,7 @@
     <div class="card-body p-0">
       <table class="table table-sm">
         <thead class="thead-light">
-          <tr><th>姓名</th><th>职责描述</th><th width="130">占比</th><th width="36"></th></tr>
+          <tr><th>姓名</th><th>角色</th><th>职责描述</th><th width="130">占比</th><th width="36"></th></tr>
         </thead>
         <tbody id="mBody"></tbody>
       </table>
@@ -380,12 +393,13 @@ function goStep(n) {
         $('#'+id).removeClass('badge-primary badge-secondary')
                  .addClass(i+1===n?'badge-primary':'badge-secondary');
     });
-    if (n===2) updateChecklist();
+    if (n===2) { syncLeaderRow(); updateChecklist(); }
     window.scrollTo(0,0);
 }
 
 function toggleJoint(on) { $('#jointArea').toggle(on); }
 function toggleContractInfo(on) { $('#contractInfoArea').toggle(on); }
+function onPrefixChange() { projNoPrefix = $('#projNoPrefix').val(); }
 
 function onJointChange(src) {
     var amt = parseFloat($('#contractAmount').val())||0;
@@ -401,19 +415,39 @@ function onJointChange(src) {
     }
 }
 
-function addMRow() {
-    var i = mIdx++; var c = colors[i%colors.length];
-    var opts = allMembers.map(function(m){
-        return '<option value="'+m.id+'">'+m.name+'</option>';
+var roles = ['项目负责人','技术负责人','商务负责人','参与人员','其他'];
+function mRoleOpts(selected) {
+    return roles.map(function(r){ return '<option'+(r===selected?' selected':'')+'>'+r+'</option>'; }).join('');
+}
+function addMRow(empId, role, duty, ratio, isLeader) {
+    var i = mIdx++;
+    empId = empId || ''; role = role || '参与人员'; duty = duty || '';
+    ratio = (ratio==null?0:ratio);
+    var mopts = allMembers.map(function(m){
+        return '<option value="'+m.id+'"'+(String(m.id)===String(empId)?' selected':'')+'>'+m.name+'</option>';
     }).join('');
-    $('#mBody').append('<tr id="mr'+i+'">' +
-        '<td><select class="form-control form-control-sm mEmp"><option value="">请选择</option>'+opts+'</select></td>' +
-        '<td><input type="text" class="form-control form-control-sm mDuty" placeholder="职责描述"></td>' +
+    $('#mBody').append('<tr id="mr'+i+'"'+(isLeader?' data-leader="1"':'')+'>' +
+        '<td><select class="form-control form-control-sm mEmp"><option value="">请选择</option>'+mopts+'</select></td>' +
+        '<td><select class="form-control form-control-sm mRole">'+mRoleOpts(role)+'</select></td>' +
+        '<td><input type="text" class="form-control form-control-sm mDuty" value="'+duty+'" placeholder="职责描述"></td>' +
         '<td><div class="input-group input-group-sm">' +
-        '<input type="number" class="form-control mRatio" value="0" min="0" max="100" step="0.5" oninput="updateRatios()">' +
+        '<input type="number" class="form-control mRatio" value="'+ratio+'" min="0" max="100" step="0.5" oninput="updateRatios()">' +
         '<div class="input-group-append"><span class="input-group-text">%</span></div></div></td>' +
         '<td><button type="button" class="btn btn-xs btn-danger" onclick="$(\'#mr'+i+'\').remove();updateRatios()"><i class="fas fa-times"></i></button></td>' +
         '</tr>');
+    updateRatios();
+}
+
+// 选择项目负责人后自动添加一行（角色=项目负责人，占比默认0）；负责人变更时同步
+function syncLeaderRow() {
+    var leaderId = $('#projectLeaderId').val();
+    var $row = $('#mBody tr[data-leader="1"]');
+    if (!leaderId) { $row.remove(); return; }
+    if ($row.length) {
+        $row.find('.mEmp').val(leaderId);
+    } else {
+        addMRow(leaderId, '项目负责人', '项目负责人', 0, true);
+    }
 }
 
 function updateRatios() {
@@ -475,12 +509,12 @@ function collectData() {
     });
     var mb_list=[]; $('#mBody tr').each(function(){
         var eid=$(this).find('.mEmp').val(), r=parseFloat($(this).find('.mRatio').val())||0;
-        if(eid) mb_list.push({EmployeeId:parseInt(eid), Role:'参与人员',
+        if(eid) mb_list.push({EmployeeId:parseInt(eid), Role:$(this).find('.mRole').val()||'参与人员',
             DutyDesc:$(this).find('.mDuty').val(), Ratio:r,
             JoinDate:new Date().toISOString().split('T')[0]});
     });
     return {
-        ProjNo: projNoPrefix + ($('#projNoSuffix').val()||''),
+        ProjNo: (($('#projNoPrefix').val())||'') + '-' + ($('#projNoSuffix').val()||''),
         ProjName:$('#projName').val().trim(),
         DeptId:parseInt($('#deptId').val())||null, BizType:$('#bizType').val(),
         ProjectCategory:$('#projectCategory').val(),

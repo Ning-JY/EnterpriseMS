@@ -30,7 +30,8 @@ public static class DictSeeds
             // 项目进度(proj_status)/概预算任务(budget_task_type) 以 ProjectStatus / BudgetTaskType 枚举为唯一真源。
             // 状态类改为字典驱动：员工状态 / 合同状态（见下）
             new SysDictType { Id = 13, DictName = "员工状态",         DictType = "employee_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 14, DictName = "合同状态",         DictType = "contract_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" }
+            new SysDictType { Id = 14, DictName = "合同状态",         DictType = "contract_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictType { Id = 15, DictName = "项目编号前缀",     DictType = "proj_no_prefix",   Status = 1, CreatedAt = dt, CreatedBy = "system" }
         );
 
         // ── 字典数据 ──────────────────────────────────────────
@@ -123,7 +124,15 @@ public static class DictSeeds
             new SysDictData { Id = 1201, DictType = "technical_level", DictLabel = "初级", DictValue = "初级", Sort = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 1202, DictType = "technical_level", DictLabel = "中级", DictValue = "中级", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 1203, DictType = "technical_level", DictLabel = "高级", DictValue = "高级", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 1204, DictType = "technical_level", DictLabel = "正高级", DictValue = "正高级", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" }
+            new SysDictData { Id = 1204, DictType = "technical_level", DictLabel = "正高级", DictValue = "正高级", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            // 项目编号前缀（字典驱动：管理员可在字典管理中动态增删前缀，满足造价/设计等不同前缀需求）
+            new SysDictData { Id = 1501, DictType = "proj_no_prefix", DictLabel = "造价",   DictValue = "造价",   Sort = 1, IsDefault = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1502, DictType = "proj_no_prefix", DictLabel = "设计",   DictValue = "设计",   Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1503, DictType = "proj_no_prefix", DictLabel = "勘察",   DictValue = "勘察",   Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1504, DictType = "proj_no_prefix", DictLabel = "监理",   DictValue = "监理",   Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1505, DictType = "proj_no_prefix", DictLabel = "咨询",   DictValue = "咨询",   Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1506, DictType = "proj_no_prefix", DictLabel = "全过程", DictValue = "全过程", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1507, DictType = "proj_no_prefix", DictLabel = "其他",   DictValue = "其他",   Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" }
         );
     }
 }

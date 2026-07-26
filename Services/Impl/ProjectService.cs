@@ -282,17 +282,16 @@ public class ProjectService : IProjectService
 
     public async Task<string> GenerateProjNoSuffixAsync()
     {
-        var year = DateTime.UtcNow.Year;
-        var prefix = $"{year}-";
-        var maxNo = await _uow.Projects.Query()
-            .Where(p => p.ProjNo.Contains(prefix))
-            .Select(p => p.ProjNo)
-            .ToListAsync();
+        // 项目编号前缀已改为字典可配置（如 造价/设计），前缀不再含年份，
+        // 故直接取全部编号尾部序号的最大值 +1，保证不重复（不同前缀可区分）。
+        var all = await _uow.Projects.Query().Select(p => p.ProjNo).ToListAsync();
         var maxSeq = 0;
-        foreach (var no in maxNo)
+        foreach (var no in all)
         {
+            if (string.IsNullOrWhiteSpace(no)) continue;
             var dashIdx = no.LastIndexOf('-');
-            if (dashIdx >= 0 && int.TryParse(no[(dashIdx + 1)..], out var seq) && seq > maxSeq)
+            var tail = dashIdx >= 0 ? no[(dashIdx + 1)..] : no;
+            if (int.TryParse(tail, out var seq) && seq > maxSeq)
                 maxSeq = seq;
         }
         return $"{(maxSeq + 1):D3}";
@@ -858,7 +857,7 @@ public class ProjectService : IProjectService
             ["业主电话"]       = p.OwnerPhone ?? "",
             ["业务类型"]       = p.BizType,
             ["采购方式"]       = p.ProcurementType ?? "",
-            ["限价金额"]       = p.LimitPrice.HasValue ? $"{p.LimitPrice:N2} 万元" : "",
+            ["预估造价金额"]       = p.LimitPrice.HasValue ? $"{p.LimitPrice:N2} 万元" : "",
             ["建设规模"]       = p.BuildingScale ?? "",
             ["承接部门"]       = p.DeptName ?? "",
             ["技术负责人"]     = p.TechLeaderName ?? "",

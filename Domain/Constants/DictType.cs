@@ -23,6 +23,7 @@ public static class DictType
     public const string TechnicalLevel   = "technical_level";
     public const string EmployeeStatus   = "employee_status";
     public const string ContractStatus   = "contract_status";
+    public const string ProjNoPrefix     = "proj_no_prefix";
 
     /// <summary>
     /// 全部代码登记过的字典类型。字典管理中删除这些类型会破坏对应下拉/逻辑，
@@ -32,6 +33,6 @@ public static class DictType
     {
         CertType, ContractType, MilestoneType, BizType, ProcurementType,
         ProjectStatus, BudgetTaskType, Nationality, PoliticalStatus, Education,
-        TechnicalTitle, TechnicalLevel, EmployeeStatus, ContractStatus
+        TechnicalTitle, TechnicalLevel, EmployeeStatus, ContractStatus, ProjNoPrefix
     };
 }

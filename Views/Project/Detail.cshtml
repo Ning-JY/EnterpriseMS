@@ -130,7 +130,7 @@
               <tr><td class="text-muted">采购方式</td><td>@(Model.ProcurementType??"-")</td></tr>
               <tr><td class="text-muted">项目业主</td><td><strong>@Model.OwnerName</strong></td></tr>
               <tr><td class="text-muted">业主联系人</td><td>@(Model.OwnerContact??"-") @Model.OwnerPhone</td></tr>
-              <tr><td class="text-muted">限价金额</td><td>@(Model.LimitPrice.HasValue?$"¥{Model.LimitPrice:N2}万":"-")</td></tr>
+              <tr><td class="text-muted">预估造价金额</td><td>@(Model.LimitPrice.HasValue?$"¥{Model.LimitPrice:N2}万":"-")</td></tr>
               <tr><td class="text-muted">建设规模</td><td>@(Model.BuildingScale??"-")</td></tr>
             </table>
           </div>

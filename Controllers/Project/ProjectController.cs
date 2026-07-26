@@ -175,16 +175,16 @@ public class ProjectController : BaseAuthController
     {
         var depts   = await _deptSvc.GetTreeAsync();
         var members = await _empQrySvc.GetAllOnJobAsync();
-        // 从系统参数读取项目编号前缀（统一走 IUnitOfWork 仓储，移除 AppDbContext 直连）
-        var prefix = await _uow.SysConfigs.Query()
-            .Where(c => c.ConfigKey == "project_no_prefix")
-            .Select(c => c.ConfigValue)
-            .FirstOrDefaultAsync() ?? "";
+        // 项目编号前缀改为字典驱动（可在字典管理中动态增删；默认取 IsDefault 项）
+        var prefixes = await _dictSvc.GetDataByTypeAsync(DictType.ProjNoPrefix);
+        var defaultPrefix = prefixes.FirstOrDefault(p => p.IsDefault == 1)?.DictValue
+                          ?? prefixes.FirstOrDefault()?.DictValue ?? "";
         var suffix = await _projSvc.GenerateProjNoSuffixAsync();
-        ViewBag.Depts       = depts;
-        ViewBag.Members     = members;
-        ViewBag.ProjNoPrefix = prefix;
-        ViewBag.GeneratedNo  = suffix;
+        ViewBag.Depts          = depts;
+        ViewBag.Members        = members;
+        ViewBag.ProjNoPrefixes = prefixes;
+        ViewBag.ProjNoPrefix   = defaultPrefix;
+        ViewBag.GeneratedNo    = suffix;
         return View();
     }
 
