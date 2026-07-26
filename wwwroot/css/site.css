@@ -6,10 +6,10 @@
 
 /* ── 设计变量 ─────────────────────────────── */
 :root {
-  --brand:        #00514b;   /* 深青绿 */
-  --brand-2:      #0d6b64;   /* 主青绿（按钮 / 强调） */
-  --brand-soft:   #a2f1e7;   /* 浅青绿（侧栏高亮文字） */
-  --secondary:    #00658e;   /* 蓝青 */
+  --brand:        #004b87;   /* 深蓝 */
+  --brand-2:      #007bff;   /* 主蓝（按钮 / 强调，Bootstrap 主色，恢复旧蓝主题） */
+  --brand-soft:   #bcdcff;   /* 浅蓝（侧栏高亮文字） */
+  --secondary:    #0d6efd;   /* 蓝 */
   --bg:           #f5f7fa;   /* 内容区底色 */
   --surface:      #ffffff;
   --surface-low:  #eef2f7;
@@ -67,13 +67,13 @@ a:hover { color: var(--brand); }
 .nav-sidebar .nav-link.active,
 .nav-sidebar .nav-link.active:hover {
   color: var(--brand-soft) !important;
-  background: linear-gradient(90deg, rgba(13,107,100,.32), rgba(13,107,100,.10)) !important;
+  background: linear-gradient(90deg, rgba(0,123,255,.32), rgba(0,123,255,.10)) !important;
   box-shadow: inset 3px 0 0 var(--brand-soft);
 }
 .nav-sidebar .nav-treeview .nav-link { color: #94a3b8; margin-left: 6px; padding-left: 1.5rem; }
 .nav-sidebar .nav-treeview .nav-link.active {
   color: var(--brand-soft) !important;
-  background: rgba(13,107,100,.18) !important;
+  background: rgba(0,123,255,.18) !important;
   box-shadow: none;
 }
 .nav-sidebar .nav-icon { color: var(--brand-soft); opacity: .9; }
@@ -134,7 +134,7 @@ a:hover { color: var(--brand); }
 .btn { border-radius: 8px; }
 .btn-primary { background-color: var(--brand-2); border-color: var(--brand-2); }
 .btn-primary:hover, .btn-primary:focus { background-color: var(--brand); border-color: var(--brand); }
-.btn-outline-primary { color: var(--brand-2); border-color: #8fd3ca; }
+.btn-outline-primary { color: var(--brand-2); border-color: #a8d4ff; }
 .btn-outline-primary:hover { background-color: var(--brand-2); border-color: var(--brand-2); color: #fff; }
 .btn-outline-primary:hover, .btn-outline-info:hover,
 .btn-outline-secondary:hover, .btn-outline-success:hover { color: #fff; }
@@ -160,7 +160,7 @@ tr.table-warning td { background-color: rgba(180,83,9,.08) !important; }
 .badge { font-size: 11px; font-weight: 500; border-radius: 6px; padding: .35em .6em; }
 
 /* ── 表单 ─────────────────────────────────── */
-.form-control:focus { border-color: var(--brand-2); box-shadow: 0 0 0 .15rem rgba(13,107,100,.15); }
+.form-control:focus { border-color: var(--brand-2); box-shadow: 0 0 0 .15rem rgba(0,123,255,.15); }
 .custom-switch .custom-control-label { cursor: pointer; }
 
 /* ── 分页 ─────────────────────────────────── */
@@ -188,9 +188,9 @@ tr.table-warning td { background-color: rgba(180,83,9,.08) !important; }
 /* ── 登录页（青绿渐变背景） ─────────────── */
 .login-page {
   background:
-    radial-gradient(1200px 600px at 82% -10%, rgba(13,107,100,.30), transparent 60%),
+    radial-gradient(1200px 600px at 82% -10%, rgba(0,123,255,.30), transparent 60%),
     radial-gradient(900px 520px at 0% 110%, rgba(0,101,142,.22), transparent 55%),
-    linear-gradient(135deg, #0f172a 0%, #0b3b39 55%, #0d6b64 100%);
+    linear-gradient(135deg, #0f172a 0%, #0b2e6b 55%, #007bff 100%);
 }
 .login-card-body { border-radius: var(--radius); box-shadow: 0 12px 44px rgba(0,0,0,.28); }
 .login-box-msg { color: var(--muted); font-size: 13px; }
@@ -414,7 +414,7 @@ tr.table-warning td { background-color: rgba(180,83,9,.08) !important; }
 .fee-table th { background-color: var(--surface-low); }
 .result-highlight { font-weight: bold; color: var(--brand-2); }
 .cursor-pointer { cursor: pointer; }
-.cursor-pointer:hover { background-color: rgba(13,107,100,.06) !important; }
+.cursor-pointer:hover { background-color: rgba(0,123,255,.06) !important; }
 .calculation-step {
   background-color: var(--surface-low);
   border-left: 3px solid var(--brand-2);

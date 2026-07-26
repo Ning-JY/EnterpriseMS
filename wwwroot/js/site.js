@@ -36,6 +36,13 @@ function escapeHtml(str) {
     };
 })();
 
+// ── 全局：禁用所有 Bootstrap 模态框的「点击遮罩 / 按 ESC」关闭 ──
+// 需求：用户管理等弹窗点击空白处不再关闭；所有模态框统一生效。
+if (window.jQuery && $.fn.modal && $.fn.modal.Constructor) {
+    $.fn.modal.Constructor.Default.backdrop = 'static';
+    $.fn.modal.Constructor.Default.keyboard = false;
+}
+
 $(function () {
     // ── 全局 CSRF Token ─────────────────────────────────────
     var token = $('input[name="__RequestVerificationToken"]').first().val();

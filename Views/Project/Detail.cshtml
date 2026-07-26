@@ -41,9 +41,9 @@
             <i class="fas fa-edit"></i> 编辑
           </a>
         }
-        <a href="/templatereport/project/@Model.Id" class="btn btn-sm btn-success mr-1">
+        <button type="button" class="btn btn-sm btn-success mr-1" onclick="openReportModal()">
           <i class="fas fa-file-export"></i> 生成报告
-        </a>
+        </button>
         @if (canStatus && Model.ProgressStatus < 9) {
           <button class="btn btn-sm btn-primary ml-1" data-toggle="modal" data-target="#statusModal">
             <i class="fas fa-arrow-right"></i> 变更状态
@@ -327,7 +327,7 @@
         </div>
       </div>
       <div class="col-lg-4 text-lg-right mt-3 mt-lg-0">
-        <button id="btnGenerateReport" class="btn btn-lg btn-primary" onclick="openReportModal()">
+        <button id="btnGenerateReport" type="button" class="btn btn-lg btn-primary" onclick="openReportModal()">
           <i class="fas fa-file-download mr-1"></i> 生成成果报告
         </button>
         <div class="small text-muted mt-2" id="reportHint">
@@ -1183,12 +1183,11 @@
 
 @section Scripts {
 <script>
-var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
 var projId = @Model.Id;
 
 // ── 成果报告生成 ────────────────────────────────────────────
 function loadReportTemplates() {
-    fetch('/templatereport/templates')
+    fetch('/templatereport/templates', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(function (r) { return r.json(); })
         .then(function (res) {
             var $sel = $('#reportTemplate');
@@ -1229,11 +1228,18 @@ function getAntiForgery() {
 function openReportModal() {
     var $src = $('#reportTemplate');
     var $dst = $('#modalReportTemplate');
-    if ($dst.children().length === 0) $dst.html($src.html());
+    // 始终同步：把卡片内已加载的模板选项拷进弹窗下拉（弹窗初始带一个“请选择…”占位项，
+    // 因此旧的“children().length===0 才拷贝”判断永远不会触发，导致弹窗下拉为空）
+    $dst.html($src.html());
     var tid = $src.val();
-    if (tid) $dst.val(tid);
+    if (tid) {
+        $dst.val(tid);
+        loadReportPreview();
+    } else {
+        $('#autoFields').html('<span class="text-muted">请先选择模板</span>');
+        $('#manualFields').html('');
+    }
     $('#reportGenModal').modal('show');
-    loadReportPreview();
 }
 
 function loadReportPreview() {
@@ -1244,7 +1250,7 @@ function loadReportPreview() {
         return;
     }
     var load = layer.load(1);
-    fetch('/project/' + projId + '/report/preview-fields?templateId=' + encodeURIComponent(tid))
+    fetch('/project/' + projId + '/report/preview-fields?templateId=' + encodeURIComponent(tid), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(function (r) { return r.json(); })
         .then(function (res) {
             layer.close(load);
@@ -1299,7 +1305,7 @@ function confirmReportGenerate() {
     var load = layer.load(1);
     fetch('/project/' + projId + '/report/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getAntiForgery() },
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getAntiForgery(), 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ templateId: tid, fields: fields })
     })
         .then(function (res) {

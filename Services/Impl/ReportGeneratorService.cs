@@ -44,7 +44,8 @@ public class ReportGeneratorService : IReportGeneratorService
             return new List<TemplateInfoDto>();
 
         var json = File.ReadAllText(manifestPath);
-        var manifest = System.Text.Json.JsonSerializer.Deserialize<ManifestWrapper>(json);
+        var manifest = System.Text.Json.JsonSerializer.Deserialize<ManifestWrapper>(json,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         return manifest?.Templates ?? new List<TemplateInfoDto>();
     }
 
@@ -376,7 +377,8 @@ public class ReportGeneratorService : IReportGeneratorService
         if (File.Exists(manifestPath))
         {
             var json = File.ReadAllText(manifestPath);
-            manifest = System.Text.Json.JsonSerializer.Deserialize<ManifestWrapper>(json) ?? manifest;
+            manifest = System.Text.Json.JsonSerializer.Deserialize<ManifestWrapper>(json,
+                new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? manifest;
         }
 
         var newTemplate = new TemplateInfoDto
@@ -415,7 +417,8 @@ public class ReportGeneratorService : IReportGeneratorService
             return false;
 
         var json = File.ReadAllText(manifestPath);
-        var manifest = System.Text.Json.JsonSerializer.Deserialize<ManifestWrapper>(json);
+        var manifest = System.Text.Json.JsonSerializer.Deserialize<ManifestWrapper>(json,
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         if (manifest?.Templates == null)
             return false;
 

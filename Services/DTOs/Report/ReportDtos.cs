@@ -1,41 +1,43 @@
+using System.Text.Json.Serialization;
+
 namespace EnterpriseMS.Services.DTOs.Report;
 
 public class TemplateInfoDto
 {
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
-    public string FileName { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string CreatedAt { get; set; } = "";
-    public List<TemplateFieldDto> Fields { get; set; } = new();
+    [JsonPropertyName("id")]         public string Id { get; set; } = "";
+    [JsonPropertyName("name")]       public string Name { get; set; } = "";
+    [JsonPropertyName("fileName")]   public string FileName { get; set; } = "";
+    [JsonPropertyName("description")] public string Description { get; set; } = "";
+    [JsonPropertyName("createdAt")]  public string CreatedAt { get; set; } = "";
+    [JsonPropertyName("fields")]     public List<TemplateFieldDto> Fields { get; set; } = new();
 }
 
 public class TemplateFieldDto
 {
-    public string Name { get; set; } = "";
-    public string Label { get; set; } = "";
-    public bool Required { get; set; }
-    public string Type { get; set; } = "text";
-    public string Source { get; set; } = "manual";
-    public string? Binding { get; set; }
-    public string? ConfigKey { get; set; }
-    public string? DefaultValue { get; set; }
-    public string? HelpText { get; set; }
-    public List<OptionItemDto>? Options { get; set; }
+    [JsonPropertyName("name")]        public string Name { get; set; } = "";
+    [JsonPropertyName("label")]       public string Label { get; set; } = "";
+    [JsonPropertyName("required")]    public bool Required { get; set; }
+    [JsonPropertyName("type")]        public string Type { get; set; } = "text";
+    [JsonPropertyName("source")]      public string Source { get; set; } = "manual";
+    [JsonPropertyName("binding")]     public string? Binding { get; set; }
+    [JsonPropertyName("configKey")]   public string? ConfigKey { get; set; }
+    [JsonPropertyName("defaultValue")] public string? DefaultValue { get; set; }
+    [JsonPropertyName("helpText")]    public string? HelpText { get; set; }
+    [JsonPropertyName("options")]     public List<OptionItemDto>? Options { get; set; }
 }
 
 public class OptionItemDto
 {
-    public string Value { get; set; } = "";
-    public string Label { get; set; } = "";
+    [JsonPropertyName("value")] public string Value { get; set; } = "";
+    [JsonPropertyName("label")] public string Label { get; set; } = "";
 }
 
 public class TemplatePlaceholderDto
 {
-    public string Name { get; set; } = "";
-    public int ParagraphIndex { get; set; }
-    public string Context { get; set; } = "";
-    public string SurroundingText { get; set; } = "";
+    [JsonPropertyName("name")]            public string Name { get; set; } = "";
+    [JsonPropertyName("paragraphIndex")]  public int ParagraphIndex { get; set; }
+    [JsonPropertyName("context")]         public string Context { get; set; } = "";
+    [JsonPropertyName("surroundingText")] public string SurroundingText { get; set; } = "";
 }
 
 public class ConfigureTemplateRequest
