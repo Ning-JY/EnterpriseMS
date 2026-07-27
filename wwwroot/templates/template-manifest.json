@@ -7,19 +7,206 @@
       "Description": "建设工程询价审核报告（设备采购），按项目基本信息自动生成",
       "CreatedAt": "2026-07-26",
       "Fields": [
-        { "Name": "工程名称", "Label": "工程名称", "Required": true, "Type": "text", "Source": "project", "Binding": "ProjName", "ConfigKey": null, "DefaultValue": null, "HelpText": null, "Options": null },
-        { "Name": "建设单位", "Label": "建设单位", "Required": true, "Type": "text", "Source": "project", "Binding": "OwnerName", "ConfigKey": null, "DefaultValue": null, "HelpText": null, "Options": null },
-        { "Name": "编制单位", "Label": "编制单位", "Required": true, "Type": "text", "Source": "manual", "Binding": null, "ConfigKey": null, "DefaultValue": "宜宾市长晟建设工程有限公司", "HelpText": "审核报告编制单位", "Options": null },
-        { "Name": "签发人", "Label": "签发人", "Required": true, "Type": "text", "Source": "manual", "Binding": null, "ConfigKey": null, "DefaultValue": "李勇", "HelpText": "报告签发人", "Options": null },
-        { "Name": "文号", "Label": "文号", "Required": false, "Type": "text", "Source": "manual", "Binding": null, "ConfigKey": null, "DefaultValue": "", "HelpText": "报告文号（选填）", "Options": null },
-        { "Name": "工程地址", "Label": "工程地址", "Required": false, "Type": "text", "Source": "manual", "Binding": null, "ConfigKey": null, "DefaultValue": "", "HelpText": "项目建设地点", "Options": null },
-        { "Name": "建设规模", "Label": "建设规模", "Required": false, "Type": "text", "Source": "manual", "Binding": null, "ConfigKey": null, "DefaultValue": "", "HelpText": "建设规模概况", "Options": null },
-        { "Name": "送审金额", "Label": "送审金额（万元）", "Required": true, "Type": "text", "Source": "manual", "Binding": null, "ConfigKey": null, "DefaultValue": "920450", "HelpText": "送审金额，单位：万元", "Options": null },
-        { "Name": "审定金额", "Label": "审定金额（万元）", "Required": true, "Type": "text", "Source": "manual", "Binding": null, "ConfigKey": null, "DefaultValue": "890990", "HelpText": "审定金额，单位：万元", "Options": null },
-        { "Name": "落款日期", "Label": "落款日期", "Required": true, "Type": "date", "Source": "manual", "Binding": null, "ConfigKey": null, "DefaultValue": "2025-03-18", "HelpText": "报告落款日期", "Options": null },
-        { "Name": "审核明细", "Label": "审核明细", "Required": false, "Type": "textarea", "Source": "manual", "Binding": null, "ConfigKey": null, "DefaultValue": "详见附件：送审工程量清单与审定工程量清单对比表。", "HelpText": "审核范围与主要明细说明", "Options": null },
-        { "Name": "审减金额", "Label": "审减金额（万元）", "Required": false, "Type": "text", "Source": "computed", "Binding": null, "ConfigKey": null, "DefaultValue": null, "HelpText": "自动计算：送审-审定", "Options": null },
-        { "Name": "审减率", "Label": "审减率", "Required": false, "Type": "text", "Source": "computed", "Binding": null, "ConfigKey": null, "DefaultValue": null, "HelpText": "自动计算：(送审-审定)/送审", "Options": null }
+        {
+          "Name": "工程名称",
+          "Label": "工程名称",
+          "Required": true,
+          "Type": "text",
+          "Source": "project",
+          "Binding": "ProjName",
+          "ConfigKey": null,
+          "DefaultValue": null,
+          "HelpText": null,
+          "Options": null
+        },
+        {
+          "Name": "建设单位",
+          "Label": "建设单位",
+          "Required": true,
+          "Type": "text",
+          "Source": "project",
+          "Binding": "OwnerName",
+          "ConfigKey": null,
+          "DefaultValue": null,
+          "HelpText": null,
+          "Options": null
+        },
+        {
+          "Name": "编制单位",
+          "Label": "编制单位",
+          "Required": true,
+          "Type": "text",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": "宜宾市长晟建设工程有限公司",
+          "HelpText": "审核报告编制单位",
+          "Options": null
+        },
+        {
+          "Name": "签发人",
+          "Label": "签发人",
+          "Required": true,
+          "Type": "text",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": "李勇",
+          "HelpText": "报告签发人",
+          "Options": null
+        },
+        {
+          "Name": "文号",
+          "Label": "文号",
+          "Required": false,
+          "Type": "text",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": "",
+          "HelpText": "报告文号（选填）",
+          "Options": null
+        },
+        {
+          "Name": "工程地址",
+          "Label": "工程地址",
+          "Required": false,
+          "Type": "text",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": "",
+          "HelpText": "项目建设地点",
+          "Options": null
+        },
+        {
+          "Name": "建设规模",
+          "Label": "建设规模",
+          "Required": false,
+          "Type": "text",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": "",
+          "HelpText": "建设规模概况",
+          "Options": null
+        },
+        {
+          "Name": "送审金额",
+          "Label": "送审金额（万元）",
+          "Required": true,
+          "Type": "text",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": "920450",
+          "HelpText": "送审金额，单位：万元",
+          "Options": null
+        },
+        {
+          "Name": "审定金额",
+          "Label": "审定金额（万元）",
+          "Required": true,
+          "Type": "text",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": "890990",
+          "HelpText": "审定金额，单位：万元",
+          "Options": null
+        },
+        {
+          "Name": "落款日期",
+          "Label": "落款日期",
+          "Required": true,
+          "Type": "date",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": "2025-03-18",
+          "HelpText": "报告落款日期",
+          "Options": null
+        },
+        {
+          "Name": "审核明细",
+          "Label": "审核明细",
+          "Required": false,
+          "Type": "textarea",
+          "Source": "manual",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": "详见附件：送审工程量清单与审定工程量清单对比表。",
+          "HelpText": "审核范围与主要明细说明",
+          "Options": null
+        },
+        {
+          "Name": "审减金额",
+          "Label": "审减金额（万元）",
+          "Required": false,
+          "Type": "text",
+          "Source": "computed",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": null,
+          "HelpText": "自动计算：送审-审定",
+          "Options": null
+        },
+        {
+          "Name": "审减率",
+          "Label": "审减率",
+          "Required": false,
+          "Type": "text",
+          "Source": "computed",
+          "Binding": null,
+          "ConfigKey": null,
+          "DefaultValue": null,
+          "HelpText": "自动计算：(送审-审定)/送审",
+          "Options": null
+        }
+      ]
+    },
+    {
+      "Id": "sample-loop-image",
+      "Name": "示例模板（循环表格+图片）",
+      "FileName": "sample-loop-image.docx",
+      "Description": "演示 MiniWord 表格行循环与图片插入的示例模板",
+      "CreatedAt": "2026-07-27",
+      "Fields": [
+        {
+          "Name": "项目名称",
+          "Label": "项目名称",
+          "Required": true,
+          "Type": "text",
+          "Source": "manual"
+        },
+        {
+          "Name": "建设单位",
+          "Label": "建设单位",
+          "Required": false,
+          "Type": "text",
+          "Source": "manual"
+        },
+        {
+          "Name": "报告日期",
+          "Label": "报告日期",
+          "Required": false,
+          "Type": "date",
+          "Source": "manual"
+        },
+        {
+          "Name": "业绩",
+          "Label": "业绩清单（列表，表格行循环）",
+          "Required": false,
+          "Type": "list",
+          "Source": "manual"
+        },
+        {
+          "Name": "签章",
+          "Label": "签章（图片）",
+          "Required": false,
+          "Type": "image",
+          "Source": "manual"
+        }
       ]
     }
   ]
