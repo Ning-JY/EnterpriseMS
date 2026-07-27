@@ -45,6 +45,8 @@
     <PackageReference Include="Yitter.IdGenerator" Version="1.0.14" />
     <!-- MiniExcel -->
     <PackageReference Include="MiniExcel" Version="1.35.2" />
+    <!-- MiniWord：Word 模板引擎，支持 {{字段}} 文本、表格行循环、图片插入 -->
+    <PackageReference Include="MiniWord" Version="0.9.2" />
     <!-- Health Checks -->
     <PackageReference Include="AspNetCore.HealthChecks.MySql" Version="9.0.0" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="9.0.0" />

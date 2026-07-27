@@ -4,6 +4,8 @@ using EnterpriseMS.Common;
 using EnterpriseMS.Services.DTOs.Report;
 using EnterpriseMS.Services.Impl;
 using EnterpriseMS.Services.Interfaces;
+using MiniSoftware;
+using System.IO;
 
 namespace EnterpriseMS.Controllers.Tool;
 
@@ -152,9 +154,9 @@ public class TemplateReportController : BaseAuthController
         }
     }
 
-    private Dictionary<string, string> BuildFieldValues(ReportFillRequest request)
+    private Dictionary<string, object> BuildFieldValues(ReportFillRequest request)
     {
-        var fieldValues = new Dictionary<string, string>();
+        var fieldValues = new Dictionary<string, object>();
 
         if (request.SupplementaryFields != null)
         {
@@ -162,14 +164,45 @@ public class TemplateReportController : BaseAuthController
                 fieldValues[kv.Key] = kv.Value;
         }
 
-        if (request.ExcelColumns != null && request.ExcelRows != null)
+        // Excel 行：聚合为列表字段"明细"，模板里用 {{明细.字段}} 在表格行循环
+        if (request.ExcelRows != null && request.ExcelRows.Count > 0 && request.ExcelColumns != null && request.ExcelColumns.Count > 0)
         {
+            var listRows = new List<Dictionary<string, object>>();
             foreach (var row in request.ExcelRows)
             {
+                var dict = new Dictionary<string, object>();
                 foreach (var col in request.ExcelColumns)
                 {
                     if (row.TryGetValue(col.ColumnName, out var val))
-                        fieldValues[col.FieldName] = val;
+                        dict[col.FieldName] = val;
+                }
+                listRows.Add(dict);
+            }
+            fieldValues["明细"] = listRows;
+        }
+
+        // 显式声明的列表字段
+        if (request.ListFields != null)
+        {
+            foreach (var kv in request.ListFields)
+                fieldValues[kv.Key] = kv.Value;
+        }
+
+        // 图片字段：MiniWordPicture 接收 Path，故 Base64 先落临时文件
+        if (request.ImageFields != null)
+        {
+            foreach (var kv in request.ImageFields)
+            {
+                var img = kv.Value;
+                string? imgPath = img.Path;
+                if (string.IsNullOrEmpty(imgPath) && !string.IsNullOrEmpty(img.Base64))
+                {
+                    imgPath = Path.Combine(Path.GetTempPath(), $"ems_img_{System.Guid.NewGuid():N}.png");
+                    File.WriteAllBytes(imgPath, Convert.FromBase64String(img.Base64));
+                }
+                if (!string.IsNullOrEmpty(imgPath))
+                {
+                    fieldValues[kv.Key] = new MiniWordPicture { Path = imgPath, Width = img.Width, Height = img.Height };
                 }
             }
         }

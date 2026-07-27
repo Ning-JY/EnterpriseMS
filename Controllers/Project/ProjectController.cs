@@ -70,7 +70,8 @@ public class ProjectController : BaseAuthController
 
         try
         {
-            var fields   = _projSvc.BuildReportFieldValues(proj);
+            var fieldsStr = _projSvc.BuildReportFieldValues(proj);
+            var fields    = fieldsStr.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
             var bytes    = _reportSvc.GenerateDocument(templateId, fields);
             var tpl      = _reportSvc.GetTemplate(templateId);
             var fileName = $"{proj.ProjName}_{(tpl?.Name ?? "成果报告")}.docx";
@@ -137,7 +138,8 @@ public class ProjectController : BaseAuthController
 
         try
         {
-            var fields = await _projSvc.BuildReportFieldValuesAsync(proj, tpl, req.Fields);
+            var fieldsStr = await _projSvc.BuildReportFieldValuesAsync(proj, tpl, req.Fields);
+            var fields    = fieldsStr.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
             var bytes = _reportSvc.GenerateDocument(tpl.Id, fields);
             var fileName = $"{proj.ProjName}_{tpl.Name}.docx";
             return File(bytes,

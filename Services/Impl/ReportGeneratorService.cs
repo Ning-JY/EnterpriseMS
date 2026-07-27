@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using EnterpriseMS.Common;
 using EnterpriseMS.Services.DTOs.Report;
 using Microsoft.Extensions.Logging;
+using MiniSoftware;
 
 namespace EnterpriseMS.Services.Impl;
 
@@ -15,8 +16,8 @@ public interface IReportGeneratorService
     TemplateInfoDto? GetTemplate(string templateId);
     List<TemplatePlaceholderDto> ScanPlaceholders(string templateId);
     string ConfigureTemplate(ConfigureTemplateRequest request, IFormFile templateFile);
-    string FillTemplate(string templateId, Dictionary<string, string> fieldValues);
-    byte[] GenerateDocument(string templateId, Dictionary<string, string> fieldValues);
+    string FillTemplate(string templateId, Dictionary<string, object> fieldValues);
+    byte[] GenerateDocument(string templateId, Dictionary<string, object> fieldValues);
     bool DeleteTemplate(string templateId);
     (byte[]? Bytes, string FileName) GetTemplateFile(string templateId);
 }
@@ -162,84 +163,29 @@ public class ReportGeneratorService : IReportGeneratorService
         return templateId;
     }
 
-    public string FillTemplate(string templateId, Dictionary<string, string> fieldValues)
+    public string FillTemplate(string templateId, Dictionary<string, object> fieldValues)
     {
-        var template = GetTemplate(templateId);
-        if (template == null)
-            throw new BusinessException("模板不存在");
-
-        var filePath = GetTemplateFilePath(template.FileName);
-        if (!File.Exists(filePath))
-            throw new BusinessException($"模板文件不存在: {template.FileName}");
-
-        using var stream = new MemoryStream();
-        using (var fileStream = File.OpenRead(filePath))
-            fileStream.CopyTo(stream);
-
-        using (var doc = WordprocessingDocument.Open(stream, true))
-        {
-            var body = doc.MainDocumentPart?.Document?.Body;
-            if (body == null)
-                throw new BusinessException("无法读取模板文件内容");
-
-            FillPlaceholdersInBody(body, fieldValues);
-
-            foreach (var headerPart in doc.MainDocumentPart.HeaderParts)
-            {
-                if (headerPart.Header?.InnerText != null)
-                    FillPlaceholdersInElement(headerPart.Header, fieldValues);
-            }
-
-            foreach (var footerPart in doc.MainDocumentPart.FooterParts)
-            {
-                if (footerPart.Footer?.InnerText != null)
-                    FillPlaceholdersInElement(footerPart.Footer, fieldValues);
-            }
-
-            doc.MainDocumentPart.Document.Save();
-        }
-
-        return Convert.ToBase64String(stream.ToArray());
+        var bytes = RenderWithMiniWord(templateId, fieldValues);
+        return Convert.ToBase64String(bytes);
     }
 
-    public byte[] GenerateDocument(string templateId, Dictionary<string, string> fieldValues)
+    public byte[] GenerateDocument(string templateId, Dictionary<string, object> fieldValues)
     {
-        var template = GetTemplate(templateId);
-        if (template == null)
-            throw new BusinessException("模板不存在");
+        return RenderWithMiniWord(templateId, fieldValues);
+    }
 
+    /// <summary>用 MiniWord 按模板渲染：支持 {{字段}} 文本、表格行循环(List&lt;Dictionary&gt;)、图片(MiniWordPicture)。</summary>
+    private byte[] RenderWithMiniWord(string templateId, Dictionary<string, object> fieldValues)
+    {
+        var template = GetTemplate(templateId) ?? throw new BusinessException("模板不存在");
         var filePath = GetTemplateFilePath(template.FileName);
         if (!File.Exists(filePath))
             throw new BusinessException($"模板文件不存在: {template.FileName}");
 
-        using var stream = new MemoryStream();
-        using (var fileStream = File.OpenRead(filePath))
-            fileStream.CopyTo(stream);
-
-        using (var doc = WordprocessingDocument.Open(stream, true))
-        {
-            var body = doc.MainDocumentPart?.Document?.Body;
-            if (body == null)
-                throw new BusinessException("无法读取模板文件内容");
-
-            FillPlaceholdersInBody(body, fieldValues);
-
-            foreach (var headerPart in doc.MainDocumentPart.HeaderParts)
-            {
-                if (headerPart.Header?.InnerText != null)
-                    FillPlaceholdersInElement(headerPart.Header, fieldValues);
-            }
-
-            foreach (var footerPart in doc.MainDocumentPart.FooterParts)
-            {
-                if (footerPart.Footer?.InnerText != null)
-                    FillPlaceholdersInElement(footerPart.Footer, fieldValues);
-            }
-
-            doc.MainDocumentPart.Document.Save();
-        }
-
-        return stream.ToArray();
+        var templateBytes = File.ReadAllBytes(filePath);
+        using var outStream = new MemoryStream();
+        MiniWord.SaveAsByTemplate(outStream, templateBytes, fieldValues ?? new Dictionary<string, object>());
+        return outStream.ToArray();
     }
 
     private void ReplaceTextInBody(Body body, string oldText, string newText)
@@ -283,63 +229,6 @@ public class ReportGeneratorService : IReportGeneratorService
                 afterRun.Append(new Text(afterText) { Space = SpaceProcessingModeValues.Preserve });
                 para.Append(afterRun);
             }
-        }
-    }
-
-    private void FillPlaceholdersInBody(Body body, Dictionary<string, string> fieldValues)
-    {
-        var pattern = new Regex(@"\{\{(.+?)\}\}");
-
-        foreach (var para in body.Descendants<Paragraph>())
-        {
-            FillPlaceholdersInParagraph(para, fieldValues, pattern);
-        }
-
-        foreach (var table in body.Descendants<Table>())
-        {
-            foreach (var row in table.Descendants<TableRow>())
-            {
-                foreach (var cell in row.Descendants<TableCell>())
-                {
-                    foreach (var para in cell.Descendants<Paragraph>())
-                    {
-                        FillPlaceholdersInParagraph(para, fieldValues, pattern);
-                    }
-                }
-            }
-        }
-    }
-
-    private void FillPlaceholdersInParagraph(Paragraph para, Dictionary<string, string> fieldValues, Regex pattern)
-    {
-        var runs = para.Elements<Run>().ToList();
-        if (runs.Count == 0) return;
-
-        var combinedText = string.Concat(runs.Select(r => r.InnerText));
-        if (!pattern.IsMatch(combinedText)) return;
-
-        var runProps = runs[0].RunProperties?.CloneNode(true) as RunProperties;
-        foreach (var run in runs) run.Remove();
-
-        var result = pattern.Replace(combinedText, match =>
-        {
-            var key = match.Groups[1].Value;
-            return fieldValues.TryGetValue(key, out var val) ? val : match.Value;
-        });
-
-        var newRun = new Run();
-        if (runProps != null) newRun.Append(runProps.CloneNode(true));
-        newRun.Append(new Text(result) { Space = SpaceProcessingModeValues.Preserve });
-        para.Append(newRun);
-    }
-
-    private void FillPlaceholdersInElement(OpenXmlCompositeElement element, Dictionary<string, string> fieldValues)
-    {
-        var pattern = new Regex(@"\{\{(.+?)\}\}");
-
-        foreach (var para in element.Descendants<Paragraph>())
-        {
-            FillPlaceholdersInParagraph(para, fieldValues, pattern);
         }
     }
 

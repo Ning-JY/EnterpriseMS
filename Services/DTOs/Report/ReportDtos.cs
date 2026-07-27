@@ -65,6 +65,19 @@ public class ReportFillRequest
     public Dictionary<string, string> SupplementaryFields { get; set; } = new();
     public List<MappedExcelColumnDto> ExcelColumns { get; set; } = new();
     public List<Dictionary<string, string>> ExcelRows { get; set; } = new();
+    /// <summary>列表字段：字段名 → 行数据列表(每行一个字典)。模板中该字段所在表格行会被 MiniWord 克隆重复。</summary>
+    public Dictionary<string, List<Dictionary<string, object>>> ListFields { get; set; } = new();
+    /// <summary>图片字段：字段名 → 图片值。模板中 {{字段}} 处插入图片。</summary>
+    public Dictionary<string, ImageFieldValue> ImageFields { get; set; } = new();
+}
+
+/// <summary>图片字段值：Base64 或服务器路径二选一。</summary>
+public class ImageFieldValue
+{
+    public string? Base64 { get; set; }
+    public string? Path { get; set; }
+    public int Width { get; set; } = 200;
+    public int Height { get; set; } = 200;
 }
 
 // ── 项目快捷生成报告：POST 请求体 ──
