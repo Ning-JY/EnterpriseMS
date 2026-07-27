@@ -433,8 +433,16 @@
 
         // "人工确认招标要素表"卡点：后端会再次校验是否还有待确认条目，前端disabled只是减少误触，不是唯一防线。
         async function confirmElements() {
-            if (!confirm('确认后将锁定本次招标要素表，作为后续内容生成与人员匹配的依据，确定要继续吗？')) return;
+            ems.confirm('确认后将锁定本次招标要素表，作为后续内容生成与人员匹配的依据，确定要继续吗？',
+                { icon: 3, btn: ['确定', '取消'] },
+                function (index) {
+                    ems.close(index);
+                    doConfirmElements();
+                }
+            );
+        }
 
+        async function doConfirmElements() {
             try {
                 var response = await fetch('/Bid/ConfirmElements', {
                     method: 'POST',
@@ -442,7 +450,6 @@
                     body: JSON.stringify({ BidProjectId: bidProjectId })
                 });
                 var result = await response.json();
-
                 if (result.success) {
                     ems.success('招标要素表已确认。');
                     location.reload();
@@ -455,25 +462,34 @@
         }
 
         // 核对单条"待确认"要求：人工补充原文出处定位，并复核是否属于否决性条款。
-        async function resolveRequirement(btn) {
+        function resolveRequirement(btn) {
             var requirementId = btn.dataset.reqId;
             var content = btn.dataset.content;   // 浏览器已解码 HTML 实体，安全
-            var sourceRef = prompt(
-                '核对以下条目，并填写在原文中的出处定位（如 "p.14" 或 "投标人须知 §3.2"）：\n\n' + content,
-                ''
-            );
-            if (sourceRef === null) return; // 用户取消
-            if (!sourceRef.trim()) {
-                ems.warn('出处不能为空，否则该条目会继续保留"待确认"状态');
-                return;
-            }
-            var isVeto = confirm('该条目是否为否决性条款（不满足将直接导致废标）？\n点击"确定"=是否决项，点击"取消"=不是否决项');
+            ems.prompt({
+                title: '核对以下条目，并填写在原文中的出处定位（如 "p.14" 或 "投标人须知 §3.2"）：\n\n' + content,
+                formType: 0,
+                btn: ['确定', '取消']
+            }, function (sourceRef, index) {
+                ems.close(index);
+                sourceRef = (sourceRef || '').trim();
+                if (!sourceRef) {
+                    ems.warn('出处不能为空，否则该条目会继续保留"待确认"状态');
+                    return;
+                }
+                ems.confirm('该条目是否为否决性条款（不满足将直接导致废标）？',
+                    { icon: 3, btn: ['是，否决项', '否，非否决项'] },
+                    function (i2) { ems.close(i2); submitResolveRequirement(requirementId, sourceRef, true); },
+                    function () { submitResolveRequirement(requirementId, sourceRef, false); }
+                );
+            });
+        }
 
+        async function submitResolveRequirement(requirementId, sourceRef, isVeto) {
             try {
                 var response = await fetch('/Bid/ResolveRequirement', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ RequirementId: requirementId, IsVeto: isVeto, SourceRef: sourceRef.trim() })
+                    body: JSON.stringify({ RequirementId: requirementId, IsVeto: isVeto, SourceRef: sourceRef })
                 });
                 var result = await response.json();
                 if (result.success) {
@@ -486,11 +502,18 @@
             }
         }
 
-        async function generateFullBid() {
-            if (!confirm('确定要一键生成全部章节吗？这将覆盖现有内容。')) return;
+        function generateFullBid() {
+            ems.confirm('确定要一键生成全部章节吗？这将覆盖现有内容。',
+                { icon: 3, btn: ['确定', '取消'] },
+                function (index) {
+                    ems.close(index);
+                    doGenerateFullBid();
+                }
+            );
+        }
 
+        async function doGenerateFullBid() {
             document.getElementById('generatingProgress').style.display = 'block';
-
             try {
                 var response = await fetch('/Bid/GenerateFull', {
                     method: 'POST',
@@ -498,7 +521,6 @@
                     body: JSON.stringify({ BidProjectId: bidProjectId })
                 });
                 var result = await response.json();
-
                 if (result.success) {
                     ems.success('生成完成！页面将刷新显示结果。');
                     location.reload();
@@ -513,15 +535,27 @@
         }
 
         function showAddChapter() {
-            var name = prompt('请输入章节名称：');
-            if (name) {
-                generateChapterStream(name);
-            }
+            ems.prompt({
+                title: '请输入章节名称：',
+                formType: 0,
+                btn: ['确定', '取消']
+            }, function (name, index) {
+                ems.close(index);
+                if (name && name.trim()) {
+                    generateChapterStream(name.trim());
+                }
+            });
         }
 
         function regenerateChapter(chapterName) {
-            var customReq = prompt('请输入自定义要求（可选，直接点确定跳过）：\n\n例如：\n- 重点突出公司在轨道交通领域的经验\n- 增加BIM技术应用方案\n- 补充质量控制措施');
-            generateChapterStream(chapterName, customReq || '');
+            ems.prompt({
+                title: '请输入自定义要求（可选，直接点确定跳过）：\n\n例如：\n- 重点突出公司在轨道交通领域的经验\n- 增加BIM技术应用方案\n- 补充质量控制措施',
+                formType: 0,
+                btn: ['确定', '取消']
+            }, function (customReq, index) {
+                ems.close(index);
+                generateChapterStream(chapterName, customReq || '');
+            });
         }
 
         var currentDocId = null;
