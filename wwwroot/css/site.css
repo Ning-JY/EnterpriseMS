@@ -4,21 +4,23 @@
    仅覆盖 AdminLTE 3 默认皮肤，不改任何页面结构。
    ========================================================= */
 
-/* ── 设计变量 ─────────────────────────────── */
+/* ── 设计变量 ───────────────────────────────
+   2026-07-30 按员工详情参考图统一为：明亮蓝主色 + 海军蓝侧边栏 + 浅蓝灰背景
+   ────────────────────────────────────────── */
 :root {
-  --brand:        #004b87;   /* 深蓝 */
-  --brand-2:      #007bff;   /* 主蓝（按钮 / 强调，Bootstrap 主色，恢复旧蓝主题） */
-  --brand-soft:   #bcdcff;   /* 浅蓝（侧栏高亮文字） */
-  --secondary:    #0d6efd;   /* 蓝 */
-  --bg:           #f5f7fa;   /* 内容区底色 */
+  --brand:        #2563eb;   /* 深蓝（悬停/强调） */
+  --brand-2:      #3b82f6;   /* 主蓝（按钮 / 标签 / 环形图） */
+  --brand-soft:   #93c5fd;   /* 浅蓝（侧栏高亮文字） */
+  --secondary:    #60a5fa;   /* 蓝 */
+  --bg:           #f0f5ff;   /* 内容区底色（参考图浅蓝灰） */
   --surface:      #ffffff;
-  --surface-low:  #eef2f7;
-  --line:         #e3e8ef;   /* 边框 */
-  --line-strong:  #cbd5e1;
+  --surface-low:  #eef5ff;
+  --line:         #dbeafe;   /* 边框 */
+  --line-strong:  #bfdbfe;
   --text:         #0f172a;
   --muted:        #64748b;
-  --sidebar-bg:   #0f172a;   /* 深石板灰 */
-  --sidebar-line: #1e293b;
+  --sidebar-bg:   #0a1628;   /* 海军蓝侧边栏 */
+  --sidebar-line: #132238;
   --sidebar-text: #cbd5e1;
   --radius:       14px;
   --radius-sm:    9px;
@@ -67,13 +69,13 @@ a:hover { color: var(--brand); }
 .nav-sidebar .nav-link.active,
 .nav-sidebar .nav-link.active:hover {
   color: var(--brand-soft) !important;
-  background: linear-gradient(90deg, rgba(0,123,255,.32), rgba(0,123,255,.10)) !important;
+  background: linear-gradient(90deg, rgba(59,130,246,.32), rgba(59,130,246,.10)) !important;
   box-shadow: inset 3px 0 0 var(--brand-soft);
 }
 .nav-sidebar .nav-treeview .nav-link { color: #94a3b8; margin-left: 6px; padding-left: 1.5rem; }
 .nav-sidebar .nav-treeview .nav-link.active {
   color: var(--brand-soft) !important;
-  background: rgba(0,123,255,.18) !important;
+  background: rgba(59,130,246,.18) !important;
   box-shadow: none;
 }
 .nav-sidebar .nav-icon { color: var(--brand-soft); opacity: .9; }
@@ -188,9 +190,9 @@ tr.table-warning td { background-color: rgba(180,83,9,.08) !important; }
 /* ── 登录页（青绿渐变背景） ─────────────── */
 .login-page {
   background:
-    radial-gradient(1200px 600px at 82% -10%, rgba(0,123,255,.30), transparent 60%),
-    radial-gradient(900px 520px at 0% 110%, rgba(0,101,142,.22), transparent 55%),
-    linear-gradient(135deg, #0f172a 0%, #0b2e6b 55%, #007bff 100%);
+    radial-gradient(1200px 600px at 82% -10%, rgba(59,130,246,.30), transparent 60%),
+    radial-gradient(900px 520px at 0% 110%, rgba(37,99,235,.22), transparent 55%),
+    linear-gradient(135deg, #0a1628 0%, #0f2a5c 55%, #3b82f6 100%);
 }
 .login-card-body { border-radius: var(--radius); box-shadow: 0 12px 44px rgba(0,0,0,.28); }
 .login-box-msg { color: var(--muted); font-size: 13px; }
@@ -498,3 +500,56 @@ tr.table-warning td { background-color: rgba(180,83,9,.08) !important; }
 .proj-summary-row .info-box .info-box-text { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 2px; }
 .proj-summary-row .info-box .info-box-number { font-size: 18px; font-weight: 700; line-height: 1.2; }
 .proj-summary-row .info-box .info-box-number small { font-size: 11px; font-weight: 400; display: block; margin-top: 1px; }
+
+/* ============================================================
+   参考图风格组件（员工详情页引入，可全项目复用）
+   ============================================================ */
+
+/* 左侧蓝色强调线卡片 */
+.card-accent-blue {
+  border: 1px solid var(--line) !important;
+  border-left: 4px solid var(--brand-2) !important;
+  border-radius: var(--radius) !important;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.card-accent-blue:hover { box-shadow: var(--shadow-md); }
+.card-accent-blue .card-header {
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  padding: .9rem 1.1rem;
+}
+.card-accent-blue .card-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.card-accent-blue .card-body { padding: 1rem 1.1rem; }
+
+/* 下划线标签页 */
+.tabs-underline {
+  border-bottom: 1px solid var(--line);
+  padding-left: .5rem;
+}
+.tabs-underline .nav-item { margin-bottom: -1px; }
+.tabs-underline .nav-link {
+  border: none;
+  border-radius: 0;
+  color: var(--muted);
+  padding: .65rem 1.1rem;
+  font-size: 14px;
+  position: relative;
+}
+.tabs-underline .nav-link:hover { color: var(--brand); }
+.tabs-underline .nav-link.active {
+  color: var(--brand-2);
+  font-weight: 600;
+  background: transparent;
+}
+.tabs-underline .nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: .6rem;
+  right: .6rem;
+  height: 2px;
+  background: var(--brand-2);
+  border-radius: 2px 2px 0 0;
+}

@@ -16,15 +16,19 @@
     // 岗位（PostId 关联 SysPost，零迁移复用）
     var postName = Model.Post?.PostName;
 
-    // 工龄
+    // 工龄（精确到月）
     string workAge = "-";
     if (Model.EntryDate.HasValue)
     {
         var s = Model.EntryDate.Value;
         var e = Model.LeaveDate ?? DateTime.Today;
-        int y = e.Year - s.Year;
-        if (e < s.AddYears(y)) y--;
-        workAge = y + " 年";
+        int totalMonths = (e.Year - s.Year) * 12 + e.Month - s.Month;
+        if (e.Day < s.Day) totalMonths--;
+        int y = totalMonths / 12;
+        int m = totalMonths % 12;
+        workAge = y > 0
+            ? $"{y}年{(m > 0 ? m + "个月" : "")}"
+            : (m > 0 ? $"{m}个月" : "不足1个月");
     }
 
     // 档案完整度（按字段填充率计算）
@@ -48,6 +52,7 @@
 
     bool hasPhoto = !string.IsNullOrEmpty(Model.ProfilePhoto);
     var firstContract = Model.Contracts.OrderByDescending(x => x.StartDate).FirstOrDefault();
+    var contractAttachments = Model.Contracts.Where(c => !string.IsNullOrEmpty(c.FileName)).ToList();
 }
 
 @functions {
@@ -65,34 +70,88 @@
 }
 
 <style>
-    .employee-detail .profile-header {
-        display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;
-        border-radius: 14px;
+    .employee-detail { --header-avatar: 88px; }
+
+    /* 顶部 Header：参考图横向布局 */
+    .profile-header-ref {
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--line);
     }
-    .profile-avatar-wrap { position: relative; width: 96px; height: 96px; flex: 0 0 auto; }
-    .profile-fallback { font-size: 96px; line-height: 96px; color: #cbd5e1; }
-    .profile-avatar-img {
-        position: absolute; inset: 0; width: 96px; height: 96px;
-        border-radius: 50%; object-fit: cover; border: 3px solid #fff;
+    .profile-header-ref .profile-avatar-wrap {
+        position: relative;
+        width: var(--header-avatar);
+        height: var(--header-avatar);
+        flex: 0 0 auto;
+    }
+    .profile-header-ref .profile-fallback {
+        font-size: var(--header-avatar);
+        line-height: var(--header-avatar);
+        color: #cbd5e1;
+    }
+    .profile-header-ref .profile-avatar-img {
+        position: absolute; inset: 0;
+        width: var(--header-avatar); height: var(--header-avatar);
+        border-radius: 50%; object-fit: cover;
+        border: 3px solid #fff;
         box-shadow: 0 2px 10px rgba(15,23,42,.12);
     }
-    .profile-main { flex: 1 1 auto; min-width: 220px; }
-    .profile-main h3 { margin: 0 0 .35rem; font-weight: 600; }
-    .profile-meta { display: flex; flex-wrap: wrap; gap: .35rem 1.25rem; color: #64748b; font-size: .875rem; }
-    .profile-meta span { white-space: nowrap; }
-    .profile-meta i { width: 16px; text-align: center; color: #0d6b64; }
-    .profile-actions { flex: 0 0 auto; display: flex; gap: .5rem; }
-    .info-card .card-body { padding: .75rem 1rem; }
-    .info-card table td { border: none; padding: .3rem .25rem; font-size: .85rem; vertical-align: top; }
+    .profile-header-ref .profile-main { flex: 1 1 auto; min-width: 220px; }
+    .profile-header-ref .profile-main h3 {
+        margin: 0 0 .45rem;
+        font-size: 1.45rem;
+        font-weight: 700;
+        display: flex; align-items: center; gap: .5rem;
+    }
+    .profile-header-ref .profile-meta {
+        display: flex; flex-wrap: wrap;
+        gap: .35rem 1.5rem;
+        color: var(--muted);
+        font-size: .875rem;
+    }
+    .profile-header-ref .profile-meta span { white-space: nowrap; }
+    .profile-header-ref .profile-meta i {
+        width: 16px; text-align: center; color: var(--brand-2); margin-right: 2px;
+    }
+    .profile-header-ref .profile-actions {
+        flex: 0 0 auto;
+        display: flex; align-items: center; gap: .5rem;
+        margin-left: auto;
+    }
+    .profile-header-ref .status-badge {
+        font-size: 11px;
+        font-weight: 500;
+        border-radius: 10px;
+        padding: .25em .65em;
+    }
+
+    /* 信息卡内部表格 */
+    .info-card table td { border: none; padding: .35rem .25rem; font-size: .85rem; vertical-align: top; }
     .info-card table td.w-40 { width: 38%; color: #94a3b8; white-space: nowrap; }
-    .completeness-wrap { text-align: center; padding: .5rem 0; }
+
+    /* 档案完整度环形图 */
+    .completeness-wrap { text-align: center; padding: .25rem 0; }
     .circular-chart { display: block; margin: 0 auto; max-width: 150px; max-height: 150px; }
-    .circle-bg { fill: none; stroke: #eef2f7; stroke-width: 3.8; }
-    .circle { fill: none; stroke: #0d6b64; stroke-width: 3.8; stroke-linecap: round;
+    .circle-bg { fill: none; stroke: var(--line-strong); stroke-width: 3.8; }
+    .circle { fill: none; stroke: var(--brand-2); stroke-width: 3.8; stroke-linecap: round;
               transition: stroke-dasharray .6s ease; }
-    .percentage { fill: #0f172a; font-family: inherit; font-size: 9px; text-anchor: middle; font-weight: 700; }
-    .contract-mini td { font-size: .8rem; padding: .3rem .4rem; }
-    .nav-tabs .nav-link { cursor: pointer; }
+    .percentage { fill: var(--brand-2); font-family: inherit; font-size: 9px; text-anchor: middle; font-weight: 700; }
+
+    /* 合同小表 */
+    .contract-mini td { font-size: .8rem; padding: .35rem .4rem; }
+
+    /* 标签页容器 */
+    .tab-content { padding-top: 1rem; }
+
+    /* 行内编辑表格 */
+    .edu-table th, .edu-table td { vertical-align: middle; }
+    .edu-table td .form-control-sm { min-width: 80px; }
 </style>
 
 <section class="content employee-detail"><div class="container-fluid">
@@ -107,53 +166,50 @@
         </ol>
     </div>
 
-    <!-- 顶部 Profile Header -->
-    <div class="card card-outline profile-header mb-3">
-        <div class="card-body">
-            <div class="profile-avatar-wrap">
-                <i class="fas fa-user-circle profile-fallback"></i>
-                @if (hasPhoto)
-                {
-                    <img src="@Model.ProfilePhoto" class="profile-avatar-img" alt="头像"
-                         onerror="this.style.display='none'">
-                }
+    <!-- 顶部 Profile Header：头像-信息-按钮横向排列 -->
+    <div class="profile-header-ref">
+        <div class="profile-avatar-wrap">
+            <i class="fas fa-user-circle profile-fallback"></i>
+            @if (hasPhoto)
+            {
+                <img src="@Model.ProfilePhoto" class="profile-avatar-img" alt="头像"
+                     onerror="this.style.display='none'">
+            }
+        </div>
+        <div class="profile-main">
+            <h3>
+                @Model.RealName
+                <span class="badge @statusBadge[Model.Status] status-badge">@statusText[Model.Status]</span>
+            </h3>
+            <div class="profile-meta">
+                <span><i class="fas fa-id-badge"></i> 工号：@Model.EmpNo</span>
+                <span><i class="fas fa-building"></i> 部门：@(Model.Dept?.DeptName ?? "暂无部门")</span>
+                <span><i class="fas fa-briefcase"></i> 岗位：@(postName ?? "未设置")</span>
+                <span><i class="fas fa-hourglass-half"></i> 在岗：@workAge</span>
             </div>
-            <div class="profile-main">
-                <h3>
-                    @Model.RealName
-                    <span class="badge @statusBadge[Model.Status] ml-1">@statusText[Model.Status]</span>
-                </h3>
-                <div class="profile-meta">
-                    <span><i class="fas fa-id-badge"></i> 工号：@Model.EmpNo</span>
-                    <span><i class="fas fa-building"></i> 部门：@(Model.Dept?.DeptName ?? "暂无部门")</span>
-                    <span><i class="fas fa-briefcase"></i> 岗位：@(postName ?? "未设置")</span>
-                    <span><i class="fas fa-phone"></i> @(Model.Phone ?? "-")</span>
-                    <span><i class="fas fa-calendar-check"></i> 入职：@(Model.EntryDate?.ToString("yyyy-MM-dd") ?? "-")</span>
-                </div>
-            </div>
-            <div class="profile-actions">
-                @if (canEdit && Model.Status != 2)
-                {
-                    <a href="/hr/employee/edit/@Model.Id" class="btn btn-warning">
-                        <i class="fas fa-edit mr-1"></i> 编辑档案
-                    </a>
-                }
-                @if (canFormal && Model.Status == 0)
-                {
-                    <button class="btn btn-success" onclick="doFormal()">
-                        <i class="fas fa-user-check mr-1"></i> 办理转正
-                    </button>
-                }
-                @if (canLeave && Model.Status != 2)
-                {
-                    <button class="btn btn-secondary" onclick="doLeave()">
-                        <i class="fas fa-sign-out-alt mr-1"></i> 办理离职
-                    </button>
-                }
-                <button class="btn btn-outline-primary" onclick="ems.msg('导出 PDF 功能开发中', {icon:7})">
-                    <i class="fas fa-file-pdf mr-1"></i> 导出 PDF
+        </div>
+        <div class="profile-actions">
+            @if (canEdit && Model.Status != 2)
+            {
+                <a href="/hr/employee/edit/@Model.Id" class="btn btn-primary">
+                    <i class="fas fa-edit mr-1"></i> 编辑档案
+                </a>
+            }
+            @if (canFormal && Model.Status == 0)
+            {
+                <button class="btn btn-outline-secondary" onclick="doFormal()">
+                    <i class="fas fa-user-check mr-1"></i> 办理转正
                 </button>
-            </div>
+            }
+            @if (canLeave && Model.Status != 2)
+            {
+                <button class="btn btn-outline-secondary" onclick="doLeave()">
+                    <i class="fas fa-sign-out-alt mr-1"></i> 办理离职
+                </button>
+            }
+            <button class="btn btn-outline-primary" onclick="ems.msg('导出 PDF 功能开发中', {icon:7})">
+                <i class="fas fa-file-pdf mr-1"></i> 导出 PDF
+            </button>
         </div>
     </div>
 
@@ -161,8 +217,8 @@
     <div class="row">
         <!-- 基本信息 -->
         <div class="col-lg-3 col-md-6">
-            <div class="card card-primary card-outline info-card h-100">
-                <div class="card-header"><h3 class="card-title"><i class="fas fa-user mr-1"></i>基本信息</h3></div>
+            <div class="card card-accent-blue info-card h-100">
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-user mr-1 text-primary"></i>基本信息</h3></div>
                 <div class="card-body">
                     <table class="table table-sm table-borderless mb-0">
                         @Fld("性别", Model.Gender == 1 ? "男" : "女")
@@ -188,8 +244,8 @@
 
         <!-- 任职信息 -->
         <div class="col-lg-3 col-md-6">
-            <div class="card card-info card-outline info-card h-100">
-                <div class="card-header"><h3 class="card-title"><i class="fas fa-id-card mr-1"></i>任职信息</h3></div>
+            <div class="card card-accent-blue info-card h-100">
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-id-card mr-1 text-primary"></i>任职信息</h3></div>
                 <div class="card-body">
                     <table class="table table-sm table-borderless mb-0">
                         @Fld("工号", Model.EmpNo)
@@ -207,11 +263,11 @@
             </div>
         </div>
 
-        <!-- 合同信息 -->
+        <!-- 合同信息（卡片中不再显示附件） -->
         <div class="col-lg-3 col-md-6">
-            <div class="card card-success card-outline info-card h-100">
+            <div class="card card-accent-blue info-card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title"><i class="fas fa-file-contract mr-1"></i>合同信息</h3>
+                    <h3 class="card-title"><i class="fas fa-file-contract mr-1 text-primary"></i>合同信息</h3>
                     <div>
                         @if (canEdit)
                         {
@@ -237,7 +293,7 @@
                     {
                         <div style="max-height:200px; overflow:auto;">
                             <table class="table table-sm table-bordered mb-0 contract-mini">
-                                <thead class="thead-light"><tr><th>编号</th><th>类型</th><th>期限</th><th>状态</th><th>附件</th></tr></thead>
+                                <thead class="thead-light"><tr><th>编号</th><th>类型</th><th>期限</th><th>状态</th></tr></thead>
                                 <tbody>
                                 @foreach (var cont in Model.Contracts.OrderByDescending(x => x.StartDate))
                                 {
@@ -250,27 +306,6 @@
                                             @if (warn) { <span class="badge badge-warning ml-1">即将到期</span> }
                                         </td>
                                         <td>@(cont.Status == 0 ? "生效" : "已终止")</td>
-                                        <td>
-                                            @if (!string.IsNullOrEmpty(cont.FileName))
-                                            {
-                                                <a href="/hr/contract/download/@cont.Id" class="btn btn-xs btn-info" title="下载"><i class="fas fa-download"></i></a>
-                                                @if (canEdit)
-                                                {
-                                                    <label class="btn btn-xs btn-warning mb-0" title="重新上传">
-                                                        <i class="fas fa-sync-alt"></i>
-                                                        <input type="file" style="display:none" onchange="uploadContractFile(@cont.Id, this)">
-                                                    </label>
-                                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteAttachment('contract',@cont.Id)" title="删除附件"><i class="fas fa-times"></i></button>
-                                                }
-                                            }
-                                            else if (canEdit)
-                                            {
-                                                <label class="btn btn-xs btn-outline-secondary mb-0">
-                                                    <i class="fas fa-upload"></i>
-                                                    <input type="file" style="display:none" onchange="uploadContractFile(@cont.Id, this)">
-                                                </label>
-                                            }
-                                        </td>
                                     </tr>
                                 }
                                 </tbody>
@@ -287,8 +322,8 @@
 
         <!-- 档案完整度 -->
         <div class="col-lg-3 col-md-6">
-            <div class="card card-warning card-outline info-card h-100">
-                <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie mr-1"></i>档案完整度</h3></div>
+            <div class="card card-accent-blue info-card h-100">
+                <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie mr-1 text-primary"></i>档案完整度</h3></div>
                 <div class="card-body completeness-wrap">
                     <svg viewBox="0 0 36 36" class="circular-chart">
                         <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
@@ -309,10 +344,10 @@
         </div>
     </div>
 
-    <!-- 底部标签页 -->
-    <div class="card card-outline">
-        <div class="card-header p-0 pt-2 pl-2">
-            <ul class="nav nav-tabs" role="tablist">
+    <!-- 底部标签页（下划线样式） -->
+    <div class="card card-accent-blue mt-3">
+        <div class="card-header p-0">
+            <ul class="nav nav-tabs tabs-underline" role="tablist">
                 <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tabEdu">教育经历</a></li>
                 <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tabWork">工作经历</a></li>
                 <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tabCert">证书资质</a></li>
@@ -322,36 +357,50 @@
         </div>
         <div class="card-body">
             <div class="tab-content">
-                <!-- 教育经历 -->
+                <!-- 教育经历：行内编辑 -->
                 <div class="tab-pane active" id="tabEdu">
                     <div class="mb-2 text-right">
-                        @if (canEdit) { <button class="btn btn-sm btn-warning" onclick="openAddEduModal()"><i class="fas fa-plus mr-1"></i>新增教育经历</button> }
+                        @if (canEdit) { <button class="btn btn-sm btn-primary" onclick="addEduRow()"><i class="fas fa-plus mr-1"></i>新增教育经历</button> }
                     </div>
-                    @if (Model.EducationList.Any())
-                    {
-                        <table class="table table-sm">
-                            <thead class="thead-light"><tr><th>学校</th><th>专业</th><th>学历</th><th>起止</th><th class="text-right">操作</th></tr></thead>
-                            <tbody>
+                    <table class="table table-sm edu-table">
+                        <thead class="thead-light"><tr><th>学校名称</th><th>专业</th><th>学历</th><th>全日制</th><th>起止时间</th><th>备注</th><th class="text-right">操作</th></tr></thead>
+                        <tbody id="eduTbody">
+                        @if (Model.EducationList.Any())
+                        {
                             @foreach (var edu in Model.EducationList.OrderByDescending(x => x.StartDate))
                             {
-                                <tr>
-                                    <td>@edu.SchoolName</td>
-                                    <td>@edu.Major</td>
-                                    <td>@edu.Degree</td>
-                                    <td class="small">@(edu.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(edu.EndDate?.ToString("yyyy-MM-dd") ?? "至今")</td>
-                                    <td class="text-right">
+                                <tr class="edu-row" data-id="@edu.Id"
+                                    data-school="@edu.SchoolName" data-major="@edu.Major" data-degree="@edu.Degree"
+                                    data-full="@(edu.IsFullTime ? "1" : "0")"
+                                    data-start="@(edu.StartDate?.ToString("yyyy-MM-dd") ?? "")"
+                                    data-end="@(edu.EndDate?.ToString("yyyy-MM-dd") ?? "")"
+                                    data-remark="@edu.Remark">
+                                    <td class="edu-cell">@edu.SchoolName</td>
+                                    <td class="edu-cell">@edu.Major</td>
+                                    <td class="edu-cell">@edu.Degree</td>
+                                    <td class="edu-cell">@(edu.IsFullTime ? "是" : "否")</td>
+                                    <td class="edu-cell small">@(edu.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(edu.EndDate?.ToString("yyyy-MM-dd") ?? "至今")</td>
+                                    <td class="edu-cell small text-muted">@(string.IsNullOrWhiteSpace(edu.Remark) ? "-" : edu.Remark)</td>
+                                    <td class="edu-cell text-right">
                                         @if (canEdit)
                                         {
-                                            <button class="btn btn-xs btn-outline-primary" data-id="@edu.Id" data-school="@edu.SchoolName" data-major="@edu.Major" data-degree="@edu.Degree" data-start="@(edu.StartDate?.ToString("yyyy-MM-dd"))" data-end="@(edu.EndDate?.ToString("yyyy-MM-dd"))" data-full="@(edu.IsFullTime ? "1" : "0")" data-remark="@edu.Remark" onclick="openEditEduModal(this)">编辑</button>
+                                            <button class="btn btn-xs btn-outline-primary" onclick="enterEduEdit(this)">编辑</button>
                                             <button class="btn btn-xs btn-outline-danger" onclick="deleteEdu(@edu.Id)">删除</button>
                                         }
                                     </td>
                                 </tr>
                             }
-                            </tbody>
-                        </table>
+                        }
+                        </tbody>
+                    </table>
+                    @if (!Model.EducationList.Any())
+                    {
+                        <div id="eduEmpty" class="text-center text-muted py-3">暂无教育经历</div>
                     }
-                    else { <div class="text-center text-muted py-3">暂无教育经历</div> }
+                    else
+                    {
+                        <div id="eduEmpty" class="text-center text-muted py-3 d-none">暂无教育经历</div>
+                    }
                 </div>
 
                 <!-- 工作经历 -->
@@ -446,17 +495,14 @@
                     </div>
                 </div>
 
-                <!-- 档案附件（合同附件） -->
+                <!-- 档案附件（仅合同附件） -->
                 <div class="tab-pane" id="tabFile">
-                    @{
-                        var attachList = Model.Contracts.Where(c => !string.IsNullOrEmpty(c.FileName)).ToList();
-                    }
-                    @if (attachList.Any())
+                    @if (contractAttachments.Any())
                     {
                         <table class="table table-sm">
                             <thead class="thead-light"><tr><th>所属合同</th><th>附件名称</th><th>类型</th><th>操作</th></tr></thead>
                             <tbody>
-                            @foreach (var cont in attachList)
+                            @foreach (var cont in contractAttachments)
                             {
                                 <tr>
                                     <td><code class="small">@cont.ContractNo</code> <span class="small text-muted">@cont.ContractType</span></td>
@@ -466,6 +512,10 @@
                                         <a href="/hr/contract/download/@cont.Id" class="btn btn-xs btn-info" title="下载"><i class="fas fa-download"></i> 下载</a>
                                         @if (canEdit)
                                         {
+                                            <label class="btn btn-xs btn-warning mb-0" title="重新上传">
+                                                <i class="fas fa-sync-alt"></i> 重新上传
+                                                <input type="file" style="display:none" onchange="uploadContractFile(@cont.Id, this)">
+                                            </label>
                                             <button class="btn btn-xs btn-outline-danger" onclick="deleteAttachment('contract',@cont.Id)" title="删除附件"><i class="fas fa-times"></i></button>
                                         }
                                     </td>
@@ -700,74 +750,6 @@
     </div></div>
 </div>
 
-<!-- ── 教育经历弹窗（新增/编辑共用）── -->
-<div class="modal fade" id="eduModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="eduModalTitle">新增教育经历</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        </div>
-        <div class="modal-body">
-            <input type="hidden" id="eduId">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>学校名称 <span class="text-danger">*</span></label>
-                        <input type="text" id="eduSchool" class="form-control" maxlength="100">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>专业 <span class="text-danger">*</span></label>
-                        <input type="text" id="eduMajor" class="form-control" maxlength="100">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>学历 <span class="text-danger">*</span></label>
-                        <input type="text" id="eduDegree" class="form-control" maxlength="50" placeholder="如：本科">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>是否全日制</label>
-                        <select id="eduFull" class="form-control">
-                            <option value="1">全日制</option>
-                            <option value="0">非全日制</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>开始日期</label>
-                        <input type="date" id="eduStart" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>结束日期</label>
-                        <input type="date" id="eduEnd" class="form-control">
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>备注</label>
-                <textarea id="eduRemark" class="form-control" rows="2"></textarea>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-warning" id="eduSaveBtn" onclick="saveEdu()">
-                <i class="fas fa-save mr-1"></i> 保存
-            </button>
-        </div>
-    </div></div>
-</div>
-
 <!-- ── 工作经历弹窗（新增/编辑共用）── -->
 <div class="modal fade" id="workModal" tabindex="-1">
     <div class="modal-dialog"><div class="modal-content">
@@ -823,6 +805,12 @@
 <script>
 var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
 var empId = @Model.Id;
+
+function esc(s) {
+    return (s ?? '').replace(/[&<>"']/g, function(m) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m];
+    });
+}
 
 // custom-file-input 显示文件名
 document.addEventListener('change', function(e) {
@@ -1037,51 +1025,78 @@ function saveEmpCert() {
     });
 }
 
-// ── 教育经历 ────────────────────────────────────────────────
-function openAddEduModal() {
-    $('#eduId').val('');
-    $('#eduSchool,#eduMajor,#eduDegree,#eduRemark').val('');
-    $('#eduFull').val('1');
-    var today = new Date().toISOString().split('T')[0];
-    $('#eduStart').val(today);
-    $('#eduEnd').val('');
-    $('#eduModalTitle').text('新增教育经历');
-    $('#eduModal').modal('show');
+// ── 教育经历：行内编辑 ───────────────────────────────────────
+function enterEduEdit(btn) {
+    var tr = btn.closest('tr');
+    var d = tr.dataset;
+    tr.dataset.displayHtml = tr.innerHTML;
+    tr.innerHTML =
+        '<td><input type="text" class="form-control form-control-sm edu-in-school" value="' + esc(d.school) + '" placeholder="学校名称"></td>' +
+        '<td><input type="text" class="form-control form-control-sm edu-in-major" value="' + esc(d.major) + '" placeholder="专业"></td>' +
+        '<td><input type="text" class="form-control form-control-sm edu-in-degree" value="' + esc(d.degree) + '" placeholder="学历"></td>' +
+        '<td><select class="form-control form-control-sm edu-in-full"><option value="1"' + (d.full === '1' ? ' selected' : '') + '>是</option><option value="0"' + (d.full !== '1' ? ' selected' : '') + '>否</option></select></td>' +
+        '<td><div class="d-flex align-items-center" style="gap:4px"><input type="date" class="form-control form-control-sm edu-in-start" value="' + esc(d.start) + '"><span>~</span><input type="date" class="form-control form-control-sm edu-in-end" value="' + esc(d.end) + '"></div></td>' +
+        '<td><input type="text" class="form-control form-control-sm edu-in-remark" value="' + esc(d.remark) + '" placeholder="备注"></td>' +
+        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveEduEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelEduEdit(this)">取消</button></td>';
 }
 
-function openEditEduModal(btn) {
-    $('#eduId').val($(btn).data('id'));
-    $('#eduSchool').val($(btn).data('school') || '');
-    $('#eduMajor').val($(btn).data('major') || '');
-    $('#eduDegree').val($(btn).data('degree') || '');
-    $('#eduFull').val($(btn).data('full') === '1' ? '1' : '0');
-    $('#eduStart').val($(btn).data('start') || '');
-    $('#eduEnd').val($(btn).data('end') || '');
-    $('#eduRemark').val($(btn).data('remark') || '');
-    $('#eduModalTitle').text('编辑教育经历');
-    $('#eduModal').modal('show');
+function cancelEduEdit(btn) {
+    var tr = btn.closest('tr');
+    if (tr.dataset.displayHtml) tr.innerHTML = tr.dataset.displayHtml;
 }
 
-function saveEdu() {
-    var school = $('#eduSchool').val(), major = $('#eduMajor').val(), degree = $('#eduDegree').val();
-    if (!school || !major || !degree) { ems.msg('请填写学校、专业和学历', {icon:2}); return; }
-    var id = $('#eduId').val();
+function saveEduEdit(btn) {
+    var tr = btn.closest('tr');
+    var id = tr.dataset.id;
     var dto = {
-        SchoolName: school, Major: major, Degree: degree,
-        StartDate: $('#eduStart').val() || null,
-        EndDate:   $('#eduEnd').val() || null,
-        IsFullTime: $('#eduFull').val() === '1',
-        Remark:    $('#eduRemark').val(),
+        SchoolName: tr.querySelector('.edu-in-school').value,
+        Major:      tr.querySelector('.edu-in-major').value,
+        Degree:     tr.querySelector('.edu-in-degree').value,
+        IsFullTime: tr.querySelector('.edu-in-full').value === '1',
+        StartDate:  tr.querySelector('.edu-in-start').value || null,
+        EndDate:    tr.querySelector('.edu-in-end').value || null,
+        Remark:     tr.querySelector('.edu-in-remark').value,
     };
-    $('#eduSaveBtn').prop('disabled', true);
-    var done = function(r) {
-        $('#eduSaveBtn').prop('disabled', false);
-        if (r && r.success) { $('#eduModal').modal('hide'); location.reload(); }
+    if (!dto.SchoolName || !dto.Major || !dto.Degree) { ems.msg('请填写学校、专业和学历', {icon:2}); return; }
+    var url = id ? '/hr/education/update' : '/hr/education/create?employeeId=' + empId;
+    if (id) dto.Id = parseInt(id);
+    var saveBtn = tr.querySelector('.btn-primary');
+    saveBtn.disabled = true;
+    ajaxPost(url, dto, function(r) {
+        saveBtn.disabled = false;
+        if (r && r.success) location.reload();
         else ems.msg((r && r.message) || '保存失败', {icon:2});
-    };
-    var fail = function(r) { $('#eduSaveBtn').prop('disabled', false); ems.msg((r && r.message) || '保存失败', {icon:2}); };
-    if (id) { dto.Id = parseInt(id); ajaxPost('/hr/education/update', dto, done, fail); }
-    else    { ajaxPost('/hr/education/create?employeeId=' + empId, dto, done, fail); }
+    }, function(r) {
+        saveBtn.disabled = false;
+        ems.msg((r && r.message) || '保存失败', {icon:2});
+    });
+}
+
+function addEduRow() {
+    var tbody = document.getElementById('eduTbody');
+    var empty = document.getElementById('eduEmpty');
+    if (empty) empty.classList.add('d-none');
+    var tr = document.createElement('tr');
+    tr.className = 'edu-row';
+    tr.dataset.id = '';
+    tr.innerHTML =
+        '<td><input type="text" class="form-control form-control-sm edu-in-school" placeholder="学校名称"></td>' +
+        '<td><input type="text" class="form-control form-control-sm edu-in-major" placeholder="专业"></td>' +
+        '<td><input type="text" class="form-control form-control-sm edu-in-degree" placeholder="学历"></td>' +
+        '<td><select class="form-control form-control-sm edu-in-full"><option value="1">是</option><option value="0">否</option></select></td>' +
+        '<td><div class="d-flex align-items-center" style="gap:4px"><input type="date" class="form-control form-control-sm edu-in-start"><span>~</span><input type="date" class="form-control form-control-sm edu-in-end"></div></td>' +
+        '<td><input type="text" class="form-control form-control-sm edu-in-remark" placeholder="备注"></td>' +
+        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveEduEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelEduAdd(this)">取消</button></td>';
+    tbody.insertBefore(tr, tbody.firstChild);
+    tr.querySelector('.edu-in-school').focus();
+}
+
+function cancelEduAdd(btn) {
+    var tr = btn.closest('tr');
+    tr.remove();
+    var tbody = document.getElementById('eduTbody');
+    var empty = document.getElementById('eduEmpty');
+    if (empty && tbody.children.length === 0) empty.classList.remove('d-none');
 }
 
 function deleteEdu(id) {
