@@ -42,6 +42,7 @@ public class Employee : BaseEntity
     [Column("social_insurance_no")]public string?  SocialInsuranceNo{ get; set; }
     [Column("profile_photo")]      public string?  ProfilePhoto     { get; set; }
     public SysDept? Dept { get; set; }
+    public SysPost? Post { get; set; }
     public ICollection<EmployeeContract>    Contracts      { get; set; } = new List<EmployeeContract>();
     public ICollection<EmployeeCertificate> Certificates   { get; set; } = new List<EmployeeCertificate>();
     public ICollection<EmployeeEducation>   EducationList  { get; set; } = new List<EmployeeEducation>();

@@ -46,6 +46,7 @@ public class EmployeeService : IEmployeeService
     public async Task<Employee?> GetDetailAsync(long id)
         => await _uow.Employees.Query()
             .Include(e => e.Dept)
+            .Include(e => e.Post)
             .Include(e => e.Contracts)
             .Include(e => e.Certificates)
             .Include(e => e.EducationList)
