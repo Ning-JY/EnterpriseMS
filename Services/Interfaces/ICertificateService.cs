@@ -22,4 +22,5 @@ public interface ICertificateService
     Task<(string Path, string FileName)?> GetDownloadInfoAsync(long id);
     Task DeleteAsync(long id);
     Task DeleteFileAsync(long id, string operBy);
+    Task UpdateAsync(CertUpdateDto dto, string operBy);
 }

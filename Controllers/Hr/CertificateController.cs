@@ -2,6 +2,7 @@ using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Domain.Constants;
 using EnterpriseMS.Filters;
+using EnterpriseMS.Services.DTOs.Hr;
 using EnterpriseMS.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -90,6 +91,15 @@ public class CertificateController : BaseAuthController
     public async Task<IActionResult> Delete(long id)
     {
         try { await _svc.DeleteAsync(id); return ApiOk("证书已删除"); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        { return ApiFail(ex.Message); }
+    }
+
+    [HttpPost("update"), ValidateAntiForgeryToken]
+    [HasPermission("hr:cert:edit")]
+    public async Task<IActionResult> Update([FromBody] CertUpdateDto dto)
+    {
+        try { await _svc.UpdateAsync(dto, User.GetRealName()); return ApiOk("修改成功"); }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
         { return ApiFail(ex.Message); }
     }

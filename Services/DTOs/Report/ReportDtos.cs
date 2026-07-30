@@ -45,6 +45,8 @@ public class ConfigureTemplateRequest
     public string TemplateName { get; set; } = "";
     public string TemplateDescription { get; set; } = "";
     public List<ReplacementItem> Replacements { get; set; } = new();
+    /// <summary>原始段落模板文件（步骤3保存时重新上传，或复用步骤1的）</summary>
+    public byte[]? TemplateBytes { get; set; }
 }
 
 public class DeleteTemplateRequest
@@ -57,6 +59,12 @@ public class ReplacementItem
     public string OldText { get; set; } = "";
     public string FieldName { get; set; } = "";
     public string FieldLabel { get; set; } = "";
+    /// <summary>来源类型：full=整段替换, inline=段落内文字替换, table-row=表格行替换</summary>
+    public string Source { get; set; } = "full";
+    /// <summary>对于 inline 类型：OldText 中被替换文字的起始位置（字符索引）</summary>
+    public int StartIndex { get; set; }
+    /// <summary>对于 inline 类型：OldText 中被替换文字的结束位置（字符索引）</summary>
+    public int EndIndex { get; set; }
 }
 
 public class ReportFillRequest

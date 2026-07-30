@@ -183,6 +183,21 @@ public class EmployeeCertificateDto
         && ExpireDate.Value <= DateTime.UtcNow.AddDays(90) && ExpireDate.Value > DateTime.UtcNow;
 }
 
+// ── 证书更新 DTO（行内编辑用）──
+public class CertUpdateDto
+{
+    [Required(ErrorMessage = "证书ID不能为空")]
+    public long Id { get; set; }
+
+    [Required, MaxLength(100, ErrorMessage = "证书名称不能超过100个字符")]
+    public string CertName { get; set; } = "";
+
+    [MaxLength(50)]  public string? CertType   { get; set; }
+    [MaxLength(100)] public string? CertNo     { get; set; }
+    public DateTime? ExpireDate { get; set; }
+    public int       Status     { get; set; }
+}
+
 // ── 教育经历 DTOs ──
 public class EducationDto
 {

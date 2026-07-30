@@ -32,20 +32,21 @@
         </h1>
         <small class="text-muted ml-4">@Model.ProjNo
           @if (Model.StatusUpdatedAt.HasValue)
-          { <span class="ml-3"><i class="fas fa-clock mr-1"></i>状态更新：@Model.StatusUpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span> }
+          { <span class="ml-3"><i class="fas fa-clock mr-1"></i>状态更新:@Model.StatusUpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span> }
         </small>
       </div>
       <div class="col-sm-5 text-right">
-        @if (canEdit) {
-          <a href="/project/edit/@Model.Id" class="btn btn-sm btn-warning mr-1">
-            <i class="fas fa-edit"></i> 编辑
-          </a>
-        }
         <button type="button" class="btn btn-sm btn-success mr-1" onclick="openReportModal()">
           <i class="fas fa-file-export"></i> 生成报告
         </button>
+        <button type="button" class="btn btn-sm btn-info mr-1" onclick="openContractGenModal()">
+          <i class="fas fa-file-signature"></i> 生成合同
+        </button>
+        <button type="button" class="btn btn-sm btn-secondary mr-1" onclick="openStampApplyModal()">
+          <i class="fas fa-stamp"></i> 用章申请
+        </button>
         @if (canStatus && Model.ProgressStatus < 9) {
-          <button class="btn btn-sm btn-primary ml-1" data-toggle="modal" data-target="#statusModal">
+          <button class="btn btn-sm btn-primary" data-toggle="modal" data-target="#statusModal">
             <i class="fas fa-arrow-right"></i> 变更状态
           </button>
         }
@@ -107,18 +108,16 @@
 
 <!-- ═══ 固定卡片区 ═══ -->
 
-<!-- 固定卡片①：基本信息 + 合同管理 -->
+<!-- 固定卡片1:基本信息 + 合同管理 -->
 <div class="row">
   <div class="col-md-7">
     <div class="card card-primary card-outline">
-      <div class="card-header">
-        <h3 class="card-title"><i class="fas fa-info-circle mr-1"></i>基本信息</h3>
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-info-circle mr-1"></i>基本信息</h3>
         @if (canEdit) {
-          <div class="card-tools">
-            <a href="/project/edit/@Model.Id" class="btn btn-xs btn-warning">
-              <i class="fas fa-edit"></i> 编辑
-            </a>
-          </div>
+          <a href="/project/edit/@Model.Id" class="btn btn-sm btn-primary">
+            <i class="fas fa-edit"></i> 编辑
+          </a>
         }
       </div>
       <div class="card-body" id="tab-basic">
@@ -129,16 +128,15 @@
               <tr><td class="text-muted" width="35%">业务类型</td><td>@Model.BizType</td></tr>
               <tr><td class="text-muted">采购方式</td><td>@(Model.ProcurementType??"-")</td></tr>
               <tr><td class="text-muted">项目业主</td><td><strong>@Model.OwnerName</strong></td></tr>
-              <tr><td class="text-muted">业主联系人</td><td>@(Model.OwnerContact??"-") @Model.OwnerPhone</td></tr>
-              <tr><td class="text-muted">预估造价金额</td><td>@(Model.LimitPrice.HasValue?$"¥{Model.LimitPrice:N2}万":"-")</td></tr>
+              <tr><td class="text-muted">业主联系人</td><td>@(Model.OwnerContact??"-")</td></tr>
+              <tr><td class="text-muted">联系电话</td><td>@(Model.OwnerPhone??"-")</td></tr>
               <tr><td class="text-muted">建设规模</td><td>@(Model.BuildingScale??"-")</td></tr>
             </table>
           </div>
           <div class="col-md-6">
             <table class="table table-sm table-borderless">
               <tr><td class="text-muted" width="35%">承接部门</td><td>@(Model.DeptName??"-")</td></tr>
-              <tr><td class="text-muted">技术负责人</td><td>@(Model.TechLeaderName??"-")</td></tr>
-              <tr><td class="text-muted">商务负责人</td><td>@(Model.BizLeaderName??"-")</td></tr>
+              <tr><td class="text-muted">项目负责人</td><td>@(Model.TechLeaderName??"-")</td></tr>
               <tr><td class="text-muted">签约日期</td><td>@(Model.SignDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
               <tr><td class="text-muted">计划完成</td><td>@(Model.PlanEndDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
               <tr><td class="text-muted">实际完成</td><td>@(Model.ActualEndDate?.ToString("yyyy-MM-dd")??"-")</td></tr>
@@ -150,7 +148,7 @@
       </div>
     </div>
   </div>
-  <!-- 固定卡片②：服务团队与产值 -->
+  <!-- 固定卡片2:服务团队与产值 -->
   <div class="col-md-5">
     <div class="card card-success card-outline">
       <div class="card-header">
@@ -223,7 +221,7 @@
 <!-- ═══ Tab 选项卡区 ═══ -->
 <div class="card">
   <div class="card-header p-0">
-    <ul class="nav nav-tabs" id="projTabs" role="tablist">
+    <ul class="nav nav-tabs" id="projTabs" role="tablist" data-tabs-fixed="true">
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-contract">合同与回款</a></li>
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tab-file">项目文件</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tab-milestone">工作节点</a></li>
@@ -231,7 +229,7 @@
     </ul>
   </div>
   <div class="card-body tab-content">
-<!-- 固定卡片③：合同与回款（按合同分组展示） -->
+<!-- 固定卡片3:合同与回款(按合同分组展示) -->
 <div class="tab-pane fade" id="tab-contract">
 <div class="card card-warning card-outline">
   <div class="card-header">
@@ -263,7 +261,7 @@
               <span class="ml-2 text-primary font-weight-bold">¥@ct.Amount.ToString("N2")万</span>
               @if (ct.Status==1) { <span class="badge badge-success ml-1">生效</span> }
               else { <span class="badge badge-secondary ml-1">无效</span> }
-              @if (ct.SignDate.HasValue) { <span class="ml-2 small text-muted">签约：@ct.SignDate.Value.ToString("yyyy-MM-dd")</span> }
+              @if (ct.SignDate.HasValue) { <span class="ml-2 small text-muted">签约:@ct.SignDate.Value.ToString("yyyy-MM-dd")</span> }
             </div>
             <div>
               @if (canEdit)
@@ -286,7 +284,7 @@
                 <label class="btn btn-xs btn-warning mb-0 mr-1" title="重新上传"><i class="fas fa-sync-alt"></i><input type="file" style="display:none" onchange="uploadContractFile(@ct.Id,this)"></label>
                 <button class="btn btn-xs btn-outline-danger" onclick="delContractFile(@ct.Id)" title="删除附件"><i class="fas fa-times"></i></button>
               }
-              <small class="text-muted">@(ct.FileName.Length>16?ct.FileName[..16]+"…":ct.FileName)</small>
+              <small class="text-muted">@(ct.FileName.Length>16?ct.FileName[..16]+"...":ct.FileName)</small>
             }
             else if (canEdit)
             {
@@ -328,7 +326,7 @@
                       <td>
                         @if (inv.InvoiceFileName != null)
                         {
-                          <a href="/project/invoices/file/@inv.Id/invoice" class="text-info small"><i class="fas fa-file-invoice"></i> @(inv.InvoiceFileName.Length>10?inv.InvoiceFileName[..10]+"…":inv.InvoiceFileName)</a>
+                          <a href="/project/invoices/file/@inv.Id/invoice" class="text-info small"><i class="fas fa-file-invoice"></i> @(inv.InvoiceFileName.Length>10?inv.InvoiceFileName[..10]+"...":inv.InvoiceFileName)</a>
                         }
                         else if (canEdit)
                         {
@@ -338,7 +336,7 @@
                       <td>
                         @if (inv.PaymentFileName != null)
                         {
-                          <a href="/project/invoices/file/@inv.Id/payment" class="text-warning small"><i class="fas fa-file-alt"></i> @(inv.PaymentFileName.Length>10?inv.PaymentFileName[..10]+"…":inv.PaymentFileName)</a>
+                          <a href="/project/invoices/file/@inv.Id/payment" class="text-warning small"><i class="fas fa-file-alt"></i> @(inv.PaymentFileName.Length>10?inv.PaymentFileName[..10]+"...":inv.PaymentFileName)</a>
                         }
                         else if (canEdit)
                         {
@@ -384,7 +382,7 @@
     @if (unlinked.Any())
     {
       <div class="px-3 py-3 bg-light">
-        <h6 class="text-muted mb-2"><i class="fas fa-unlink mr-1"></i>未关联合同的回款（@unlinked.Count 笔）</h6>
+        <h6 class="text-muted mb-2"><i class="fas fa-unlink mr-1"></i>未关联合同的回款(@unlinked.Count 笔)</h6>
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
             <thead class="thead-light">
@@ -418,7 +416,7 @@
                   <td>
                     @if (inv.InvoiceFileName != null)
                     {
-                      <a href="/project/invoices/file/@inv.Id/invoice" class="text-info small"><i class="fas fa-file-invoice"></i> @(inv.InvoiceFileName.Length>10?inv.InvoiceFileName[..10]+"…":inv.InvoiceFileName)</a>
+                      <a href="/project/invoices/file/@inv.Id/invoice" class="text-info small"><i class="fas fa-file-invoice"></i> @(inv.InvoiceFileName.Length>10?inv.InvoiceFileName[..10]+"...":inv.InvoiceFileName)</a>
                     }
                     else if (canEdit)
                     {
@@ -428,7 +426,7 @@
                   <td>
                     @if (inv.PaymentFileName != null)
                     {
-                      <a href="/project/invoices/file/@inv.Id/payment" class="text-warning small"><i class="fas fa-file-alt"></i> @(inv.PaymentFileName.Length>10?inv.PaymentFileName[..10]+"…":inv.PaymentFileName)</a>
+                      <a href="/project/invoices/file/@inv.Id/payment" class="text-warning small"><i class="fas fa-file-alt"></i> @(inv.PaymentFileName.Length>10?inv.PaymentFileName[..10]+"...":inv.PaymentFileName)</a>
                     }
                     else if (canEdit)
                     {
@@ -452,7 +450,7 @@
 </div>
 </div>
 
-    <!-- ── Tab①：工作节点 ── -->
+    <!-- ── Tab1:工作节点 ── -->
     <div class="tab-pane fade" id="tab-milestone">
       <div class="text-right mb-2">
         @if (canMSAdd)
@@ -495,10 +493,10 @@
                   </div>
                 </div>
                 <div class="timeline-body small text-muted">
-                  计划：@ms.PlanDate.ToString("yyyy-MM-dd")
-                  @if (ms.ActualDate.HasValue) { <span class="ml-3 text-success">实际：@ms.ActualDate.Value.ToString("yyyy-MM-dd")</span> }
-                  @if (ms.OwnerName != null) { <span class="ml-3">负责人：@ms.OwnerName</span> }
-                  @if (ms.AcceptAmount.HasValue) { <span class="ml-3 text-warning">应收：¥@ms.AcceptAmount.Value.ToString("N2")万</span> }
+                  计划:@ms.PlanDate.ToString("yyyy-MM-dd")
+                  @if (ms.ActualDate.HasValue) { <span class="ml-3 text-success">实际:@ms.ActualDate.Value.ToString("yyyy-MM-dd")</span> }
+                  @if (ms.OwnerName != null) { <span class="ml-3">负责人:@ms.OwnerName</span> }
+                  @if (ms.AcceptAmount.HasValue) { <span class="ml-3 text-warning">应收:¥@ms.AcceptAmount.Value.ToString("N2")万</span> }
                   @if (!string.IsNullOrEmpty(ms.Remark)) { <div class="mt-1">@ms.Remark</div> }
                 </div>
               </div>
@@ -510,7 +508,7 @@
       else { <div class="text-center text-muted py-4">暂无工作节点</div> }
     </div>
 
-    <!-- ── Tab③：项目文件 ── -->
+    <!-- ── Tab3:项目文件 ── -->
     <div class="tab-pane fade show active" id="tab-file">
 
     @if (canEdit)
@@ -545,7 +543,7 @@
                 </div>
             </div>
 
-            <!-- 文件预览区（选择后显示） -->
+            <!-- 文件预览区(选择后显示) -->
             <div id="uploadPreview" class="mt-2" style="display:none;">
                 <div class="alert alert-info py-2 mb-2">
                     <div class="d-flex justify-content-between align-items-center">
@@ -560,9 +558,9 @@
                         </button>
                     </div>
                     <div class="mt-1 small text-muted">
-                        类别：<span id="previewCategory"></span> &nbsp;|&nbsp;
-                        版本：<span id="previewVersion"></span> &nbsp;|&nbsp;
-                        说明：<span id="previewDesc"></span>
+                        类别:<span id="previewCategory"></span> &nbsp;|&nbsp;
+                        版本:<span id="previewVersion"></span> &nbsp;|&nbsp;
+                        说明:<span id="previewDesc"></span>
                     </div>
                 </div>
                 <button type="button" class="btn btn-sm btn-success" id="uploadConfirmBtn"
@@ -580,7 +578,7 @@
     {
         <h6 class="font-weight-bold text-muted mt-3 mb-2">
             @(grp.Key == "资料收集" ? "📁" : grp.Key == "过程文件" ? "📄" : grp.Key == "成果文件" ? "✅" : "📎")
-            @grp.Key（@grp.Count()个）
+            @grp.Key (@grp.Count() 个)
         </h6>
         <table class="table table-sm table-hover">
             <thead class="thead-light">
@@ -647,44 +645,7 @@
 
   </div><!-- tab-content -->
 </div><!-- card -->
-
-<!-- 固定卡片④：成果报告生成 -->
-<div class="card card-primary card-outline">
-  <div class="card-header bg-brand">
-    <h3 class="card-title"><i class="fas fa-file-export mr-1"></i>成果报告生成</h3>
-    <div class="card-tools">
-      <a href="/templatereport/manage" class="btn btn-xs btn-light">
-        <i class="fas fa-layer-group mr-1"></i>模板管理
-      </a>
-    </div>
-  </div>
-  <div class="card-body">
-    <div class="row align-items-center">
-      <div class="col-lg-8">
-        <p class="text-muted small mb-2">
-          <i class="fas fa-info-circle mr-1"></i>
-          选择模板后，系统将自动提取本项目的名称、业主、团队、里程碑、合同、回款、验收等数据填充到模板占位符，一键生成 Word 成果报告。
-        </p>
-        <div class="form-group mb-0">
-          <label class="small">报告模板 <span class="text-danger">*</span></label>
-          <select id="reportTemplate" class="form-control">
-            <option value="">加载中…</option>
-          </select>
-        </div>
-      </div>
-      <div class="col-lg-4 text-lg-right mt-3 mt-lg-0">
-        <button id="btnGenerateReport" type="button" class="btn btn-lg btn-primary" onclick="openReportModal()">
-          <i class="fas fa-file-download mr-1"></i> 生成成果报告
-        </button>
-        <div class="small text-muted mt-2" id="reportHint">
-          <i class="fas fa-lightbulb mr-1"></i>选择模板后，系统自动带入项目信息并提示补填缺失项，再一键生成 Word。
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- 成果报告生成弹窗：自动带入 + 补填缺失字段 -->
+<!-- 成果报告生成弹窗:自动带入 + 补填缺失字段 -->
 <div class="modal fade" id="reportGenModal" tabindex="-1" data-backdrop="static" data-keyboard="false">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -698,13 +659,13 @@
           <label class="col-sm-3 col-form-label">报告模板</label>
           <div class="col-sm-9">
             <select id="modalReportTemplate" class="form-control" onchange="loadReportPreview()">
-              <option value="">请选择…</option>
+              <option value="">请选择...</option>
             </select>
           </div>
         </div>
         <div class="row">
           <div class="col-md-6 border-right">
-            <h6 class="text-muted"><i class="fas fa-magic mr-1"></i>自动带入（来自项目）</h6>
+            <h6 class="text-muted"><i class="fas fa-magic mr-1"></i>自动带入(来自项目)</h6>
             <div id="autoFields" class="small mb-2"><span class="text-muted">请选择模板</span></div>
           </div>
           <div class="col-md-6">
@@ -736,8 +697,8 @@
       <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
     </div>
     <div class="modal-body">
-      <div class="alert alert-info small">当前：<strong>@statusText[Model.ProgressStatus]</strong>
-        @if (Model.StatusUpdatedAt.HasValue) {<span class="ml-2 text-muted">上次变更：@Model.StatusUpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span>}
+      <div class="alert alert-info small">当前:<strong>@statusText[Model.ProgressStatus]</strong>
+        @if (Model.StatusUpdatedAt.HasValue) {<span class="ml-2 text-muted">上次变更:@Model.StatusUpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span>}
       </div>
       <div class="form-group">
         <label>新状态 <span class="text-danger">*</span></label>
@@ -777,7 +738,7 @@
         <label>选择员工 <span class="text-danger">*</span></label>
         <select id="addEmpId" class="form-control">
           <option value="">请选择</option>
-          @* 已移除成员(IsDeleted)被全局过滤器排除，可直接重新添加 *@
+          @* 已移除成员(IsDeleted)被全局过滤器排除,可直接重新添加 *@
           @foreach (var m in members)
           {
               <option value="@m.Id">@m.Display</option>
@@ -888,7 +849,7 @@
         </div>
         <div class="col-6">
           <div class="form-group">
-            <label>应收金额（万）</label>
+            <label>应收金额(万)</label>
             <input type="number" id="msAmount" class="form-control" step="0.01">
           </div>
         </div>
@@ -914,7 +875,7 @@
     <div class="modal-body">
       <div class="form-group">
         <label>批次名称 <span class="text-danger">*</span></label>
-        <input type="text" id="accBatch" class="form-control" placeholder="如：第一批（预付款30%）">
+        <input type="text" id="accBatch" class="form-control" placeholder="如:第一批(预付款30%)">
       </div>
       <div class="row">
         <div class="col-6">
@@ -926,7 +887,7 @@
         </div>
         <div class="col-6">
           <div class="form-group">
-            <label>验收金额（万）<span class="text-danger">*</span></label>
+            <label>验收金额(万)<span class="text-danger">*</span></label>
             <input type="number" id="accAmount" class="form-control" step="0.01">
           </div>
         </div>
@@ -971,7 +932,7 @@
         </div>
         <div class="col-md-4">
           <div class="form-group">
-            <label>合同金额（万）<span class="text-danger">*</span></label>
+            <label>合同金额(万)<span class="text-danger">*</span></label>
             <input type="number" id="ctAmount" class="form-control" step="0.01">
           </div>
         </div>
@@ -1019,9 +980,9 @@
         <div class="custom-file">
           <input type="file" class="custom-file-input" id="ctFile"
                  accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar">
-          <label class="custom-file-label" for="ctFile" id="ctFileLabel">选择文件（可选）</label>
+          <label class="custom-file-label" for="ctFile" id="ctFileLabel">选择文件(可选)</label>
         </div>
-        <small class="form-text text-muted">支持 PDF、Word、Excel、图片、压缩包，创建时一步上传</small>
+        <small class="form-text text-muted">支持 PDF、Word、Excel、图片、压缩包,创建时一步上传</small>
       </div>
     </div>
     <div class="modal-footer">
@@ -1044,19 +1005,19 @@
       <div class="form-group">
         <label>关联合同</label>
         <select id="rcpContract" class="form-control">
-          <option value="">不关联（仅项目级回款）</option>
+          <option value="">不关联(仅项目级回款)</option>
           @foreach (var ct in Model.Contracts)
-          { <option value="@ct.Id">@ct.ContractNo（@ct.ContractType）</option> }
+          { <option value="@ct.Id">@ct.ContractNo (@ct.ContractType)</option> }
         </select>
       </div>
         <label>回款批次名称 <span class="text-danger">*</span></label>
         <input type="text" id="rcpName" class="form-control"
-               placeholder="如：第一笔预付款、期中款、竣工款">
+               placeholder="如:第一笔预付款、期中款、竣工款">
       </div>
       <div class="row">
         <div class="col-md-4">
           <div class="form-group">
-            <label>金额（万元）<span class="text-danger">*</span></label>
+            <label>金额(万元)<span class="text-danger">*</span></label>
             <input type="number" id="rcpAmount" class="form-control" step="0.01" min="0">
           </div>
         </div>
@@ -1073,8 +1034,8 @@
         </div>
         <div class="col-md-4">
           <div class="form-group">
-            <label>税率（%）</label>
-            <input type="number" id="rcpTaxRate" class="form-control" step="0.1" placeholder="如：6">
+            <label>税率(%)</label>
+            <input type="number" id="rcpTaxRate" class="form-control" step="0.1" placeholder="如:6">
           </div>
         </div>
       </div>
@@ -1110,7 +1071,7 @@
             <div class="custom-file">
               <input type="file" class="custom-file-input" id="rcpInvoiceFile"
                      accept=".pdf,.jpg,.jpeg,.png">
-              <label class="custom-file-label" for="rcpInvoiceFile" id="rcpInvFileLabel">选择发票文件（可选）</label>
+              <label class="custom-file-label" for="rcpInvoiceFile" id="rcpInvFileLabel">选择发票文件(可选)</label>
             </div>
           </div>
         </div>
@@ -1120,7 +1081,7 @@
             <div class="custom-file">
               <input type="file" class="custom-file-input" id="rcpPaymentFile"
                      accept=".pdf,.doc,.docx,.xls,.xlsx">
-              <label class="custom-file-label" for="rcpPaymentFile" id="rcpPayFileLabel">选择付款申请（可选）</label>
+              <label class="custom-file-label" for="rcpPaymentFile" id="rcpPayFileLabel">选择付款申请(可选)</label>
             </div>
           </div>
         </div>
@@ -1148,16 +1109,16 @@ function loadReportTemplates() {
         .then(function (res) {
             var $sel = $('#reportTemplate');
             if (res.code === 200 && res.data && res.data.length) {
-                var opts = '<option value="">请选择报告模板…</option>';
+                var opts = '<option value="">请选择报告模板...</option>';
                 res.data.forEach(function (t) {
                     opts += '<option value="' + escapeHtml(t.id) + '">'
                         + escapeHtml(t.name)
-                        + (t.description ? '（' + escapeHtml(t.description) + '）' : '')
+                        + (t.description ? '(' + escapeHtml(t.description) + ')' : '')
                         + '</option>';
                 });
                 $sel.html(opts);
             } else {
-                $sel.html('<option value="">暂无模板，请先到「模板管理」添加</option>');
+                $sel.html('<option value="">暂无模板,请先到「模板管理」添加</option>');
                 $('#btnGenerateReport').prop('disabled', true);
             }
         })
@@ -1185,18 +1146,27 @@ var antiForgery = getAntiForgery();
 function openReportModal() {
     var $src = $('#reportTemplate');
     var $dst = $('#modalReportTemplate');
-    // 始终同步：把卡片内已加载的模板选项拷进弹窗下拉（弹窗初始带一个“请选择…”占位项，
-    // 因此旧的“children().length===0 才拷贝”判断永远不会触发，导致弹窗下拉为空）
-    $dst.html($src.html());
-    var tid = $src.val();
-    if (tid) {
-        $dst.val(tid);
-        loadReportPreview();
-    } else {
-        $('#autoFields').html('<span class="text-muted">请先选择模板</span>');
-        $('#manualFields').html('');
+    var srcHasOptions = $src.find('option[value!=""]').length > 0;
+
+    function showAndSelect() {
+        $dst.html($src.html());
+        var tid = $src.val();
+        if (tid) {
+            $dst.val(tid);
+            loadReportPreview();
+        } else {
+            $('#autoFields').html('<span class="text-muted">请先选择模板</span>');
+            $('#manualFields').html('');
+        }
+        $('#reportGenModal').modal('show');
     }
-    $('#reportGenModal').modal('show');
+
+    if (!srcHasOptions) {
+        // 模板下拉为空，先异步加载，加载完再弹窗
+        loadReportTemplates().then(showAndSelect);
+    } else {
+        showAndSelect();
+    }
 }
 
 function loadReportPreview() {
@@ -1215,8 +1185,8 @@ function loadReportPreview() {
             var d = res.data;
             var ah = '';
             (d.autoFields || []).forEach(function (f) {
-                ah += '<div class="mb-1"><span class="text-muted">' + escapeHtml(f.label) + '：</span> '
-                    + escapeHtml(f.value || '（空）') + '</div>';
+                ah += '<div class="mb-1"><span class="text-muted">' + escapeHtml(f.label) + ':</span> '
+                    + escapeHtml(f.value || '(空)') + '</div>';
             });
             $('#autoFields').html(ah || '<span class="text-muted">无</span>');
             var mh = '';
@@ -1255,10 +1225,10 @@ function confirmReportGenerate() {
         fields[n] = v;
         if ($(this).attr('data-required') === '1' && !v) missing.push(n);
     });
-    if (missing.length) { ems.msg('请填写必填项：' + missing.join('、'), { icon: 2 }); return; }
+    if (missing.length) { ems.msg('请填写必填项:' + missing.join('、'), { icon: 2 }); return; }
 
     var btn = $('#btnConfirmGen');
-    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> 生成中…');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> 生成中...');
     var load = ems.loading(1);
     fetch('/project/' + projId + '/report/generate', {
         method: 'POST',
@@ -1278,7 +1248,7 @@ function confirmReportGenerate() {
             document.body.appendChild(a); a.click();
             document.body.removeChild(a);
             setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-            ems.msg('报告已生成，开始下载', { icon: 1, time: 1500 });
+            ems.msg('报告已生成,开始下载', { icon: 1, time: 1500 });
             $('#reportGenModal').modal('hide');
         })
         .catch(function (err) { ems.msg(err.message || '生成失败', { icon: 2 }); })
@@ -1290,36 +1260,48 @@ function confirmReportGenerate() {
 
 loadReportTemplates();
 
-// ── Tab 保持：用 sessionStorage 存当前 Tab，强制 reload 后恢复 ──
+// ── Tab 保持 + 换页固定 ──
 $(function() {
-    // 恢复上次的 Tab（优先 sessionStorage，其次 URL hash）
+    // Tab 换页固定:到达顶部时 sticky
+    var $tabs = $('ul#projTabs');
+    if ($tabs.length) {
+        $tabs.attr('style', 'position:sticky;top:0;z-index:10;background:#fff;');
+    }
+    // 恢复上次的 Tab
     var savedTab = sessionStorage.getItem('projDetailTab_@Model.Id');
     var hashTab  = window.location.hash;
     var restoreTab = savedTab || hashTab;
     if (restoreTab) {
         var tabLink = $('a[data-toggle="tab"][href="' + restoreTab + '"]');
-        if (tabLink.length) {
-            tabLink.tab('show');
-        }
+        if (tabLink.length) { tabLink.tab('show'); }
     }
-    // 切换时记录当前 Tab
     $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
         sessionStorage.setItem('projDetailTab_@Model.Id', e.target.hash);
     });
 });
 
+// ── 用章申请 ─────────────────────────────────────────────────
+function openStampApplyModal() {
+    ems.msg('用章申请功能开发中，敬请期待', { icon: 0 });
+}
+
+// ── 生成合同 ────────────────────────────────────────────────
+function openContractGenModal() {
+    ems.msg('生成合同功能开发中，敬请期待', { icon: 0 });
+}
+
 function reloadWithTab() {
-    // 先把当前激活的 Tab 存入 sessionStorage，再强制刷新
+    // 先把当前激活的 Tab 存入 sessionStorage,再强制刷新
     var activeTab = $('a[data-toggle="tab"].active').attr('href');
     if (activeTab) {
         sessionStorage.setItem('projDetailTab_@Model.Id', activeTab);
     }
-    location.reload(true);  // true = 强制从服务器重新加载，不走缓存
+    location.reload(true);  // true = 强制从服务器重新加载,不走缓存
 }
 
 // ── 移除成员 ─────────────────────────────────────────────────
 function removeMember(memberId, name) {
-    ems.confirm('确认移除成员 <b>' + name + '</b>？移除后可重新添加。',
+    ems.confirm('确认移除成员 <b>' + name + '</b>?移除后可重新添加。',
         {icon:3, title:'移除确认', btn:['确认移除','取消']}, function(i) {
         ems.close(i);
         $.post('/project/' + projId + '/members/' + memberId + '/remove',
@@ -1409,7 +1391,7 @@ function saveMs() {
 }
 
 function completeMs(id) {
-    ems.confirm('确认标记该节点为已完成？', {icon:3}, function(i) {
+    ems.confirm('确认标记该节点为已完成?', {icon:3}, function(i) {
         ems.close(i);
         $.post('/project/milestones/' + id + '/complete',
             {__RequestVerificationToken: antiForgery}, function(r) {
@@ -1438,7 +1420,7 @@ function saveAccept() {
 // ── 合同 ────────────────────────────────────────────────────
 // 文件选择显示文件名
 $('#ctFile').on('change', function() {
-    var name = this.files[0] ? this.files[0].name : '选择文件（可选）';
+    var name = this.files[0] ? this.files[0].name : '选择文件(可选)';
     $('#ctFileLabel').text(name);
 });
 
@@ -1475,7 +1457,7 @@ function saveContract() {
 }
 
 function deleteContract(id) {
-    ems.confirm('确认删除该合同？', {icon:3}, function(i) {
+    ems.confirm('确认删除该合同?', {icon:3}, function(i) {
         ems.close(i);
         $.post('/project/' + projId + '/contracts/delete/' + id,
             {__RequestVerificationToken: antiForgery}, function(r) {
@@ -1502,11 +1484,11 @@ function uploadContract(contractId, input) {
 // ── 回款管理 ────────────────────────────────────────────────
 // 文件选择显示文件名
 $('#rcpInvoiceFile').on('change', function() {
-    var name = this.files[0] ? this.files[0].name : '选择发票文件（可选）';
+    var name = this.files[0] ? this.files[0].name : '选择发票文件(可选)';
     $('#rcpInvFileLabel').text(name);
 });
 $('#rcpPaymentFile').on('change', function() {
-    var name = this.files[0] ? this.files[0].name : '选择付款申请（可选）';
+    var name = this.files[0] ? this.files[0].name : '选择付款申请(可选)';
     $('#rcpPayFileLabel').text(name);
 });
 
@@ -1572,7 +1554,7 @@ function confirmReceived(invoiceId) {
 }
 
 function delReceipt(id) {
-    ems.confirm('确认删除该回款记录？', {icon:3, btn:['确认','取消']}, function(i) {
+    ems.confirm('确认删除该回款记录?', {icon:3, btn:['确认','取消']}, function(i) {
         ems.close(i);
         $.post('/project/invoices/delete/' + id, {__RequestVerificationToken: antiForgery},
             function(r) { handleResult(r, ()=>reloadWithTab()); });
@@ -1604,7 +1586,7 @@ function uploadContractFile(contractId, input) {
 }
 
 function delContractFile(contractId) {
-    ems.confirm('确认删除该合同附件？合同记录将保留。',
+    ems.confirm('确认删除该合同附件?合同记录将保留。',
         {icon:3, btn:['确认删除','取消']}, function(i) {
         ems.close(i);
         $.post('/project/contracts/file/delete/' + contractId,
@@ -1614,7 +1596,7 @@ function delContractFile(contractId) {
 }
 
 function delContract(id, no) {
-    ems.confirm('确认删除合同 ' + (no||'') + '？', {icon:3}, function(i) {
+    ems.confirm('确认删除合同 ' + (no||'') + '?', {icon:3}, function(i) {
         ems.close(i);
         $.post('/project/' + projId + '/contracts/delete/' + id,
             {__RequestVerificationToken: antiForgery},
@@ -1622,23 +1604,23 @@ function delContract(id, no) {
     });
 }
 
-        // ── 文件选择（不立即上传）──────────────────────────────────
+        // ── 文件选择(不立即上传)──────────────────────────────────
         function onFileSelected(input) {
             if (!input.files[0]) return;
             var file = input.files[0];
 
-            // 生成默认版本号：V月.日，如 V04.10
+            // 生成默认版本号:V月.日,如 V04.10
             var now = new Date();
             var month = String(now.getMonth() + 1).padStart(2, '0');
             var day   = String(now.getDate()).padStart(2, '0');
             var defaultVersion = 'V' + month + '.' + day;
 
-            // 默认版本号（若用户未手动填写才覆盖）
+            // 默认版本号(若用户未手动填写才覆盖)
             if (!$('#uploadVersion').val()) {
                 $('#uploadVersion').val(defaultVersion);
             }
 
-            // 默认说明为文件名（去掉扩展名）
+            // 默认说明为文件名(去掉扩展名)
             if (!$('#uploadDesc').val()) {
                 var nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
                 $('#uploadDesc').val(nameWithoutExt);
@@ -1676,7 +1658,7 @@ function delContract(id, no) {
             $('#uploadPreview').hide();
         }
 
-        // ── 确认上传（真正提交）───────────────────────────────────
+        // ── 确认上传(真正提交)───────────────────────────────────
         function confirmUpload() {
             var input = document.getElementById('fileInput');
             if (!input.files[0]) {
@@ -1717,14 +1699,14 @@ function delContract(id, no) {
                     ems.close(load);
                     $('#uploadConfirmBtn').prop('disabled', false)
                         .html('<i class="fas fa-upload mr-1"></i> 确认上传');
-                    ems.msg('网络请求失败，请重试', {icon: 2});
+                    ems.msg('网络请求失败,请重试', {icon: 2});
                 }
             });
         }
 
         // ── 删除文件 ─────────────────────────────────────────────
         function deleteFile(fileId) {
-            ems.confirm('确认删除该文件？', {icon: 3}, function(i) {
+            ems.confirm('确认删除该文件?', {icon: 3}, function(i) {
                 ems.close(i);
                 $.post('/project/files/delete/' + fileId,
                     {__RequestVerificationToken: antiForgery}, function(r) {

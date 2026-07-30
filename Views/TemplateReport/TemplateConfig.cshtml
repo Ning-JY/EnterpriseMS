@@ -84,17 +84,23 @@
                 <div class="row">
                     <div class="col-md-7">
                         <h6 class="text-muted mb-2">
-                            <i class="fas fa-info-circle mr-1"></i>点击段落/表格内容进行选择，已选中的内容将被替换为占位符
+                            <i class="fas fa-info-circle mr-1"></i>
+                            点击整段替换，或选中段内部分文字后再点击「设为占位符」进行精准替换
                         </h6>
                         <div id="templateContentList" class="border rounded p-2" style="max-height:500px;overflow-y:auto;">
                             <div class="text-muted text-center py-3">加载中...</div>
+                        </div>
+                        <div class="mt-2 text-right">
+                            <button class="btn btn-outline-primary btn-sm" id="btnSetPlaceholder" onclick="setSelectedAsPlaceholder()" disabled>
+                                <i class="fas fa-marker mr-1"></i>设为占位符
+                            </button>
                         </div>
                     </div>
                     <div class="col-md-5">
                         <h6 class="text-muted mb-2">
                             <i class="fas fa-exchange-alt mr-1"></i>替换规则列表
                         </h6>
-                        <div id="replacementList" class="border rounded replacement-list p-2">
+                        <div id="replacementList" class="border rounded replacement-list p-2" style="max-height:380px;overflow-y:auto;">
                             <div class="text-muted text-center py-3">请在左侧选择需要替换的内容</div>
                         </div>
                         <button class="btn btn-success mt-3 w-100" onclick="goToStep(3)" id="btnNextStep3" disabled>
@@ -130,34 +136,69 @@
     </div>
 </section>
 
-@* 字段名输入弹窗 *@
+@* 字段名输入弹窗（支持整段/段内字符替换） *@
 <div class="modal fade" id="fieldNameModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">设置字段名</h5>
-                <button type="button" class="close" data-dismiss="modal">
-                    <span>&times;</span>
-                </button>
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-marker mr-1"></i>设置字段映射</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
             </div>
             <div class="modal-body">
+                @* 替换模式切换 *@
                 <div class="form-group">
-                    <label>选中的文本</label>
-                    <div id="selectedTextDisplay" class="form-control-plaintext text-danger" style="text-decoration:line-through;"></div>
+                    <label class="font-weight-bold">替换方式</label>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="custom-control custom-radio" id="modeFullGroup">
+                                <input type="radio" class="custom-control-input" id="modeFull" name="replaceMode" value="full" checked>
+                                <label class="custom-control-label" for="modeFull">
+                                    <i class="fas fa-align-justify mr-1 text-primary"></i>整段替换
+                                    <div class="small text-muted">整段文字替换为占位符</div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="custom-control custom-radio" id="modeInlineGroup">
+                                <input type="radio" class="custom-control-input" id="modeInline" name="replaceMode" value="inline">
+                                <label class="custom-control-label" for="modeInline">
+                                    <i class="fas fa-highlighter mr-1 text-success"></i>段内精准替换
+                                    <div class="small text-muted">仅替换段内选中的文字</div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
+
+                <hr>
+
+                @* 段落预览 *@
+                <div class="form-group mb-1">
+                    <label class="small text-muted">段落原文</label>
+                    <div id="paraPreview" class="border rounded p-2 bg-light" style="font-size:13px;line-height:1.8;max-height:120px;overflow-y:auto;"></div>
+                </div>
+
+                @* 段内选中文本（仅 inline 模式显示）*@
+                <div class="form-group" id="inlinePreviewGroup" style="display:none;">
+                    <label class="small text-muted">将被替换的文字（高亮）</label>
+                    <div id="inlineSelectedDisplay" class="border rounded p-2 bg-white" style="font-size:13px;line-height:1.8;"></div>
+                </div>
+
+                <div class="form-group mb-0">
                     <label>字段名 <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="fieldNameInput" placeholder="例如：项目名称、评审日期">
-                    <small class="form-text text-muted">用于生成占位符 {{字段名}}，建议使用中文</small>
+                    <small class="form-text text-muted">生成占位符 {{字段名}}，生成报告时系统自动填充</small>
                 </div>
-                <div class="form-group">
-                    <label>字段标签（显示名称）</label>
+                <div class="form-group mb-0">
+                    <label>字段标签（前端显示名）</label>
                     <input type="text" class="form-control" id="fieldLabelInput" placeholder="与字段名相同则留空">
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="confirmFieldName()">确认</button>
+                <button type="button" class="btn btn-primary" onclick="confirmFieldName()">
+                    <i class="fas fa-check mr-1"></i>确认映射
+                </button>
             </div>
         </div>
     </div>
@@ -167,8 +208,10 @@
     <script>
         let currentStep = 1;
         let parsedContent = [];
-        let selectedItems = new Map();
+        let selectedItems = new Map();   // itemIndex -> item
         let replacements = [];
+        let _pendingItemIndex = null;
+        let _templateFileBytes = null;   // 保留上传的模板文件字节（步骤3复用）
 
         function goToStep(step) {
             currentStep = step;
@@ -220,6 +263,7 @@
                 let reader = new FileReader();
                 reader.onload = async function(e) {
                     let content = e.target.result;
+                    _templateFileBytes = content;   // 保留，供步骤3使用
                     parsedContent = parseDocxContent(content);
                     renderTemplateContent();
                     goToStep(2);
@@ -316,103 +360,228 @@
             return text;
         }
 
+        // ── 渲染模板内容列表（每段可点击） ────────────────────────
         function renderTemplateContent() {
             let html = '';
             for (let item of parsedContent) {
                 let isSelected = selectedItems.has(item.index);
                 let typeLabel = item.type === 'paragraph' ? '段落' : '表格行';
                 let typeIcon = item.type === 'paragraph' ? 'fa-align-left' : 'fa-table';
+                // 如果已有占位符映射，渲染时高亮显示被替换文字
+                let repl = replacements.find(r => r.index === item.index);
+                let displayText = item.text;
+                if (repl && repl.source === 'inline') {
+                    displayText = escapeHtml(
+                        item.text.substring(0, repl.startIndex)
+                        + '<mark class="bg-yellow">' + escapeHtml(item.text.substring(repl.startIndex, repl.endIndex)) + '</mark>'
+                        + item.text.substring(repl.endIndex)
+                    );
+                } else if (repl && repl.source === 'full') {
+                    displayText = '<span class="text-danger text-decoration-line-through">' + escapeHtml(item.text) + '</span> → <code>{{' + escapeHtml(repl.fieldName) + '}}</code>';
+                } else {
+                    displayText = escapeHtml(item.text.length > 150 ? item.text.substring(0, 150) + '…' : item.text);
+                }
                 html += `<div class="template-content-item ${isSelected ? 'selected' : ''}"
-                              onclick="toggleItem(${item.index})" data-index="${item.index}">
-                    <span class="item-type"><i class="fas ${typeIcon} mr-1"></i>${typeLabel}</span>
-                    <span class="item-text">${escapeHtml(item.text.substring(0, 100))}${item.text.length > 100 ? '...' : ''}</span>
+                              data-index="${item.index}">
+                    <div class="d-flex align-items-start justify-content-between">
+                        <div class="flex-grow-1">
+                            <span class="item-type"><i class="fas ${typeIcon} mr-1"></i>${typeLabel}</span>
+                            <div class="item-text mt-1" style="font-size:13px;line-height:1.6;">${displayText}</div>
+                        </div>
+                        <div class="ml-2">
+                            <button class="btn btn-xs btn-outline-primary" onclick="toggleItem(${item.index})">
+                                ${isSelected ? '<i class="fas fa-times"></i> 取消' : '<i class="fas fa-plus"></i> 选择'}
+                            </button>
+                        </div>
+                    </div>
                 </div>`;
             }
             if (!html) html = '<div class="text-muted text-center py-3">未解析到内容</div>';
             document.getElementById('templateContentList').innerHTML = html;
         }
 
+        // ── 点击段落：选择（弹出映射弹窗） ──────────────────────────
         function toggleItem(index) {
             let item = parsedContent.find(i => i.index === index);
             if (!item) return;
 
+            // 取消选择
             if (selectedItems.has(index)) {
                 selectedItems.delete(index);
                 replacements = replacements.filter(r => r.index !== index);
-            } else {
-                document.getElementById('selectedTextDisplay').textContent = item.text;
-                document.getElementById('fieldNameInput').value = '';
-                document.getElementById('fieldLabelInput').value = '';
-                $('#fieldNameModal').modal('show');
-                window._pendingItemIndex = index;
+                renderTemplateContent();
+                renderReplacementList();
+                updatePlaceholderBtn();
                 return;
             }
 
-            updateSelectionUI();
-            renderReplacementList();
+            // 打开弹窗准备映射
+            _pendingItemIndex = index;
+            openFieldModal(item, null);
+        }
+
+        // ── 「设为占位符」按钮：基于浏览器选中文字再弹窗 ─────────────
+        function setSelectedAsPlaceholder() {
+            let sel = window.getSelection();
+            if (!sel || sel.isCollapsed || !sel.rangeCount) {
+                ems.msg('请先用鼠标在左侧选中一段文字', { icon: 0 }); return;
+            }
+            let anchorItem = findItemByRange(sel.getRangeAt(0));
+            if (!anchorItem) {
+                ems.msg('请先在左侧列表中选择一个段落', { icon: 0 }); return;
+            }
+            _pendingItemIndex = anchorItem.index;
+            openFieldModal(anchorItem, sel);
+        }
+
+        // ── 找到选中范围对应的段落 item ─────────────────────────────
+        function findItemByRange(range) {
+            let container = document.getElementById('templateContentList');
+            let nodes = container.querySelectorAll('.template-content-item');
+            for (let div of nodes) {
+                let idx = parseInt(div.dataset.index);
+                let itemDiv = div.querySelector('.item-text');
+                if (itemDiv && itemDiv.contains(range.commonAncestorContainer)) {
+                    return parsedContent.find(i => i.index === idx);
+                }
+            }
+            return null;
+        }
+
+        // ── 打开字段映射弹窗 ───────────────────────────────────────
+        function openFieldModal(item, sel) {
+            let mode = sel ? 'inline' : 'full';
+            document.getElementById('modeFull').checked = (mode === 'full');
+            document.getElementById('modeInline').checked = (mode === 'inline');
+
+            // 显示段落原文（inline 模式下高亮选中文字）
+            let selText = '';
+            if (sel && !sel.isCollapsed) {
+                selText = sel.toString();
+                let combinedText = item.text;
+                let startIdx = combinedText.indexOf(selText);
+                if (startIdx < 0) selText = sel.toString().trim();
+            }
+
+            // 渲染段落预览
+            let paraHtml = escapeHtml(item.text);
+            if (mode === 'inline' && selText) {
+                let idx = item.text.indexOf(selText);
+                if (idx >= 0) {
+                    paraHtml = escapeHtml(item.text.substring(0, idx))
+                        + '<mark class="bg-yellow" style="padding:0 2px;border-radius:3px;">' + escapeHtml(selText) + '</mark>'
+                        + escapeHtml(item.text.substring(idx + selText.length));
+                }
+            }
+            document.getElementById('paraPreview').innerHTML = paraHtml;
+
+            // 段内选中文本
+            let inlineGroup = document.getElementById('inlinePreviewGroup');
+            if (mode === 'inline' && selText) {
+                inlineGroup.style.display = '';
+                document.getElementById('inlineSelectedDisplay').innerHTML = '<mark class="bg-yellow px-1 rounded">' + escapeHtml(selText) + '</mark>';
+            } else {
+                inlineGroup.style.display = 'none';
+            }
+
+            document.getElementById('fieldNameInput').value = '';
+            document.getElementById('fieldLabelInput').value = '';
+            $('#fieldNameModal').modal('show');
+        }
+
+        // ── 更新「设为占位符」按钮状态 ─────────────────────────────
+        function updatePlaceholderBtn() {
+            let sel = window.getSelection();
+            let enabled = sel && !sel.isCollapsed && sel.rangeCount > 0
+                && document.getElementById('templateContentList').contains(sel.getRangeAt(0)?.commonAncestorContainer);
+            document.getElementById('btnSetPlaceholder').disabled = !enabled;
         }
 
         function confirmFieldName() {
             let fieldName = document.getElementById('fieldNameInput').value.trim();
             let fieldLabel = document.getElementById('fieldLabelInput').value.trim() || fieldName;
-            let index = window._pendingItemIndex;
-
-            if (!fieldName) {
-                ems.msg('请输入字段名', { icon: 2 });
-                return;
-            }
-
-            if (replacements.some(r => r.fieldName === fieldName)) {
-                ems.msg('字段名已存在，请使用其他名称', { icon: 2 });
-                return;
-            }
-
+            let index = _pendingItemIndex;
             let item = parsedContent.find(i => i.index === index);
             if (!item) return;
 
+            if (!fieldName) { ems.msg('请输入字段名', { icon: 2 }); return; }
+            if (replacements.some(r => r.fieldName === fieldName && r.index !== index)) {
+                ems.msg('字段名已存在，请使用其他名称', { icon: 2 }); return;
+            }
+
+            let mode = document.querySelector('input[name="replaceMode"]:checked').value;
+            let oldText = item.text;
+            let startIndex = 0, endIndex = oldText.length;
+
+            // inline 模式：从浏览器选中获取起止位置
+            if (mode === 'inline') {
+                let sel = window.getSelection();
+                if (sel && !sel.isCollapsed) {
+                    let selText = sel.toString().trim();
+                    startIndex = oldText.indexOf(selText);
+                    if (startIndex < 0) { ems.msg('选中的文字与段落原文不匹配，请重新选择', { icon: 2 }); return; }
+                    endIndex = startIndex + selText.length;
+                } else {
+                    ems.msg('段内精准替换需先用鼠标选中要替换的文字', { icon: 2 }); return;
+                }
+            }
+
+            // 移除旧的同名或同名替换
+            replacements = replacements.filter(r => r.index !== index);
             selectedItems.set(index, item);
             replacements.push({
                 index: index,
-                oldText: item.text,
+                oldText: oldText,
                 fieldName: fieldName,
-                fieldLabel: fieldLabel
+                fieldLabel: fieldLabel,
+                source: mode,   // 'full' | 'inline'
+                startIndex: startIndex,
+                endIndex: endIndex
             });
 
+            // 清空浏览器选中
+            window.getSelection().removeAllRanges();
             $('#fieldNameModal').modal('hide');
-            updateSelectionUI();
+            renderTemplateContent();
             renderReplacementList();
-        }
-
-        function updateSelectionUI() {
-            document.querySelectorAll('.template-content-item').forEach(el => {
-                let idx = parseInt(el.dataset.index);
-                el.classList.toggle('selected', selectedItems.has(idx));
-            });
+            updatePlaceholderBtn();
         }
 
         function renderReplacementList() {
             let html = '';
             for (let r of replacements) {
+                let modeLabel = r.source === 'inline' ? '<span class="badge badge-success ml-1" style="font-size:10px;">段内</span>' : '<span class="badge badge-primary ml-1" style="font-size:10px;">整段</span>';
+                let oldDisplay = r.source === 'inline'
+                    ? escapeHtml(r.oldText.substring(r.startIndex, r.endIndex))
+                    : escapeHtml(r.oldText.substring(0, Math.min(r.oldText.length, 30)) + (r.oldText.length > 30 ? '…' : ''));
                 html += `<div class="replacement-item">
-                    <span class="old-text">${escapeHtml(r.oldText.substring(0, 30))}${r.oldText.length > 30 ? '...' : ''}</span>
-                    <span class="arrow">→</span>
-                    <span class="new-text">{{${escapeHtml(r.fieldName)}}}</span>
-                    <button class="btn btn-sm btn-outline-danger ml-2" onclick="removeReplacement(${r.index})">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="flex-grow-1" style="min-width:0;">
+                            <div class="small text-muted" style="text-decoration:line-through;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(r.oldText)}">
+                                ${oldDisplay}
+                            </div>
+                            <div class="font-weight-bold text-primary" style="font-size:12px;">
+                                {{${escapeHtml(r.fieldName)}}}
+                                ${modeLabel}
+                            </div>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger ml-2" onclick="removeReplacement(${r.index})" style="flex-shrink:0;">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>`;
             }
             if (!html) html = '<div class="text-muted text-center py-3">请在左侧选择需要替换的内容</div>';
             document.getElementById('replacementList').innerHTML = html;
-
             document.getElementById('btnNextStep3').disabled = replacements.length === 0;
         }
 
         function removeReplacement(index) {
             selectedItems.delete(index);
             replacements = replacements.filter(r => r.index !== index);
-            updateSelectionUI();
+            renderTemplateContent();
             renderReplacementList();
+            updatePlaceholderBtn();
         }
 
         function goToStep3() {
@@ -452,6 +621,9 @@
                 formData.append(`Replacements[${i}].OldText`, replacements[i].oldText);
                 formData.append(`Replacements[${i}].FieldName`, replacements[i].fieldName);
                 formData.append(`Replacements[${i}].FieldLabel`, replacements[i].fieldLabel);
+                formData.append(`Replacements[${i}].Source`, replacements[i].source || 'full');
+                formData.append(`Replacements[${i}].StartIndex`, replacements[i].startIndex || 0);
+                formData.append(`Replacements[${i}].EndIndex`, replacements[i].endIndex || replacements[i].oldText.length);
             }
 
             try {

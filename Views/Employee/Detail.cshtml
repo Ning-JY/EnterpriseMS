@@ -289,33 +289,7 @@
                         @Fld("工作电话", Model.Phone)
                         @Fld("邮箱", Model.Email)
                     </table>
-                    @if (Model.Contracts.Any())
-                    {
-                        <div style="max-height:200px; overflow:auto;">
-                            <table class="table table-sm table-bordered mb-0 contract-mini">
-                                <thead class="thead-light"><tr><th>编号</th><th>类型</th><th>期限</th><th>状态</th></tr></thead>
-                                <tbody>
-                                @foreach (var cont in Model.Contracts.OrderByDescending(x => x.StartDate))
-                                {
-                                    var warn = cont.Status == 0 && cont.EndDate <= DateTime.Today.AddDays(30);
-                                    <tr class="@(warn ? "table-warning" : "")">
-                                        <td><code class="small">@cont.ContractNo</code></td>
-                                        <td>@cont.ContractType</td>
-                                        <td class="small @(warn ? "text-danger font-weight-bold" : "")">
-                                            @cont.StartDate.ToString("yyyy-MM-dd") ~ @cont.EndDate.ToString("yyyy-MM-dd")
-                                            @if (warn) { <span class="badge badge-warning ml-1">即将到期</span> }
-                                        </td>
-                                        <td>@(cont.Status == 0 ? "生效" : "已终止")</td>
-                                    </tr>
-                                }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="text-center text-muted py-2 small">暂无合同记录</div>
-                    }
+                    @* 合同信息卡不再展示附件表与合同列表 mini 表，仅保留上方字段表 *@
                 </div>
             </div>
         </div>
@@ -348,9 +322,18 @@
     <div class="card card-accent-blue mt-3">
         <div class="card-header p-0">
             <ul class="nav nav-tabs tabs-underline" role="tablist">
-                <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#tabEdu">教育经历</a></li>
-                <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tabWork">工作经历</a></li>
-                <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tabCert">证书资质</a></li>
+                <li class="nav-item d-flex align-items-center">
+                    <a class="nav-link active" data-toggle="tab" href="#tabEdu">教育经历</a>
+                    @if (canEdit) { <button class="tab-add-btn" title="新增教育经历" onclick="addEduRow()"><i class="fas fa-plus"></i></button> }
+                </li>
+                <li class="nav-item d-flex align-items-center">
+                    <a class="nav-link" data-toggle="tab" href="#tabWork">工作经历</a>
+                    @if (canEdit) { <button class="tab-add-btn" title="新增工作经历" onclick="addWorkRow()"><i class="fas fa-plus"></i></button> }
+                </li>
+                <li class="nav-item d-flex align-items-center">
+                    <a class="nav-link" data-toggle="tab" href="#tabCert">证书资质</a>
+                    @if (canEdit) { <button class="tab-add-btn" title="新增证书" onclick="addCertRow()"><i class="fas fa-plus"></i></button> }
+                </li>
                 <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tabAtt">考勤汇总</a></li>
                 <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tabFile">档案附件</a></li>
             </ul>
@@ -359,9 +342,6 @@
             <div class="tab-content">
                 <!-- 教育经历：行内编辑 -->
                 <div class="tab-pane active" id="tabEdu">
-                    <div class="mb-2 text-right">
-                        @if (canEdit) { <button class="btn btn-sm btn-primary" onclick="addEduRow()"><i class="fas fa-plus mr-1"></i>新增教育经历</button> }
-                    </div>
                     <table class="table table-sm edu-table">
                         <thead class="thead-light"><tr><th>学校名称</th><th>专业</th><th>学历</th><th>全日制</th><th>起止时间</th><th>备注</th><th class="text-right">操作</th></tr></thead>
                         <tbody id="eduTbody">
@@ -405,24 +385,25 @@
 
                 <!-- 工作经历 -->
                 <div class="tab-pane" id="tabWork">
-                    <div class="mb-2 text-right">
-                        @if (canEdit) { <button class="btn btn-sm btn-secondary" onclick="openAddWorkModal()"><i class="fas fa-plus mr-1"></i>新增工作经历</button> }
-                    </div>
                     @if (Model.WorkExperiences.Any())
                     {
-                        <table class="table table-sm">
+                        <table class="table table-sm work-table">
                             <thead class="thead-light"><tr><th>公司</th><th>职位</th><th>起止</th><th class="text-right">操作</th></tr></thead>
-                            <tbody>
+                            <tbody id="workTbody">
                             @foreach (var w in Model.WorkExperiences.OrderByDescending(x => x.StartDate))
                             {
-                                <tr>
-                                    <td>@w.CompanyName</td>
-                                    <td>@w.Position</td>
-                                    <td class="small">@(w.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(w.EndDate?.ToString("yyyy-MM-dd") ?? "至今")</td>
-                                    <td class="text-right">
+                                <tr class="work-row" data-id="@w.Id"
+                                    data-company="@w.CompanyName" data-position="@w.Position"
+                                    data-start="@(w.StartDate?.ToString("yyyy-MM-dd") ?? "")"
+                                    data-end="@(w.EndDate?.ToString("yyyy-MM-dd") ?? "")"
+                                    data-remark="@w.Remark">
+                                    <td class="work-cell">@w.CompanyName</td>
+                                    <td class="work-cell">@w.Position</td>
+                                    <td class="work-cell small">@(w.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(w.EndDate?.ToString("yyyy-MM-dd") ?? "至今")</td>
+                                    <td class="work-cell text-right">
                                         @if (canEdit)
                                         {
-                                            <button class="btn btn-xs btn-outline-primary" data-id="@w.Id" data-company="@w.CompanyName" data-position="@w.Position" data-start="@(w.StartDate?.ToString("yyyy-MM-dd"))" data-end="@(w.EndDate?.ToString("yyyy-MM-dd"))" data-remark="@w.Remark" onclick="openEditWorkModal(this)">编辑</button>
+                                            <button class="btn btn-xs btn-outline-primary" onclick="enterWorkEdit(this)">编辑</button>
                                             <button class="btn btn-xs btn-outline-danger" onclick="deleteWork(@w.Id)">删除</button>
                                         }
                                     </td>
@@ -430,34 +411,38 @@
                             }
                             </tbody>
                         </table>
+                        <div id="workEmpty" class="text-center text-muted py-3 d-none">暂无工作经历</div>
                     }
-                    else { <div class="text-center text-muted py-3">暂无工作经历</div> }
+                    else { <div id="workEmpty" class="text-center text-muted py-3">暂无工作经历</div> }
                 </div>
 
                 <!-- 证书资质 -->
                 <div class="tab-pane" id="tabCert">
                     <div class="mb-2 text-right">
-                        @if (canEdit) { <button class="btn btn-sm btn-info" onclick="openAddCertModal()"><i class="fas fa-plus mr-1"></i>新增证书</button> }
                         <a href="/hr/cert" class="btn btn-sm btn-outline-info">查看全部</a>
                     </div>
                     @if (Model.Certificates.Any())
                     {
-                        <table class="table table-sm">
-                            <thead class="thead-light"><tr><th>证书名称</th><th>类型</th><th>证书编号</th><th>有效期至</th><th>状态</th><th>附件</th></tr></thead>
-                            <tbody>
+                        <table class="table table-sm cert-table">
+                            <thead class="thead-light"><tr><th>证书名称</th><th>类型</th><th>证书编号</th><th>有效期至</th><th>状态</th><th>附件</th><th class="text-right">操作</th></tr></thead>
+                            <tbody id="certTbody">
                             @foreach (var cert in Model.Certificates)
                             {
                                 var warn = cert.Status == 0 && cert.ExpireDate.HasValue && cert.ExpireDate <= DateTime.Today.AddDays(60);
-                                <tr class="@(warn ? "table-warning" : "")">
-                                    <td>@cert.CertName</td>
-                                    <td><span class="badge badge-light">@cert.CertType</span></td>
-                                    <td><code class="small">@(cert.CertNo ?? "-")</code></td>
-                                    <td class="small @(warn ? "text-danger font-weight-bold" : "")">
+                                <tr class="@(warn ? "table-warning" : "")" data-id="@cert.Id"
+                                    data-certname="@cert.CertName" data-certtype="@cert.CertType"
+                                    data-certno="@(cert.CertNo ?? "")"
+                                    data-expiredate="@(cert.ExpireDate?.ToString("yyyy-MM-dd") ?? "")"
+                                    data-status="@cert.Status">
+                                    <td class="cert-cell">@cert.CertName</td>
+                                    <td class="cert-cell"><span class="badge badge-light">@cert.CertType</span></td>
+                                    <td class="cert-cell"><code class="small">@(cert.CertNo ?? "-")</code></td>
+                                    <td class="cert-cell small @(warn ? "text-danger font-weight-bold" : "")">
                                         @(cert.ExpireDate?.ToString("yyyy-MM-dd") ?? "长期")
                                         @if (warn) { <span class="badge badge-warning ml-1">即将到期</span> }
                                     </td>
-                                    <td>@(cert.Status == 0 ? "有效" : "已过期")</td>
-                                    <td>
+                                    <td class="cert-cell">@(cert.Status == 0 ? "有效" : "已过期")</td>
+                                    <td class="cert-att-cell">
                                         @if (!string.IsNullOrEmpty(cert.FileName))
                                         {
                                             <a href="/hr/cert/download/@cert.Id" class="btn btn-xs btn-info" title="下载"><i class="fas fa-download"></i></a>
@@ -478,12 +463,20 @@
                                             </label>
                                         }
                                     </td>
+                                    <td class="cert-cell text-right">
+                                        @if (canEdit)
+                                        {
+                                            <button class="btn btn-xs btn-outline-primary" onclick="enterCertEdit(this)">编辑</button>
+                                            <button class="btn btn-xs btn-outline-danger" onclick="deleteCert(@cert.Id)">删除</button>
+                                        }
+                                    </td>
                                 </tr>
                             }
                             </tbody>
                         </table>
+                        <div id="certEmpty" class="text-center text-muted py-3 d-none">暂无证书记录</div>
                     }
-                    else { <div class="text-center text-muted py-3">暂无证书记录</div> }
+                    else { <div id="certEmpty" class="text-center text-muted py-3">暂无证书记录</div> }
                 </div>
 
                 <!-- 考勤汇总（开发中） -->
@@ -676,131 +669,6 @@
     </div></div>
 </div>
 
-<!-- ── 新增证书弹窗 ── -->
-<div class="modal fade" id="addCertModal" tabindex="-1">
-    <div class="modal-dialog modal-lg"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">新增证书</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        </div>
-        <div class="modal-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>证书名称 <span class="text-danger">*</span></label>
-                        <input type="text" id="certName2" class="form-control"
-                               placeholder="如：注册城乡规划师">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>证书类型</label>
-                        <select id="certType2" class="form-control">
-                            @foreach (var t in ViewBag.CertTypes as List<EnterpriseMS.Services.DTOs.System.DictDataDto> ?? new())
-                            { <option value="@t.DictValue">@t.DictLabel</option> }
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>证书编号</label>
-                        <input type="text" id="certNo2" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>发证机构</label>
-                        <input type="text" id="certOrg2" class="form-control"
-                               placeholder="如：住房和城乡建设部">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>发证日期</label>
-                        <input type="date" id="certIssue2" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>有效期至 <small class="text-muted">（留空=长期有效）</small></label>
-                        <input type="date" id="certExpire2" class="form-control">
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>证书扫描件 <small class="text-muted">（可选）</small></label>
-                <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="certFile2"
-                           accept=".pdf,.jpg,.jpeg,.png">
-                    <label class="custom-file-label" for="certFile2">选择文件（可选）</label>
-                </div>
-            </div>
-
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-info" id="certSaveBtn2" onclick="saveEmpCert()">
-                <i class="fas fa-save mr-1"></i> 保存
-            </button>
-        </div>
-    </div></div>
-</div>
-
-<!-- ── 工作经历弹窗（新增/编辑共用）── -->
-<div class="modal fade" id="workModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="workModalTitle">新增工作经历</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        </div>
-        <div class="modal-body">
-            <input type="hidden" id="workId">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>公司名称 <span class="text-danger">*</span></label>
-                        <input type="text" id="workCompany" class="form-control" maxlength="100">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>职位 <span class="text-danger">*</span></label>
-                        <input type="text" id="workPosition" class="form-control" maxlength="100">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>开始日期</label>
-                        <input type="date" id="workStart" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>结束日期</label>
-                        <input type="date" id="workEnd" class="form-control">
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>备注</label>
-                <textarea id="workRemark" class="form-control" rows="2"></textarea>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-secondary" id="workSaveBtn" onclick="saveWork()">
-                <i class="fas fa-save mr-1"></i> 保存
-            </button>
-        </div>
-    </div></div>
-</div>
-
 @section Scripts {
 <script>
 var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
@@ -986,42 +854,111 @@ function saveEmpContract() {
     });
 }
 
-// ── 新增证书 ────────────────────────────────────────────────
-function openAddCertModal() {
-    ['#certName2,#certNo2,#certOrg2,#certIssue2,#certExpire2'].forEach(function(s){
-        $(s).val('');
-    });
-    $('#certName2,#certNo2,#certOrg2').val('');
-    $('#certIssue2,#certExpire2').val('');
-    document.getElementById('certFile2').value = '';
-    document.querySelector('label[for="certFile2"]').textContent = '选择文件（可选）';
-    $('#addCertModal').modal('show');
+// ── 证书资质：行内编辑 ───────────────────────────────────────
+function enterCertEdit(btn) {
+    var tr = btn.closest('tr');
+    var d = tr.dataset;
+    tr.dataset.displayHtml = tr.innerHTML;
+    var attHtml = tr.querySelector('.cert-att-cell') ? tr.querySelector('.cert-att-cell').outerHTML : '<td></td>';
+    tr.innerHTML =
+        '<td><input type="text" class="form-control form-control-sm cert-in-name" value="' + esc(d.certname) + '" placeholder="证书名称"></td>' +
+        '<td><input type="text" class="form-control form-control-sm cert-in-type" value="' + esc(d.certtype) + '" placeholder="类型"></td>' +
+        '<td><input type="text" class="form-control form-control-sm cert-in-no" value="' + esc(d.certno) + '" placeholder="编号"></td>' +
+        '<td><input type="date" class="form-control form-control-sm cert-in-expire" value="' + esc(d.expiredate) + '"></td>' +
+        '<td><select class="form-control form-control-sm cert-in-status"><option value="0"' + (d.status === '0' ? ' selected' : '') + '>有效</option><option value="1"' + (d.status !== '0' ? ' selected' : '') + '>已过期</option></select></td>' +
+        attHtml +
+        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveCertEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelCertEdit(this)">取消</button></td>';
 }
 
-function saveEmpCert() {
-    var name = $('#certName2').val();
+function cancelCertEdit(btn) {
+    var tr = btn.closest('tr');
+    if (tr.dataset.displayHtml) tr.innerHTML = tr.dataset.displayHtml;
+}
+
+function saveCertEdit(btn) {
+    var tr = btn.closest('tr');
+    var id = tr.dataset.id;
+    var dto = {
+        Id:         parseInt(id),
+        CertName:   tr.querySelector('.cert-in-name').value,
+        CertType:   tr.querySelector('.cert-in-type').value,
+        CertNo:     tr.querySelector('.cert-in-no').value,
+        ExpireDate: tr.querySelector('.cert-in-expire').value || null,
+        Status:     parseInt(tr.querySelector('.cert-in-status').value),
+    };
+    if (!dto.CertName) { ems.msg('请填写证书名称', {icon:2}); return; }
+    var saveBtn = tr.querySelector('.btn-primary');
+    saveBtn.disabled = true;
+    ajaxPost('/hr/cert/update', dto, function(r) {
+        saveBtn.disabled = false;
+        if (r && r.success) location.reload();
+        else ems.msg((r && r.message) || '保存失败', {icon:2});
+    }, function(r) {
+        saveBtn.disabled = false;
+        ems.msg((r && r.message) || '保存失败', {icon:2});
+    });
+}
+
+function addCertRow() {
+    var tbody = document.getElementById('certTbody');
+    var empty = document.getElementById('certEmpty');
+    if (empty) empty.classList.add('d-none');
+    var tr = document.createElement('tr');
+    tr.className = 'cert-row';
+    tr.dataset.id = '';
+    tr.innerHTML =
+        '<td><input type="text" class="form-control form-control-sm cert-in-name" placeholder="证书名称"></td>' +
+        '<td><input type="text" class="form-control form-control-sm cert-in-type" placeholder="类型"></td>' +
+        '<td><input type="text" class="form-control form-control-sm cert-in-no" placeholder="编号"></td>' +
+        '<td><input type="date" class="form-control form-control-sm cert-in-expire"></td>' +
+        '<td><select class="form-control form-control-sm cert-in-status"><option value="0" selected>有效</option><option value="1">已过期</option></select></td>' +
+        '<td class="cert-att-cell"></td>' +
+        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveCertAdd(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelCertAdd(this)">取消</button></td>';
+    tbody.insertBefore(tr, tbody.firstChild);
+    tr.querySelector('.cert-in-name').focus();
+}
+
+function saveCertAdd(btn) {
+    var tr = btn.closest('tr');
+    var name = tr.querySelector('.cert-in-name').value;
     if (!name) { ems.msg('请填写证书名称', {icon:2}); return; }
     var fd = new FormData();
     fd.append('EmployeeId', empId);
     fd.append('CertName', name);
-    fd.append('CertType', $('#certType2').val());
-    if ($('#certNo2').val())     fd.append('CertNo',    $('#certNo2').val());
-    if ($('#certOrg2').val())    fd.append('IssueOrg',  $('#certOrg2').val());
-    if ($('#certIssue2').val())  fd.append('IssueDate', $('#certIssue2').val());
-    if ($('#certExpire2').val()) fd.append('ExpireDate', $('#certExpire2').val());
-    var file = document.getElementById('certFile2').files[0];
-    if (file) fd.append('file', file);
-
-    $('#certSaveBtn2').prop('disabled', true);
+    fd.append('CertType', tr.querySelector('.cert-in-type').value);
+    var no = tr.querySelector('.cert-in-no').value; if (no) fd.append('CertNo', no);
+    var exp = tr.querySelector('.cert-in-expire').value; if (exp) fd.append('ExpireDate', exp);
+    fd.append('Status', parseInt(tr.querySelector('.cert-in-status').value));
+    var saveBtn = tr.querySelector('.btn-primary');
+    saveBtn.disabled = true;
     var load = ems.loading(1);
     $.ajax({ url: '/hr/cert/create-with-file', type: 'POST',
         data: fd, processData: false, contentType: false,
         headers: { 'RequestVerificationToken': antiForgery },
         success: function(r) {
-            ems.close(load); $('#certSaveBtn2').prop('disabled', false);
-            if (r.success) { $('#addCertModal').modal('hide'); location.reload(); }
-            else ems.msg(r.message, {icon:2});
-        }
+            ems.close(load); saveBtn.disabled = false;
+            if (r && r.success) location.reload();
+            else ems.msg((r && r.message) || '保存失败', {icon:2});
+        },
+        error: function() { ems.close(load); saveBtn.disabled = false; ems.msg('保存失败', {icon:2}); }
+    });
+}
+
+function cancelCertAdd(btn) {
+    var tr = btn.closest('tr');
+    tr.remove();
+    var tbody = document.getElementById('certTbody');
+    var empty = document.getElementById('certEmpty');
+    if (empty && tbody.children.length === 0) empty.classList.remove('d-none');
+}
+
+function deleteCert(id) {
+    ems.confirm('确认删除该证书？', {icon:3, btn:['确认删除','取消']}, function(i) {
+        ems.close(i);
+        $.post('/hr/cert/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
+            if (r && r.success) location.reload();
+            else ems.msg((r && r.message) || '删除失败', {icon:2});
+        });
     });
 }
 
@@ -1109,47 +1046,69 @@ function deleteEdu(id) {
     });
 }
 
-// ── 工作经历 ────────────────────────────────────────────────
-function openAddWorkModal() {
-    $('#workId').val('');
-    $('#workCompany,#workPosition,#workRemark').val('');
-    var today = new Date().toISOString().split('T')[0];
-    $('#workStart').val(today);
-    $('#workEnd').val('');
-    $('#workModalTitle').text('新增工作经历');
-    $('#workModal').modal('show');
+// ── 工作经历：行内编辑 ───────────────────────────────────────
+function enterWorkEdit(btn) {
+    var tr = btn.closest('tr');
+    var d = tr.dataset;
+    tr.dataset.displayHtml = tr.innerHTML;
+    tr.innerHTML =
+        '<td><input type="text" class="form-control form-control-sm work-in-company" value="' + esc(d.company) + '" placeholder="公司名称"></td>' +
+        '<td><input type="text" class="form-control form-control-sm work-in-position" value="' + esc(d.position) + '" placeholder="职位"></td>' +
+        '<td><div class="d-flex align-items-center" style="gap:4px"><input type="date" class="form-control form-control-sm work-in-start" value="' + esc(d.start) + '"><span>~</span><input type="date" class="form-control form-control-sm work-in-end" value="' + esc(d.end) + '"></div></td>' +
+        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveWorkEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelWorkEdit(this)">取消</button></td>';
 }
 
-function openEditWorkModal(btn) {
-    $('#workId').val($(btn).data('id'));
-    $('#workCompany').val($(btn).data('company') || '');
-    $('#workPosition').val($(btn).data('position') || '');
-    $('#workStart').val($(btn).data('start') || '');
-    $('#workEnd').val($(btn).data('end') || '');
-    $('#workRemark').val($(btn).data('remark') || '');
-    $('#workModalTitle').text('编辑工作经历');
-    $('#workModal').modal('show');
+function cancelWorkEdit(btn) {
+    var tr = btn.closest('tr');
+    if (tr.dataset.displayHtml) tr.innerHTML = tr.dataset.displayHtml;
 }
 
-function saveWork() {
-    var company = $('#workCompany').val(), position = $('#workPosition').val();
-    if (!company || !position) { ems.msg('请填写公司和职位', {icon:2}); return; }
-    var id = $('#workId').val();
+function saveWorkEdit(btn) {
+    var tr = btn.closest('tr');
+    var id = tr.dataset.id;
     var dto = {
-        CompanyName: company, Position: position,
-        StartDate: $('#workStart').val() || null,
-        EndDate:   $('#workEnd').val() || null,
-        Remark:    $('#workRemark').val(),
+        CompanyName: tr.querySelector('.work-in-company').value,
+        Position:    tr.querySelector('.work-in-position').value,
+        StartDate:   tr.querySelector('.work-in-start').value || null,
+        EndDate:     tr.querySelector('.work-in-end').value || null,
     };
-    $('#workSaveBtn').prop('disabled', true);
-    var done = function(r) {
-        $('#workSaveBtn').prop('disabled', false);
-        if (r && r.success) { $('#workModal').modal('hide'); location.reload(); }
+    if (!dto.CompanyName || !dto.Position) { ems.msg('请填写公司和职位', {icon:2}); return; }
+    var url = id ? '/hr/workexp/update' : '/hr/workexp/create?employeeId=' + empId;
+    if (id) dto.Id = parseInt(id);
+    var saveBtn = tr.querySelector('.btn-primary');
+    saveBtn.disabled = true;
+    ajaxPost(url, dto, function(r) {
+        saveBtn.disabled = false;
+        if (r && r.success) location.reload();
         else ems.msg((r && r.message) || '保存失败', {icon:2});
-    };
-    var fail = function(r) { $('#workSaveBtn').prop('disabled', false); ems.msg((r && r.message) || '保存失败', {icon:2}); };
-    if (id) { dto.Id = parseInt(id); ajaxPost('/hr/workexp/update', dto, done, fail); }
-    else    { ajaxPost('/hr/workexp/create?employeeId=' + empId, dto, done, fail); }
+    }, function(r) {
+        saveBtn.disabled = false;
+        ems.msg((r && r.message) || '保存失败', {icon:2});
+    });
+}
+
+function addWorkRow() {
+    var tbody = document.getElementById('workTbody');
+    var empty = document.getElementById('workEmpty');
+    if (empty) empty.classList.add('d-none');
+    var tr = document.createElement('tr');
+    tr.className = 'work-row';
+    tr.dataset.id = '';
+    tr.innerHTML =
+        '<td><input type="text" class="form-control form-control-sm work-in-company" placeholder="公司名称"></td>' +
+        '<td><input type="text" class="form-control form-control-sm work-in-position" placeholder="职位"></td>' +
+        '<td><div class="d-flex align-items-center" style="gap:4px"><input type="date" class="form-control form-control-sm work-in-start"><span>~</span><input type="date" class="form-control form-control-sm work-in-end"></div></td>' +
+        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveWorkEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelWorkAdd(this)">取消</button></td>';
+    tbody.insertBefore(tr, tbody.firstChild);
+    tr.querySelector('.work-in-company').focus();
+}
+
+function cancelWorkAdd(btn) {
+    var tr = btn.closest('tr');
+    tr.remove();
+    var tbody = document.getElementById('workTbody');
+    var empty = document.getElementById('workEmpty');
+    if (empty && tbody.children.length === 0) empty.classList.remove('d-none');
 }
 
 function deleteWork(id) {

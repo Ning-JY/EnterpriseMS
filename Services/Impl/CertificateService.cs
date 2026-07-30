@@ -116,4 +116,18 @@ public class CertificateService : ICertificateService
 
     public async Task DeleteFileAsync(long id, string operBy)
         => await FileManageHelper.DeleteFileAsync(_uow.Certificates, () => _uow.SaveChangesAsync(), id, operBy);
+
+    public async Task UpdateAsync(CertUpdateDto dto, string operBy)
+    {
+        var cert = await _uow.Certificates.GetByIdAsync(dto.Id);
+        if (cert == null) throw new NotFoundException("证书不存在");
+        cert.CertName   = dto.CertName;
+        cert.CertType   = dto.CertType ?? "";
+        cert.CertNo     = dto.CertNo;
+        cert.ExpireDate = dto.ExpireDate;
+        cert.Status     = dto.Status;
+        cert.UpdatedBy  = operBy;
+        _uow.Certificates.Update(cert);
+        await _uow.SaveChangesAsync();
+    }
 }

@@ -144,7 +144,7 @@ function openCategoryModal(id) {
     $('#catStatus').val(1);
     $('#catPublic').prop('checked', false);
     if (id && id > 0) {
-        $.get('/Info/CategoryApi/' + id, function (r) {
+        $.get('/Info/api/category/' + id, function (r) {
             if (r && r.success) {
                 var d = r.data;
                 $('#catName').val(d.categoryName);
@@ -163,7 +163,7 @@ function saveCategory() {
     if (!$('#catName').val().trim()) { ems.msg('请填写分类名称', { icon: 2 }); return; }
     var fd = new FormData(document.getElementById('catForm'));
     $.ajax({
-        url: '/Info/SaveCategory', type: 'POST', data: fd,
+        url: '/Info/api/category/save', type: 'POST', data: fd,
         processData: false, contentType: false,
         success: function (r) { handleResult(r, function () { $('#catModal').modal('hide'); location.reload(); }); },
         error: function () { ems.msg('保存失败，请重试', { icon: 2 }); }
@@ -177,9 +177,9 @@ function deleteCategory(id, name) {
             var fd = new FormData();
             fd.append('__RequestVerificationToken', antiForgery);
             $.ajax({
-                url: '/Info/DeleteCategory/' + id, type: 'POST', data: fd,
+                url: '/Info/api/category/delete/' + id, type: 'POST', data: fd,
                 processData: false, contentType: false,
-                success: function (r) { handleResult(r, function () { location.reload(); }); },
+                success: function (r) { handleResult(r, function () { $('#catModal').modal('hide'); location.reload(); }); },
                 error: function () { ems.msg('删除失败', { icon: 2 }); }
             });
         });

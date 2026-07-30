@@ -28,7 +28,7 @@
   <div class="card card-primary card-outline">
     <div class="card-header"><h3 class="card-title">基本信息</h3></div>
     <div class="card-body">
-      <!-- 第一行：编号 + 名称 -->
+      <!-- 第一行:编号 + 名称 -->
       <div class="row">
         <div class="col-md-6">
           <div class="form-group">
@@ -53,7 +53,7 @@
           </div>
         </div>
       </div>
-                <!-- 第二行：工程类别 + 业务类型 -->
+                <!-- 第二行:工程类别 + 业务类型 -->
       <div class="row">
         <div class="col-md-6">
           <div class="form-group">
@@ -81,9 +81,9 @@
                             </select>
                         </div>
                     </div>
-        
+
       </div>
-      <!-- 第三行：项目负责人 -->
+      <!-- 第三行:项目负责人 -->
       <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
@@ -109,33 +109,57 @@
                         </div>
                     </div>
       </div>
-                <!-- 第四行：造价+状态 -->
-                <div class="row">
-                    <div class="col-md-6">
-                            <div class="form-group">
-                                <label>预估造价金额（万元）</label>
-                                <div class="input-group" style="max-width:320px">
-                                    <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
-                                    <input type="number" id="limitPrice" class="form-control" placeholder="选填" step="0.01" min="0">
-                                </div>
-                            </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                                <label>进度状态 <span class="text-danger">*</span></label>
-                                <select id="progressStatus" class="form-control">
-                                    <option value="0">前期商务</option>
-                                    <option value="1">预计启动</option>
-                                    <option value="2">标书制作中</option>
-                                    <option value="3">投标/磋商中</option>
-                                    <option value="4">已中标·签订合同中</option>
-                                    <option value="5" selected>已签回合同</option>
-                                    <option value="6">执行中</option>
-                                </select>
-                            </div>
-                    </div>                    
-                </div>
-      <!-- 第五行：业主信息 -->
+      <!-- 第四行:造价+状态+合同金额+协作单位 -->
+      <div class="row">
+          <div class="col-md-3">
+              <div class="form-group">
+                  <label>预估造价金额(万元)</label>
+                  <div class="input-group">
+                      <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
+                      <input type="number" id="limitPrice" class="form-control" placeholder="选填" step="0.01" min="0">
+                  </div>
+              </div>
+          </div>
+          <div class="col-md-3">
+              <div class="form-group">
+                  <label>进度状态 <span class="text-danger">*</span></label>
+                  <select id="progressStatus" class="form-control">
+                      <option value="0">前期商务</option>
+                      <option value="1">预计启动</option>
+                      <option value="2">标书制作中</option>
+                      <option value="3">投标/磋商中</option>
+                      <option value="4">已中标·签订合同中</option>
+                      <option value="5" selected>已签回合同</option>
+                      <option value="6">执行中</option>
+                  </select>
+              </div>
+          </div>
+          <div class="col-md-3">
+              <div class="form-group">
+                  <label>合同金额(万元) <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                      <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
+                      <input type="number" id="contractAmount" class="form-control" placeholder="0.00" step="0.01" min="0">
+                      <div class="input-group-append"><span class="input-group-text">万</span></div>
+                  </div>
+              </div>
+          </div>
+          <div class="col-md-3 d-flex align-items-end">
+              <div class="form-group mb-0">
+                  <div class="form-check">
+                      <input type="checkbox" class="form-check-input" id="isJointVenture" onchange="toggleJoint(this.checked)">
+                      <label class="form-check-label" for="isJointVenture">是否有协作单位</label>
+                  </div>
+                  <div id="jointArea" class="mt-2" style="display:none">
+                      <div class="input-group">
+                          <input type="number" id="ourRatio" class="form-control" min="1" max="99" step="0.5" placeholder="我方占比%" oninput="onJointChange('ratio')">
+                          <div class="input-group-append"><span class="input-group-text">%</span></div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+      <!-- 第五行:业主信息 -->
       <div class="row">
         <div class="col-md-4">
           <div class="form-group">
@@ -165,84 +189,20 @@
       <div class="form-group mb-0">
         <label>备注</label>
         <textarea id="remark" class="form-control" rows="2"
-                  placeholder="如：开标截止时间、合同金额区间说明等"></textarea>
+                  placeholder="如:开标截止时间、合同金额区间说明等"></textarea>
       </div>
     </div>
   </div>
   <div class="text-right mb-3">
     <button type="button" class="btn btn-primary" onclick="goStep(2)">
-      下一步：其他信息 <i class="fas fa-arrow-right"></i>
+      下一步:其他信息 <i class="fas fa-arrow-right"></i>
     </button>
   </div>
 </div>
 
 <!-- STEP 2: 其他信息 -->
 <div id="step-2" style="display:none">
-  <!-- ① 合同信息（第一个卡片，含“是否联合体项目”） -->
-  <div class="card card-warning card-outline">
-    <div class="card-header"><h3 class="card-title">合同信息</h3></div>
-    <div class="card-body">
-      <div class="row mb-3">
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>合同金额（万元）<span class="text-danger">*</span></label>
-            <div class="input-group">
-              <div class="input-group-prepend"><span class="input-group-text">¥</span></div>
-              <input type="number" id="contractAmount" class="form-control" placeholder="0.00" step="0.01" min="0">
-              <div class="input-group-append"><span class="input-group-text">万</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-                
-      <!-- 是否联合体项目：从原“项目属性”卡移入合同信息内 -->
-      <div class="form-check mb-2">
-        <input type="checkbox" class="form-check-input" id="isJointVenture" onchange="toggleJoint(this.checked)">
-        <label class="form-check-label" for="isJointVenture">是否联合体项目</label>
-      </div>
-      <div id="jointArea" class="row" style="display:none">
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>我方合同占比 <span class="text-danger">*</span></label>
-            <div class="input-group">
-              <input type="number" id="ourRatio" class="form-control" min="1" max="99" step="0.5" oninput="onJointChange('ratio')">
-              <div class="input-group-append"><span class="input-group-text">%</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>我方实际合同额</label>
-            <input type="number" id="actualAmt" class="form-control" readonly step="0.01" min="0" oninput="onJointChange('amount')">
-          </div>
-        </div>
-      </div>
-      <div class="form-check mb-3">
-        <input type="checkbox" class="form-check-input" id="contractSigned" onchange="toggleContractInfo(this.checked)">
-        <label class="form-check-label" for="contractSigned">已签订合同</label>
-      </div>
-      <div id="contractInfoArea" style="display:none">
-        <div class="row">
-          <div class="col-md-4">
-            <div class="form-group">
-              <label>签订日期</label>
-              <input type="date" id="contractSignedDate" class="form-control">
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="form-group">
-              <label>合同扫描件</label>
-              <div class="custom-file">
-                <input type="file" class="custom-file-input" id="contractScanFile" accept=".pdf,.jpg,.jpeg,.png">
-                <label class="custom-file-label" for="contractScanFile">选择文件</label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <!-- ② 参与人员 & 产值占比（第二个卡片） -->
+  <!-- 参与人员 & 产值占比 -->
   <div class="card card-success card-outline">
     <div class="card-header">
       <h3 class="card-title">参与人员 & 产值占比</h3>
@@ -261,48 +221,9 @@
       </table>
     </div>
     <div class="card-footer">
-      占比合计：<strong id="rTotal" class="text-success">0%</strong>
-      <span id="rWarn" class="text-warning ml-3" style="display:none">⚠ 占比不足100%（仅提醒）</span>
+      占比合计:<strong id="rTotal" class="text-success">0%</strong>
+      <span id="rWarn" class="text-warning ml-3" style="display:none">⚠ 占比不足100%(仅提醒)</span>
       <span id="rOver" class="text-danger ml-3" style="display:none">⚠ 占比超过100%</span>
-    </div>
-  </div>
-  <!-- ③ 投标信息（第三个卡片：项目来源 + 三日期） -->
-  <div class="card card-info card-outline">
-    <div class="card-header"><h3 class="card-title">投标信息</h3></div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>采购方式</label>
-            <select id="procurementType" class="form-control">
-              <option value="">请选择</option>
-              <option>竞争性磋商</option><option>询价</option><option>公开招标</option>
-              <option>邀请招标</option><option>公开招选</option>
-              <option>框架协议采购</option><option>单一来源</option>
-            </select>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>开标日期</label>
-            <input type="date" id="bidDeadline" class="form-control">
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="form-group">
-            <label>签约日期</label>
-            <input type="date" id="signDate" class="form-control">
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-md-4">
-          <div class="form-group mb-0">
-            <label>计划完成日期</label>
-            <input type="date" id="planEndDate" class="form-control">
-          </div>
-        </div>
-      </div>
     </div>
   </div>
   <!-- 工作节点 -->
@@ -318,7 +239,7 @@
     <div class="card-body p-0">
       <table class="table table-sm">
         <thead class="thead-light">
-          <tr><th>节点名称</th><th width="100">类型</th><th width="140">计划日期</th><th width="120">关联金额（万）</th><th width="36"></th></tr>
+          <tr><th>节点名称</th><th width="100">类型</th><th width="140">计划日期</th><th width="120">关联金额(万)</th><th width="36"></th></tr>
         </thead>
         <tbody id="msBody"></tbody>
       </table>
@@ -404,7 +325,7 @@ function addMRow(empId, role, duty, ratio, isLeader) {
     updateRatios();
 }
 
-// 选择项目负责人后自动添加一行（角色=项目负责人，占比默认0）；负责人变更时同步
+// 选择项目负责人后自动添加一行(角色=项目负责人,占比默认0);负责人变更时同步
 function syncLeaderRow() {
     var leaderId = $('#projectLeaderId').val();
     var $row = $('#mBody tr[data-leader="1"]');
@@ -509,13 +430,13 @@ function submitProj() {
     if(!d.OwnerName){ems.msg('请填写项目业主',{icon:2});goStep(1);return;}
     if(!d.ProjectLeaderId){ems.msg('请选择项目负责人',{icon:2});goStep(1);return;}
     if(d.ContractAmount<=0){ems.msg('请填写合同金额',{icon:2});goStep(2);return;}
-    if(d.IsJointVenture&&!d.OurRatio){ems.msg('联合体须填写我方占比',{icon:2});goStep(2);return;}
+    if(d.IsJointVenture&&!d.OurRatio){ems.msg('有协作单位须填写我方占比',{icon:2});goStep(2);return;}
     var load=ems.loading(1);
     $.ajax({url:'/project/create',type:'POST',contentType:'application/json',
         headers:{'RequestVerificationToken':af}, data:JSON.stringify(d),
         success:function(r){
             ems.close(load);
-            if(r.success){ems.msg('创建成功！',{icon:1,time:1500},function(){window.location='/project/'+r.data.id;});}
+            if(r.success){ems.msg('创建成功!',{icon:1,time:1500},function(){window.location='/project/'+r.data.id;});}
             else{ems.msg(r.message,{icon:2});}
         },
         error:function(){ems.close(load);ems.msg('请求失败',{icon:2});}

@@ -1,3 +1,6 @@
+using System;
+using System.IO;
+using Sys = System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EnterpriseMS.Common;
@@ -5,7 +8,6 @@ using EnterpriseMS.Services.DTOs.Report;
 using EnterpriseMS.Services.Impl;
 using EnterpriseMS.Services.Interfaces;
 using MiniSoftware;
-using System.IO;
 
 namespace EnterpriseMS.Controllers.Tool;
 
@@ -197,8 +199,8 @@ public class TemplateReportController : BaseAuthController
                 string? imgPath = img.Path;
                 if (string.IsNullOrEmpty(imgPath) && !string.IsNullOrEmpty(img.Base64))
                 {
-                    imgPath = Path.Combine(Path.GetTempPath(), $"ems_img_{System.Guid.NewGuid():N}.png");
-                    File.WriteAllBytes(imgPath, Convert.FromBase64String(img.Base64));
+                    imgPath = Path.Combine(Path.GetTempPath(), $"ems_img_{Sys.Guid.NewGuid():N}.png");
+                    Sys.IO.File.WriteAllBytes(imgPath, Convert.FromBase64String(img.Base64));
                 }
                 if (!string.IsNullOrEmpty(imgPath))
                 {

@@ -125,7 +125,7 @@ function ajaxPost(url, data, successCb, errorCb) {
 // 处理响应结果并弹窗
 function handleResult(r, onSuccess) {
     if (r && r.success) {
-        ems.msg(r.message || '操作成功', { icon: 1, time: 1500 }, function () { if (onSuccess) onSuccess(r); });
+        ems.msg(r.message || '操作成功', { icon: 1, time: 1500, end: function () { if (onSuccess) onSuccess(r); } });
     } else {
         ems.msg((r && r.message) || '操作失败', { icon: 2 });
     }

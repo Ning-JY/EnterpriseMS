@@ -676,13 +676,13 @@
             };
 
             try {
-                ems.loading(1);
+                var load = ems.loading(1);
                 let resp = await fetch('/templatereport/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(request)
                 });
-                ems.closeAll();
+                ems.close(load);
 
                 if (resp.ok) {
                     let blob = await resp.blob();

@@ -192,7 +192,7 @@ public class InfoController : BaseAuthController
     }
 
     // ── 获取单个分类（编辑回填）───────────────────────────
-    [HttpGet]
+    [HttpGet("api/category/{id}")]
     public async Task<IActionResult> CategoryApi(long id)
     {
         var c = await _uow.InfoCategories.GetByIdAsync(id);
@@ -207,7 +207,7 @@ public class InfoController : BaseAuthController
         });
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
+    [HttpPost("api/category/save"), ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveCategory(long id, string categoryName,
         int sort = 0, int status = 1, bool isPublic = false)
     {
@@ -245,7 +245,7 @@ public class InfoController : BaseAuthController
         return ApiOk<object>(null!, "保存成功");
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
+    [HttpPost("api/category/delete/{id}")]
     public async Task<IActionResult> DeleteCategory(long id)
     {
         var c = await _uow.InfoCategories.GetByIdAsync(id);

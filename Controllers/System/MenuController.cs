@@ -48,6 +48,15 @@ public class MenuController : BaseAuthController
         }
     }
 
+    [HttpGet("detail/{id}")]
+    [HasPermission("sys:menu:edit")]
+    public async Task<IActionResult> Detail(long id)
+    {
+        var menu = await _menuSvc.GetByIdAsync(id);
+        if (menu == null) return ApiFail("菜单不存在");
+        return ApiOk(new { menu });
+    }
+
     [HttpPost("update"), ValidateAntiForgeryToken]
     [HasPermission("sys:menu:edit")]
     public async Task<IActionResult> Update([FromBody] UpdateMenuDto dto)

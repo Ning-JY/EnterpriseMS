@@ -37,7 +37,7 @@ public static class FileUploadHelper
     {
         if (file == null || file.Length == 0) return UploadCheck.Empty;
 
-        var ext = Path.GetExtension(file.FileName);
+        var ext = Path.GetExtension(file.FileName).TrimStart('.');
         var set = allowedExts != null
             ? new HashSet<string>(allowedExts, StringComparer.OrdinalIgnoreCase)
             : DefaultAllowedExts;
@@ -57,8 +57,8 @@ public static class FileUploadHelper
         var dir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", folder);
         Directory.CreateDirectory(dir);
 
-        var ext  = Path.GetExtension(file!.FileName);
-        var name = $"{Guid.NewGuid():N}{ext}";
+        var extWithDot = Path.GetExtension(file!.FileName);
+        var name = $"{Guid.NewGuid():N}{extWithDot}";
         var path = Path.Combine(dir, name);
 
         using var fs = new FileStream(path, FileMode.Create);

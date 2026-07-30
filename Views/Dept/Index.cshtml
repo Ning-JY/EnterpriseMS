@@ -158,6 +158,25 @@ function openEditModal(id, name, parentId, leader, phone, sort) {
     $('#deptId').val(id); $('#deptParentId').val(parentId);
     $('#deptName').val(name); $('#deptLeader').val(leader === 'null' ? '' : leader);
     $('#deptPhone').val(phone === 'null' ? '' : phone); $('#deptSort').val(sort);
+    // 根据 parentId 精确查找上级部门名称（遍历所有编辑按钮的 onclick 属性匹配 id）
+    var parentName = '顶级';
+    if (parentId > 0) {
+        var $allEditBtns = $('button[onclick^="openEditModal("]');
+        $allEditBtns.each(function () {
+            var onclick = $(this).attr('onclick') || '';
+            var m = onclick.match(/^openEditModal\(\s*(\d+)\s*,/);
+            if (m && parseInt(m[1]) === parentId) {
+                parentName = $(this).closest('tr').find('td:first').clone().children().remove().end().text().trim() || '顶级';
+                return false;
+            }
+        });
+        if (parentName === '顶级') {
+            // 兜底：从 treeList 中的同级子节点找父行
+            var $parentBtn = $('#treeList button[onclick*="openEditModal(' + parentId + ',"]');
+            if ($parentBtn.length) parentName = $parentBtn.closest('tr').find('td:first').text().replace(/\s+/g, '').trim() || '顶级';
+        }
+    }
+    $('#parentName').val(parentName);
     $('#deptModal').modal('show');
 }
 
