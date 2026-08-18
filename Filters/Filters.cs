@@ -174,7 +174,7 @@ public class GlobalExceptionFilter : IAsyncExceptionFilter
                 // 直接渲染错误视图（不走 RedirectToAction），避免 302 重定向；
                 // 否则错误页自身再异常时会与 UseExceptionHandler 的 302 叠加成
                 // /Home/Error → 302 → /Home/Error 的死循环。
-                SetErrorView(ctx, ex, StatusCodes.Status400BadRequest);
+                SetErrorView(ctx, ex.Message, StatusCodes.Status400BadRequest);
             }
             ctx.ExceptionHandled = true;
             return Task.CompletedTask;
@@ -186,7 +186,7 @@ public class GlobalExceptionFilter : IAsyncExceptionFilter
         }
         else
         {
-            SetErrorView(ctx, ex, StatusCodes.Status500InternalServerError);
+            SetErrorView(ctx, "服务器内部错误，请稍后重试", StatusCodes.Status500InternalServerError);
         }
         ctx.ExceptionHandled = true;
         return Task.CompletedTask;
@@ -195,13 +195,11 @@ public class GlobalExceptionFilter : IAsyncExceptionFilter
     /// <summary>
     /// 直接渲染独立的错误视图（~/Views/Home/Error.cshtml），不发起任何重定向。
     /// </summary>
-    private static void SetErrorView(ExceptionContext ctx, Exception ex, int statusCode)
+    private static void SetErrorView(ExceptionContext ctx, string message, int statusCode)
     {
         var vd = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary())
         {
-            ["Message"] = ex.Message,
-            // 真实异常类型 + 堆栈，便于 docker 部署排障时直接截图查看根因
-            ["ErrorDetail"] = $"{ex.GetType().FullName}: {ex.Message}\n\n{ex.StackTrace}"
+            ["Message"] = message
         };
         ctx.Result = new ViewResult
         {
