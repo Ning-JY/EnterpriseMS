@@ -1,13 +1,12 @@
-# =========================
-# 第一阶段：编译
-# =========================
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 
 WORKDIR /src
 
-COPY . .
+COPY EnterpriseMS.csproj ./
 
 RUN dotnet restore
+
+COPY . .
 
 RUN dotnet publish EnterpriseMS.csproj \
     -c Release \
@@ -15,9 +14,6 @@ RUN dotnet publish EnterpriseMS.csproj \
     --no-restore
 
 
-# =========================
-# 第二阶段：运行
-# =========================
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 
 WORKDIR /app
