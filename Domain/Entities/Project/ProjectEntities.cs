@@ -28,6 +28,7 @@ public class Project : BaseEntity
     [Column("progress_status")]   public int      ProgressStatus  { get; set; } = 0;
     [Column("status_updated_at")] public DateTime? StatusUpdatedAt { get; set; } // 最后状态变更时间
     [Column("building_scale")]    public string?  BuildingScale   { get; set; }
+    [Column("cooperation_unit")] public string?  CooperationUnit { get; set; } // 协作单位（合作编制单位）
     [Column("project_category")]  public string?  ProjectCategory { get; set; }
     [Column("project_leader_id")] public long?    ProjectLeaderId { get; set; }
     [Column("project_overview")]  public string?  ProjectOverview { get; set; }

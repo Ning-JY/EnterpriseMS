@@ -1,0 +1,146 @@
+@using EnterpriseMS.Domain.Entities.Project
+@{
+    ViewData["Title"] = "合同回款详情";
+    var c = ViewBag.Contract as ProjectContract;
+    var projectName    = ViewBag.ProjectName as string ?? "";
+    var receiptTotal   = (decimal)(ViewBag.ReceiptTotal  ?? 0m);
+    var receivedTotal  = (decimal)(ViewBag.ReceivedTotal ?? 0m);
+    var receiptCount   = (int)(ViewBag.ReceiptCount ?? 0);
+    var contractName   = string.IsNullOrEmpty(c?.ContractName) ? (c?.ContractNo ?? "-") : c.ContractName;
+    var unreceived     = receiptTotal - receivedTotal;
+}
+
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-dollar"></i> @contractName
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;" onclick="ems.openTab('/project/receipt')">回款管理</a>
+        <a><cite>合同回款详情</cite></a>
+    </div>
+</div>
+
+<!-- 合同汇总卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-body">
+        <div class="ems-stat-cards">
+            <div class="ems-stat-card">
+                <div class="label">所属项目</div>
+                <div class="value" style="font-size:18px"><a class="layui-link" onclick="ems.openTab('/project/@c.ProjectId')">@projectName</a></div>
+            </div>
+            <div class="ems-stat-card">
+                <div class="label">合同总额</div>
+                <div class="value layui-font-teal">¥@c.Amount.ToString("F2")</div>
+            </div>
+            <div class="ems-stat-card">
+                <div class="label">回款总额 / 已收</div>
+                <div class="value">¥@receiptTotal.ToString("F2") <span class="layui-font-gray" style="font-size:13px">/ 已收 ¥@receivedTotal.ToString("F2")</span></div>
+            </div>
+            <div class="ems-stat-card">
+                <div class="label">未收金额 / 笔数</div>
+                <div class="value layui-font-red">¥@unreceived.ToString("F2") <span class="layui-font-gray" style="font-size:13px">/ @receiptCount 笔</span></div>
+            </div>
+        </div>
+        @if (!string.IsNullOrEmpty(c?.ContractNo) || !string.IsNullOrEmpty(c?.PartyA) || !string.IsNullOrEmpty(c?.PartyB))
+        {
+            <div class="layui-font-12 layui-font-gray" style="margin-top:10px">
+                合同编号：@(c?.ContractNo) ｜ 类型：@(c?.ContractType)
+                @if (!string.IsNullOrEmpty(c?.PartyA)) { <text>｜ 甲方：@c.PartyA</text> }
+                @if (!string.IsNullOrEmpty(c?.PartyB)) { <text>｜ 乙方：@c.PartyB</text> }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- 回款记录列表 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>回款记录</span>
+        <span class="layui-font-12 layui-font-gray" data-list-count>0</span>
+        <span style="float:right">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnAdd">
+                <i class="layui-icon layui-icon-add-1"></i> 新增回款
+            </button>
+        </span>
+    </div>
+    <div class="layui-card-body">
+        <table id="receiptTable" lay-filter="receiptTable"></table>
+    </div>
+</div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="rcpBar">
+    <a class="ems-icon-btn primary" title="编辑" lay-event="edit"><i class="layui-icon layui-icon-edit"></i></a>
+    @* 编辑权限复用 proj:project:list *@
+    <a class="ems-icon-btn success" title="确认收款" lay-event="received"><i class="layui-icon layui-icon-ok"></i></a>
+    <a class="ems-icon-btn warn" title="删除" lay-event="del"><i class="layui-icon layui-icon-delete"></i></a>
+</script>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    var $ = layui.jquery;
+    var contractId = @c.Id;
+
+    var colsConfig = [
+        { field: 'ReceiptName', title: '回款批次', minWidth: 150, templet: ems.tpl.text('ReceiptName') },
+        { field: 'InvoiceNo',   title: '发票号', width: 150, templet: function (d) { return ems.escapeHtml(d.InvoiceNo || '-'); } },
+        { field: 'InvoiceType', title: '类型', width: 140, templet: ems.tpl.text('InvoiceType') },
+        { field: 'Amount', title: '金额(万)', width: 130,
+          templet: function (d) { return '<span class="layui-font-teal">¥' + (d.Amount || 0).toFixed(2) + '</span>'; } },
+        { field: 'TaxRate', title: '税率(%)', width: 90, templet: function (d) { return d.TaxRate != null ? d.TaxRate : '-'; } },
+        { field: 'InvoiceDate', title: '开票日期', width: 120, templet: function (d) { return d.InvoiceDate ? d.InvoiceDate.substr(0, 10) : '-'; } },
+        { field: 'Payer', title: '付款方', width: 150, templet: function (d) { return ems.escapeHtml(d.Payer || '-'); } },
+        { field: 'IsReceived', title: '收款状态', width: 100, align: 'center',
+          templet: function (d) {
+              return d.IsReceived
+                ? '<span class="layui-badge layui-bg-green">已收款</span>'
+                : '<span class="layui-badge layui-bg-orange">未收款</span>';
+          } },
+        { field: 'Remark', title: '备注', minWidth: 140, templet: function (d) { return ems.escapeHtml(d.Remark || ''); } },
+        { title: '操作', width: 140, align: 'center', toolbar: '#rcpBar' }
+    ];
+
+    ems.initTable({
+        elem: '#receiptTable', id: 'receiptTable', url: '/project/receipt/list',
+        where: { contractId: contractId },
+        cols: [colsConfig],
+        tool: {
+            edit: function (d) {
+                ems.openEdit({ title: '编辑回款 - ' + d.ReceiptName, url: '/project/receipt/form?id=' + d.Id + '&tableId=receiptTable', area: ['720px', '92%'], table: 'receiptTable' });
+            },
+            received: function (d) {
+                if (d.IsReceived) { ems.msg('该笔已收款', { icon: 0 }); return; }
+                layer.prompt({ title: '确认收款日期', formType: 1, value: new Date().toISOString().substr(0, 10) }, function (val, index) {
+                    layer.close(index);
+                    var load = ems.loading(1);
+                    $.ajax({
+                        url: '/project/receipt/received/' + d.Id + '?receivedDate=' + encodeURIComponent(val), type: 'POST',
+                        success: function (r) { ems.close(load); if (r.success) { ems.msg(r.message, { icon: 1 }); layui.table.reload('receiptTable'); } else ems.error(r.message); },
+                        error: function () { ems.close(load); ems.error('请求失败'); }
+                    });
+                });
+            },
+            del: function (d) {
+                layer.confirm('确定删除该回款记录「' + d.ReceiptName + '」？', { icon: 3 }, function (index) {
+                    layer.close(index);
+                    var load = ems.loading(1);
+                    $.ajax({
+                        url: '/project/receipt/delete/' + d.Id, type: 'POST',
+                        success: function (r) { ems.close(load); if (r.success) { ems.msg(r.message, { icon: 1 }); layui.table.reload('receiptTable'); } else ems.error(r.message); },
+                        error: function () { ems.close(load); ems.error('请求失败'); }
+                    });
+                });
+            }
+        }
+    });
+
+    $('#btnAdd').on('click', function () {
+        ems.openAdd({ title: '新增回款 - ' + '@contractName',
+            url: '/project/receipt/form?projectId=@c.ProjectId&contractId=@c.Id&tableId=receiptTable',
+            area: ['720px', '92%'], table: 'receiptTable' });
+    });
+});
+</script>
+}

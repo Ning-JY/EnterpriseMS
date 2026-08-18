@@ -35,11 +35,17 @@
 
 <div class="ems-detail-header">
     <div class="ems-detail-avatar"><i class="layui-icon layui-icon-console"></i></div>
-    <div class="ems-detail-info">
-        <h2>@Model.ProjName <span class="ems-tag ems-tag-@statusTag[Model.ProgressStatus]">@statusText[Model.ProgressStatus]</span></h2>
-        <div class="ems-detail-meta">
-            <span>编号：@Model.ProjNo</span>
-            @if (Model.StatusUpdatedAt.HasValue) { <span>状态更新：@Model.StatusUpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span> }
+    <div class="ems-detail-info" style="display:flex;align-items:center;">
+        <a href="javascript:;" title="返回项目台账" onclick="ems.openTab('/project','项目台账')"
+           style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;margin-right:12px;border-radius:8px;background:#eef3f2;color:#0d6b64;font-size:20px;cursor:pointer;flex:0 0 auto;">
+            <i class="layui-icon layui-icon-left"></i>
+        </a>
+        <div>
+            <h2>@Model.ProjName <span class="ems-tag ems-tag-@statusTag[Model.ProgressStatus]">@statusText[Model.ProgressStatus]</span></h2>
+            <div class="ems-detail-meta">
+                <span>编号：@Model.ProjNo</span>
+                @if (Model.StatusUpdatedAt.HasValue) { <span>状态更新：@Model.StatusUpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span> }
+            </div>
         </div>
     </div>
     <div class="ems-detail-actions">
@@ -92,15 +98,24 @@
             <div class="ems-info-item"><span class="label">业务类型</span><span class="val">@Model.BizType</span></div>
             <div class="ems-info-item"><span class="label">采购方式</span><span class="val">@(Model.ProcurementType ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">项目业主</span><span class="val"><strong>@Model.OwnerName</strong></span></div>
-            <div class="ems-info-item"><span class="label">业主联系人</span><span class="val">@(Model.OwnerContact ?? "-")</span></div>
-            <div class="ems-info-item"><span class="label">联系电话</span><span class="val">@(Model.OwnerPhone ?? "-")</span></div>
-            <div class="ems-info-item"><span class="label">建设规模</span><span class="val">@(Model.BuildingScale ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">业主联系人</span><span class="val">
+                @if (!string.IsNullOrEmpty(Model.OwnerContact) && !string.IsNullOrEmpty(Model.OwnerPhone))
+                { @($"{Model.OwnerContact}（{Model.OwnerPhone}）") }
+                else if (!string.IsNullOrEmpty(Model.OwnerContact))
+                { @Model.OwnerContact }
+                else if (!string.IsNullOrEmpty(Model.OwnerPhone))
+                { @Model.OwnerPhone }
+                else
+                { @("-") }
+            </span></div>
             <div class="ems-info-item"><span class="label">承接部门</span><span class="val">@(Model.DeptName ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">项目负责人</span><span class="val">@(Model.ProjectLeaderName ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">签约日期</span><span class="val">@(Model.SignDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">计划完成</span><span class="val">@(Model.PlanEndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">实际开始</span><span class="val">@(Model.ActualStartDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">实际完成</span><span class="val">@(Model.ActualEndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">协作单位</span><span class="val">@(Model.CooperationUnit ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">项目概况</span><span class="val">@(Model.ProjectOverview ?? "-")</span></div>
         </div>
         @if (!string.IsNullOrEmpty(Model.Remark)) {
             <div class="ems-alert teal" style="margin-top:12px"><i class="layui-icon layui-icon-about"></i> @Model.Remark</div>

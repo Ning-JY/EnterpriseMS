@@ -586,6 +586,28 @@ public class ProjectService : IProjectService
         return invoice.Id;
     }
 
+    // #回款独立页：编辑回款记录
+    public async Task UpdateInvoiceAsync(long id, CreateInvoiceDto dto, string operBy)
+    {
+        var inv = await _uow.ProjInvoices.GetByIdAsync(id)
+            ?? throw new NotFoundException("回款记录不存在");
+        inv.ProjectId   = dto.ProjectId;
+        inv.ContractId  = dto.ContractId;
+        inv.ReceiptName = dto.ReceiptName;
+        inv.InvoiceNo   = dto.InvoiceNo;
+        inv.InvoiceType = dto.InvoiceType;
+        inv.Amount      = dto.Amount;
+        inv.TaxRate     = dto.TaxRate;
+        inv.InvoiceDate = dto.InvoiceDate;
+        inv.Payer       = dto.Payer;
+        inv.Remark      = dto.Remark;
+        inv.UpdatedBy   = operBy;
+        _uow.ProjInvoices.Update(inv);
+        await _uow.SaveChangesAsync();
+        await WriteLogAsync(dto.ProjectId, "更新回款",
+            $"发票号：{dto.InvoiceNo}，金额：{dto.Amount}万", operBy);
+    }
+
     public async Task ConfirmInvoiceReceivedAsync(long invoiceId, DateTime receivedDate, string operBy)
     {
         var inv = await _uow.ProjInvoices.GetByIdAsync(invoiceId)
@@ -860,6 +882,7 @@ public class ProjectService : IProjectService
             ["采购方式"]       = p.ProcurementType ?? "",
             ["预估造价金额"]       = p.LimitPrice.HasValue ? $"{p.LimitPrice:N2} 万元" : "",
             ["建设规模"]       = p.BuildingScale ?? "",
+            ["协作单位"]       = p.CooperationUnit ?? "",
             ["承接部门"]       = p.DeptName ?? "",
             ["项目负责人"]     = p.ProjectLeaderName ?? "",
             ["合同金额"]       = $"{p.ContractAmount:N2} 万元",

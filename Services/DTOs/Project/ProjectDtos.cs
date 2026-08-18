@@ -42,6 +42,7 @@ public class ProjectDetailDto : ProjectListDto
     public string?  ProjectOverview { get; set; }
     public decimal? LimitPrice      { get; set; }
     public string?  BuildingScale   { get; set; }
+    public string?  CooperationUnit { get; set; }
     public DateTime? ActualEndDate  { get; set; }
     public decimal  TotalReceived   { get; set; }
     public string?  Remark          { get; set; }
@@ -190,6 +191,7 @@ public class CreateProjectDto
     public DateTime? ActualStartDate { get; set; }
     public DateTime? BidDeadline     { get; set; }
     public string?  BuildingScale    { get; set; }
+    public string?  CooperationUnit  { get; set; }
     public string?  Remark           { get; set; }
     // 新增字段
     public string?  ProjectCategory  { get; set; }
@@ -286,6 +288,43 @@ public class CreateInvoiceDto
     public DateTime? InvoiceDate { get; set; }
     public string?  Payer        { get; set; }
     public string?  Remark       { get; set; }
+}
+
+/// <summary>回款管理独立页列表 DTO（聚合项目名 / 合同名）</summary>
+public class ReceiptListDto
+{
+    public long      Id           { get; set; }
+    public long      ProjectId    { get; set; }
+    public long?     ContractId   { get; set; }
+    public string    ProjectName  { get; set; } = "";
+    public string?   ContractName { get; set; }
+    public string    ReceiptName  { get; set; } = "";
+    public string?   InvoiceNo    { get; set; }
+    public string    InvoiceType  { get; set; } = "";
+    public decimal   Amount       { get; set; }
+    public decimal?  TaxRate      { get; set; }
+    public DateTime? InvoiceDate  { get; set; }
+    public string?   Payer        { get; set; }
+    public bool      IsReceived   { get; set; }
+    public DateTime? ReceivedDate { get; set; }
+    public string?   Remark       { get; set; }
+    public DateTime  CreatedAt    { get; set; }
+}
+
+/// <summary>合同维度回款汇总（回款管理列表用，以合同为主）</summary>
+public class ContractReceiptSummaryDto
+{
+    public long    ContractId       { get; set; }
+    public long    ProjectId        { get; set; }
+    public string  ProjectName      { get; set; } = "";
+    public string  ContractName     { get; set; } = ""; // 合同名称（无名称则回退编号）
+    public string  ContractNo       { get; set; } = "";
+    public string  ContractType     { get; set; } = ""; // 主合同/补充协议/变更合同
+    public decimal ContractAmount   { get; set; } // 合同总额
+    public decimal ReceiptTotal     { get; set; } // 回款总额（所有回款记录金额合计）
+    public decimal ReceivedTotal    { get; set; } // 已收金额
+    public decimal UnreceivedTotal  { get; set; } // 未收金额 = 回款总额 - 已收金额
+    public int     ReceiptCount     { get; set; } // 回款笔数
 }
 
 // ── #14 新增：编辑验收记录 DTO ─────────────────────────────

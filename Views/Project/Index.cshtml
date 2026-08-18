@@ -149,12 +149,9 @@ ems.ready(function () {
               6: ['执行中', 'green'], 7: ['成果提交', 'green'], 8: ['已完成', 'green'], 9: ['已终止', 'red']
           }) },
         { field: 'ProjectLeaderName', title: '项目负责人', width: 110, templet: ems.tpl.text('ProjectLeaderName') },
-        { field: 'Milestone', title: '里程碑', width: 130,
+        { field: 'ActualStartDate', title: '实际开始时间', width: 130, align: 'center',
           templet: function (d) {
-              var total = d.MilestoneTotal || 0, done = d.MilestoneDone || 0;
-              var pct = total > 0 ? Math.round(done * 100 / total) : 0;
-              return '<span class="layui-font-12">' + done + '/' + total + '</span>'
-                   + '<div class="layui-progress layui-progress-small" style="margin-top:4px"><div class="layui-progress-bar layui-bg-green" style="width:' + pct + '%"></div></div>';
+              return d.ActualStartDate ? d.ActualStartDate.substring(0, 10) : '<span class="layui-font-gray">-</span>';
           } },
         { title: '操作', width: 160, align: 'center', toolbar: '#projBar' }
     ];

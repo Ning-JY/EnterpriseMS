@@ -1,0 +1,192 @@
+@using EnterpriseMS.Domain.Entities.Project
+@using EnterpriseMS.Services.DTOs.Project
+@{
+    ViewData["Title"] = "回款信息";
+    var projects = ViewBag.Projects as List<Project> ?? new();
+    var m = ViewBag.Model as ReceiptListDto;
+    bool isEdit = m != null;
+    string? invType = m?.InvoiceType;
+    long? preProjectId  = ViewBag.PreProjectId;
+    long? preContractId = ViewBag.PreContractId;
+    string reloadTable  = string.IsNullOrEmpty((string?)ViewBag.ReloadTable) ? "receiptTable" : (string)ViewBag.ReloadTable;
+}
+
+<!-- 标题栏 + 面包屑（防伪令牌由 _Layout 统一渲染，勿在此重复，否则 ems.js 取首个令牌与 cookie 不匹配导致 400） -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-dollar"></i> @(isEdit ? "编辑回款" : "新增回款")
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">项目管理</a>
+        <a href="javascript:ems.openTab('/project/receipt')">回款管理</a>
+        <a><cite>@(isEdit ? "编辑" : "新增")</cite></a>
+    </div>
+</div>
+
+<form class="layui-form" lay-filter="rcpForm" id="rcpForm">
+    <div class="layui-row">
+        <div class="layui-col-md6">
+            <div class="layui-card ems-card">
+                <div class="layui-card-header">关联信息</div>
+                <div class="layui-card-body">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">关联项目 <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block">
+                            <select id="ProjectId" lay-filter="projChange">
+                                <option value="">请选择项目</option>
+                                @foreach (var p in projects)
+                                {
+                                    <option value="@p.Id" selected="@(m != null && m.ProjectId == p.Id ? "selected" : (preProjectId.HasValue && preProjectId.Value == p.Id ? "selected" : null))">@p.ProjName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">关联合同</label>
+                        <div class="layui-input-block">
+                            <select id="ContractId">
+                                <option value="">不关联（项目级回款）</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md6">
+            <div class="layui-card ems-card">
+                <div class="layui-card-header">回款信息</div>
+                <div class="layui-card-body">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">回款批次 <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block"><input type="text" id="ReceiptName" class="layui-input" maxlength="100" value="@(m?.ReceiptName)" placeholder="如：第一笔预付款"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-inline" style="width:48%">
+                            <label class="layui-form-label" style="width:auto">金额(万) <span class="layui-font-red">*</span></label>
+                            <div class="layui-input-inline" style="width:60%"><input type="number" id="Amount" class="layui-input" step="0.01" min="0" value="@(m?.Amount)"></div>
+                        </div>
+                        <div class="layui-inline" style="width:48%">
+                            <label class="layui-form-label" style="width:auto">税率(%)</label>
+                            <div class="layui-input-inline" style="width:60%"><input type="number" id="TaxRate" class="layui-input" step="0.1" value="@(m?.TaxRate)"></div>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <div class="layui-inline" style="width:48%">
+                            <label class="layui-form-label" style="width:auto">发票号</label>
+                            <div class="layui-input-inline" style="width:60%"><input type="text" id="InvoiceNo" class="layui-input" value="@(m?.InvoiceNo)"></div>
+                        </div>
+                        <div class="layui-inline" style="width:48%">
+                            <label class="layui-form-label" style="width:auto">开票日期</label>
+                            <div class="layui-input-inline" style="width:60%"><input type="date" id="InvoiceDate" class="layui-input" value="@(m?.InvoiceDate?.ToString("yyyy-MM-dd"))"></div>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">付款方</label>
+                        <div class="layui-input-block"><input type="text" id="Payer" class="layui-input" maxlength="100" value="@(m?.Payer)"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-card ems-card">
+        <div class="layui-card-header">补充信息</div>
+        <div class="layui-card-body">
+            <div class="layui-form-item">
+                <label class="layui-form-label">发票类型</label>
+                <div class="layui-input-block">
+                    <select id="InvoiceType">
+                        <option value="增值税专用发票" selected="@(invType == "增值税专用发票" ? "selected" : null)">增值税专用发票</option>
+                        <option value="增值税普通发票" selected="@(invType == "增值税普通发票" ? "selected" : null)">增值税普通发票</option>
+                        <option value="收据" selected="@(invType == "收据" ? "selected" : null)">收据</option>
+                        <option value="无票" selected="@(invType == "无票" ? "selected" : null)">无票</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item layui-form-text">
+                <label class="layui-form-label">备注</label>
+                <div class="layui-input-block"><textarea id="Remark" class="layui-textarea" rows="3" placeholder="备注说明">@(m?.Remark)</textarea></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="ems-form-foot">
+        <button type="button" class="layui-btn layui-btn-normal" id="btnSave">保存</button>
+        <button type="button" class="layui-btn layui-btn-primary" onclick="ems.closeSelf('@reloadTable')">取消</button>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    var $ = layui.jquery;
+    layui.form.render();
+
+    // 项目 → 合同 联动
+    function loadContracts(projectId, selectedId) {
+        var $c = $('#ContractId');
+        $c.html('<option value="">不关联（项目级回款）</option>');
+        if (!projectId) { layui.form.render('select'); return; }
+        $.get('/project/receipt/contracts?projectId=' + projectId, function (r) {
+            if (r.success && r.data) {
+                r.data.forEach(function (c) { $c.append('<option value="' + c.id + '">' + c.name + '</option>'); });
+                if (selectedId) $c.val(selectedId);
+                layui.form.render('select');
+            }
+        });
+    }
+    layui.form.on('select(projChange)', function (data) { loadContracts(data.value, null); });
+
+    // 编辑时预填合同
+    @if (isEdit && m != null && m.ContractId.HasValue)
+    {
+        <text>loadContracts(@m.ProjectId, @m.ContractId.Value);</text>
+    }
+    // 从合同快速新增：预选合同所属项目并联动加载该合同
+    @if (!isEdit && preProjectId.HasValue && preContractId.HasValue)
+    {
+        <text>$('#ProjectId').val(@preProjectId.Value); layui.form.render('select'); loadContracts(@preProjectId.Value, @preContractId.Value);</text>
+    }
+
+    $('#btnSave').on('click', function () {
+        var projectId = parseInt($('#ProjectId').val()) || 0;
+        var contractId = $('#ContractId').val() ? parseInt($('#ContractId').val()) : null;
+        var data = {
+            ProjectId:   projectId,
+            ContractId:  contractId,
+            ReceiptName: $('#ReceiptName').val(),
+            InvoiceNo:   $('#InvoiceNo').val() || null,
+            InvoiceType: $('#InvoiceType').val(),
+            Amount:      parseFloat($('#Amount').val()) || 0,
+            TaxRate:     parseFloat($('#TaxRate').val()) || null,
+            InvoiceDate: $('#InvoiceDate').val() || null,
+            Payer:       $('#Payer').val() || null,
+            Remark:      $('#Remark').val() || null
+        };
+        if (!projectId)  { ems.error('请选择关联项目'); return; }
+        if (!data.ReceiptName) { ems.error('请填写回款批次名称'); return; }
+        if (!data.Amount)     { ems.error('请填写金额'); return; }
+
+        @if (isEdit)
+        {
+            <text>var url = '/project/receipt/edit/@m.Id';</text>
+        }
+        else
+        {
+            <text>var url = '/project/receipt/create';</text>
+        }
+
+        var load = ems.loading(1);
+        $.ajax({
+            url: url, type: 'POST', data: data,
+            success: function (r) {
+                ems.close(load);
+                if (r.success) ems.msg(r.message, { icon: 1, time: 1200 }, function () { ems.closeSelf('@reloadTable'); });
+                else ems.error(r.message);
+            },
+            error: function () { ems.close(load); ems.error('请求失败'); }
+        });
+    });
+});
+</script>
+}

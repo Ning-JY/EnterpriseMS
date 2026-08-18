@@ -44,6 +44,7 @@ public interface IProjectService
     Task<(string? filePath, string? fileName)> GetContractFileAsync(long contractId);
     // 发票
     Task<long>   AddInvoiceAsync(CreateInvoiceDto dto, string operBy);
+    Task         UpdateInvoiceAsync(long id, CreateInvoiceDto dto, string operBy);
     Task         ConfirmInvoiceReceivedAsync(long invoiceId, DateTime receivedDate, string operBy);
     Task         DeleteInvoiceAsync(long invoiceId);
     Task         UploadInvoiceFileAsync(long invoiceId, string fileType, string fileName, string filePath, string operBy);

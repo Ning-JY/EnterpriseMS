@@ -1,0 +1,121 @@
+@using EnterpriseMS.Domain.Entities.Project
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "回款管理";
+    var userId = User.GetUserId();
+    bool canEdit = await PermSvc.HasPermAsync(userId, "proj:project:list");
+    var projects = ViewBag.Projects as List<Project> ?? new();
+}
+
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-dollar"></i> 回款管理
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">项目管理</a>
+        <a><cite>回款管理</cite></a>
+    </div>
+</div>
+
+<!-- 搜索卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="rcpSearch">
+            <div class="layui-inline">
+                <input type="text" name="Keyword" placeholder="合同名称 / 合同编号" autocomplete="off" class="layui-input">
+            </div>
+            <div class="layui-inline">
+                <select name="ProjectId" id="searchProject">
+                    <option value="">全部项目</option>
+                    @foreach (var p in projects) { <option value="@p.Id">@p.ProjName</option> }
+                </select>
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="rcpSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+            </div>
+            <div class="layui-inline ems-search-actions">
+                <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                    <i class="layui-icon layui-icon-add-1"></i> 新增回款
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 列表卡片：以合同为主 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>合同回款汇总</span>
+        <span class="layui-font-12 layui-font-gray" data-list-count>0</span>
+    </div>
+    <div class="layui-card-body">
+        <table id="contractTable" lay-filter="contractTable"></table>
+    </div>
+</div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="rcpBar">
+    <a class="ems-icon-btn primary" title="查看回款记录" lay-event="detail"><i class="layui-icon layui-icon-list"></i></a>
+    <a class="ems-icon-btn success" title="新增回款" lay-event="add"><i class="layui-icon layui-icon-add-1"></i></a>
+</script>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    var $ = layui.jquery;
+
+    function fmtMoney(v) {
+        v = v || 0;
+        return '<span class="layui-font-teal">¥' + Number(v).toFixed(2) + '</span>';
+    }
+
+    var colsConfig = [
+        { field: 'ProjectName', title: '项目', minWidth: 180,
+          templet: function (d) {
+              return '<a class="layui-link" lay-event="project">' + ems.escapeHtml(d.ProjectName || '-') + '</a>';
+          } },
+        { field: 'ContractName', title: '合同', minWidth: 220,
+          templet: function (d) {
+              var t = ems.escapeHtml(d.ContractName || d.ContractNo || '-');
+              if (d.ContractType) t += ' <span class="layui-badge layui-bg-gray">' + ems.escapeHtml(d.ContractType) + '</span>';
+              return '<a class="layui-link" lay-event="detail">' + t + '</a>';
+          } },
+        { field: 'ContractAmount', title: '合同总额', width: 150, templet: fmtMoney },
+        { field: 'ReceiptTotal',   title: '回款总额', width: 150, templet: fmtMoney },
+        { field: 'ReceivedTotal',  title: '已收金额', width: 150, templet: fmtMoney },
+        { field: 'UnreceivedTotal', title: '未收金额', width: 150,
+          templet: function (d) {
+              var v = d.UnreceivedTotal || 0;
+              var cls = v > 0 ? 'layui-font-red' : 'layui-font-gray';
+              return '<span class="' + cls + '">¥' + Number(v).toFixed(2) + '</span>';
+          } },
+        { field: 'ReceiptCount', title: '回款笔数', width: 100, align: 'center', templet: ems.tpl.text('ReceiptCount') },
+        { title: '操作', width: 110, align: 'center', toolbar: '#rcpBar' }
+    ];
+
+    ems.initTable({
+        elem: '#contractTable', id: 'contractTable', url: '/project/receipt/contract-list', cols: [colsConfig],
+        tool: {
+            project: function (d) { ems.openTab('/project/' + d.ProjectId, '项目详情 - ' + d.ProjectName); },
+            detail:  function (d) { ems.openTab('/project/receipt/detail/' + d.ContractId, '合同回款 - ' + d.ContractName); },
+            add:     function (d) {
+                ems.openAdd({ title: '新增回款 - ' + d.ContractName,
+                    url: '/project/receipt/form?projectId=' + d.ProjectId + '&contractId=' + d.ContractId + '&tableId=contractTable',
+                    area: ['720px', '92%'], table: 'contractTable' });
+            }
+        }
+    });
+
+    $('#btnAdd').on('click', function () {
+        ems.openAdd({ title: '新增回款', url: '/project/receipt/form?tableId=contractTable',
+            area: ['720px', '92%'], table: 'contractTable' });
+    });
+
+    ems.bindSearch('rcpSearch', 'contractTable');
+});
+</script>
+}

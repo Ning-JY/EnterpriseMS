@@ -24,6 +24,7 @@ public class ProjectDataSource : ReflectionDataSourceBase
         ["OwnerContact"] = "建设单位联系人",
         ["OwnerPhone"] = "建设单位联系电话",
         ["BuildingScale"] = "建设规模",
+        ["CooperationUnit"] = "协作单位",
         ["LimitPrice"] = "限价(元)",
         ["ContractAmount"] = "合同金额(元)",
         ["BizType"] = "业务类型",

@@ -94,6 +94,12 @@ public static class MenuSeeds
             new SysMenu { Id = 318, MenuName = "完成节点", ParentId = 31, MenuType = "F", Sort = 8, Visible = 0, Status = 1, Perms = "proj:milestone:done", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 319, MenuName = "录入验收", ParentId = 31, MenuType = "F", Sort = 9, Visible = 0, Status = 1, Perms = "proj:acceptance:add", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 320, MenuName = "批量导入", ParentId = 31, MenuType = "F", Sort = 10, Visible = 0, Status = 1, Perms = "proj:project:import", CreatedAt = dt, CreatedBy = "system" },
+            // 回款管理（独立聚合页，复用项目管理权限）
+            new SysMenu { Id = 32,  MenuName = "回款管理", ParentId = 3, MenuType = "C", Icon = "fa-hand-holding-usd", Path = "/project/receipt", Sort = 2, Visible = 1, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 321, MenuName = "新增回款", ParentId = 32, MenuType = "F", Sort = 1, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 322, MenuName = "编辑回款", ParentId = 32, MenuType = "F", Sort = 2, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 323, MenuName = "删除回款", ParentId = 32, MenuType = "F", Sort = 3, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 324, MenuName = "确认收款", ParentId = 32, MenuType = "F", Sort = 4, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
             // ── 投标管理 ──────────────────────────────────────
             new SysMenu { Id = 9, MenuName = "投标管理", ParentId = 0, MenuType = "M", Icon = "fa-file-signature", Path = "/bid", Sort = 9, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 91, MenuName = "投标台账", ParentId = 9, MenuType = "C", Icon = "fa-clipboard-list", Path = "/bid", Sort = 1, Visible = 1, Status = 1, Perms = "bid:project:list", CreatedAt = dt, CreatedBy = "system" },

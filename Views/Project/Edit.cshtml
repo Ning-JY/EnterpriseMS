@@ -113,6 +113,10 @@
                         })
                     </div>
                 </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">协作单位</label>
+                    <div class="layui-input-block"><input type="text" id="CooperationUnit" class="layui-input" value="@(Model.CooperationUnit ?? "")" maxlength="100" placeholder="合作编制单位"></div>
+                </div>
             </div>
         </div>
             </div>
@@ -201,6 +205,7 @@ ems.ready(function () {
             OurRatio:        parseFloat($('#OurRatio').val()) || null,
             ProjectLeaderId: parseInt($('#ProjectLeaderId').val()) || null,
             ProjectCategory: $('#ProjectCategory').val() || null,
+            CooperationUnit: $('#CooperationUnit').val() || null,
             ProjectOverview: $('#ProjectOverview').val() || null,
             SignDate:        $('#SignDate').val() || null,
             PlanEndDate:     $('#PlanEndDate').val() || null,
