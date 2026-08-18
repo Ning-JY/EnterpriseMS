@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
+using System.Net;
 using Serilog;
 using Hangfire;
 using Hangfire.MemoryStorage;
@@ -278,6 +280,28 @@ try
     // ═════════════════════════════════════════════════════════
     var app = builder.Build();
     // ═════════════════════════════════════════════════════════
+
+    // ── 反向代理转发头（docker + 1panel/OpenResty 部署必需）────
+    // 容器收到的是反代转发来的 HTTP 请求。必须信任反代网段才能正确读取
+    // X-Forwarded-Proto / X-Forwarded-Host / X-Forwarded-For，否则
+    // Request.IsHttps=false、Host 为容器内部地址，导致登录后签发的认证
+    // Cookie 的 SecurePolicy=SameAsRequest 不按 HTTPS 签发，浏览器回传失败
+    // → 访问受保护页被判未认证 → 反复 302 回登录（ERR_TOO_MANY_REDIRECTS）。
+    // 注意：默认 UseForwardedHeaders 只信任 loopback，docker 反代源 IP 是
+    // 172.x，必须显式 KnownNetworks 信任，否则转发头被丢弃、等于没修。
+    var forwardedOpts = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                         | ForwardedHeaders.XForwardedProto
+                         | ForwardedHeaders.XForwardedHost
+    };
+    forwardedOpts.KnownNetworks.Clear();
+    forwardedOpts.KnownProxies.Clear();
+    forwardedOpts.KnownNetworks.Add(Microsoft.AspNetCore.HttpOverrides.IPNetwork.Parse("172.16.0.0/12")); // docker 桥接网段
+    forwardedOpts.KnownNetworks.Add(Microsoft.AspNetCore.HttpOverrides.IPNetwork.Parse("10.0.0.0/8"));     // 部分 docker 自定义网络
+    forwardedOpts.KnownNetworks.Add(Microsoft.AspNetCore.HttpOverrides.IPNetwork.Parse("192.168.0.0/16")); // 局域网反代
+    forwardedOpts.KnownProxies.Add(IPAddress.Loopback);
+    app.UseForwardedHeaders(forwardedOpts);
 
     if (app.Environment.IsDevelopment())
         app.UseDeveloperExceptionPage();
