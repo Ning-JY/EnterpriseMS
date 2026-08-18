@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Services.Interfaces;
@@ -163,19 +165,48 @@ public class GlobalExceptionFilter : IAsyncExceptionFilter
 
         if (ex is BusinessException || ex is NotFoundException)
         {
-            ctx.Result = isAjax
-                ? new JsonResult(ApiResult<object>.Fail(ex.Message))
-                : new RedirectToActionResult("Error", "Home",
-                    new { message = ex.Message });
+            if (isAjax)
+            {
+                ctx.Result = new JsonResult(ApiResult<object>.Fail(ex.Message));
+            }
+            else
+            {
+                // 直接渲染错误视图（不走 RedirectToAction），避免 302 重定向；
+                // 否则错误页自身再异常时会与 UseExceptionHandler 的 302 叠加成
+                // /Home/Error → 302 → /Home/Error 的死循环。
+                SetErrorView(ctx, ex.Message, StatusCodes.Status400BadRequest);
+            }
             ctx.ExceptionHandled = true;
             return Task.CompletedTask;
         }
 
-        ctx.Result = isAjax
-            ? new JsonResult(ApiResult<object>.Fail("服务器内部错误，请稍后重试", 500))
-            : new RedirectToActionResult("Error", "Home", null);
+        if (isAjax)
+        {
+            ctx.Result = new JsonResult(ApiResult<object>.Fail("服务器内部错误，请稍后重试", 500));
+        }
+        else
+        {
+            SetErrorView(ctx, "服务器内部错误，请稍后重试", StatusCodes.Status500InternalServerError);
+        }
         ctx.ExceptionHandled = true;
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// 直接渲染独立的错误视图（~/Views/Home/Error.cshtml），不发起任何重定向。
+    /// </summary>
+    private static void SetErrorView(ExceptionContext ctx, string message, int statusCode)
+    {
+        var vd = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary())
+        {
+            ["Message"] = message
+        };
+        ctx.Result = new ViewResult
+        {
+            ViewName = "~/Views/Home/Error.cshtml",
+            StatusCode = statusCode,
+            ViewData = vd
+        };
     }
 }
 

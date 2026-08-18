@@ -8,6 +8,7 @@ using Hangfire.MemoryStorage;
 using FluentValidation.AspNetCore;
 using FluentValidation;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using EnterpriseMS.Filters;
 using EnterpriseMS.Infrastructure.Cache;
@@ -307,7 +308,53 @@ try
         app.UseDeveloperExceptionPage();
     else
     {
-        app.UseExceptionHandler("/Home/Error");
+        // ⚠️ 注意：这里绝不能用 UseExceptionHandler("/Home/Error")（字符串路径）——
+        // 它会在发生未处理异常时向 /Home/Error 发起 302 重定向；一旦错误页自身
+        // 再次抛异常，就会陷入 /Home/Error → 302 → /Home/Error 的死循环
+        // （ERR_TOO_MANY_REDIRECTS）。改用「服务端直接写回 500 页面」的 lambda 形式，
+        // 全程零重定向，循环在原理上不可能发生。
+        app.UseExceptionHandler(errApp =>
+        {
+            errApp.Run(async context =>
+            {
+                var feature = context.Features.Get<IExceptionHandlerPathFeature>();
+                var ex = feature?.Error;
+                var logger = context.RequestServices
+                    .GetRequiredService<ILogger<Program>>();
+                logger.LogError(ex, "未处理异常 (路径 {Path}): {Message}",
+                    context.Request.Path, ex?.Message);
+
+                context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                context.Response.ContentType = "text/html; charset=utf-8";
+
+                var safeMsg = System.Net.WebUtility.HtmlEncode(
+                    ex?.Message ?? "服务器内部错误");
+
+                await context.Response.WriteAsync($@"
+<!doctype html>
+<html lang='zh-CN'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>系统错误 - 企业管理系统</title>
+  <link rel='stylesheet' href='/lib/layui/css/layui.css'>
+  <link rel='stylesheet' href='/css/ems.css'>
+</head>
+<body class='ems-page'>
+  <div class='layui-card' style='max-width:460px;margin:12vh auto 0;text-align:center'>
+    <div class='layui-card-body' style='padding:44px 24px'>
+      <i class='layui-icon layui-icon-tips layui-font-orange' style='font-size:56px'></i>
+      <h3 class='layui-font-orange' style='margin:14px 0 6px'>系统发生错误</h3>
+      <p class='layui-font-gray'>请稍后重试，或联系系统管理员。</p>
+      <div style='margin-top:22px'>
+        <a class='layui-btn layui-btn-normal' href='javascript:location.href=&quot;/&quot;'>返回首页</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>");
+            });
+        });
         app.UseHsts();
         app.UseHttpsRedirection();
     }

@@ -1,17 +1,30 @@
 @{
-    ViewData["Title"] = "错误";
-    Layout = "_Layout";
+    // 独立错误页：不使用 _Layout（内页 iframe 布局里那段「顶层访问则跳回主框架」
+    // 的 JS 会把错误页又弹回首页，与异常重定向叠加可能形成循环，故此处自包含）。
+    Layout = null;
+    ViewData["Title"] = "系统错误";
 }
-<!-- 居中提示卡片：max-width / margin / text-align 为布局居中所需（已最小化内联） -->
-<div class="layui-card" style="max-width:460px;margin:10vh auto 0;text-align:center">
-    <div class="layui-card-body" style="padding:44px 24px">
-        <i class="layui-icon layui-icon-tips layui-font-orange" style="font-size:56px"></i>
-        <h3 class="layui-font-orange" style="margin:14px 0 6px">@(ViewBag.Message ?? "服务器内部错误")</h3>
-        <p class="layui-font-gray">请稍后重试，或联系系统管理员。</p>
-        <div style="margin-top:22px">
-            <a class="layui-btn layui-btn-normal" href="javascript:ems.openTab('/','首页')">
-                <i class="layui-icon layui-icon-home"></i> 返回首页
-            </a>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>系统错误 - 企业管理系统</title>
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css">
+    <link rel="stylesheet" href="~/css/ems.css" asp-append-version="true">
+</head>
+<body class="ems-page">
+    <div class="layui-card" style="max-width:460px;margin:12vh auto 0;text-align:center">
+        <div class="layui-card-body" style="padding:44px 24px">
+            <i class="layui-icon layui-icon-tips layui-font-orange" style="font-size:56px"></i>
+            <h3 class="layui-font-orange" style="margin:14px 0 6px">@(ViewBag.Message ?? "服务器内部错误")</h3>
+            <p class="layui-font-gray">请稍后重试，或联系系统管理员。</p>
+            <div style="margin-top:22px">
+                <a class="layui-btn layui-btn-normal" href="javascript:location.href='/'">
+                    <i class="layui-icon layui-icon-home"></i> 返回首页
+                </a>
+            </div>
         </div>
     </div>
-</div>
+</body>
+</html>
