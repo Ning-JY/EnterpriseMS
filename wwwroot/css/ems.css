@@ -555,6 +555,9 @@ body .layui-layer.ems-layer.ems-layer-prompt2 .layui-layer-content {
 
 /* ── 统计卡片（详情/首页通用） ─────────────────────────── */
 .ems-stat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 14px; margin-bottom: 14px; }
+/* 详情页：固定四列铺满整行（防止窄屏折行或留白） */
+.ems-stat-cards.four-cols { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 768px) { .ems-stat-cards.four-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .ems-stat-card { background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.05); padding:14px 18px; transition: box-shadow .3s ease; }
 .ems-stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
 .ems-stat-card .label { font-size:13px; color:#8a94a6; display:flex; align-items:center; gap:6px; }

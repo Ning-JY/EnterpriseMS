@@ -34,12 +34,12 @@
 <div style="display:none">@Html.AntiForgeryToken()</div>
 
 <div class="ems-detail-header">
+    <a href="javascript:;" title="返回项目台账" onclick="ems.openTab('/project','项目台账')"
+       style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;background:#eef3f2;color:#0d6b64;font-size:20px;cursor:pointer;flex:0 0 auto;">
+        <i class="layui-icon layui-icon-left"></i>
+    </a>
     <div class="ems-detail-avatar"><i class="layui-icon layui-icon-console"></i></div>
     <div class="ems-detail-info" style="display:flex;align-items:center;">
-        <a href="javascript:;" title="返回项目台账" onclick="ems.openTab('/project','项目台账')"
-           style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;margin-right:12px;border-radius:8px;background:#eef3f2;color:#0d6b64;font-size:20px;cursor:pointer;flex:0 0 auto;">
-            <i class="layui-icon layui-icon-left"></i>
-        </a>
         <div>
             <h2>@Model.ProjName <span class="ems-tag ems-tag-@statusTag[Model.ProgressStatus]">@statusText[Model.ProgressStatus]</span></h2>
             <div class="ems-detail-meta">
@@ -59,7 +59,7 @@
 </div>
 
 <!-- 四张统计卡片 -->
-<div class="ems-stat-cards">
+<div class="ems-stat-cards four-cols">
     <div class="ems-stat-card">
         <div class="label"><i class="layui-icon layui-icon-rmb"></i> 合同金额</div>
         <div class="value layui-font-teal">¥@Model.ContractAmount.ToString("N2")<span class="layui-font-12">万</span></div>
@@ -115,7 +115,7 @@
             <div class="ems-info-item"><span class="label">实际开始</span><span class="val">@(Model.ActualStartDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">实际完成</span><span class="val">@(Model.ActualEndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">协作单位</span><span class="val">@(Model.CooperationUnit ?? "-")</span></div>
-            <div class="ems-info-item"><span class="label">项目概况</span><span class="val">@(Model.ProjectOverview ?? "-")</span></div>
+            <div class="ems-info-item" style="grid-column: 1 / -1;"><span class="label">项目概况</span><span class="val">@(Model.ProjectOverview ?? "-")</span></div>
         </div>
         @if (!string.IsNullOrEmpty(Model.Remark)) {
             <div class="ems-alert teal" style="margin-top:12px"><i class="layui-icon layui-icon-about"></i> @Model.Remark</div>

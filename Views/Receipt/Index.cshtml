@@ -84,9 +84,9 @@ ems.ready(function () {
               if (d.ContractType) t += ' <span class="layui-badge layui-bg-gray">' + ems.escapeHtml(d.ContractType) + '</span>';
               return '<a class="layui-link" lay-event="detail">' + t + '</a>';
           } },
-        { field: 'ContractAmount', title: '合同总额', width: 150, templet: fmtMoney },
-        { field: 'ReceiptTotal',   title: '回款总额', width: 150, templet: fmtMoney },
-        { field: 'ReceivedTotal',  title: '已收金额', width: 150, templet: fmtMoney },
+        { field: 'ContractAmount', title: '合同总额', width: 150, templet: function (d) { return fmtMoney(d.ContractAmount); } },
+        { field: 'ReceiptTotal',   title: '开票总额', width: 150, templet: function (d) { return fmtMoney(d.ReceiptTotal); } },
+        { field: 'ReceivedTotal',  title: '已收金额', width: 150, templet: function (d) { return fmtMoney(d.ReceivedTotal); } },
         { field: 'UnreceivedTotal', title: '未收金额', width: 150,
           templet: function (d) {
               var v = d.UnreceivedTotal || 0;

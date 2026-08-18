@@ -37,6 +37,7 @@ public class ProjectService : IProjectService
     {
         var q = _uow.Projects.Query()
             .Include(p => p.Dept)
+            .Include(p => p.ProjectLeader)
             .Include(p => p.Milestones)
             .AsQueryable();
         // ── 数据权限过滤（按部门 / 项目成员隔离，列表与详情共用）─────────
