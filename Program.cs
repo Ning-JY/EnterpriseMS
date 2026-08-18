@@ -130,10 +130,29 @@ try
 
     // ── 缓存：Redis 可用则 Redis，否则自动降级内存缓存 ────────
     var redisConn = builder.Configuration["Redis:Connection"] ?? "";
-    // 环境变量覆盖配置文件中的占位符密码
-    var redisPwd = Environment.GetEnvironmentVariable("REDIS_PASSWORD");
-    if (!string.IsNullOrEmpty(redisPwd))
-        redisConn = redisConn.Replace("${REDIS_PASSWORD}", redisPwd);
+    // Redis 连接各组件可由环境变量覆盖（未设置时沿用配置文件默认值）。
+    // 注意：StackExchange.Redis 仅支持 host:port 简写，不支持 host=/port= 命名键，故占位符写为 ${REDIS_HOST}:${REDIS_PORT}：
+    //   REDIS_HOST     → 主机地址（host 部分）
+    //   REDIS_PORT     → 端口（port 部分）
+    //   REDIS_PASSWORD → password（密码）
+    var redisEnvMap = new (string Placeholder, string Env)[]
+    {
+        ("${REDIS_HOST}",     "REDIS_HOST"),
+        ("${REDIS_PORT}",     "REDIS_PORT"),
+        ("${REDIS_PASSWORD}", "REDIS_PASSWORD"),
+    };
+    if (redisEnvMap.Any(o => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(o.Env))))
+    {
+        foreach (var (ph, env) in redisEnvMap)
+        {
+            var val = Environment.GetEnvironmentVariable(env);
+            if (!string.IsNullOrEmpty(val)) redisConn = redisConn.Replace(ph, val);
+        }
+        Log.Information("Redis 连接字符串已由环境变量覆盖：{Keys}",
+            string.Join(",", redisEnvMap
+                .Where(o => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(o.Env)))
+                .Select(o => o.Env)));
+    }
     var redisOk   = false;
 
     if (!string.IsNullOrWhiteSpace(redisConn))

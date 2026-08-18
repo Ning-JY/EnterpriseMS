@@ -4,7 +4,15 @@
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB_HOST": "192.168.1.100",
+        "DB_PORT": "3306",
+        "DB_NAME": "enterprise_db",
+        "DB_USER": "root",
+        "DB_PASSWORD": "123456",
+        "REDIS_HOST": "192.168.1.100",
+        "REDIS_PORT": "6379",
+        "REDIS_PASSWORD": "123456"
       },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5090"
@@ -14,7 +22,13 @@
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
+        "DB_HOST": "192.168.1.100",
+        "DB_PORT": "3306",
+        "DB_NAME": "enterprise_db",
+        "DB_USER": "root",
         "DB_PASSWORD": "123456",
+        "REDIS_HOST": "192.168.1.100",
+        "REDIS_PORT": "6379",
         "REDIS_PASSWORD": "123456"
       },
       "dotnetRunMessages": true,

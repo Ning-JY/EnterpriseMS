@@ -1,0 +1,44 @@
+# Docker 部署模板
+# 用法：
+#   1) cp .env.example .env   并按生产环境填写真实值
+#   2) docker compose up -d --build
+# compose 会自动读取同目录 .env 文件，把里面的变量注入为容器环境变量；
+# 程序启动时再用这些环境变量覆盖 appsettings 中的 ${...} 占位符。
+#
+# 变量名（与 appsettings 占位符、Program.cs 中读取的键一一对应，写死，改环境时只改值不改名）：
+#   DB_HOST  DB_PORT  DB_NAME  DB_USER  DB_PASSWORD
+#   REDIS_HOST  REDIS_PORT  REDIS_PASSWORD
+
+services:
+  app:
+    build: .
+    image: enterprisms:latest
+    container_name: enterprisms
+    ports:
+      - "5090:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    restart: unless-stopped
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: ems-redis
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - ems-redis-data:/data
+
+volumes:
+  ems-redis-data:
