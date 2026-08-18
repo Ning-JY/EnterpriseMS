@@ -1,0 +1,92 @@
+@{
+    ViewData["Title"] = "首页";
+    dynamic stats = ViewBag.Stats ?? new { total = 0, executing = 0, completed = 0, overdue = 0 };
+}
+
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-home"></i> 首页
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a><cite>工作台</cite></a>
+    </div>
+</div>
+
+<!-- 统计卡片 -->
+<div class="ems-stat-cards">
+    <div class="ems-stat-card">
+        <div class="label"><i class="layui-icon layui-icon-templeate-1"></i> 项目总数</div>
+        <div class="value layui-font-blue">@stats.total</div>
+    </div>
+    <div class="ems-stat-card">
+        <div class="label"><i class="layui-icon layui-icon-play"></i> 执行中项目</div>
+        <div class="value layui-font-green">@stats.executing</div>
+    </div>
+    <div class="ems-stat-card">
+        <div class="label"><i class="layui-icon layui-icon-flag"></i> 里程碑逾期</div>
+        <div class="value layui-font-orange">@stats.overdue</div>
+    </div>
+    <div class="ems-stat-card">
+        <div class="label"><i class="layui-icon layui-icon-ok-circle"></i> 已完成项目</div>
+        <div class="value layui-font-gray">@stats.completed</div>
+    </div>
+</div>
+
+<div class="layui-row layui-col-space14">
+    <!-- 快捷入口 -->
+    <div class="layui-col-md6">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">
+                <span>快捷入口</span>
+            </div>
+            <div class="layui-card-body">
+                <button type="button" class="layui-btn layui-btn-primary"
+                        data-tab="/project" data-tab-title="项目管理">
+                    <i class="layui-icon layui-icon-templeate-1"></i> 项目管理
+                </button>
+                <button type="button" class="layui-btn layui-btn-primary"
+                        data-tab="/hr/employee" data-tab-title="员工信息">
+                    <i class="layui-icon layui-icon-group"></i> 员工管理
+                </button>
+                <button type="button" class="layui-btn layui-btn-primary"
+                        data-tab="/system/user" data-tab-title="用户管理">
+                    <i class="layui-icon layui-icon-username"></i> 用户管理
+                </button>
+                <button type="button" class="layui-btn layui-btn-primary"
+                        data-tab="/report/receipt" data-tab-title="回款报表">
+                    <i class="layui-icon layui-icon-chart"></i> 回款报表
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统信息 -->
+    <div class="layui-col-md6">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">
+                <span>系统信息</span>
+            </div>
+            <div class="layui-card-body">
+                <div class="ems-info-list">
+                    <div class="ems-info-item"><span class="label">系统名称</span><span class="val"><strong>企业管理系统 v2.0</strong></span></div>
+                    <div class="ems-info-item"><span class="label">框架版本</span><span class="val">.NET 9.0 + EF Core 9 + layui 2.11</span></div>
+                    <div class="ems-info-item"><span class="label">当前用户</span><span class="val">@User.Identity?.Name</span></div>
+                    <div class="ems-info-item"><span class="label">服务器时间</span><span class="val">@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    // 快捷入口统一走主框架标签页
+    $(document).on('click', '[data-tab]', function () {
+        ems.openTab($(this).data('tab'), $(this).data('tab-title'));
+    });
+});
+</script>
+}

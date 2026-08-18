@@ -103,6 +103,22 @@ public class ContractService : IContractService
         return (c.FilePath, c.FileName ?? "合同附件");
     }
 
+    public async Task UpdateAsync(ContractUpdateDto dto, string operBy)
+    {
+        var c = await _uow.Contracts.GetByIdAsync(dto.Id);
+        if (c == null) throw new NotFoundException("合同不存在");
+        c.ContractNo   = dto.ContractNo;
+        c.ContractType = dto.ContractType;
+        c.StartDate    = dto.StartDate;
+        c.EndDate      = dto.EndDate;
+        c.SignDate     = dto.SignDate;
+        c.Status       = dto.Status;
+        c.Remark       = dto.Remark;
+        c.UpdatedBy    = operBy;
+        _uow.Contracts.Update(c);
+        await _uow.SaveChangesAsync();
+    }
+
     public async Task DeleteAsync(long id)
     {
         var ct = await _uow.Contracts.GetByIdAsync(id);

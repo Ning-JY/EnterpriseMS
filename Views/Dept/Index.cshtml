@@ -1,212 +1,139 @@
 @using EnterpriseMS.Common.Extensions
-@using EnterpriseMS.Services.DTOs.System
-@model List<DeptTreeDto>
 @inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
 @{
     ViewData["Title"] = "部门管理";
-    var userId = User.GetUserId();
+    var userId  = User.GetUserId();
     bool canAdd  = await PermSvc.HasPermAsync(userId, "sys:dept:add");
     bool canEdit = await PermSvc.HasPermAsync(userId, "sys:dept:edit");
     bool canDel  = await PermSvc.HasPermAsync(userId, "sys:dept:delete");
 }
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-sitemap mr-2"></i>部门管理</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item"><a href="/system">系统管理</a></li>
-                    <li class="breadcrumb-item active">部门管理</li>
-                </ol>
-            </div>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-console"></i> 部门管理
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>部门管理</cite></a>
     </div>
 </div>
 
-<section class="content"><div class="container-fluid">
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">部门树形结构</h3>
-        <div class="card-tools">
-            @if (canAdd)
-            {
-                <button class="btn btn-sm btn-success" onclick="openAddModal(0, '顶级部门')">
-                    <i class="fas fa-plus"></i> 新增顶级部门
+<!-- 搜索卡片：无头部、无字段名，仅控件；新增在右侧 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="deptSearch">
+            <div class="layui-inline">
+                <input type="text" name="Keyword" placeholder="部门名称 / 负责人"
+                       autocomplete="off" class="layui-input">
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="deptSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
                 </button>
-            }
-        </div>
-    </div>
-    <div class="card-body">
-        <table class="table table-hover table-sm">
-            <thead class="thead-light">
-                <tr><th>部门名称</th><th>负责人</th><th>联系电话</th><th>排序</th><th>状态</th><th>操作</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var dept in Model)
+            </div>
+            <div class="layui-inline ems-search-actions">
+                @if (canAdd)
                 {
-                    <tr class="table-light">
-                        <td><strong><i class="fas fa-building text-warning mr-2"></i>@dept.DeptName</strong></td>
-                        <td>@(dept.Leader ?? "-")</td>
-                        <td>@(dept.Phone ?? "-")</td>
-                        <td>@dept.Sort</td>
-                        <td><span class="badge badge-@(dept.Status==1?"success":"danger")">@(dept.Status==1?"正常":"停用")</span></td>
-                        <td>
-                            @if (canAdd)
-                            {
-                                <button class="btn btn-xs btn-outline-success" onclick="openAddModal(@dept.Id, '@EncodeHelper.SafeEncode(dept.DeptName)')">
-                                    <i class="fas fa-plus"></i> 新增子部门
-                                </button>
-                            }
-                            @if (canEdit)
-                            {
-                                <button class="btn btn-xs btn-info" onclick="openEditModal(@dept.Id, '@EncodeHelper.SafeEncode(dept.DeptName)', @dept.ParentId, '@EncodeHelper.SafeEncode(dept.Leader)', '@EncodeHelper.SafeEncode(dept.Phone)', @dept.Sort)">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            }
-                        </td>
-                    </tr>
-                    @foreach (var child in dept.Children)
-                    {
-                        <tr>
-                            <td style="padding-left:36px"><i class="fas fa-angle-right text-muted mr-1"></i>@child.DeptName</td>
-                            <td>@(child.Leader ?? "-")</td>
-                            <td>@(child.Phone ?? "-")</td>
-                            <td>@child.Sort</td>
-                            <td><span class="badge badge-@(child.Status==1?"success":"danger")">@(child.Status==1?"正常":"停用")</span></td>
-                            <td>
-                                @if (canEdit)
-                                {
-                                    <button class="btn btn-xs btn-info" onclick="openEditModal(@child.Id, '@EncodeHelper.SafeEncode(child.DeptName)', @child.ParentId, '@EncodeHelper.SafeEncode(child.Leader)', '@EncodeHelper.SafeEncode(child.Phone)', @child.Sort)">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                }
-                                @if (canDel)
-                                {
-                                    <button class="btn btn-xs btn-danger" onclick="deleteDept(@child.Id, '@EncodeHelper.SafeEncode(child.DeptName)')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                }
-                            </td>
-                        </tr>
-                    }
+                    <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                        <i class="layui-icon layui-icon-add-1"></i> 新增顶级部门
+                    </button>
                 }
-            </tbody>
-        </table>
+            </div>
+        </form>
     </div>
 </div>
-</div></section>
 
-<div class="modal fade" id="deptModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="deptModalTitle">新增部门</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+<!-- 列表卡片：筛选/导出在卡片头部 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>部门列表</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
+                <i class="layui-icon layui-icon-cols"></i> 筛选列
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnExport">
+                <i class="layui-icon layui-icon-export"></i> 导出
+            </button>
         </div>
-        <div class="modal-body">
-            <input type="hidden" id="deptId">
-            <input type="hidden" id="deptParentId">
-            <div class="form-group">
-                <label>上级部门</label>
-                <input type="text" id="parentName" class="form-control" readonly>
-            </div>
-            <div class="form-group">
-                <label>部门名称 <span class="text-danger">*</span></label>
-                <input type="text" id="deptName" class="form-control" maxlength="50">
-            </div>
-            <div class="row">
-                <div class="col-6">
-                    <div class="form-group">
-                        <label>负责人</label>
-                        <input type="text" id="deptLeader" class="form-control">
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="form-group">
-                        <label>联系电话</label>
-                        <input type="text" id="deptPhone" class="form-control">
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>排序</label>
-                <input type="number" id="deptSort" class="form-control" value="10">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary" onclick="saveDept()">保存</button>
-        </div>
-    </div></div>
+    </div>
+    <div class="layui-card-body">
+        <table id="deptTable" lay-filter="deptTable"></table>
+    </div>
 </div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="deptBar">
+    @if (canAdd)
+    {
+        <text>
+        <a class="ems-icon-btn add" title="新增子部门" lay-event="add"><i class="layui-icon layui-icon-add-circle"></i></a>
+        </text>
+    }
+    @if (canEdit)
+    {
+        <text>
+        <a class="ems-icon-btn edit" title="编辑" lay-event="edit"><i class="layui-icon layui-icon-edit"></i></a>
+        </text>
+    }
+    @if (canDel)
+    {
+        <text>
+        {{# if (!d.HasChildren) { }}
+        <a class="ems-icon-btn danger" title="删除" lay-event="del"><i class="layui-icon layui-icon-delete"></i></a>
+        {{# } }}
+        </text>
+    }
+</script>
 
 @section Scripts {
 <script>
-var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+ems.ready(function () {
 
-function openAddModal(parentId, parentName) {
-    $('#deptModalTitle').text('新增部门');
-    $('#deptId').val(''); $('#deptParentId').val(parentId);
-    $('#parentName').val(parentName || '顶级');
-    $('#deptName,#deptLeader,#deptPhone').val(''); $('#deptSort').val(10);
-    $('#deptModal').modal('show');
-}
+    var colsConfig = [
+        { field: 'DeptName',  title: '部门名称' },
+        { field: 'ParentName', title: '上级部门' },
+        { field: 'Leader',    title: '负责人', templet: function (d) { return d.Leader || '-'; } },
+        { field: 'Phone',     title: '联系电话', templet: function (d) { return d.Phone || '-'; } },
+        { field: 'Sort',      title: '排序', align: 'center' },
+        { field: 'Status',    title: '状态', align: 'center',
+          templet: ems.tpl.badge('Status', { 1: ['正常', 'green'], 0: ['停用', 'red'] }) },
+        { title: '操作', width: 170, align: 'center', toolbar: '#deptBar' }
+    ];
 
-function openEditModal(id, name, parentId, leader, phone, sort) {
-    $('#deptModalTitle').text('编辑部门');
-    $('#deptId').val(id); $('#deptParentId').val(parentId);
-    $('#deptName').val(name); $('#deptLeader').val(leader === 'null' ? '' : leader);
-    $('#deptPhone').val(phone === 'null' ? '' : phone); $('#deptSort').val(sort);
-    // 根据 parentId 精确查找上级部门名称（遍历所有编辑按钮的 onclick 属性匹配 id）
-    var parentName = '顶级';
-    if (parentId > 0) {
-        var $allEditBtns = $('button[onclick^="openEditModal("]');
-        $allEditBtns.each(function () {
-            var onclick = $(this).attr('onclick') || '';
-            var m = onclick.match(/^openEditModal\(\s*(\d+)\s*,/);
-            if (m && parseInt(m[1]) === parentId) {
-                parentName = $(this).closest('tr').find('td:first').clone().children().remove().end().text().trim() || '顶级';
-                return false;
+    ems.initTable({
+        elem: '#deptTable',
+        id:   'deptTable',
+        url:  '/system/dept/list',
+        cols: [colsConfig],
+
+        tool: {
+            add: function (d) {
+                ems.openAdd({ title: '新增子部门 - ' + d.DeptName, url: '/system/dept/form?parentId=' + d.Id });
+            },
+            edit: function (d) {
+                ems.openEdit({ title: '编辑部门 - ' + d.DeptName, url: '/system/dept/form?id=' + d.Id });
+            },
+            del: function (d) {
+                ems.del({ url: '/system/dept/delete/' + d.Id, name: d.DeptName, table: 'deptTable' });
             }
-        });
-        if (parentName === '顶级') {
-            // 兜底：从 treeList 中的同级子节点找父行
-            var $parentBtn = $('#treeList button[onclick*="openEditModal(' + parentId + ',"]');
-            if ($parentBtn.length) parentName = $parentBtn.closest('tr').find('td:first').text().replace(/\s+/g, '').trim() || '顶级';
-        }
-    }
-    $('#parentName').val(parentName);
-    $('#deptModal').modal('show');
-}
-
-function saveDept() {
-    var id = $('#deptId').val();
-    var data = {
-        Id: id, DeptName: $('#deptName').val(),
-        ParentId: parseInt($('#deptParentId').val()) || 0,
-        Leader: $('#deptLeader').val(), Phone: $('#deptPhone').val(),
-        Sort: parseInt($('#deptSort').val()) || 10
-    };
-    if (!data.DeptName) { ems.msg('请填写部门名称', {icon:2}); return; }
-    var url = id ? '/system/dept/update' : '/system/dept/create';
-    $.ajax({ url, type:'POST', contentType:'application/json',
-        headers:{'RequestVerificationToken': antiForgery},
-        data: JSON.stringify(data),
-        success: function(r) {
-            if (r.success) { $('#deptModal').modal('hide'); ems.msg('保存成功', {icon:1, time:1200}, ()=>location.reload()); }
-            else ems.msg(r.message, {icon:2});
         }
     });
-}
 
-function deleteDept(id, name) {
-    ems.confirm('确认删除部门 <b>' + name + '</b>？', {icon:3, btn:['确认','取消']}, function(i) {
-        ems.close(i);
-        $.post('/system/dept/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
-            ems.msg(r.message, {icon: r.success?1:2, time:1200}, function() { if(r.success) location.reload(); });
-        });
+    $('#btnAdd').on('click', function () {
+        ems.openAdd({ title: '新增顶级部门', url: '/system/dept/form' });
     });
-}
+
+    $('#btnFilter').on('click', function () {
+        ems.colFilter('deptTable', colsConfig);
+    });
+
+    $('#btnExport').on('click', function () {
+        ems.exportMenu('deptTable', '部门列表');
+    });
+
+    ems.bindSearch('deptSearch', 'deptTable');
+});
 </script>
 }

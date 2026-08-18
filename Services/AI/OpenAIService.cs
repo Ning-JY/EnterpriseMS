@@ -375,11 +375,55 @@ public class OpenAIService : IAIService
             }
         };
     }
-}
+    // ── 运行时 AI 配置读写（供 Debug 页面在线配置 / 测试）────
+    public async Task<AiConfigDto> GetConfigAsync()
+    {
+        if (File.Exists(AiConfigPath))
+        {
+            try
+            {
+                var json = await File.ReadAllTextAsync(AiConfigPath);
+                var dto = JsonSerializer.Deserialize<AiConfigDto>(
+                    json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (dto != null) return dto;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "读取 AI 配置文件失败");
+            }
+        }
+        return new AiConfigDto();
+    }
 
-public class AiConfigDto
-{
-    public string ApiKey { get; set; } = "";
-    public string BaseUrl { get; set; } = "https://api.openai.com/v1";
-    public string Model { get; set; } = "gpt-4o";
+    public async Task SaveConfigAsync(AiConfigDto cfg)
+    {
+        var dto = new AiConfigDto
+        {
+            ApiKey = cfg?.ApiKey ?? "",
+            BaseUrl = string.IsNullOrWhiteSpace(cfg?.BaseUrl) ? "https://api.openai.com/v1" : (cfg.BaseUrl ?? ""),
+            Model   = string.IsNullOrWhiteSpace(cfg?.Model)   ? "gpt-4o" : (cfg.Model ?? "")
+        };
+        var dir = Path.GetDirectoryName(AiConfigPath);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { WriteIndented = true });
+        await File.WriteAllTextAsync(AiConfigPath, json);
+    }
+
+    public async Task<string> TestConnectionAsync(string apiKey, string baseUrl, string model)
+    {
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new ArgumentException("API Key 不能为空");
+        baseUrl = string.IsNullOrWhiteSpace(baseUrl) ? "https://api.openai.com/v1" : baseUrl;
+        model   = string.IsNullOrWhiteSpace(model)   ? "gpt-4o" : model;
+
+        var kernel = BuildKernel(apiKey, baseUrl, model);
+        if (kernel == null)
+            throw new InvalidOperationException("无法初始化 AI 服务（请检查 API Key）");
+
+        var chat = kernel.GetRequiredService<IChatCompletionService>();
+        var history = new ChatHistory();
+        history.AddUserMessage("请只回复两个字：连通");
+        var response = await chat.GetChatMessageContentAsync(history);
+        return response.Content ?? "";
+    }
 }

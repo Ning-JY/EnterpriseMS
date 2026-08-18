@@ -10,7 +10,7 @@ public interface IProjectService
     Task<PagedResult<ProjectListDto>> GetPagedAsync(ProjectQueryDto query, long operUserId);
     Task<ProjectDetailDto?>           GetDetailAsync(long id, long operUserId);
     Dictionary<string, string>        BuildReportFieldValues(ProjectDetailDto p);
-    Task<Dictionary<string, string>>  BuildReportFieldValuesAsync(ProjectDetailDto p, TemplateInfoDto tpl, Dictionary<string, string>? manual);
+    Task<Dictionary<string, string>>  BuildReportFieldValuesAsync(string contextSource, string instanceId, TemplateInfoDto tpl, Dictionary<string, string>? manual);
     Task<long>                        CreateAsync(CreateProjectDto dto, string operBy);
     Task<long>                        QuickCreateAsync(QuickCreateProjectDto dto, string operBy);
     Task<List<ProjectSelectItemDto>>  GetSimpleListAsync();

@@ -1,0 +1,123 @@
+@using EnterpriseMS.Services.DTOs.System
+@model DeptTreeDto
+@{
+    var isEdit = Model != null;
+    var isDialog = Context.Request.Query["_dialog"] == "1";
+    ViewData["Title"] = isEdit ? "编辑部门" : "新增部门";
+    var options = ViewBag.DeptOptions as List<(long Id, string Name, int Depth)> ?? new List<(long, string, int)>();
+    var parentId = (long?)ViewBag.ParentId;
+}
+
+<div class="ems-page @(isDialog ? "ems-dialog" : "")">
+@if (!isDialog)
+{
+<div class="ems-page-head">
+    <div class="ems-page-title">@(isEdit ? "编辑部门" : "新增部门")</div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>@(isEdit ? "编辑" : "新增")</cite></a>
+    </div>
+</div>
+}
+
+<form class="layui-form" lay-filter="deptForm">
+<div class="layui-card ems-card">
+    <div class="layui-card-body">
+        <input type="hidden" name="Id" value="@(Model?.Id)">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">部门名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="DeptName" value="@Model?.DeptName" maxlength="50"
+                       lay-verify="required" placeholder="请输入部门名称" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">上级部门</label>
+            <div class="layui-input-block">
+                <select name="ParentId">
+                    <option value="0">顶级部门（无上级）</option>
+                    @foreach (var o in options)
+                    {
+                        var sel = (isEdit && Model != null && Model.ParentId == o.Id)
+                               || (!isEdit && parentId == o.Id);
+                        // 编辑时不能选自己作为上级
+                        var dis = isEdit && Model != null && Model.Id == o.Id;
+                        <option value="@o.Id" selected="@(sel ? "selected" : null)" disabled="@(dis ? "disabled" : null)">
+                            @(new string('　', o.Depth * 2))@o.Name
+                        </option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">负责人</label>
+            <div class="layui-input-block">
+                <input type="text" name="Leader" value="@Model?.Leader" maxlength="50"
+                       placeholder="请输入负责人" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">联系电话</label>
+            <div class="layui-input-block">
+                <input type="text" name="Phone" value="@Model?.Phone" maxlength="50"
+                       placeholder="请输入联系电话" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">排序</label>
+            <div class="layui-input-block">
+                <input type="number" name="Sort" value="@(Model?.Sort ?? 0)" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-block">
+                <input type="radio" name="Status" value="1" title="正常" @((Model == null || Model.Status == 1) ? "checked" : null)>
+                <input type="radio" name="Status" value="0" title="停用" @(Model != null && Model.Status == 0 ? "checked" : null)>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="ems-form-foot">
+    <button class="layui-btn" lay-submit lay-filter="deptForm">
+        <i class="layui-icon layui-icon-ok"></i> 保存
+    </button>
+    <button type="button" class="layui-btn layui-btn-primary" id="btnCancel">
+        <i class="layui-icon layui-icon-close"></i> 取消
+    </button>
+</div>
+</form>
+</div>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    var isEdit = @(isEdit ? "true" : "false");
+
+    ems.bindSubmit('deptForm', function (field) {
+        field.ParentId = Number(field.ParentId) || 0;
+        field.Sort = Number(field.Sort) || 0;
+        field.Status = (field.Status === "0" || field.Status === 0) ? 0 : 1;
+        if (isEdit) {
+            field.Id = Number(field.Id);
+        } else {
+            delete field.Id;
+        }
+        return {
+            url: isEdit ? '/system/dept/update' : '/system/dept/create',
+            data: field,
+            table: 'deptTable'
+        };
+    });
+
+    $('#btnCancel').on('click', function () { ems.closeSelf(); });
+});
+</script>
+}

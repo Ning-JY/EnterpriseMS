@@ -1,664 +1,468 @@
 @{
-    ViewData["Title"] = "模板配置";
     Layout = "_Layout";
 }
-
 @section Styles {
+    <style>
+        .cfg-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 14px 16px; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.06); margin-bottom: 14px; }
+        .cfg-toolbar .layui-form-item { margin-bottom: 0; }
+        .cfg-toolbar .cfg-name { width: 220px; }
+        .cfg-toolbar .cfg-cat { width: 160px; }
+        .cfg-toolbar .cfg-desc { flex: 1; min-width: 200px; }
+        .cfg-grid { display: grid; grid-template-columns: 260px 1fr 300px; gap: 14px; align-items: start; }
+        @@media (max-width: 1100px) { .cfg-grid { grid-template-columns: 1fr; } }
+        .cfg-panel { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.06); padding: 12px; }
+        .cfg-panel > h3 { margin: 0 0 10px; font-size: 15px; color: #0f172a; display: flex; align-items: center; gap: 6px; }
+        .cfg-panel > h3 small { font-weight: normal; color: #94a3b8; font-size: 12px; }
+        .palette-group { margin-bottom: 12px; }
+        .pg-title { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 6px; padding-left: 2px; }
+        .chip { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px; padding: 7px 9px; margin-bottom: 6px; cursor: grab; font-size: 13px; color: #334155; transition: .15s; user-select: none; }
+        .chip:hover { background: #e0f2fe; border-color: #0d6b64; color: #0d6b64; }
+        .chip small { display: block; color: #94a3b8; font-size: 11px; }
+        .chip:active { cursor: grabbing; }
+        .canvas-block { border: 1px solid #e2e8f0; border-left: 3px solid #cbd5e1; border-radius: 6px; padding: 9px 11px; margin-bottom: 8px; font-size: 13px; color: #334155; line-height: 1.6; cursor: default; transition: .15s; background: #fff; }
+        .canvas-block:hover { border-left-color: #0d6b64; }
+        .canvas-block.drop-hover { background: #ecfeff; border-color: #0d6b64; }
+        .canvas-block.bound { border-left-color: #0d6b64; background: #f0fdfa; }
+        .canvas-block .bound-badge { display: inline-block; margin-top: 6px; background: #0d6b64; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+        .canvas-block.table-row { border-left-color: #f59e0b; color: #92400e; background: #fffbeb; font-style: italic; }
+        .canvas-empty, .ems-empty { color: #94a3b8; text-align: center; padding: 24px 8px; font-size: 13px; }
+        .bind-item { border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font-size: 13px; }
+        .bind-item .bi-name { font-weight: 600; color: #0f172a; }
+        .bind-item .bi-meta { color: #64748b; font-size: 12px; margin-top: 2px; }
+        .bind-item .bi-actions { margin-top: 6px; }
+        .bind-item .layui-badge { margin-right: 4px; }
+        .preview-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; padding: 4px 0; border-bottom: 1px dashed #eef2f7; }
+        .preview-row .pv-key { color: #0d6b64; font-family: Consolas, monospace; }
+        .preview-row .pv-val { color: #475569; text-align: right; max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #fieldBindModal { display: none; padding: 16px; }
+        .drag-hint { font-size: 12px; color: #0d6b64; background: #ecfeff; border-radius: 6px; padding: 6px 10px; margin-bottom: 10px; }
+        .fb-substr-tip { font-size: 12px; color: #64748b; margin-top: 4px; line-height: 1.5; }
+        .fb-substr-tip strong { color: #0d6b64; }
+        #fbOriginalPreview { border: 1px dashed #cbd5e1; border-radius: 6px; padding: 8px 10px; font-size: 13px; color: #475569; line-height: 1.7; max-height: 150px; overflow: auto; white-space: pre-wrap; user-select: text; background: #f8fafc; }
+    </style>
 }
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0">模板配置</h1>
+<div class="cfg-toolbar">
+    <div class="layui-form-item cfg-name">
+        <label class="layui-form-label" style="width:auto;padding-left:0">模板名称</label>
+        <div class="layui-input-block" style="margin-left:0">
+            <input type="text" id="tplName" class="layui-input" placeholder="如：项目建议书" />
+        </div>
+    </div>
+    <div class="layui-form-item cfg-cat">
+        <label class="layui-form-label" style="width:auto;padding-left:0">分类</label>
+        <div class="layui-input-block" style="margin-left:0">
+            <input type="text" id="tplCategory" class="layui-input" list="categoryList" placeholder="报告/合同…" />
+            <datalist id="categoryList">
+                <option value="报告"></option><option value="合同"></option><option value="证书"></option>
+                <option value="通知"></option><option value="函"></option><option value="其他"></option>
+            </datalist>
+        </div>
+    </div>
+    <div class="layui-form-item cfg-desc">
+        <label class="layui-form-label" style="width:auto;padding-left:0">说明</label>
+        <div class="layui-input-block" style="margin-left:0">
+            <input type="text" id="tplDesc" class="layui-input" placeholder="模板用途简介" />
+        </div>
+    </div>
+    <button class="layui-btn layui-btn-normal" onclick="saveTemplate()"><i class="layui-icon">&#xe605;</i> 保存模板</button>
+    <button class="layui-btn layui-btn-primary" onclick="ems.openTab('/templatereport/manage','模板管理')">返回</button>
+</div>
+
+<div class="cfg-grid">
+    <!-- 左：字段调色板 -->
+    <div class="cfg-panel">
+        <h3>字段调色板 <small>拖拽到画布</small></h3>
+        <div class="drag-hint">把左侧字段拖到中间文档块上即可完成绑定</div>
+        <div id="palette"><div class="ems-empty">加载中…</div></div>
+    </div>
+
+    <!-- 中：文档画布 -->
+    <div class="cfg-panel">
+        <h3>模板画布 <small id="canvasSub">上传 Word 模板开始</small></h3>
+        <div id="fileRow" class="layui-form-item" style="margin-bottom:12px">
+            <input type="file" id="templateFile" accept=".docx" class="layui-input" onchange="uploadAndParse()" />
+        </div>
+        <div id="canvasWrap"><div class="canvas-empty">请先上传含真实正文的 Word 模板（如“建设单位：XXX 公司”），再把左侧字段拖到对应段落。</div></div>
+    </div>
+
+    <!-- 右：绑定列表 + 实时预览 -->
+    <div class="cfg-panel">
+        <h3>已绑定字段 <small id="bindCount">(0)</small></h3>
+        <div id="bindingList"><div class="ems-empty">尚未绑定字段</div></div>
+        <h3 style="margin-top:14px">实时预览 <small>占位符映射</small></h3>
+        <div id="livePreview"><div class="ems-empty">绑定后显示</div></div>
+    </div>
+</div>
+
+<!-- 绑定弹窗 -->
+<div id="fieldBindModal">
+    <div class="layui-form" lay-filter="bindForm">
+        <div class="layui-form-item">
+            <label class="layui-form-label">数据来源</label>
+            <div class="layui-input-block"><span id="fbSource" class="layui-form-mid"></span></div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">绑定键</label>
+            <div class="layui-input-block"><span id="fbKey" class="layui-form-mid"></span></div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">字段标题</label>
+            <div class="layui-input-block"><input type="text" id="fbLabel" class="layui-input" placeholder="显示给填写人的名称" /></div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">占位符名</label>
+            <div class="layui-input-block"><input type="text" id="fbName" class="layui-input" placeholder="英文/数字，用于 {{name}}" /></div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">文档原文</label>
+            <div class="layui-input-block">
+                <textarea id="fbOldText" class="layui-textarea" rows="2" placeholder="将被替换为占位符的 Word 原文"></textarea>
+                <div class="fb-substr-tip">默认填入整段原文。<strong>可手动删减为段落里的部分文字</strong>（子串局部替换）。也可在下方“原文预览”中<strong>用鼠标选中一段文字</strong>，再点“用选中文字”。</div>
             </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item">造价小工具</li>
-                    <li class="breadcrumb-item active">模板配置</li>
-                </ol>
+        </div>
+        <div class="layui-form-item" id="fbOriginalWrap" style="display:none">
+            <label class="layui-form-label">原文预览</label>
+            <div class="layui-input-block">
+                <div id="fbOriginalPreview"></div>
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-normal" id="btnUseSelection" style="margin-top:6px">用选中文字填入“文档原文”</button>
             </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">类型</label>
+            <div class="layui-input-block">
+                <select id="fbType">
+                    <option value="text">单行文本</option>
+                    <option value="textarea">多行文本</option>
+                    <option value="date">日期</option>
+                    <option value="select">下拉选择</option>
+                    <option value="image">图片</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">必填</label>
+            <div class="layui-input-block"><input type="checkbox" id="fbRequired" lay-skin="switch" checked /></div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">默认值</label>
+            <div class="layui-input-block"><input type="text" id="fbDefault" class="layui-input" /></div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">填写提示</label>
+            <div class="layui-input-block"><input type="text" id="fbHelp" class="layui-input" placeholder="选填" /></div>
         </div>
     </div>
 </div>
 
-<section class="content">
-    <div class="container-fluid">
-
-        @* 步骤指示器 *@
-        <div class="card card-outline card-primary mb-3">
-            <div class="card-body py-3">
-                <div class="step-indicator">
-                    <div class="step-dot active" id="step1Dot">1</div>
-                    <div class="step-dot" id="step2Dot">2</div>
-                    <div class="step-dot" id="step3Dot">3</div>
-                </div>
-                <div class="text-center text-muted small">
-                    <span id="step1Label" class="font-weight-bold">上传模板</span>
-                    <span class="mx-2">→</span>
-                    <span id="step2Label">标记替换</span>
-                    <span class="mx-2">→</span>
-                    <span id="step3Label">保存模板</span>
-                </div>
-            </div>
-        </div>
-
-        @* 步骤1: 上传模板 *@
-        <div id="step1" class="card">
-            <div class="card-header bg-info text-white">
-                <i class="fas fa-upload mr-1"></i>步骤1: 上传Word模板
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label>模板名称 <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="templateName" placeholder="请输入模板名称">
-                </div>
-                <div class="form-group">
-                    <label>模板描述</label>
-                    <textarea class="form-control" id="templateDescription" rows="2" placeholder="请输入模板描述"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>选择Word模板文件 <span class="text-danger">*</span></label>
-                    <div class="custom-file">
-                        <input type="file" class="custom-file-input" id="templateFile" accept=".docx">
-                        <label class="custom-file-label" for="templateFile">选择文件...</label>
-                    </div>
-                    <small class="form-text text-muted">支持.docx格式的Word文档。</small>
-                </div>
-                <button class="btn btn-primary" onclick="uploadAndParse()">
-                    <i class="fas fa-cloud-upload-alt mr-1"></i>上传并解析
-                </button>
-            </div>
-        </div>
-
-        @* 步骤2: 标记替换 *@
-        <div id="step2" class="card" style="display:none;">
-            <div class="card-header bg-info text-white d-flex justify-content-between">
-                <span><i class="fas fa-edit mr-1"></i>步骤2: 标记需要替换的内容</span>
-                <button class="btn btn-sm btn-light" onclick="goToStep(1)">
-                    <i class="fas fa-arrow-left mr-1"></i>返回
-                </button>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-7">
-                        <h6 class="text-muted mb-2">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            点击整段替换，或选中段内部分文字后再点击「设为占位符」进行精准替换
-                        </h6>
-                        <div id="templateContentList" class="border rounded p-2" style="max-height:500px;overflow-y:auto;">
-                            <div class="text-muted text-center py-3">加载中...</div>
-                        </div>
-                        <div class="mt-2 text-right">
-                            <button class="btn btn-outline-primary btn-sm" id="btnSetPlaceholder" onclick="setSelectedAsPlaceholder()" disabled>
-                                <i class="fas fa-marker mr-1"></i>设为占位符
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-5">
-                        <h6 class="text-muted mb-2">
-                            <i class="fas fa-exchange-alt mr-1"></i>替换规则列表
-                        </h6>
-                        <div id="replacementList" class="border rounded replacement-list p-2" style="max-height:380px;overflow-y:auto;">
-                            <div class="text-muted text-center py-3">请在左侧选择需要替换的内容</div>
-                        </div>
-                        <button class="btn btn-success mt-3 w-100" onclick="goToStep(3)" id="btnNextStep3" disabled>
-                            <i class="fas fa-arrow-right mr-1"></i>下一步：保存模板
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        @* 步骤3: 确认并保存模板 *@
-        <div id="step3" class="card" style="display:none;">
-            <div class="card-header bg-info text-white d-flex justify-content-between">
-                <span><i class="fas fa-save mr-1"></i>步骤3: 确认并保存模板</span>
-                <button class="btn btn-sm btn-light" onclick="goToStep(2)">
-                    <i class="fas fa-arrow-left mr-1"></i>返回
-                </button>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    系统将把您标记的内容替换为 <code>{{字段名}}</code> 格式的占位符，并保存为新模板。
-                </div>
-                <h6>替换预览:</h6>
-                <div id="replacementPreview" class="border rounded p-3 mb-3" style="max-height:300px;overflow-y:auto;">
-                </div>
-                <button class="btn btn-success btn-lg" onclick="saveTemplate()">
-                    <i class="fas fa-save mr-1"></i>保存模板
-                </button>
-            </div>
-        </div>
-
-    </div>
-</section>
-
-@* 字段名输入弹窗（支持整段/段内字符替换） *@
-<div class="modal fade" id="fieldNameModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="fas fa-marker mr-1"></i>设置字段映射</h5>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <div class="modal-body">
-                @* 替换模式切换 *@
-                <div class="form-group">
-                    <label class="font-weight-bold">替换方式</label>
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="custom-control custom-radio" id="modeFullGroup">
-                                <input type="radio" class="custom-control-input" id="modeFull" name="replaceMode" value="full" checked>
-                                <label class="custom-control-label" for="modeFull">
-                                    <i class="fas fa-align-justify mr-1 text-primary"></i>整段替换
-                                    <div class="small text-muted">整段文字替换为占位符</div>
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="custom-control custom-radio" id="modeInlineGroup">
-                                <input type="radio" class="custom-control-input" id="modeInline" name="replaceMode" value="inline">
-                                <label class="custom-control-label" for="modeInline">
-                                    <i class="fas fa-highlighter mr-1 text-success"></i>段内精准替换
-                                    <div class="small text-muted">仅替换段内选中的文字</div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <hr>
-
-                @* 段落预览 *@
-                <div class="form-group mb-1">
-                    <label class="small text-muted">段落原文</label>
-                    <div id="paraPreview" class="border rounded p-2 bg-light" style="font-size:13px;line-height:1.8;max-height:120px;overflow-y:auto;"></div>
-                </div>
-
-                @* 段内选中文本（仅 inline 模式显示）*@
-                <div class="form-group" id="inlinePreviewGroup" style="display:none;">
-                    <label class="small text-muted">将被替换的文字（高亮）</label>
-                    <div id="inlineSelectedDisplay" class="border rounded p-2 bg-white" style="font-size:13px;line-height:1.8;"></div>
-                </div>
-
-                <div class="form-group mb-0">
-                    <label>字段名 <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="fieldNameInput" placeholder="例如：项目名称、评审日期">
-                    <small class="form-text text-muted">生成占位符 {{字段名}}，生成报告时系统自动填充</small>
-                </div>
-                <div class="form-group mb-0">
-                    <label>字段标签（前端显示名）</label>
-                    <input type="text" class="form-control" id="fieldLabelInput" placeholder="与字段名相同则留空">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="confirmFieldName()">
-                    <i class="fas fa-check mr-1"></i>确认映射
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
+<script src="https://cdn.jsdelivr.net/npm/jszip@@3.10.1/dist/jszip.min.js"></script>
 @section Scripts {
-    <script>
-        let currentStep = 1;
-        let parsedContent = [];
-        let selectedItems = new Map();   // itemIndex -> item
-        let replacements = [];
-        let _pendingItemIndex = null;
-        let _templateFileBytes = null;   // 保留上传的模板文件字节（步骤3复用）
+<script>
+layui.use(['jquery', 'layer', 'form'], function () {
+    var $ = layui.jquery, layer = layui.layer, form = layui.form;
 
-        function goToStep(step) {
-            currentStep = step;
-            for (let i = 1; i <= 3; i++) {
-                document.getElementById('step' + i).style.display = i === step ? '' : 'none';
-                let dot = document.getElementById('step' + i + 'Dot');
-                let label = document.getElementById('step' + i + 'Label');
-                dot.className = 'step-dot';
-                label.className = '';
-                if (i < step) {
-                    dot.className = 'step-dot completed';
-                    dot.innerHTML = '<i class="fas fa-check"></i>';
-                } else if (i === step) {
-                    dot.className = 'step-dot active';
-                    label.className = 'font-weight-bold';
-                } else {
-                    dot.innerHTML = i;
-                }
-            }
-        }
+    var currentId = new URLSearchParams(location.search).get('id') || '';
+    var mode = currentId ? 'edit' : 'new';
+    var parsedContent = [];      // [{index,type,text}]
+    var replacements = [];       // 绑定对象
+    var _sources = [];           // /data-sources
+    var _file = null;
+    var _chip = null;            // 当前拖入的字段
+    var _editingIdx = -1;        // 编辑已有绑定时的下标
+    var _pendingBlock = null;
 
-        async function uploadAndParse() {
-            let name = document.getElementById('templateName').value.trim();
-            let fileInput = document.getElementById('templateFile');
-            let file = fileInput.files[0];
+    if (mode === 'edit') {
+        $('#fileRow').hide();
+        $('#canvasWrap').html('<div class="canvas-empty">编辑模式：调整字段后保存（保留原文档，仅更新字段配置）。</div>');
+        loadExisting(currentId);
+    } else {
+        loadSources();
+    }
 
-            if (!name) {
-                ems.msg('请输入模板名称', { icon: 2 });
-                return;
-            }
-            if (!file) {
-                ems.msg('请选择Word模板文件', { icon: 2 });
-                return;
-            }
-
-            let formData = new FormData();
-            formData.append('templateFile', file);
-            formData.append('TemplateName', name);
-            formData.append('TemplateDescription', document.getElementById('templateDescription').value);
-
-            try {
-                ems.loading(1);
-                let resp = await fetch('/templatereport/scan-placeholders', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ TemplateId: 'upload-temp' })
-                });
-
-                let reader = new FileReader();
-                reader.onload = async function(e) {
-                    let content = e.target.result;
-                    _templateFileBytes = content;   // 保留，供步骤3使用
-                    parsedContent = parseDocxContent(content);
-                    renderTemplateContent();
-                    goToStep(2);
-                    ems.closeAll();
+    function loadExisting(id) {
+        fetch('/templatereport/template/' + id).then(r => r.json()).then(function (j) {
+            if (!j || j.code !== 200 || !j.data) { layer.msg('加载模板失败', { icon: 2 }); return; }
+            var t = j.data;
+            $('#tplName').val(t.name); $('#tplDesc').val(t.description); $('#tplCategory').val(t.category || '');
+            replacements = (t.fields || []).map(function (f, i) {
+                return {
+                    id: i, blockIndex: -1, oldText: '', fieldName: f.name, fieldLabel: f.label,
+                    fieldSource: f.source, binding: f.binding || '', configKey: f.configKey || '',
+                    required: !!f.required, type: f.type || 'text',
+                    defaultValue: f.defaultValue || '', helpText: f.helpText || ''
                 };
-                reader.readAsArrayBuffer(file);
-            } catch (err) {
-                ems.closeAll();
-                ems.msg('解析失败: ' + err.message, { icon: 2 });
+            });
+            renderBindings(); renderPreview();
+        }).catch(function (e) { console.warn(e); });
+    }
+
+    function loadSources() {
+        fetch('/templatereport/data-sources').then(r => r.json()).then(function (j) {
+            if (!j || j.code !== 200 || !j.data) return;
+            _sources = j.data; renderPalette();
+        }).catch(function (e) { console.warn('加载字段来源失败', e); });
+    }
+
+    function sourceName(sid) {
+        var s = _sources.find(function (x) { return x.sourceId === sid; });
+        return s ? s.displayName : sid;
+    }
+
+    function renderPalette() {
+        var html = '';
+        _sources.forEach(function (s) {
+            if (s.sourceId === 'manual') {
+                html += '<div class="palette-group"><div class="pg-title">手动填写</div>' +
+                    '<div class="chip" draggable="true" data-source="manual" data-key="" data-label="手动字段">＋ 手动字段</div></div>';
+                return;
             }
-        }
+            var chips = (s.fields || []).map(function (f) {
+                return '<div class="chip" draggable="true" data-source="' + esc(s.sourceId) + '" data-key="' + esc(f.key) + '" data-label="' + esc(f.label) + '">' +
+                    esc(f.label) + '<small>' + esc(f.key) + '</small></div>';
+            }).join('');
+            html += '<div class="palette-group"><div class="pg-title">' + esc(s.displayName) + '</div>' + chips + '</div>';
+        });
+        $('#palette').html(html);
+    }
 
-        function parseDocxContent(arrayBuffer) {
-            let items = [];
-            try {
-                let zip = new JSZip();
-                let docXml = '';
-                let tables = [];
+    // 拖拽：调色板 → 画布块
+    $('#palette').on('dragstart', '.chip', function (e) {
+        var el = this;
+        e.originalEvent.dataTransfer.setData('text/plain', JSON.stringify({
+            source: el.getAttribute('data-source'),
+            key: el.getAttribute('data-key'),
+            label: el.getAttribute('data-label')
+        }));
+    });
 
-                zip.loadAsync(arrayBuffer).then(function(zip) {
-                    zip.file('word/document.xml').async('string').then(function(content) {
-                        let parser = new DOMParser();
-                        let xmlDoc = parser.parseFromString(content, 'text/xml');
-                        let body = xmlDoc.getElementsByTagName('w:body')[0];
-                        if (!body) return;
+    $('#canvasWrap').on('dragover', '.canvas-block', function (e) { e.preventDefault(); $(this).addClass('drop-hover'); });
+    $('#canvasWrap').on('dragleave', '.canvas-block', function () { $(this).removeClass('drop-hover'); });
+    $('#canvasWrap').on('drop', '.canvas-block', function (e) {
+        e.preventDefault(); $(this).removeClass('drop-hover');
+        var data;
+        try { data = JSON.parse(e.originalEvent.dataTransfer.getData('text/plain')); } catch (err) { return; }
+        openBindModal(parseInt(this.getAttribute('data-index')), data);
+    });
 
-                        let children = body.childNodes;
-                        let itemIndex = 0;
+    function uploadAndParse() {
+        var file = document.getElementById('templateFile').files[0];
+        if (!file) return;
+        _file = file;
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            parseDocxContent(e.target.result).then(function (blocks) {
+                parsedContent = blocks;
+                renderCanvas();
+                $('#canvasSub').text('共 ' + blocks.length + ' 个段落');
+                layer.msg('已解析 ' + blocks.length + ' 个段落，拖入字段完成绑定', { icon: 1 });
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    }
 
-                        for (let i = 0; i < children.length; i++) {
-                            let node = children[i];
-                            if (node.nodeName === 'w:p') {
-                                let text = getParagraphText(node);
-                                if (text.trim()) {
-                                    items.push({
-                                        index: itemIndex++,
-                                        type: 'paragraph',
-                                        text: text.trim(),
-                                        node: node
-                                    });
-                                }
-                            } else if (node.nodeName === 'w:tbl') {
-                                let rows = node.getElementsByTagName('w:tr');
-                                for (let r = 0; r < rows.length; r++) {
-                                    let cells = rows[r].getElementsByTagName('w:tc');
-                                    let rowTexts = [];
-                                    for (let c = 0; c < cells.length; c++) {
-                                        let cellText = getCellText(cells[c]);
-                                        if (cellText.trim()) rowTexts.push(cellText.trim());
-                                    }
-                                    if (rowTexts.length > 0) {
-                                        items.push({
-                                            index: itemIndex++,
-                                            type: 'table-row',
-                                            text: rowTexts.join(' | '),
-                                            cells: rowTexts
-                                        });
-                                    }
-                                }
-                            }
-                        }
-
-                        parsedContent = items;
-                        renderTemplateContent();
-                    });
-                });
-            } catch (err) {
-                console.error('解析错误:', err);
-                parsedContent = [{ index: 0, type: 'error', text: '解析失败: ' + err.message }];
-                renderTemplateContent();
+    function parseDocxContent(arrayBuffer) {
+        return JSZip.loadAsync(arrayBuffer).then(function (zip) {
+            return zip.file('word/document.xml').async('string');
+        }).then(function (xml) {
+            var doc = new DOMParser().parseFromString(xml, 'application/xml');
+            var body = doc.getElementsByTagName('w:body')[0];
+            var items = [], idx = 0;
+            if (!body) return items;
+            for (var i = 0; i < body.children.length; i++) {
+                var node = body.children[i];
+                var tag = node.tagName || '';
+                if (tag === 'w:p') {
+                    var txt = collectText(node);
+                    if (txt.trim()) items.push({ index: idx++, type: 'paragraph', text: txt.trim() });
+                } else if (tag === 'w:tbl') {
+                    var rows = node.getElementsByTagName('w:tr');
+                    for (var r = 0; r < rows.length; r++) {
+                        var rtxt = collectText(rows[r]);
+                        if (rtxt.trim()) items.push({ index: idx++, type: 'table-row', text: rtxt.trim() });
+                    }
+                }
             }
             return items;
-        }
-
-        function getParagraphText(paraNode) {
-            let text = '';
-            let runs = paraNode.getElementsByTagName('w:r');
-            for (let r = 0; r < runs.length; r++) {
-                let tNodes = runs[r].getElementsByTagName('w:t');
-                for (let t = 0; t < tNodes.length; t++) {
-                    text += tNodes[t].textContent;
-                }
-            }
-            return text;
-        }
-
-        function getCellText(cellNode) {
-            let paras = cellNode.getElementsByTagName('w:p');
-            let text = '';
-            for (let p = 0; p < paras.length; p++) {
-                text += getParagraphText(paras[p]);
-                if (p < paras.length - 1) text += ' ';
-            }
-            return text;
-        }
-
-        // ── 渲染模板内容列表（每段可点击） ────────────────────────
-        function renderTemplateContent() {
-            let html = '';
-            for (let item of parsedContent) {
-                let isSelected = selectedItems.has(item.index);
-                let typeLabel = item.type === 'paragraph' ? '段落' : '表格行';
-                let typeIcon = item.type === 'paragraph' ? 'fa-align-left' : 'fa-table';
-                // 如果已有占位符映射，渲染时高亮显示被替换文字
-                let repl = replacements.find(r => r.index === item.index);
-                let displayText = item.text;
-                if (repl && repl.source === 'inline') {
-                    displayText = escapeHtml(
-                        item.text.substring(0, repl.startIndex)
-                        + '<mark class="bg-yellow">' + escapeHtml(item.text.substring(repl.startIndex, repl.endIndex)) + '</mark>'
-                        + item.text.substring(repl.endIndex)
-                    );
-                } else if (repl && repl.source === 'full') {
-                    displayText = '<span class="text-danger text-decoration-line-through">' + escapeHtml(item.text) + '</span> → <code>{{' + escapeHtml(repl.fieldName) + '}}</code>';
-                } else {
-                    displayText = escapeHtml(item.text.length > 150 ? item.text.substring(0, 150) + '…' : item.text);
-                }
-                html += `<div class="template-content-item ${isSelected ? 'selected' : ''}"
-                              data-index="${item.index}">
-                    <div class="d-flex align-items-start justify-content-between">
-                        <div class="flex-grow-1">
-                            <span class="item-type"><i class="fas ${typeIcon} mr-1"></i>${typeLabel}</span>
-                            <div class="item-text mt-1" style="font-size:13px;line-height:1.6;">${displayText}</div>
-                        </div>
-                        <div class="ml-2">
-                            <button class="btn btn-xs btn-outline-primary" onclick="toggleItem(${item.index})">
-                                ${isSelected ? '<i class="fas fa-times"></i> 取消' : '<i class="fas fa-plus"></i> 选择'}
-                            </button>
-                        </div>
-                    </div>
-                </div>`;
-            }
-            if (!html) html = '<div class="text-muted text-center py-3">未解析到内容</div>';
-            document.getElementById('templateContentList').innerHTML = html;
-        }
-
-        // ── 点击段落：选择（弹出映射弹窗） ──────────────────────────
-        function toggleItem(index) {
-            let item = parsedContent.find(i => i.index === index);
-            if (!item) return;
-
-            // 取消选择
-            if (selectedItems.has(index)) {
-                selectedItems.delete(index);
-                replacements = replacements.filter(r => r.index !== index);
-                renderTemplateContent();
-                renderReplacementList();
-                updatePlaceholderBtn();
-                return;
-            }
-
-            // 打开弹窗准备映射
-            _pendingItemIndex = index;
-            openFieldModal(item, null);
-        }
-
-        // ── 「设为占位符」按钮：基于浏览器选中文字再弹窗 ─────────────
-        function setSelectedAsPlaceholder() {
-            let sel = window.getSelection();
-            if (!sel || sel.isCollapsed || !sel.rangeCount) {
-                ems.msg('请先用鼠标在左侧选中一段文字', { icon: 0 }); return;
-            }
-            let anchorItem = findItemByRange(sel.getRangeAt(0));
-            if (!anchorItem) {
-                ems.msg('请先在左侧列表中选择一个段落', { icon: 0 }); return;
-            }
-            _pendingItemIndex = anchorItem.index;
-            openFieldModal(anchorItem, sel);
-        }
-
-        // ── 找到选中范围对应的段落 item ─────────────────────────────
-        function findItemByRange(range) {
-            let container = document.getElementById('templateContentList');
-            let nodes = container.querySelectorAll('.template-content-item');
-            for (let div of nodes) {
-                let idx = parseInt(div.dataset.index);
-                let itemDiv = div.querySelector('.item-text');
-                if (itemDiv && itemDiv.contains(range.commonAncestorContainer)) {
-                    return parsedContent.find(i => i.index === idx);
-                }
-            }
-            return null;
-        }
-
-        // ── 打开字段映射弹窗 ───────────────────────────────────────
-        function openFieldModal(item, sel) {
-            let mode = sel ? 'inline' : 'full';
-            document.getElementById('modeFull').checked = (mode === 'full');
-            document.getElementById('modeInline').checked = (mode === 'inline');
-
-            // 显示段落原文（inline 模式下高亮选中文字）
-            let selText = '';
-            if (sel && !sel.isCollapsed) {
-                selText = sel.toString();
-                let combinedText = item.text;
-                let startIdx = combinedText.indexOf(selText);
-                if (startIdx < 0) selText = sel.toString().trim();
-            }
-
-            // 渲染段落预览
-            let paraHtml = escapeHtml(item.text);
-            if (mode === 'inline' && selText) {
-                let idx = item.text.indexOf(selText);
-                if (idx >= 0) {
-                    paraHtml = escapeHtml(item.text.substring(0, idx))
-                        + '<mark class="bg-yellow" style="padding:0 2px;border-radius:3px;">' + escapeHtml(selText) + '</mark>'
-                        + escapeHtml(item.text.substring(idx + selText.length));
-                }
-            }
-            document.getElementById('paraPreview').innerHTML = paraHtml;
-
-            // 段内选中文本
-            let inlineGroup = document.getElementById('inlinePreviewGroup');
-            if (mode === 'inline' && selText) {
-                inlineGroup.style.display = '';
-                document.getElementById('inlineSelectedDisplay').innerHTML = '<mark class="bg-yellow px-1 rounded">' + escapeHtml(selText) + '</mark>';
-            } else {
-                inlineGroup.style.display = 'none';
-            }
-
-            document.getElementById('fieldNameInput').value = '';
-            document.getElementById('fieldLabelInput').value = '';
-            $('#fieldNameModal').modal('show');
-        }
-
-        // ── 更新「设为占位符」按钮状态 ─────────────────────────────
-        function updatePlaceholderBtn() {
-            let sel = window.getSelection();
-            let enabled = sel && !sel.isCollapsed && sel.rangeCount > 0
-                && document.getElementById('templateContentList').contains(sel.getRangeAt(0)?.commonAncestorContainer);
-            document.getElementById('btnSetPlaceholder').disabled = !enabled;
-        }
-
-        function confirmFieldName() {
-            let fieldName = document.getElementById('fieldNameInput').value.trim();
-            let fieldLabel = document.getElementById('fieldLabelInput').value.trim() || fieldName;
-            let index = _pendingItemIndex;
-            let item = parsedContent.find(i => i.index === index);
-            if (!item) return;
-
-            if (!fieldName) { ems.msg('请输入字段名', { icon: 2 }); return; }
-            if (replacements.some(r => r.fieldName === fieldName && r.index !== index)) {
-                ems.msg('字段名已存在，请使用其他名称', { icon: 2 }); return;
-            }
-
-            let mode = document.querySelector('input[name="replaceMode"]:checked').value;
-            let oldText = item.text;
-            let startIndex = 0, endIndex = oldText.length;
-
-            // inline 模式：从浏览器选中获取起止位置
-            if (mode === 'inline') {
-                let sel = window.getSelection();
-                if (sel && !sel.isCollapsed) {
-                    let selText = sel.toString().trim();
-                    startIndex = oldText.indexOf(selText);
-                    if (startIndex < 0) { ems.msg('选中的文字与段落原文不匹配，请重新选择', { icon: 2 }); return; }
-                    endIndex = startIndex + selText.length;
-                } else {
-                    ems.msg('段内精准替换需先用鼠标选中要替换的文字', { icon: 2 }); return;
-                }
-            }
-
-            // 移除旧的同名或同名替换
-            replacements = replacements.filter(r => r.index !== index);
-            selectedItems.set(index, item);
-            replacements.push({
-                index: index,
-                oldText: oldText,
-                fieldName: fieldName,
-                fieldLabel: fieldLabel,
-                source: mode,   // 'full' | 'inline'
-                startIndex: startIndex,
-                endIndex: endIndex
-            });
-
-            // 清空浏览器选中
-            window.getSelection().removeAllRanges();
-            $('#fieldNameModal').modal('hide');
-            renderTemplateContent();
-            renderReplacementList();
-            updatePlaceholderBtn();
-        }
-
-        function renderReplacementList() {
-            let html = '';
-            for (let r of replacements) {
-                let modeLabel = r.source === 'inline' ? '<span class="badge badge-success ml-1" style="font-size:10px;">段内</span>' : '<span class="badge badge-primary ml-1" style="font-size:10px;">整段</span>';
-                let oldDisplay = r.source === 'inline'
-                    ? escapeHtml(r.oldText.substring(r.startIndex, r.endIndex))
-                    : escapeHtml(r.oldText.substring(0, Math.min(r.oldText.length, 30)) + (r.oldText.length > 30 ? '…' : ''));
-                html += `<div class="replacement-item">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="flex-grow-1" style="min-width:0;">
-                            <div class="small text-muted" style="text-decoration:line-through;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(r.oldText)}">
-                                ${oldDisplay}
-                            </div>
-                            <div class="font-weight-bold text-primary" style="font-size:12px;">
-                                {{${escapeHtml(r.fieldName)}}}
-                                ${modeLabel}
-                            </div>
-                        </div>
-                        <button class="btn btn-sm btn-outline-danger ml-2" onclick="removeReplacement(${r.index})" style="flex-shrink:0;">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                </div>`;
-            }
-            if (!html) html = '<div class="text-muted text-center py-3">请在左侧选择需要替换的内容</div>';
-            document.getElementById('replacementList').innerHTML = html;
-            document.getElementById('btnNextStep3').disabled = replacements.length === 0;
-        }
-
-        function removeReplacement(index) {
-            selectedItems.delete(index);
-            replacements = replacements.filter(r => r.index !== index);
-            renderTemplateContent();
-            renderReplacementList();
-            updatePlaceholderBtn();
-        }
-
-        function goToStep3() {
-            if (replacements.length === 0) {
-                ems.msg('请至少标记一个替换项', { icon: 2 });
-                return;
-            }
-
-            let html = '';
-            for (let r of replacements) {
-                html += `<div class="d-flex align-items-center mb-2">
-                    <span class="text-danger text-decoration-line-through mr-2" style="flex:1;">${escapeHtml(r.oldText.substring(0, 50))}</span>
-                    <i class="fas fa-arrow-right text-success mx-2"></i>
-                    <span class="text-success font-weight-bold" style="flex:1;">{{${escapeHtml(r.fieldName)}}}</span>
-                </div>`;
-            }
-            document.getElementById('replacementPreview').innerHTML = html;
-            goToStep(3);
-        }
-
-        async function saveTemplate() {
-            let name = document.getElementById('templateName').value.trim();
-            let fileInput = document.getElementById('templateFile');
-            let file = fileInput.files[0];
-
-            if (!name || !file) {
-                ems.msg('请完善模板信息', { icon: 2 });
-                return;
-            }
-
-            let formData = new FormData();
-            formData.append('templateFile', file);
-            formData.append('TemplateName', name);
-            formData.append('TemplateDescription', document.getElementById('templateDescription').value);
-
-            for (let i = 0; i < replacements.length; i++) {
-                formData.append(`Replacements[${i}].OldText`, replacements[i].oldText);
-                formData.append(`Replacements[${i}].FieldName`, replacements[i].fieldName);
-                formData.append(`Replacements[${i}].FieldLabel`, replacements[i].fieldLabel);
-                formData.append(`Replacements[${i}].Source`, replacements[i].source || 'full');
-                formData.append(`Replacements[${i}].StartIndex`, replacements[i].startIndex || 0);
-                formData.append(`Replacements[${i}].EndIndex`, replacements[i].endIndex || replacements[i].oldText.length);
-            }
-
-            try {
-                ems.loading(1);
-                let resp = await fetch('/templatereport/configure-template', {
-                    method: 'POST',
-                    body: formData
-                });
-                let result = await resp.json();
-                ems.closeAll();
-
-                if (result.code === 200) {
-                    ems.msg('模板保存成功，', { icon: 1 });
-                    setTimeout(() => {
-                        window.location.href = '/templatereport/index';
-                    }, 1500);
-                } else {
-                    ems.msg(result.message || '保存失败', { icon: 2 });
-                }
-            } catch (err) {
-                ems.closeAll();
-                ems.msg('保存失败: ' + err.message, { icon: 2 });
-            }
-        }
-
-        function escapeHtml(str) {
-            return String(str).replace(/[&<>"']/g, m => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-            })[m]);
-        }
-
-        document.getElementById('templateFile').addEventListener('change', function(e) {
-            let fileName = e.target.files[0] ? e.target.files[0].name : '选择文件...';
-            $(this).next('.custom-file-label').html(fileName);
         });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+    }
+    function collectText(node) {
+        var out = '';
+        var ts = node.getElementsByTagName('w:t');
+        for (var i = 0; i < ts.length; i++) out += ts[i].textContent;
+        return out;
+    }
+
+    function renderCanvas() {
+        if (!parsedContent.length) { $('#canvasWrap').html('<div class="canvas-empty">未解析到段落</div>'); return; }
+        var boundIdx = {};
+        replacements.forEach(function (r) { if (r.blockIndex >= 0) boundIdx[r.blockIndex] = r; });
+        var html = '';
+        parsedContent.forEach(function (b) {
+            var cls = 'canvas-block' + (b.type === 'table-row' ? ' table-row' : '');
+            var badge = '';
+            if (boundIdx[b.index]) {
+                cls += ' bound';
+                badge = '<span class="bound-badge">{{' + esc(boundIdx[b.index].fieldName) + '}}</span>';
+            }
+            var note = b.type === 'table-row' ? ' <small style="color:#b45309">（表格行·仅展示）</small>' : '';
+            html += '<div class="' + cls + '" data-index="' + b.index + '">' + esc(b.text) + note + badge + '</div>';
+        });
+        $('#canvasWrap').html(html);
+    }
+
+    function openBindModal(blockIndex, chip) {
+        _chip = chip; _pendingBlock = blockIndex; _editingIdx = -1;
+        var block = parsedContent[blockIndex];
+        $('#fbSource').text(sourceName(chip.source));
+        $('#fbKey').text(chip.source === 'manual' ? '（手动填写）' : chip.key);
+        $('#fbLabel').val(chip.source === 'manual' ? '手动字段' : chip.label);
+        $('#fbName').val(chip.source === 'manual' ? '' : chip.key);
+        $('#fbOldText').val(block ? block.text : '');
+        $('#fbOriginalPreview').text(block ? block.text : '');
+        $('#fbOriginalWrap').toggle(!!block);
+        $('#fbType').val('text');
+        $('#fbRequired').prop('checked', true);
+        $('#fbDefault').val(''); $('#fbHelp').val('');
+        form.render();
+        layer.open({ type: 1, title: '绑定字段', area: ['520px', 'auto'], content: $('#fieldBindModal'),
+            btn: ['确定', '取消'], yes: function (idx) { confirmBind(idx); }, btn2: function (idx) { layer.close(idx); } });
+    }
+
+    function editBinding(idx) {
+        var r = replacements[idx]; _chip = { source: r.fieldSource, key: r.binding || r.configKey, label: r.fieldLabel };
+        _pendingBlock = r.blockIndex; _editingIdx = idx;
+        $('#fbSource').text(sourceName(r.fieldSource));
+        $('#fbKey').text(r.fieldSource === 'manual' ? '（手动填写）' : (r.binding || r.configKey || ''));
+        $('#fbLabel').val(r.fieldLabel); $('#fbName').val(r.fieldName);
+        $('#fbOldText').val(r.oldText); $('#fbType').val(r.type || 'text');
+        $('#fbOriginalPreview').text(r.oldText || '');
+        $('#fbOriginalWrap').show();
+        $('#fbRequired').prop('checked', r.required); $('#fbDefault').val(r.defaultValue || ''); $('#fbHelp').val(r.helpText || '');
+        form.render();
+        layer.open({ type: 1, title: '编辑字段', area: ['520px', 'auto'], content: $('#fieldBindModal'),
+            btn: ['确定', '取消'], yes: function (i2) { confirmBind(i2); }, btn2: function (i2) { layer.close(i2); } });
+    }
+
+    function confirmBind(idx) {
+        var name = $('#fbName').val().trim();
+        var label = $('#fbLabel').val().trim() || name;
+        if (!name) { layer.msg('请填写占位符名', { icon: 2 }); return; }
+        name = sanitizeName(name);
+        if (replacements.some(function (r, i) { return r.fieldName === name && i !== _editingIdx; })) { layer.msg('占位符名重复', { icon: 2 }); return; }
+        var isConfig = _chip.source === 'config';
+        var rep = {
+            id: _editingIdx >= 0 ? replacements[_editingIdx].id : Date.now(),
+            blockIndex: _editingIdx >= 0 ? replacements[_editingIdx].blockIndex : (_pendingBlock != null ? _pendingBlock : -1),
+            oldText: $('#fbOldText').val(),
+            fieldName: name, fieldLabel: label,
+            fieldSource: _chip.source,
+            binding: isConfig ? '' : (_chip.key || ''),
+            configKey: isConfig ? (_chip.key || '') : '',
+            required: $('#fbRequired').is(':checked'),
+            type: $('#fbType').val(),
+            defaultValue: $('#fbDefault').val(),
+            helpText: $('#fbHelp').val()
+        };
+        if (_editingIdx >= 0) replacements[_editingIdx] = rep; else replacements.push(rep);
+        layer.close(idx);
+        renderCanvas(); renderBindings(); renderPreview();
+    }
+
+    function removeBinding(idx) {
+        replacements.splice(idx, 1);
+        renderCanvas(); renderBindings(); renderPreview();
+    }
+
+    function renderBindings() {
+        $('#bindCount').text('(' + replacements.length + ')');
+        if (!replacements.length) { $('#bindingList').html('<div class="ems-empty">尚未绑定字段</div>'); return; }
+        var html = replacements.map(function (r, i) {
+            var src = r.fieldSource === 'manual' ? '手动' : (r.fieldSource === 'config' ? '配置' : sourceName(r.fieldSource));
+            return '<div class="bind-item">' +
+                '<div class="bi-name">{{' + esc(r.fieldName) + '}}</div>' +
+                '<div class="bi-meta">' + esc(r.fieldLabel) + ' · <span class="layui-badge layui-bg-blue">' + esc(src) + '</span>' +
+                (r.required ? '<span class="layui-badge">必填</span>' : '') + '</div>' +
+                '<div class="bi-actions">' +
+                '<a class="layui-btn layui-btn-xs" onclick="editBinding(' + i + ')">编辑</a>' +
+                '<a class="layui-btn layui-btn-xs layui-btn-danger" onclick="removeBinding(' + i + ')">删除</a></div></div>';
+        }).join('');
+        $('#bindingList').html(html);
+    }
+
+    function renderPreview() {
+        if (!replacements.length) { $('#livePreview').html('<div class="ems-empty">绑定后显示</div>'); return; }
+        var html = replacements.map(function (r) {
+            return '<div class="preview-row"><span class="pv-key">{{' + esc(r.fieldName) + '}}</span>' +
+                '<span class="pv-val">' + esc(r.oldText || '—') + '</span></div>';
+        }).join('');
+        $('#livePreview').html(html);
+    }
+
+    function saveTemplate() {
+        var name = $('#tplName').val().trim();
+        if (!name) { layer.msg('请填写模板名称', { icon: 2 }); return; }
+        if (!replacements.length) { layer.msg('请至少绑定一个字段', { icon: 2 }); return; }
+        if (mode === 'new' && !_file) { layer.msg('请上传 Word 模板', { icon: 2 }); return; }
+
+        var fd = new FormData();
+        if (mode === 'edit') fd.append('TemplateId', currentId);
+        fd.append('TemplateName', name);
+        fd.append('TemplateDescription', $('#tplDesc').val());
+        fd.append('Category', $('#tplCategory').val());
+        if (_file) fd.append('templateFile', _file);
+        for (var i = 0; i < replacements.length; i++) {
+            var r = replacements[i];
+            fd.append('Replacements[' + i + '].OldText', r.oldText);
+            fd.append('Replacements[' + i + '].FieldName', r.fieldName);
+            fd.append('Replacements[' + i + '].FieldLabel', r.fieldLabel);
+            fd.append('Replacements[' + i + '].Source', 'full');
+            fd.append('Replacements[' + i + '].FieldSource', r.fieldSource);
+            fd.append('Replacements[' + i + '].Binding', r.binding || '');
+            fd.append('Replacements[' + i + '].ConfigKey', r.configKey || '');
+            fd.append('Replacements[' + i + '].Required', r.required ? 'true' : 'false');
+            fd.append('Replacements[' + i + '].Type', r.type || 'text');
+            fd.append('Replacements[' + i + '].DefaultValue', r.defaultValue || '');
+            fd.append('Replacements[' + i + '].HelpText', r.helpText || '');
+            fd.append('Replacements[' + i + '].StartIndex', 0);
+            fd.append('Replacements[' + i + '].EndIndex', (r.oldText || '').length);
+        }
+        var load = layer.load(2);
+        fetch('/templatereport/configure-template', {
+            method: 'POST', headers: { 'RequestVerificationToken': getAntiForgeryToken() }, body: fd
+        }).then(function (r) { return r.json(); }).then(function (j) {
+            layer.close(load);
+            if (j && (j.code === 200 || j.success)) { layer.msg('模板已保存', { icon: 1 }); setTimeout(function () { ems.openTab('/templatereport/manage', '模板管理'); }, 1200); }
+            else layer.msg((j && j.message) || '保存失败', { icon: 2 });
+        }).catch(function (e) { layer.close(load); layer.msg('保存失败：' + e, { icon: 2 }); });
+    }
+
+    function getAntiForgeryToken() {
+        var t = document.querySelector('input[name="__RequestVerificationToken"]');
+        if (!t && window.parent !== window) { try { t = window.parent.document.querySelector('input[name="__RequestVerificationToken"]'); } catch (e) { } }
+        return (t && t.value) || '';
+    }
+    function sanitizeName(s) { return s.replace(/\s+/g, '_').replace(/[^\w一-龥]/g, ''); }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+    // —— 子串替换辅助：在“原文预览”中框选文字，点按钮填入“文档原文” ——
+    var _lastSel = '';
+    $('#fbOriginalPreview').on('mouseup', function () {
+        var s = (window.getSelection ? window.getSelection().toString() : '') || '';
+        if (s && s.trim()) _lastSel = s;
+    });
+    $('#btnUseSelection').on('click', function () {
+        var s = _lastSel || (window.getSelection ? window.getSelection().toString() : '') || '';
+        s = (s || '').trim();
+        if (!s) { layer.msg('请先在上方“原文预览”中用鼠标选中一段文字', { icon: 2 }); return; }
+        $('#fbOldText').val(s);
+        layer.msg('已填入选中文字（子串替换）', { icon: 1 });
+    });
+
+    // 暴露给内联 onclick
+    window.saveTemplate = saveTemplate;
+    window.uploadAndParse = uploadAndParse;
+    window.editBinding = editBinding;
+    window.removeBinding = removeBinding;
+});
+</script>
 }

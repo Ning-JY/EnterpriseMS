@@ -1,0 +1,616 @@
+/* ==========================================================================
+   EnterpriseMS 全站样式
+   --------------------------------------------------------------------------
+   重构期约定：
+     · 业务页面尽量零自定义样式，只用 layui 原生 class
+     · 本文件只保留「主框架布局必需」+「列表页标准样式（参考 index.html 设计稿）」
+     · 全站配色：主色 青绿 #0d6b64 / 侧栏 深石板灰 #0f172a / 底 #f0f2f5
+   ========================================================================== */
+
+/* ── 主框架：单页内容区撑满 ─────────────────────────────── */
+.layui-layout-admin .layui-body {
+    bottom: 44px;
+    overflow: hidden;
+    /* 覆盖 layui 默认 .layui-body{padding-bottom:44px}：
+       否则内容区被顶高 44px，页脚上方露出一条白色边框（body 底色）。 */
+    padding-bottom: 0;
+}
+
+.ems-content {
+    height: 100%;
+}
+
+.ems-content iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* ── 主框架：侧边栏收起以腾出空间 ─────────────────────────── */
+.ems-side-hide .layui-side { left: -200px; }
+.ems-side-hide .layui-body,
+.ems-side-hide .layui-footer { left: 0; }
+.ems-side-hide .layui-logo { display: none; }
+/* 侧边栏收起时，顶部「首页」按钮贴合左边缘（随侧栏扩展/收起联动） */
+.ems-side-hide .layui-header .layui-layout-left { left: 0 !important; }
+.layui-header .layui-layout-left { transition: left .2s ease; }
+
+/* ── 左侧菜单：手风琴 + 子菜单缩进 + 图标 + 选中圆角 ────── */
+/* 子菜单项向右缩进（相对主菜单），并给子项图标留出间距 */
+.layui-nav-tree .layui-nav-child dd a { padding-left: 44px; }
+.layui-nav-tree .layui-nav-child dd a i.layui-icon,
+.layui-nav-tree > li > a > i.layui-icon {
+    margin-right: 8px;
+    font-size: 14px;
+    opacity: .85;
+}
+/* 选中态：品牌青绿 + 圆角，覆盖 layui 默认 #16baaa */
+.layui-nav-tree .layui-this,
+.layui-nav-tree .layui-this > a,
+.layui-nav-tree .layui-nav-child dd.layui-this,
+.layui-nav-tree .layui-nav-child dd.layui-this > a,
+.layui-nav-tree .layui-this > a:hover,
+.layui-nav-tree .layui-nav-child dd.layui-this > a:hover {
+    background-color: #0d6b64 !important;
+    color: #fff !important;
+}
+.layui-nav-tree .layui-this > a,
+.layui-nav-tree .layui-nav-child dd.layui-this > a {
+    border-radius: 8px;
+}
+/* 展开的父级（itemed）也带圆角与高亮呼吸感 */
+.layui-nav-tree .layui-nav-itemed > a {
+    background-color: rgba(13,107,100,.18) !important;
+    color: #fff !important;
+    border-radius: 8px;
+}
+/* 所有菜单项统一圆角，hover 时柔和反馈 */
+.layui-nav-tree .layui-nav-item > a,
+.layui-nav-tree .layui-nav-child dd > a {
+    border-radius: 8px;
+    transition: background-color .2s ease;
+}
+
+/* ── 内页：统一内边距 + 浅灰底，卡片在其上「浮起」 ─────────── */
+.ems-page {
+    padding: 16px 20px;
+    background-color: #f0f2f5;
+    min-height: 100%;
+}
+
+/* ── 页面标题栏 + 面包屑（全站列表/详情/表单页统一） ──────── */
+.ems-page-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.ems-page-title {
+    position: relative;
+    padding-left: 12px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2d3d;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ems-page-title::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 4px; height: 18px;
+    border-radius: 2px;
+    background: #0d6b64;
+}
+.ems-page-title > i { color: #0d6b64; font-size: 20px; }
+.ems-page-head .layui-breadcrumb { font-size: 13px; }
+.ems-page-head .layui-breadcrumb a,
+.ems-page-head .layui-breadcrumb span { color: #8a94a6; }
+.ems-page-head .layui-breadcrumb a cite { color: #0d6b64; font-style: normal; }
+
+/* ── 卡片：白底 + 10px 圆角 + 克制阴影，hover 动态加深 ──── */
+/* 不加 overflow:hidden，避免 select 下拉 / 自定义下拉被裁切；圆角改由 header/body 各自承担 */
+.ems-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    transition: box-shadow .3s ease;
+    margin-bottom: 14px;
+}
+.ems-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,.1);
+}
+.ems-card > .layui-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: auto;
+    line-height: 1.2;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #1f2d3d;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 10px 10px 0 0;
+}
+.ems-card > .layui-card-body { padding: 16px 20px; border-radius: 0 0 10px 10px; }
+.ems-card.ems-search > .layui-card-body { border-radius: 10px; }
+
+/* ── 列表卡片右上角操作按钮 ─────────────────────────────── */
+.ems-card-tools { display: flex; align-items: center; gap: 8px; }
+
+/* ── 搜索卡片：无头部、无标签，仅控件 + 右侧操作（参考设计稿） ── */
+.ems-search > .layui-card-body { padding: 14px 20px 10px; }
+.ems-search .layui-inline { margin-right: 10px; margin-bottom: 8px; }
+.ems-search .layui-input,
+.ems-search select,
+.ems-search .layui-form-select .layui-input { width: 180px; }
+.ems-search .layui-btn { margin-bottom: 8px; }
+.ems-search-actions { float: right; }
+.ems-search-actions .layui-btn { margin-left: 8px; }
+
+/* ── 圆角加大（按钮 / 输入框 / 文本域） ─────────────────── */
+.layui-btn { border-radius: 8px !important; height: 36px; line-height: 36px; padding: 0 18px; font-size: 14px; }
+.layui-btn-sm { height: 32px; line-height: 32px; padding: 0 14px; font-size: 13px; }
+.layui-btn-xs { height: 26px; line-height: 26px; padding: 0 10px; font-size: 12px; }
+.layui-input,
+.layui-textarea,
+.layui-form-select .layui-input {
+    border-radius: 8px !important;
+    height: 36px; line-height: 36px;
+    border: 1px solid #e0e0e0 !important;
+}
+.layui-input:focus,
+.layui-input:focus,
+.layui-textarea:focus,
+.layui-form-select .layui-input:focus {
+    border-color: #0d6b64 !important;
+    box-shadow: 0 0 0 2px rgba(13,107,100,.1) !important;
+}
+.layui-form-select dl { border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.1); border: none; margin-top: 2px; }
+.layui-form-select dl dd.layui-this { background: #e8f3f1; color: #0d6b64; }
+
+/* ── 表格操作列：图标按钮（22×22，语义配色，带底色） ───── */
+.ems-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    margin: 0 2px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #5b6b7b;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .2s;
+    padding: 0;
+    vertical-align: middle;
+}
+.ems-icon-btn i { width: 22px; height: 22px; line-height: 22px; text-align: center; display: block; }
+/* 操作列不换行，5 个图标全部展开 */
+.layui-table-cell .ems-icon-btn { white-space: nowrap; }
+/* 操作列图标按钮：默认带浅色底色 */
+.ems-icon-btn.primary { background: #e8f3f1; color: #0d6b64; }
+.ems-icon-btn.primary:hover { background: #d4eae7; }
+.ems-icon-btn.edit,
+.ems-icon-btn.success { background: #e8f6ee; color: #2e9e5b; }
+.ems-icon-btn.edit:hover,
+.ems-icon-btn.success:hover { background: #d3ecdd; }
+.ems-icon-btn.warn { background: #fff3e0; color: #e09000; }
+.ems-icon-btn.warn:hover { background: #ffe6bf; }
+.ems-icon-btn.danger { background: #fdecec; color: #e05050; }
+.ems-icon-btn.danger:hover { background: #f9d6d6; }
+.ems-icon-btn.gray { background: #f0f0f0; color: #666; }
+.ems-icon-btn.gray:hover { background: #e0e0e0; }
+.ems-icon-btn.upload { background: #fff7e6; color: #fa8c16; }
+.ems-icon-btn.upload:hover { background: #ffe9c7; }
+.ems-icon-btn.switch { background: #f9f0ff; color: #722ed1; }
+.ems-icon-btn.switch:hover { background: #efe3ff; }
+
+/* ── layui 表格：表头/行基调微调（轻量，不替换皮肤） ────── */
+.layui-table th { background: #fafafa !important; font-weight: 600 !important; font-size: 13px; color: #666; }
+.layui-table td { font-size: 14px; }
+.layui-table[lay-even] tr:nth-child(even) td { background: #fcfcfc; }
+.layui-table tbody tr:hover td { background: #f0f7ff !important; }
+
+/* ── 状态标签（语义色，与参考稿一致） ──────────────────── */
+.ems-tag { display: inline-flex; align-items: center; justify-content: center; padding: 2px 10px; border-radius: 6px; font-size: 12px; line-height: 16px; color: #fff; }
+.ems-tag-normal  { background: #2e9e5b; }
+.ems-tag-disabled{ background: #e05050; }
+.ems-tag-green   { background: #52c41a; }
+.ems-tag-orange  { background: #fa8c16; }
+.ems-tag-gray    { background: #bfbfbf; }
+.ems-tag-blue    { background: #1890ff; }
+.ems-tag-purple  { background: #722ed1; }
+.ems-tag-teal    { background: #0d6b64; }
+
+/* 表格内的 layui 徽标：垂直居中 + 圆角 */
+.ems-page .layui-badge {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    padding: 0 10px;
+    border-radius: 6px !important;
+    line-height: 22px !important;
+    font-size: 12px;
+}
+
+/* ── layui 固定列（冻结列）阴影去除 ───────────────────── */
+.layui-table-fixed,
+.layui-table-fixed-l,
+.layui-table-fixed-r { box-shadow: none !important; }
+.layui-table-fixed-l .layui-table-body,
+.layui-table-fixed-r .layui-table-body { box-shadow: none !important; }
+
+/* ── 列宽自适应：单元格允许换行（超过上限即在列内折行，而非撑宽整列） ── */
+.layui-table-cell {
+    white-space: normal !important;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    /* 关键：layui 默认 .layui-table-cell 是 height:28px + overflow:hidden，
+       会让换行后的第二行被裁掉。这里改成高度自适应、溢出可见，多行才能完整显示 */
+    height: auto !important;
+    line-height: 22px !important;
+    overflow: visible !important;
+}
+/* 操作列的工具按钮本身保持不换行，避免图标被拆散 */
+.layui-table-cell .ems-icon-btn { white-space: nowrap; }
+
+/* ── 列表卡片头部下拉面板（筛选列 / 导出二次选择） ─────── */
+.ems-card-tools { position: relative; }
+.ems-dropdown-panel {
+    position: absolute;
+    right: 0; top: 100%;
+    margin-top: 6px;
+    min-width: 168px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    padding: 6px 0;
+    z-index: 9999;
+}
+.ems-dropdown-panel .ems-dropdown-item {
+    display: block;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #333;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.ems-dropdown-panel .ems-dropdown-item:hover { background: #f5f7fa; }
+.ems-dropdown-panel .ems-col-item {
+    display: flex; align-items: center;
+    padding: 6px 14px;
+    font-size: 13px; color: #333; cursor: pointer; white-space: nowrap;
+}
+.ems-dropdown-panel .ems-col-item:hover { background: #f5f7fa; }
+.ems-dropdown-panel .ems-col-item input { margin-right: 8px; }
+
+/* ── layer 弹窗：圆角与卡片一致（10px），背景白铺满无缝 ── */
+body .layui-layer.ems-layer {
+    border-radius: 10px;
+    overflow: hidden;
+/*    background: #fff;*/
+}
+/* 弹窗（type:1）内的按钮圆角增大 */
+body .layui-layer.ems-layer .layui-layer-btn a,
+.layui-layer-btn a {
+    border-radius: 8px;
+    min-width: 64px;
+    text-align: center;
+}
+
+/* ── 表单页底部按钮：居中 + 取消按钮底色 ───────────────── */
+.ems-form-foot { text-align: center; margin: 16px 0 8px; }
+.ems-form-foot .layui-btn { margin: 0 8px; }
+
+/* ── 工具类：页面内尽量不写 style=，改用统一 class ──────── */
+/* 表单页内「绑定员工后显示的提示」默认隐藏，由 JS show() 显示 */
+.layui-form-item.ems-sync-tip { display: none; }
+
+/* 批量导入弹窗内容（替代内联 style） */
+.ems-import-body { padding: 22px; }
+.ems-import-body .layui-input[type=file] { height: auto; }
+.ems-import-tip { color: #999; margin-top: 14px; font-size: 13px; line-height: 1.7; }
+
+/* 新建项目弹窗：限制表单最大宽度，避免内容过宽 */
+.proj-create-form { max-width: 880px; }
+/* 新建/编辑项目：多卡片两列布局改用 layui-row + layui-col-md6（见对应视图） */
+/* 菜单/部门等表单弹窗：同样收拢宽度 */
+.menu-create-form { max-width: 720px; }
+/* 字典项表单弹窗 */
+.dict-data-form { max-width: 640px; }
+
+/* ── 字典管理：左「字典类型」/ 右「业务类型」主从布局 ──────── */
+.ems-dict-layout .ems-card { margin-bottom: 0; }
+.ems-dict-layout .layui-card-header { display: flex; align-items: center; gap: 10px; }
+.ems-dict-layout .layui-card-header > span:first-child { flex: none; }
+.ems-dict-layout .ems-card-tools { margin-left: auto; }
+.ems-count-tip { font-size: 12px; font-weight: 400; color: #8a94a6; }
+.ems-count-tip b { color: #0d6b64; }
+.ems-dict-current {
+    font-size: 12px; font-weight: 400; color: #8a94a6;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ems-dict-current b { color: #1f2d3d; }
+.ems-dict-current code,
+.ems-dict-layout .layui-table code {
+    background: #f2f5f7; color: #0d6b64; border-radius: 4px;
+    padding: 1px 6px; font-size: 12px;
+}
+.ems-dict-kw .layui-input { width: 150px; }
+/* 左表当前选中行高亮 */
+.layui-table-body tbody tr.ems-row-active,
+.layui-table-body tbody tr.ems-row-active:hover { background-color: #e6f4f2 !important; }
+.layui-table-body tbody tr.ems-row-active > td { border-color: #cfe7e3; }
+
+/* 菜单管理：树形表格叠加（缩进 + 展开箭头 + 图标） */
+.ems-tree-cell { display: inline-flex; align-items: center; white-space: nowrap; }
+.ems-tree-arrow { color: #5b6b7e; font-size: 12px; transition: color .15s; cursor: pointer; }
+.ems-tree-arrow:hover { color: #0d6b64; }
+.ems-menu-icon { color: #0d6b64; margin-right: 2px; }
+.ems-tree-name { vertical-align: middle; }
+
+/* 用户管理：角色列多标签——缩小字号、允许换行，避免重叠 */
+.ems-role-tags { line-height: 1.5; white-space: normal; word-break: break-word; }
+.ems-role-tags .layui-badge { margin: 1px 3px 1px 0; font-size: 12px; }
+
+/* 弹窗内单行表单（转正 / 离职日期等） */
+.ems-form-line { display: flex; align-items: center; gap: 10px; padding: 16px; }
+.ems-form-line .layui-form-label { margin-bottom: 0; padding-left: 0; }
+.ems-form-line .layui-input-inline { margin: 0; }
+/* 详情页内表格：字号再缩小一档，信息更紧凑 */
+.ems-detail-tbl-sm { font-size: 10px; line-height: 1.5; }
+.ems-detail-tbl-sm th, .ems-detail-tbl-sm td { padding: 4px 6px; }
+.ems-detail-tbl-sm th { font-size: 10px; color: #8a94a6; font-weight: 600; }
+.ems-detail-tbl-sm .layui-font-12 { font-size: 10px; }
+.ems-detail-tbl-sm strong { font-size: 11px; }
+.ems-detail-tbl-sm .ems-icon-btn { width: 22px; height: 22px; line-height: 22px; }
+.ems-detail-tbl-sm .ems-icon-btn .layui-icon { font-size: 12px; }
+
+/* ── 弹窗内页（?_dialog=1）：body 自带 ems-dialog，统一在 body.ems-dialog 作用域复位 ── */
+/* 注意：_Layout 的 body 在弹窗态同时带 ems-page 与 ems-dialog，
+   所以既要复位 body 自身（body.ems-dialog），也要复位内层 .ems-page 包裹层（body.ems-dialog .ems-page） */
+body.ems-dialog,
+body.ems-dialog .ems-page {
+    padding: 0;
+    background: #fff;
+    min-height: auto;
+}
+body.ems-dialog .ems-card {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+/* 弹窗态：卡片底部留白收掉，页脚改为自带上下间距，避免页脚上方出现空白带
+   （原本 = .layui-card-body 底部 20px + 末项 .layui-form-item 的 margin-bottom 15px + .ems-form-foot 顶部 14px 叠加） */
+body.ems-dialog .layui-card-body { padding: 20px 24px 0; }
+body.ems-dialog .ems-form-foot { margin: 0; padding: 0 24px 18px; }
+/* 弹窗态（body.ems-dialog）：隐藏页面级页头与面包屑，仅保留表单内容 */
+body.ems-dialog .ems-page-head { display: none; }
+
+/* 输入框提示弹窗（layer.prompt / ems.prompt）：与其他 ems 弹窗保持一致 */
+body .layui-layer.ems-layer.layui-layer-prompt .layui-layer-content { padding: 22px 24px; }
+body .layui-layer.ems-layer.layui-layer-prompt .layui-layer-content .layui-layer-input {
+    width: 100%;
+    box-sizing: border-box;
+    height: 38px;
+    border-radius: 6px;
+    border: 1px solid #dcdfe6;
+    padding: 0 12px;
+}
+body .layui-layer.ems-layer.layui-layer-prompt .layui-layer-content .layui-layer-input:focus {
+    border-color: #0d6b64;
+}
+
+/* 输入框弹窗（ems.promptDialog）：与 ems.confirm 一致的「居中图标 + 文本 + 留白」布局，
+   既让输入框左右居中，又避免紧贴底部按钮分割线 */
+body .layui-layer.ems-layer.ems-layer-prompt2 .layui-layer-content {
+    padding: 22px 24px 10px;
+    text-align: left;
+}
+.ems-prompt-box { text-align: left; }
+.ems-prompt-box .ems-prompt-icon {
+    width: 30px; height: 30px; line-height: 30px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    border: 2px solid #0d6b64;
+    color: #0d6b64;
+    font-size: 18px;
+}
+/* 图标与提示文案：仿 layui 原生 confirm（layui-layer-face 绝对定位灰图标 + 文本右置） */
+.ems-prompt-head {
+    position: relative;
+    margin-bottom: 16px;
+    padding-left: 46px;
+    text-align: left;
+}
+.ems-prompt-head .ems-prompt-icon {
+    position: absolute;
+    top: -2px; left: 0;
+    width: auto; height: auto; line-height: 1;
+    margin: 0; border: 0; border-radius: 0;
+    color: #959595;
+    font-size: 32px;
+    flex: none;
+}
+.ems-prompt-head .ems-prompt-msg {
+    margin: 0; text-align: left;
+    font-size: 14px; color: #1f2d3d; line-height: 1.6;
+}
+.ems-prompt-box .ems-prompt-msg {
+    font-size: 14px; color: #1f2d3d; line-height: 1.6; margin-bottom: 18px;
+}
+.ems-prompt-box .ems-prompt-field {
+    text-align: left;
+    margin: 0 0 4px 46px;
+}
+.ems-prompt-box .ems-prompt-field input,
+.ems-prompt-box .ems-prompt-field textarea {
+    width: 260px;
+    max-width: 100%;
+    box-sizing: border-box;
+    height: 38px;
+    border-radius: 6px;
+    border: 1px solid #dcdfe6;
+    padding: 0 12px;
+    text-align: left;
+    display: inline-block;
+}
+.ems-prompt-box .ems-prompt-field textarea {
+    height: auto; padding: 8px 12px; text-align: left; resize: vertical; line-height: 1.6;
+}
+.ems-prompt-box .ems-prompt-field input:focus,
+.ems-prompt-box .ems-prompt-field textarea:focus {
+    border-color: #0d6b64;
+}
+
+/* ==========================================================================
+   详情页（员工 / 项目等）：参考上传设计稿，统一收口此处，页面零内联样式
+   配色沿用主色 青绿 #0d6b64
+   ========================================================================== */
+
+/* ── 详情头部：头像 + 标题/元信息 + 操作 ─────────────────── */
+.ems-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+}
+.ems-detail-header .ems-detail-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #e8f3f1; color: #0d6b64;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 600; flex: 0 0 auto; position: relative; overflow: hidden;
+}
+.ems-detail-header .ems-detail-avatar.ems-avatar-edit { cursor: pointer; }
+.ems-detail-header .ems-detail-avatar.ems-avatar-edit:hover { box-shadow: 0 0 0 2px #0d6b64; }
+.ems-detail-header .ems-detail-avatar .ems-avatar-img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.ems-detail-header .ems-detail-avatar .ems-avatar-initial { line-height: 1; }
+.ems-detail-header .ems-detail-info { flex: 1 1 auto; min-width: 0; }
+.ems-detail-header .ems-detail-info h2 {
+    margin: 0 0 6px; font-size: 20px; font-weight: 700; color: #1f2d3d;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.ems-detail-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: #8a94a6; }
+.ems-detail-meta > span { display: inline-flex; align-items: center; }
+.ems-detail-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; flex: 0 0 auto; flex-wrap: wrap; }
+
+/* 档案完整度圆环（--p 为百分比，由页面数据驱动） */
+.ems-ring {
+    width: 64px; height: 64px; border-radius: 50%; flex: 0 0 auto;
+    background: conic-gradient(#0d6b64 calc(var(--p,0)*1%), #f0f0f0 0);
+    display: flex; align-items: center; justify-content: center; position: relative;
+}
+.ems-ring::before { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: #fff; }
+.ems-ring .ems-ring-text { position: relative; font-size: 13px; font-weight: 700; color: #0d6b64; }
+.ems-ring-label { font-size: 12px; color: #999; text-align: center; line-height: 1.3; }
+
+/* ── 信息卡片（三卡片并排 / 左宽右窄通用） ──────────────── */
+.ems-card-row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
+.ems-info-card {
+    flex: 1 1 280px; min-width: 0;
+    background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    padding: 16px 18px; transition: box-shadow .3s ease;
+}
+.ems-info-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+.ems-info-card > .ems-info-card-title {
+    font-size: 15px; font-weight: 600; color: #1f2d3d;
+    padding-left: 10px; border-left: 3px solid #0d6b64; margin-bottom: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.ems-card-edit { font-size: 13px; font-weight: 400; color: #0d6b64; cursor: pointer; }
+.ems-card-edit:hover { text-decoration: underline; }
+.ems-card-edit .layui-icon { font-size: 13px; margin-right: 2px; }
+.ems-info-list { display: flex; flex-direction: column; gap: 8px; }
+.ems-info-item { display: flex; font-size: 13px; line-height: 1.6; }
+.ems-info-item .label { flex: 0 0 96px; color: #8a94a6; }
+.ems-info-item .val { flex: 1 1 auto; color: #1f2d3d; word-break: break-word; }
+.ems-info-item .val.bold { font-weight: 600; }
+.ems-col-main { flex: 1.8 1 0; min-width: 0; }
+.ems-col-side { flex: 1.2 1 0; min-width: 0; }
+
+/* 信息网格（自适应列） */
+.ems-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap: 8px 24px; }
+
+/* ── 详情 Tabs（仅覆色，结构交给 layui-tab） ─────────────── */
+.ems-detail-tabs { background:#fff; border-radius:10px; padding: 0 20px 16px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+.ems-detail-tabs .layui-tab-title { border-bottom: 2px solid #f0f0f0 !important; }
+.ems-detail-tabs .layui-tab-title li { padding: 0 20px !important; font-size: 14px; }
+.ems-detail-tabs .layui-tab-title li.layui-this { color:#0d6b64; font-weight:600; }
+.ems-detail-tabs .layui-tab-title li.layui-this::after { background:#0d6b64; height:2px; border-radius:2px 2px 0 0; }
+.ems-detail-tabs .layui-tab-content { padding: 14px 0 0; }
+.ems-detail-tabs .layui-tab-item > .flex-between { display:flex; align-items:center; justify-content:space-between; margin-bottom: 12px; }
+.ems-detail-tabs .layui-tab-item > .flex-between strong { font-size: 14px; }
+
+/* ── 统计卡片（详情/首页通用） ─────────────────────────── */
+.ems-stat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 14px; margin-bottom: 14px; }
+.ems-stat-card { background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.05); padding:14px 18px; transition: box-shadow .3s ease; }
+.ems-stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+.ems-stat-card .label { font-size:13px; color:#8a94a6; display:flex; align-items:center; gap:6px; }
+.ems-stat-card .value { font-size:24px; font-weight:700; color:#1f2d3d; margin-top:6px; }
+
+/* ── 时间轴（里程碑） ─────────────────────────────────── */
+.ems-timeline { position: relative; padding-left: 8px; }
+.ems-timeline-item { position: relative; padding: 0 0 18px 26px; border-left: 2px solid #eef1f5; }
+.ems-timeline-item:last-child { border-left-color: transparent; padding-bottom: 0; }
+.ems-timeline-item .dot { position: absolute; left: -7px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background:#bfbfbf; border: 2px solid #fff; box-shadow: 0 0 0 1px #eef1f5; }
+.ems-timeline-item .dot.done { background:#2e9e5b; }
+.ems-timeline-item .dot.active { background:#0d6b64; }
+.ems-timeline-item .dot.pending { background:#bfbfbf; }
+.ems-timeline-item .content .title { font-size: 14px; font-weight: 600; color:#1f2d3d; display:flex; align-items:center; gap:8px; }
+.ems-timeline-item .content .desc { font-size: 13px; color:#8a94a6; margin-top: 4px; }
+
+/* ── 附件行 ───────────────────────────────────────────── */
+.ems-attachment-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+.ems-attachment-row:last-child { border-bottom: none; }
+.ems-attachment-row .file-icon { color:#0d6b64; font-size: 18px; }
+.ems-attachment-row .file-name { font-weight: 500; color:#1f2d3d; }
+.ems-attachment-row .file-size { color:#999; }
+.ems-attachment-row .file-meta { color:#bbb; }
+.ems-attachment-row .layui-btn { margin-left: auto; }
+
+/* ── 合同分组（项目详情：合同 + 关联发票） ──────────────── */
+.ems-contract-group { border: 1px solid #f0f0f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
+.ems-contract-group .ems-contract-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color:#555; }
+.ems-contract-group .ems-contract-name { font-weight: 600; color:#1f2d3d; }
+.ems-contract-group .ems-invoice-rows { margin-top: 8px; }
+
+/* ── 角色徽标（项目成员角色） ─────────────────────────── */
+.ems-role-badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:11px; margin-left:4px; background:#e8f3f1; color:#0d6b64; }
+.ems-role-badge.green { background:#e8f6ee; color:#2e9e5b; }
+.ems-role-badge.orange { background:#fff3e0; color:#e09000; }
+.ems-role-badge.purple { background:#f9f0ff; color:#722ed1; }
+
+/* ── 空状态 ───────────────────────────────────────────── */
+.ems-empty { text-align:center; color:#bbb; padding: 30px 0; font-size: 13px; }
+
+/* ── 隐藏的弹窗内容容器（layer type:1 调用，避免内联样式） ── */
+.ems-modal-box { display: none; padding: 18px 20px; }
+.ems-modal-box .layui-form-item { margin-bottom: 14px; }
+.ems-modal-foot { text-align: right; margin-top: 6px; }
+
+/* ── 详情页进度条（里程碑完成度） ──────────────────────── */
+.ems-progress { height: 6px; background: #eef1f5; border-radius: 4px; overflow: hidden; }
+.ems-progress > span { display: block; height: 100%; background: #0d6b64; border-radius: 4px; }
+
+/* ── 提示框（替代 Bootstrap alert / callout） ──────────── */
+.ems-alert { padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.6; }
+.ems-alert.teal { background: #e8f3f1; color: #0d6b64; }
+.ems-alert.gray { background: #f5f6f8; color: #8a94a6; }
+.ems-alert.warn { background: #fff3e0; color: #e09000; }
+.ems-alert.info { background: #eaf3ff; color: #2b6cb0; }
+
+
+/* layui 原生命名工具类（颜色，引号内 !important 与 layui 原生保持一致） */
+.layui-font-teal { color: #0d6b64 !important; }

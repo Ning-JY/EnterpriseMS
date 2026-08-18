@@ -1,1124 +1,608 @@
 @using EnterpriseMS.Common.Extensions
 @using EnterpriseMS.Domain.Entities.Hr
-@using EnterpriseMS.Services.DTOs.System
-@model Employee
+@using System.Text.Json
 @inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@model Employee
 @{
     ViewData["Title"] = Model.RealName + " - 员工详情";
-    var userId     = User.GetUserId();
+    var userId  = User.GetUserId();
     bool canEdit   = await PermSvc.HasPermAsync(userId, "hr:employee:edit");
-    bool canFormal = await PermSvc.HasPermAsync(userId, "hr:employee:formal");
-    bool canLeave  = await PermSvc.HasPermAsync(userId, "hr:employee:leave");
-    string[] statusText  = new[]{"试用期","在职","已离职"};
-    string[] statusBadge = new[]{"badge-warning","badge-success","badge-secondary"};
-    var depts = ViewBag.Depts as List<DeptTreeDto> ?? new();
+    var statusText = new Dictionary<int, string> { { 0, "试用期" }, { 1, "在职" }, { 2, "离职" } };
+    var statusTag  = new Dictionary<int, string> { { 0, "orange" }, { 1, "green" }, { 2, "gray" } };
+    var initial = string.IsNullOrEmpty(Model.RealName) ? "?" : Model.RealName.Substring(0, 1);
 
-    // 岗位（PostId 关联 SysPost，零迁移复用）
-    var postName = Model.Post?.PostName;
-
-    // 工龄（精确到月）
-    string workAge = "-";
-    if (Model.EntryDate.HasValue)
-    {
-        var s = Model.EntryDate.Value;
-        var e = Model.LeaveDate ?? DateTime.Today;
-        int totalMonths = (e.Year - s.Year) * 12 + e.Month - s.Month;
-        if (e.Day < s.Day) totalMonths--;
-        int y = totalMonths / 12;
-        int m = totalMonths % 12;
-        workAge = y > 0
-            ? $"{y}年{(m > 0 ? m + "个月" : "")}"
-            : (m > 0 ? $"{m}个月" : "不足1个月");
-    }
-
-    // 档案完整度（按字段填充率计算）
+    // 档案完整度（按字段填充率）
     var fillFields = new List<string?>
     {
-        Model.IdCard, Model.Phone, Model.Email,
-        Model.Dept?.DeptName, postName,
-        Model.EntryDate?.ToString("yyyy-MM-dd"),
-        Model.Education, Model.Nationality, Model.BirthDate?.ToString("yyyy-MM-dd"),
-        Model.PoliticalStatus, Model.NativePlace, Model.Address,
-        Model.HighestDegree, Model.GraduateSchool, Model.Major,
-        Model.WorkStartDate?.ToString("yyyy-MM-dd"),
-        Model.TechnicalTitle, Model.TechnicalLevel,
-        Model.EmergencyContact, Model.EmergencyPhone,
-        Model.BankAccount, Model.BankName, Model.SocialInsuranceNo,
-        Model.ProfilePhoto, Model.Remark
+        Model.IdCard, Model.Phone, Model.Email, Model.Dept?.DeptName, Model.Post?.PostName,
+        Model.EntryDate?.ToString("yyyy-MM-dd"), Model.Education, Model.Nationality,
+        Model.BirthDate?.ToString("yyyy-MM-dd"), Model.PoliticalStatus, Model.NativePlace,
+        Model.Address, Model.HighestDegree, Model.GraduateSchool, Model.Major,
+        Model.WorkStartDate?.ToString("yyyy-MM-dd"), Model.TechnicalTitle, Model.TechnicalLevel,
+        Model.EmergencyContact, Model.EmergencyPhone, Model.BankAccount, Model.BankName,
+        Model.SocialInsuranceNo, Model.ProfilePhoto, Model.Remark
     };
     int fillCnt = fillFields.Count(f => !string.IsNullOrWhiteSpace(f));
-    int fillTot = fillFields.Count;
-    int fillPct = fillTot == 0 ? 0 : (int)Math.Round(fillCnt * 100.0 / fillTot);
+    int fillPct = fillFields.Count == 0 ? 0 : (int)Math.Round(fillCnt * 100.0 / fillFields.Count);
 
-    bool hasPhoto = !string.IsNullOrEmpty(Model.ProfilePhoto);
-    var firstContract = Model.Contracts.OrderByDescending(x => x.StartDate).FirstOrDefault();
-    var contractAttachments = Model.Contracts.Where(c => !string.IsNullOrEmpty(c.FileName)).ToList();
+    // 序列化下拉数据源供前端弹窗使用
+    var contractTypes = ViewBag.ContractTypes as List<EnterpriseMS.Services.DTOs.System.DictDataDto> ?? new();
+    var certTypes     = ViewBag.CertTypes as List<EnterpriseMS.Services.DTOs.System.DictDataDto> ?? new();
+    var deptTree      = ViewBag.Depts as object ?? new object();
+    var postList      = ViewBag.Posts as List<SysPost> ?? new();
 }
 
-@functions {
-    private static Microsoft.AspNetCore.Html.HtmlString Fld(string label, string? val)
-    {
-        if (string.IsNullOrWhiteSpace(val)) return Microsoft.AspNetCore.Html.HtmlString.Empty;
-        return new Microsoft.AspNetCore.Html.HtmlString(
-            $"<tr><td class='text-muted w-40'>{label}</td><td>{System.Net.WebUtility.HtmlEncode(val)}</td></tr>");
-    }
-    private static Microsoft.AspNetCore.Html.HtmlString Fld(string label, DateTime? val)
-    {
-        if (!val.HasValue) return Microsoft.AspNetCore.Html.HtmlString.Empty;
-        return Fld(label, val.Value.ToString("yyyy-MM-dd"));
-    }
-}
-
-<style>
-    .employee-detail { --header-avatar: 88px; }
-
-    /* 顶部 Header：参考图横向布局 */
-    .profile-header-ref {
-        background: #fff;
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-sm);
-        padding: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        margin-bottom: 1rem;
-        border: 1px solid var(--line);
-    }
-    .profile-header-ref .profile-avatar-wrap {
-        position: relative;
-        width: var(--header-avatar);
-        height: var(--header-avatar);
-        flex: 0 0 auto;
-    }
-    .profile-header-ref .profile-fallback {
-        font-size: var(--header-avatar);
-        line-height: var(--header-avatar);
-        color: #cbd5e1;
-    }
-    .profile-header-ref .profile-avatar-img {
-        position: absolute; inset: 0;
-        width: var(--header-avatar); height: var(--header-avatar);
-        border-radius: 50%; object-fit: cover;
-        border: 3px solid #fff;
-        box-shadow: 0 2px 10px rgba(15,23,42,.12);
-    }
-    .profile-header-ref .profile-main { flex: 1 1 auto; min-width: 220px; }
-    .profile-header-ref .profile-main h3 {
-        margin: 0 0 .45rem;
-        font-size: 1.45rem;
-        font-weight: 700;
-        display: flex; align-items: center; gap: .5rem;
-    }
-    .profile-header-ref .profile-meta {
-        display: flex; flex-wrap: wrap;
-        gap: .35rem 1.5rem;
-        color: var(--muted);
-        font-size: .875rem;
-    }
-    .profile-header-ref .profile-meta span { white-space: nowrap; }
-    .profile-header-ref .profile-meta i {
-        width: 16px; text-align: center; color: var(--brand-2); margin-right: 2px;
-    }
-    .profile-header-ref .profile-actions {
-        flex: 0 0 auto;
-        display: flex; align-items: center; gap: .5rem;
-        margin-left: auto;
-    }
-    .profile-header-ref .status-badge {
-        font-size: 11px;
-        font-weight: 500;
-        border-radius: 10px;
-        padding: .25em .65em;
-    }
-
-    /* 信息卡内部表格 */
-    .info-card table td { border: none; padding: .35rem .25rem; font-size: .85rem; vertical-align: top; }
-    .info-card table td.w-40 { width: 38%; color: #94a3b8; white-space: nowrap; }
-
-    /* 档案完整度环形图 */
-    .completeness-wrap { text-align: center; padding: .25rem 0; }
-    .circular-chart { display: block; margin: 0 auto; max-width: 150px; max-height: 150px; }
-    .circle-bg { fill: none; stroke: var(--line-strong); stroke-width: 3.8; }
-    .circle { fill: none; stroke: var(--brand-2); stroke-width: 3.8; stroke-linecap: round;
-              transition: stroke-dasharray .6s ease; }
-    .percentage { fill: var(--brand-2); font-family: inherit; font-size: 9px; text-anchor: middle; font-weight: 700; }
-
-    /* 合同小表 */
-    .contract-mini td { font-size: .8rem; padding: .35rem .4rem; }
-
-    /* 标签页容器 */
-    .tab-content { padding-top: 1rem; }
-
-    /* 行内编辑表格 */
-    .edu-table th, .edu-table td { vertical-align: middle; }
-    .edu-table td .form-control-sm { min-width: 80px; }
-</style>
-
-<section class="content employee-detail"><div class="container-fluid">
-
-    <!-- 面包屑 + 返回 -->
-    <div class="d-flex align-items-center mb-2">
-        <a href="/hr/employee" class="btn btn-sm btn-default mr-2"><i class="fas fa-arrow-left"></i> 返回</a>
-        <ol class="breadcrumb float-sm-right" style="background:transparent;margin:0;padding:0;">
-            <li class="breadcrumb-item"><a href="/">首页</a></li>
-            <li class="breadcrumb-item"><a href="/hr/employee">员工信息</a></li>
-            <li class="breadcrumb-item active">员工详情</li>
-        </ol>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-user"></i> 员工详情
     </div>
-
-    <!-- 顶部 Profile Header：头像-信息-按钮横向排列 -->
-    <div class="profile-header-ref">
-        <div class="profile-avatar-wrap">
-            <i class="fas fa-user-circle profile-fallback"></i>
-            @if (hasPhoto)
-            {
-                <img src="@Model.ProfilePhoto" class="profile-avatar-img" alt="头像"
-                     onerror="this.style.display='none'">
-            }
-        </div>
-        <div class="profile-main">
-            <h3>
-                @Model.RealName
-                <span class="badge @statusBadge[Model.Status] status-badge">@statusText[Model.Status]</span>
-            </h3>
-            <div class="profile-meta">
-                <span><i class="fas fa-id-badge"></i> 工号：@Model.EmpNo</span>
-                <span><i class="fas fa-building"></i> 部门：@(Model.Dept?.DeptName ?? "暂无部门")</span>
-                <span><i class="fas fa-briefcase"></i> 岗位：@(postName ?? "未设置")</span>
-                <span><i class="fas fa-hourglass-half"></i> 在岗：@workAge</span>
-            </div>
-        </div>
-        <div class="profile-actions">
-            @if (canEdit && Model.Status != 2)
-            {
-                <a href="/hr/employee/edit/@Model.Id" class="btn btn-primary">
-                    <i class="fas fa-edit mr-1"></i> 编辑档案
-                </a>
-            }
-            @if (canFormal && Model.Status == 0)
-            {
-                <button class="btn btn-outline-secondary" onclick="doFormal()">
-                    <i class="fas fa-user-check mr-1"></i> 办理转正
-                </button>
-            }
-            @if (canLeave && Model.Status != 2)
-            {
-                <button class="btn btn-outline-secondary" onclick="doLeave()">
-                    <i class="fas fa-sign-out-alt mr-1"></i> 办理离职
-                </button>
-            }
-            <button class="btn btn-outline-primary" onclick="ems.msg('导出 PDF 功能开发中', {icon:7})">
-                <i class="fas fa-file-pdf mr-1"></i> 导出 PDF
-            </button>
-        </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">HR管理</a>
+        <a href="javascript:ems.openTab('/hr/employee')">员工信息</a>
+        <a><cite>@Model.RealName</cite></a>
     </div>
-
-    <!-- 四张信息卡 -->
-    <div class="row">
-        <!-- 基本信息 -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card card-accent-blue info-card h-100">
-                <div class="card-header"><h3 class="card-title"><i class="fas fa-user mr-1 text-primary"></i>基本信息</h3></div>
-                <div class="card-body">
-                    <table class="table table-sm table-borderless mb-0">
-                        @Fld("性别", Model.Gender == 1 ? "男" : "女")
-                        @Fld("出生日期", Model.BirthDate)
-                        @Fld("民族", Model.Nationality)
-                        @Fld("政治面貌", Model.PoliticalStatus)
-                        @Fld("籍贯", Model.NativePlace)
-                        @Fld("最高学位", Model.HighestDegree)
-                        @Fld("毕业院校", Model.GraduateSchool)
-                        @Fld("专业", Model.Major)
-                        @Fld("技术职称", Model.TechnicalTitle)
-                        @Fld("技术等级", Model.TechnicalLevel)
-                        @Fld("身份证号", Model.IdCard)
-                        @Fld("紧急联系人", (Model.EmergencyContact ?? "") + (Model.EmergencyPhone != null ? " / " + Model.EmergencyPhone : ""))
-                        @Fld("社保号", Model.SocialInsuranceNo)
-                        @Fld("住址", Model.Address)
-                        @Fld("邮箱", Model.Email)
-                        @Fld("手机", Model.Phone)
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 任职信息 -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card card-accent-blue info-card h-100">
-                <div class="card-header"><h3 class="card-title"><i class="fas fa-id-card mr-1 text-primary"></i>任职信息</h3></div>
-                <div class="card-body">
-                    <table class="table table-sm table-borderless mb-0">
-                        @Fld("工号", Model.EmpNo)
-                        @Fld("部门", Model.Dept?.DeptName)
-                        @Fld("岗位", postName)
-                        @Fld("员工状态", statusText[Model.Status])
-                        @Fld("入职日期", Model.EntryDate)
-                        @Fld("工龄", workAge)
-                        @Fld("转正日期", Model.FormalDate)
-                        @if (Model.Status == 2) { @Fld("离职日期", Model.LeaveDate) }
-                        @Fld("合同类型", firstContract?.ContractType)
-                        @Fld("社保号", Model.SocialInsuranceNo)
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 合同信息（卡片中不再显示附件） -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card card-accent-blue info-card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h3 class="card-title"><i class="fas fa-file-contract mr-1 text-primary"></i>合同信息</h3>
-                    <div>
-                        @if (canEdit)
-                        {
-                            <button class="btn btn-xs btn-success" onclick="openAddContractModal()" title="新增合同"><i class="fas fa-plus"></i></button>
-                        }
-                        <a href="/hr/contract" class="btn btn-xs btn-outline-success">全部</a>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <table class="table table-sm table-borderless mb-2">
-                        @Fld("合同类型", firstContract?.ContractType)
-                        @if (firstContract != null)
-                        {
-                            @Fld("合同期限", firstContract.StartDate.ToString("yyyy-MM-dd") + " ~ " + firstContract.EndDate.ToString("yyyy-MM-dd"))
-                        }
-                        @Fld("紧急联系人", (Model.EmergencyContact ?? "") + (Model.EmergencyPhone != null ? " / " + Model.EmergencyPhone : ""))
-                        @Fld("银行卡号", Model.BankAccount)
-                        @Fld("开户行", Model.BankName)
-                        @Fld("工作电话", Model.Phone)
-                        @Fld("邮箱", Model.Email)
-                    </table>
-                    @* 合同信息卡不再展示附件表与合同列表 mini 表，仅保留上方字段表 *@
-                </div>
-            </div>
-        </div>
-
-        <!-- 档案完整度 -->
-        <div class="col-lg-3 col-md-6">
-            <div class="card card-accent-blue info-card h-100">
-                <div class="card-header"><h3 class="card-title"><i class="fas fa-chart-pie mr-1 text-primary"></i>档案完整度</h3></div>
-                <div class="card-body completeness-wrap">
-                    <svg viewBox="0 0 36 36" class="circular-chart">
-                        <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path class="circle" stroke-dasharray="@fillPct, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <text x="18" y="20.5" class="percentage">@fillPct%</text>
-                    </svg>
-                    <p class="mt-2 mb-0 small text-muted">已完善 @fillCnt / @fillTot 项信息</p>
-                    @if (fillPct < 100)
-                    {
-                        <p class="mb-0 small text-warning"><i class="fas fa-lightbulb mr-1"></i>建议补充缺失项以提升档案完整度</p>
-                    }
-                    else
-                    {
-                        <p class="mb-0 small text-success"><i class="fas fa-check-circle mr-1"></i>档案信息已完善</p>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 底部标签页（下划线样式） -->
-    <div class="card card-accent-blue mt-3">
-        <div class="card-header p-0">
-            <ul class="nav nav-tabs tabs-underline" role="tablist">
-                <li class="nav-item d-flex align-items-center">
-                    <a class="nav-link active" data-toggle="tab" href="#tabEdu">教育经历</a>
-                    @if (canEdit) { <button class="tab-add-btn" title="新增教育经历" onclick="addEduRow()"><i class="fas fa-plus"></i></button> }
-                </li>
-                <li class="nav-item d-flex align-items-center">
-                    <a class="nav-link" data-toggle="tab" href="#tabWork">工作经历</a>
-                    @if (canEdit) { <button class="tab-add-btn" title="新增工作经历" onclick="addWorkRow()"><i class="fas fa-plus"></i></button> }
-                </li>
-                <li class="nav-item d-flex align-items-center">
-                    <a class="nav-link" data-toggle="tab" href="#tabCert">证书资质</a>
-                    @if (canEdit) { <button class="tab-add-btn" title="新增证书" onclick="addCertRow()"><i class="fas fa-plus"></i></button> }
-                </li>
-                <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tabAtt">考勤汇总</a></li>
-                <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#tabFile">档案附件</a></li>
-            </ul>
-        </div>
-        <div class="card-body">
-            <div class="tab-content">
-                <!-- 教育经历：行内编辑 -->
-                <div class="tab-pane active" id="tabEdu">
-                    <table class="table table-sm edu-table">
-                        <thead class="thead-light"><tr><th>学校名称</th><th>专业</th><th>学历</th><th>全日制</th><th>起止时间</th><th>备注</th><th class="text-right">操作</th></tr></thead>
-                        <tbody id="eduTbody">
-                        @if (Model.EducationList.Any())
-                        {
-                            @foreach (var edu in Model.EducationList.OrderByDescending(x => x.StartDate))
-                            {
-                                <tr class="edu-row" data-id="@edu.Id"
-                                    data-school="@edu.SchoolName" data-major="@edu.Major" data-degree="@edu.Degree"
-                                    data-full="@(edu.IsFullTime ? "1" : "0")"
-                                    data-start="@(edu.StartDate?.ToString("yyyy-MM-dd") ?? "")"
-                                    data-end="@(edu.EndDate?.ToString("yyyy-MM-dd") ?? "")"
-                                    data-remark="@edu.Remark">
-                                    <td class="edu-cell">@edu.SchoolName</td>
-                                    <td class="edu-cell">@edu.Major</td>
-                                    <td class="edu-cell">@edu.Degree</td>
-                                    <td class="edu-cell">@(edu.IsFullTime ? "是" : "否")</td>
-                                    <td class="edu-cell small">@(edu.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(edu.EndDate?.ToString("yyyy-MM-dd") ?? "至今")</td>
-                                    <td class="edu-cell small text-muted">@(string.IsNullOrWhiteSpace(edu.Remark) ? "-" : edu.Remark)</td>
-                                    <td class="edu-cell text-right">
-                                        @if (canEdit)
-                                        {
-                                            <button class="btn btn-xs btn-outline-primary" onclick="enterEduEdit(this)">编辑</button>
-                                            <button class="btn btn-xs btn-outline-danger" onclick="deleteEdu(@edu.Id)">删除</button>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        </tbody>
-                    </table>
-                    @if (!Model.EducationList.Any())
-                    {
-                        <div id="eduEmpty" class="text-center text-muted py-3">暂无教育经历</div>
-                    }
-                    else
-                    {
-                        <div id="eduEmpty" class="text-center text-muted py-3 d-none">暂无教育经历</div>
-                    }
-                </div>
-
-                <!-- 工作经历 -->
-                <div class="tab-pane" id="tabWork">
-                    @if (Model.WorkExperiences.Any())
-                    {
-                        <table class="table table-sm work-table">
-                            <thead class="thead-light"><tr><th>公司</th><th>职位</th><th>起止</th><th class="text-right">操作</th></tr></thead>
-                            <tbody id="workTbody">
-                            @foreach (var w in Model.WorkExperiences.OrderByDescending(x => x.StartDate))
-                            {
-                                <tr class="work-row" data-id="@w.Id"
-                                    data-company="@w.CompanyName" data-position="@w.Position"
-                                    data-start="@(w.StartDate?.ToString("yyyy-MM-dd") ?? "")"
-                                    data-end="@(w.EndDate?.ToString("yyyy-MM-dd") ?? "")"
-                                    data-remark="@w.Remark">
-                                    <td class="work-cell">@w.CompanyName</td>
-                                    <td class="work-cell">@w.Position</td>
-                                    <td class="work-cell small">@(w.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(w.EndDate?.ToString("yyyy-MM-dd") ?? "至今")</td>
-                                    <td class="work-cell text-right">
-                                        @if (canEdit)
-                                        {
-                                            <button class="btn btn-xs btn-outline-primary" onclick="enterWorkEdit(this)">编辑</button>
-                                            <button class="btn btn-xs btn-outline-danger" onclick="deleteWork(@w.Id)">删除</button>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                            </tbody>
-                        </table>
-                        <div id="workEmpty" class="text-center text-muted py-3 d-none">暂无工作经历</div>
-                    }
-                    else { <div id="workEmpty" class="text-center text-muted py-3">暂无工作经历</div> }
-                </div>
-
-                <!-- 证书资质 -->
-                <div class="tab-pane" id="tabCert">
-                    <div class="mb-2 text-right">
-                        <a href="/hr/cert" class="btn btn-sm btn-outline-info">查看全部</a>
-                    </div>
-                    @if (Model.Certificates.Any())
-                    {
-                        <table class="table table-sm cert-table">
-                            <thead class="thead-light"><tr><th>证书名称</th><th>类型</th><th>证书编号</th><th>有效期至</th><th>状态</th><th>附件</th><th class="text-right">操作</th></tr></thead>
-                            <tbody id="certTbody">
-                            @foreach (var cert in Model.Certificates)
-                            {
-                                var warn = cert.Status == 0 && cert.ExpireDate.HasValue && cert.ExpireDate <= DateTime.Today.AddDays(60);
-                                <tr class="@(warn ? "table-warning" : "")" data-id="@cert.Id"
-                                    data-certname="@cert.CertName" data-certtype="@cert.CertType"
-                                    data-certno="@(cert.CertNo ?? "")"
-                                    data-expiredate="@(cert.ExpireDate?.ToString("yyyy-MM-dd") ?? "")"
-                                    data-status="@cert.Status">
-                                    <td class="cert-cell">@cert.CertName</td>
-                                    <td class="cert-cell"><span class="badge badge-light">@cert.CertType</span></td>
-                                    <td class="cert-cell"><code class="small">@(cert.CertNo ?? "-")</code></td>
-                                    <td class="cert-cell small @(warn ? "text-danger font-weight-bold" : "")">
-                                        @(cert.ExpireDate?.ToString("yyyy-MM-dd") ?? "长期")
-                                        @if (warn) { <span class="badge badge-warning ml-1">即将到期</span> }
-                                    </td>
-                                    <td class="cert-cell">@(cert.Status == 0 ? "有效" : "已过期")</td>
-                                    <td class="cert-att-cell">
-                                        @if (!string.IsNullOrEmpty(cert.FileName))
-                                        {
-                                            <a href="/hr/cert/download/@cert.Id" class="btn btn-xs btn-info" title="下载"><i class="fas fa-download"></i></a>
-                                            @if (canEdit)
-                                            {
-                                                <label class="btn btn-xs btn-warning mb-0" title="重新上传">
-                                                    <i class="fas fa-sync-alt"></i>
-                                                    <input type="file" style="display:none" onchange="uploadCertFile(@cert.Id, this)">
-                                                </label>
-                                                <button class="btn btn-xs btn-outline-danger" onclick="deleteAttachment('cert',@cert.Id)" title="删除附件"><i class="fas fa-times"></i></button>
-                                            }
-                                        }
-                                        else if (canEdit)
-                                        {
-                                            <label class="btn btn-xs btn-outline-secondary mb-0">
-                                                <i class="fas fa-upload"></i>
-                                                <input type="file" style="display:none" onchange="uploadCertFile(@cert.Id, this)">
-                                            </label>
-                                        }
-                                    </td>
-                                    <td class="cert-cell text-right">
-                                        @if (canEdit)
-                                        {
-                                            <button class="btn btn-xs btn-outline-primary" onclick="enterCertEdit(this)">编辑</button>
-                                            <button class="btn btn-xs btn-outline-danger" onclick="deleteCert(@cert.Id)">删除</button>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                            </tbody>
-                        </table>
-                        <div id="certEmpty" class="text-center text-muted py-3 d-none">暂无证书记录</div>
-                    }
-                    else { <div id="certEmpty" class="text-center text-muted py-3">暂无证书记录</div> }
-                </div>
-
-                <!-- 考勤汇总（开发中） -->
-                <div class="tab-pane" id="tabAtt">
-                    <div class="text-center text-muted py-5">
-                        <i class="fas fa-tools fa-2x mb-3"></i>
-                        <p class="mb-0">考勤汇总功能正在开发中</p>
-                        <small>将支持出勤天数、迟到早退、请假记录等统计</small>
-                    </div>
-                </div>
-
-                <!-- 档案附件（仅合同附件） -->
-                <div class="tab-pane" id="tabFile">
-                    @if (contractAttachments.Any())
-                    {
-                        <table class="table table-sm">
-                            <thead class="thead-light"><tr><th>所属合同</th><th>附件名称</th><th>类型</th><th>操作</th></tr></thead>
-                            <tbody>
-                            @foreach (var cont in contractAttachments)
-                            {
-                                <tr>
-                                    <td><code class="small">@cont.ContractNo</code> <span class="small text-muted">@cont.ContractType</span></td>
-                                    <td class="small">@cont.FileName</td>
-                                    <td>合同附件</td>
-                                    <td>
-                                        <a href="/hr/contract/download/@cont.Id" class="btn btn-xs btn-info" title="下载"><i class="fas fa-download"></i> 下载</a>
-                                        @if (canEdit)
-                                        {
-                                            <label class="btn btn-xs btn-warning mb-0" title="重新上传">
-                                                <i class="fas fa-sync-alt"></i> 重新上传
-                                                <input type="file" style="display:none" onchange="uploadContractFile(@cont.Id, this)">
-                                            </label>
-                                            <button class="btn btn-xs btn-outline-danger" onclick="deleteAttachment('contract',@cont.Id)" title="删除附件"><i class="fas fa-times"></i></button>
-                                        }
-                                    </td>
-                                </tr>
-                            }
-                            </tbody>
-                        </table>
-                    }
-                    else { <div class="text-center text-muted py-3">暂无档案附件（合同附件）</div> }
-                </div>
-            </div>
-        </div>
-    </div>
-
-</div></section>
-
-<!-- 编辑员工弹窗 -->
-<div class="modal fade" id="editEmpModal" tabindex="-1">
-    <div class="modal-dialog modal-lg"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">编辑员工信息 - @Model.RealName</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        </div>
-        <div class="modal-body">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>姓名 <span class="text-danger">*</span></label>
-                        <input type="text" id="editRealName" class="form-control" value="@Model.RealName">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>性别</label>
-                        <select id="editGender" class="form-control">
-                            <option value="1" selected="@(Model.Gender==1?"selected":null)">男</option>
-                            <option value="2" selected="@(Model.Gender==2?"selected":null)">女</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>手机号</label>
-                        <input type="text" id="editPhone" class="form-control" value="@(Model.Phone??"")">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>邮箱</label>
-                        <input type="email" id="editEmail" class="form-control" value="@(Model.Email??"")">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>身份证号</label>
-                        <input type="text" id="editIdCard" class="form-control" value="@(Model.IdCard??"")" maxlength="18">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>所属部门</label>
-                        @await Component.InvokeAsync("DeptSelect", new {
-                            id = "editDeptId", name = "editDeptId",
-                            selectedId = (long)(Model.DeptId ?? 0),
-                            emptyText = "请选择",
-                            cssClass = "form-control"
-                        })
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>入职日期</label>
-                        <input type="date" id="editEntryDate" class="form-control"
-                               value="@(Model.EntryDate?.ToString("yyyy-MM-dd")??"")">
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>备注</label>
-                <textarea id="editRemark" class="form-control" rows="2">@(Model.Remark??"")</textarea>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary" onclick="saveEdit()">保存</button>
-        </div>
-    </div></div>
 </div>
 
-<!-- ── 新增合同弹窗 ── -->
-<div class="modal fade" id="addContractModal" tabindex="-1">
-    <div class="modal-dialog modal-lg"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">新增劳动合同</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+<!-- 详情头部 -->
+<div class="ems-detail-header">
+    <div class="ems-detail-avatar @(canEdit ? "ems-avatar-edit" : "")" id="avatarBox" title="@(canEdit ? "点击上传头像" : "")">
+        @if (!string.IsNullOrEmpty(Model.ProfilePhoto))
+        {
+            <img src="/hr/employee/avatar/@Model.Id" class="ems-avatar-img" alt="@Model.RealName">
+        }
+        else
+        {
+            <span class="ems-avatar-initial">@initial</span>
+        }
+    </div>
+    <input type="file" id="avatarFile" accept="image/*" style="display:none">
+    <div class="ems-detail-info">
+        <h2>@Model.RealName <span class="layui-badge-rim">@Model.EmpNo</span></h2>
+        <div class="ems-detail-meta">
+            <span>@(Model.Dept?.DeptName ?? "未分配部门")</span>
+            <span>@(Model.Gender == 1 ? "男" : "女")</span>
+            <span class="ems-tag ems-tag-@statusTag.GetValueOrDefault(Model.Status, "gray")">@statusText.GetValueOrDefault(Model.Status, "未知")</span>
+            <span>入职：@(Model.EntryDate?.ToString("yyyy-MM-dd") ?? "-")</span>
+            @if (Model.FormalDate.HasValue) { <span>转正：@Model.FormalDate.Value.ToString("yyyy-MM-dd")</span> }
         </div>
-        <div class="modal-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>合同编号 <span class="text-danger">*</span></label>
-                        <input type="text" id="ctNo" class="form-control" placeholder="如 HT2024-001">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>合同类型</label>
-                        <select id="ctType" class="form-control">
-                            @foreach (var t in ViewBag.ContractTypes as List<EnterpriseMS.Services.DTOs.System.DictDataDto> ?? new())
-                            { <option value="@t.DictValue">@t.DictLabel</option> }
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>开始日期 <span class="text-danger">*</span></label>
-                        <input type="date" id="ctStart" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>结束日期 <span class="text-danger">*</span></label>
-                        <input type="date" id="ctEnd" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>签订日期</label>
-                        <input type="date" id="ctSign" class="form-control">
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>合同附件 <small class="text-muted">（可选）</small></label>
-                <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="ctFile"
-                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                    <label class="custom-file-label" for="ctFile">选择文件（可选）</label>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>备注</label>
-                <textarea id="ctRemark" class="form-control" rows="2"></textarea>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-success" id="ctSaveBtn" onclick="saveEmpContract()">
-                <i class="fas fa-save mr-1"></i> 保存
-            </button>
-        </div>
-    </div></div>
+    </div>
+    <div class="ems-ring" style="--p:@fillPct"><span class="ems-ring-text">@fillPct%</span></div>
+    <div class="ems-ring-label">档案<br>完整度</div>
+    <div class="ems-detail-actions">
+        @if (canEdit) { <a class="layui-btn layui-btn-normal layui-btn-sm" href="javascript:ems.openTab('/hr/employee/edit/@Model.Id', '编辑员工档案')"><i class="layui-icon layui-icon-edit"></i> 编辑档案</a> }
+        <a class="layui-btn layui-btn-primary layui-btn-sm" href="javascript:ems.openTab('/hr/employee', '员工信息')"><i class="layui-icon layui-icon-return"></i> 返回</a>
+    </div>
 </div>
+
+<!-- 三卡片并排：基本信息 / 任职信息 / 学历信息 -->
+<div class="ems-card-row">
+    <div class="ems-info-card">
+        <div class="ems-info-card-title">
+            基本信息
+            @if (canEdit) { <a class="ems-card-edit" data-card="basic" title="编辑基本信息"><i class="layui-icon layui-icon-edit"></i>编辑</a> }
+        </div>
+        <div class="ems-info-list">
+            <div class="ems-info-item"><span class="label">姓名</span><span class="val"><strong>@Model.RealName</strong></span></div>
+            <div class="ems-info-item"><span class="label">工号</span><span class="val">@Model.EmpNo</span></div>
+            <div class="ems-info-item"><span class="label">性别</span><span class="val">@(Model.Gender == 1 ? "男" : "女")</span></div>
+            <div class="ems-info-item"><span class="label">身份证</span><span class="val">@(Model.IdCard ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">手机号</span><span class="val">@(Model.Phone ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">邮箱</span><span class="val">@(Model.Email ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">民族</span><span class="val">@(Model.Nationality ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">出生日期</span><span class="val">@(Model.BirthDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">籍贯</span><span class="val">@(Model.NativePlace ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">政治面貌</span><span class="val">@(Model.PoliticalStatus ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">住址</span><span class="val">@(Model.Address ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">紧急联系</span><span class="val">@(Model.EmergencyContact ?? "-") @(Model.EmergencyPhone ?? "")</span></div>
+        </div>
+    </div>
+    <div class="ems-info-card">
+        <div class="ems-info-card-title">
+            任职信息
+            @if (canEdit) { <a class="ems-card-edit" data-card="job" title="编辑任职信息"><i class="layui-icon layui-icon-edit"></i>编辑</a> }
+        </div>
+        <div class="ems-info-list">
+            <div class="ems-info-item"><span class="label">部门</span><span class="val">@(Model.Dept?.DeptName ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">岗位</span><span class="val">@(Model.Post?.PostName ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">入职日期</span><span class="val">@(Model.EntryDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">试用期截止</span><span class="val">@(Model.ProbationEndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">转正日期</span><span class="val">@(Model.FormalDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">参加工作</span><span class="val">@(Model.WorkStartDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">社保号</span><span class="val">@(Model.SocialInsuranceNo ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">银行账号</span><span class="val">@(Model.BankAccount ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">开户行</span><span class="val">@(Model.BankName ?? "-")</span></div>
+        </div>
+    </div>
+    <div class="ems-info-card">
+        <div class="ems-info-card-title">
+            学历信息
+            @if (canEdit) { <a class="ems-card-edit" data-card="education" title="编辑学历信息"><i class="layui-icon layui-icon-edit"></i>编辑</a> }
+        </div>
+        <div class="ems-info-list">
+            <div class="ems-info-item"><span class="label">学历</span><span class="val">@(Model.Education ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">学位</span><span class="val">@(Model.HighestDegree ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">毕业院校</span><span class="val">@(Model.GraduateSchool ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">专业</span><span class="val">@(Model.Major ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">技术职称</span><span class="val">@(Model.TechnicalTitle ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">技术等级</span><span class="val">@(Model.TechnicalLevel ?? "-")</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabs：合同 / 证书 / 教育 / 工作 / 附件 -->
+<div class="ems-detail-tabs">
+    <div class="layui-tab layui-tab-brief">
+        <ul class="layui-tab-title">
+            <li class="layui-this">合同信息</li>
+            <li>证书资质</li>
+            <li>教育经历</li>
+            <li>工作经历</li>
+            <li>附件管理</li>
+        </ul>
+        <div class="layui-tab-content">
+            <!-- 合同信息 -->
+            <div class="layui-tab-item layui-show">
+                <div class="flex-between">
+                    <strong>合同信息</strong>
+                    @if (canEdit) { <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnAddContract"><i class="layui-icon layui-icon-add-1"></i>新增合同</button> }
+                </div>
+                <table id="contractTable" lay-filter="contractTable"></table>
+            </div>
+            <!-- 证书资质 -->
+            <div class="layui-tab-item">
+                <div class="flex-between">
+                    <strong>证书资质</strong>
+                    @if (canEdit) { <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnAddCert"><i class="layui-icon layui-icon-add-1"></i>新增证书</button> }
+                </div>
+                <table id="certTable" lay-filter="certTable"></table>
+            </div>
+            <!-- 教育经历 -->
+            <div class="layui-tab-item">
+                <div class="flex-between">
+                    <strong>教育经历</strong>
+                    @if (canEdit) { <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnAddEdu"><i class="layui-icon layui-icon-add-1"></i>新增经历</button> }
+                </div>
+                <table id="eduTable" lay-filter="eduTable"></table>
+            </div>
+            <!-- 工作经历 -->
+            <div class="layui-tab-item">
+                <div class="flex-between">
+                    <strong>工作经历</strong>
+                    @if (canEdit) { <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnAddWork"><i class="layui-icon layui-icon-add-1"></i>新增经历</button> }
+                </div>
+                <table id="workTable" lay-filter="workTable"></table>
+            </div>
+            <!-- 附件管理 -->
+            <div class="layui-tab-item">
+                <div class="flex-between">
+                    <strong>附件管理</strong>
+                    @if (canEdit) { <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnAddAttach"><i class="layui-icon layui-icon-upload"></i>上传附件</button> }
+                </div>
+                <table id="attachTable" lay-filter="attachTable"></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 行内工具条模板 -->
+<script type="text/html" id="contractBar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    {{# if(d.HasFile){ }}<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="preview">预览</a><a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="download">下载</a>{{# } }}
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+<script type="text/html" id="certBar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    {{# if(d.HasFile){ }}<a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="preview">预览</a><a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="download">下载</a>{{# } }}
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+<script type="text/html" id="eduBar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+<script type="text/html" id="workBar">
+    <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+<script type="text/html" id="attachBar">
+    <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="preview">预览</a>
+    <a class="layui-btn layui-btn-xs layui-btn-normal" lay-event="download">下载</a>
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
 
 @section Scripts {
 <script>
-var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
-var empId = @Model.Id;
+ems.ready(function () {
+    var $ = layui.jquery, form = layui.form, element = layui.element;
+    if (element) element.render();
+    var EMP_ID = @Model.Id;
+    var canEdit = @canEdit.ToString().ToLower();
+    // 下拉数据源
+    var contractTypes = @Html.Raw(JsonSerializer.Serialize(contractTypes));
+    var certTypes     = @Html.Raw(JsonSerializer.Serialize(certTypes));
+    var deptTree      = @Html.Raw(JsonSerializer.Serialize(deptTree));
+    var postList      = @Html.Raw(JsonSerializer.Serialize(postList));
 
-function esc(s) {
-    return (s ?? '').replace(/[&<>"']/g, function(m) {
-        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m];
+    /* ===== 头像上传 ===== */
+    $('#avatarBox').on('click', function () {
+        if (!canEdit) return;
+        $('#avatarFile').trigger('click');
     });
-}
+    $('#avatarFile').on('change', function () {
+        var f = this.files[0];
+        if (!f) return;
+        var fd = new FormData();
+        fd.append('id', EMP_ID);
+        fd.append('file', f);
+        postFormData('/hr/employee/avatar-upload', fd, function () {
+            $('#avatarBox').html('<img src="/hr/employee/avatar/' + EMP_ID + '?t=' + Date.now() + '" class="ems-avatar-img">');
+        });
+        this.value = '';
+    });
 
-// custom-file-input 显示文件名
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('custom-file-input')) {
-        var label = e.target.nextElementSibling;
-        if (label) label.textContent = e.target.files[0]?.name ?? '选择文件';
+    /* ===== 卡片内编辑 ===== */
+    var cardIdx = {};
+    $('.ems-card-edit').on('click', function () {
+        var card = $(this).data('card');
+        openCardEdit(card);
+    });
+
+    function openCardEdit(card) {
+        ems.get('/hr/employee/full/' + EMP_ID, function (d) {
+            var title = { basic: '编辑基本信息', job: '编辑任职信息', education: '编辑学历信息' }[card];
+            var html = card === 'basic' ? basicForm(d)
+                     : card === 'job'   ? jobForm(d)
+                     : educationForm(d);
+            cardIdx[card] = layer.open({
+                type: 1, title: title, skin: 'ems-layer', area: ['640px', 'auto'],
+                btn: ['保存', '取消'], content: html,
+                success: function () { form.render(); },
+                yes: function () { submitCard(card); }
+            });
+        });
+    }
+
+    function basicForm(d) {
+        return '<form class="layui-form ems-card-form" style="padding:15px;">'
+            + fItem('姓名', '<input class="layui-input" id="basic_RealName" value="' + esc(d.RealName) + '">')
+            + fRadio('性别', 'basic_Gender', [['1', '男', d.Gender == 1], ['2', '女', d.Gender == 2]])
+            + fItem('手机号', '<input class="layui-input" id="basic_Phone" value="' + esc(d.Phone) + '">')
+            + fItem('邮箱', '<input class="layui-input" id="basic_Email" value="' + esc(d.Email) + '">')
+            + fItem('身份证号', '<input class="layui-input" maxlength="18" id="basic_IdCard" value="' + esc(d.IdCard) + '">')
+            + fItem('民族', '<input class="layui-input" id="basic_Nationality" value="' + esc(d.Nationality) + '">')
+            + fItem('出生日期', '<input type="date" class="layui-input" id="basic_BirthDate" value="' + esc(d.BirthDate) + '">')
+            + fItem('籍贯', '<input class="layui-input" id="basic_NativePlace" value="' + esc(d.NativePlace) + '">')
+            + fItem('政治面貌', '<input class="layui-input" id="basic_PoliticalStatus" value="' + esc(d.PoliticalStatus) + '">')
+            + fItem('住址', '<input class="layui-input" id="basic_Address" value="' + esc(d.Address) + '">')
+            + fItem('紧急联系人', '<input class="layui-input" id="basic_EmergencyContact" value="' + esc(d.EmergencyContact) + '">')
+            + fItem('紧急电话', '<input class="layui-input" id="basic_EmergencyPhone" value="' + esc(d.EmergencyPhone) + '">')
+            + '</form>';
+    }
+
+    function jobForm(d) {
+        var deptOpts = '<option value="">请选择部门</option>' + flattenDepts(deptTree, '').map(function (o) {
+            return '<option value="' + o.id + '"' + (o.id == d.DeptId ? ' selected' : '') + '>' + esc(o.name) + '</option>';
+        }).join('');
+        var postOpts = '<option value="">请选择岗位</option>' + (postList || []).map(function (p) {
+            return '<option value="' + p.Id + '"' + (p.Id == d.PostId ? ' selected' : '') + '>' + esc(p.PostName) + '</option>';
+        }).join('');
+        return '<form class="layui-form ems-card-form" style="padding:15px;">'
+            + fItem('部门', '<select id="job_DeptId">' + deptOpts + '</select>')
+            + fItem('岗位', '<select id="job_PostId">' + postOpts + '</select>')
+            + fItem('入职日期', '<input type="date" class="layui-input" id="job_EntryDate" value="' + esc(d.EntryDate) + '">')
+            + fItem('试用期截止', '<input type="date" class="layui-input" id="job_ProbationEndDate" value="' + esc(d.ProbationEndDate) + '">')
+            + fItem('转正日期', '<input type="date" class="layui-input" id="job_FormalDate" value="' + esc(d.FormalDate) + '">')
+            + fItem('参加工作', '<input type="date" class="layui-input" id="job_WorkStartDate" value="' + esc(d.WorkStartDate) + '">')
+            + fItem('社保号', '<input class="layui-input" id="job_SocialInsuranceNo" value="' + esc(d.SocialInsuranceNo) + '">')
+            + fItem('银行账号', '<input class="layui-input" id="job_BankAccount" value="' + esc(d.BankAccount) + '">')
+            + fItem('开户行', '<input class="layui-input" id="job_BankName" value="' + esc(d.BankName) + '">')
+            + '</form>';
+    }
+
+    function educationForm(d) {
+        return '<form class="layui-form ems-card-form" style="padding:15px;">'
+            + fItem('学历', '<input class="layui-input" id="edu_Education" value="' + esc(d.Education) + '">')
+            + fItem('学位', '<input class="layui-input" id="edu_HighestDegree" value="' + esc(d.HighestDegree) + '">')
+            + fItem('毕业院校', '<input class="layui-input" id="edu_GraduateSchool" value="' + esc(d.GraduateSchool) + '">')
+            + fItem('专业', '<input class="layui-input" id="edu_Major" value="' + esc(d.Major) + '">')
+            + fItem('技术职称', '<input class="layui-input" id="edu_TechnicalTitle" value="' + esc(d.TechnicalTitle) + '">')
+            + fItem('技术等级', '<input class="layui-input" id="edu_TechnicalLevel" value="' + esc(d.TechnicalLevel) + '">')
+            + '</form>';
+    }
+
+    function submitCard(card) {
+        var data = { Id: EMP_ID }, url;
+        if (card === 'basic') {
+            data.RealName = $('#basic_RealName').val();
+            data.Gender = parseInt($('input[name=basic_Gender]:checked').val() || '1');
+            data.Phone = $('#basic_Phone').val() || null;
+            data.Email = $('#basic_Email').val() || null;
+            data.IdCard = $('#basic_IdCard').val() || null;
+            data.Nationality = $('#basic_Nationality').val() || null;
+            data.BirthDate = $('#basic_BirthDate').val() || null;
+            data.NativePlace = $('#basic_NativePlace').val() || null;
+            data.PoliticalStatus = $('#basic_PoliticalStatus').val() || null;
+            data.Address = $('#basic_Address').val() || null;
+            data.EmergencyContact = $('#basic_EmergencyContact').val() || null;
+            data.EmergencyPhone = $('#basic_EmergencyPhone').val() || null;
+            url = '/hr/employee/update-basic';
+        } else if (card === 'job') {
+            data.DeptId = parseInt($('#job_DeptId').val()) || null;
+            data.PostId = parseInt($('#job_PostId').val()) || null;
+            data.EntryDate = $('#job_EntryDate').val() || null;
+            data.ProbationEndDate = $('#job_ProbationEndDate').val() || null;
+            data.FormalDate = $('#job_FormalDate').val() || null;
+            data.WorkStartDate = $('#job_WorkStartDate').val() || null;
+            data.SocialInsuranceNo = $('#job_SocialInsuranceNo').val() || null;
+            data.BankAccount = $('#job_BankAccount').val() || null;
+            data.BankName = $('#job_BankName').val() || null;
+            url = '/hr/employee/update-job';
+        } else {
+            data.Education = $('#edu_Education').val() || null;
+            data.HighestDegree = $('#edu_HighestDegree').val() || null;
+            data.GraduateSchool = $('#edu_GraduateSchool').val() || null;
+            data.Major = $('#edu_Major').val() || null;
+            data.TechnicalTitle = $('#edu_TechnicalTitle').val() || null;
+            data.TechnicalLevel = $('#edu_TechnicalLevel').val() || null;
+            url = '/hr/employee/update-education';
+        }
+        ems.post({
+            url: url, data: data,
+            done: function () { layer.close(cardIdx[card]); ems.openTab('/hr/employee/detail/' + EMP_ID, '@Model.RealName 详情'); }
+        });
+    }
+
+    /* ===== 5 个 Tab 表格 ===== */
+    ems.initTable({
+        elem: '#contractTable', id: 'contractTable', page: false,
+        url: '/hr/employee/archive/contract/list/' + EMP_ID,
+        cols: [[
+            { field: 'ContractNo', title: '合同编号', minWidth: 120 },
+            { field: 'ContractType', title: '类型', minWidth: 90 },
+            { title: '起止日期', templet: function (d) { return d.StartDate + ' ~ ' + d.EndDate; }, minWidth: 180 },
+            { field: 'Status', title: '状态', templet: contractStatus, width: 90 },
+            { field: 'FileName', title: '附件', templet: function (d) { return d.FileName || '-'; }, minWidth: 120 },
+            { title: '操作', templet: '#contractBar', width: 150, fixed: 'right' }
+        ]],
+        tool: {
+            edit: function (d) { openContractForm(d); },
+            preview: function (d) { ems.preview(d.DownloadUrl + '?inline=1', d.FileName); },
+            download: function (d) { ems.download(d.DownloadUrl); },
+            del: function (d) { ems.del({ url: '/hr/employee/archive/contract/delete/' + d.Id, name: d.ContractNo, table: 'contractTable' }); }
+        }
+    });
+
+    ems.initTable({
+        elem: '#certTable', id: 'certTable', page: false,
+        url: '/hr/employee/archive/cert/list/' + EMP_ID,
+        cols: [[
+            { field: 'CertName', title: '证书名称', minWidth: 120 },
+            { field: 'CertType', title: '类型', minWidth: 90 },
+            { field: 'CertNo', title: '编号', minWidth: 120 },
+            { field: 'ExpireDate', title: '有效期至', minWidth: 110 },
+            { field: 'Status', title: '状态', templet: certStatus, width: 90 },
+            { field: 'FileName', title: '附件', templet: function (d) { return d.FileName || '-'; }, minWidth: 120 },
+            { title: '操作', templet: '#certBar', width: 150, fixed: 'right' }
+        ]],
+        tool: {
+            edit: function (d) { openCertForm(d); },
+            preview: function (d) { ems.preview(d.DownloadUrl + '?inline=1', d.FileName); },
+            download: function (d) { ems.download(d.DownloadUrl); },
+            del: function (d) { ems.del({ url: '/hr/employee/archive/cert/delete/' + d.Id, name: d.CertName, table: 'certTable' }); }
+        }
+    });
+
+    ems.initTable({
+        elem: '#eduTable', id: 'eduTable', page: false,
+        url: '/hr/employee/archive/edu/list/' + EMP_ID,
+        cols: [[
+            { field: 'SchoolName', title: '学校', minWidth: 120 },
+            { field: 'Major', title: '专业', minWidth: 100 },
+            { field: 'Degree', title: '学位', minWidth: 80 },
+            { title: '起止时间', templet: function (d) { return (d.StartDate || '-') + ' ~ ' + (d.EndDate || '-'); }, minWidth: 170 },
+            { field: 'IsFullTime', title: '全日制', width: 80 },
+            { title: '操作', templet: '#eduBar', width: 120, fixed: 'right' }
+        ]],
+        tool: {
+            edit: function (d) { openEduForm(d); },
+            del: function (d) { ems.del({ url: '/hr/employee/archive/edu/delete/' + d.Id, name: d.SchoolName, table: 'eduTable' }); }
+        }
+    });
+
+    ems.initTable({
+        elem: '#workTable', id: 'workTable', page: false,
+        url: '/hr/employee/archive/work/list/' + EMP_ID,
+        cols: [[
+            { field: 'CompanyName', title: '公司', minWidth: 140 },
+            { field: 'Position', title: '职位', minWidth: 120 },
+            { title: '起止时间', templet: function (d) { return (d.StartDate || '-') + ' ~ ' + (d.EndDate || '-'); }, minWidth: 170 },
+            { title: '操作', templet: '#workBar', width: 120, fixed: 'right' }
+        ]],
+        tool: {
+            edit: function (d) { openWorkForm(d); },
+            del: function (d) { ems.del({ url: '/hr/employee/archive/work/delete/' + d.Id, name: d.CompanyName, table: 'workTable' }); }
+        }
+    });
+
+    ems.initTable({
+        elem: '#attachTable', id: 'attachTable', page: false,
+        url: '/hr/employee/archive/attach/list/' + EMP_ID,
+        cols: [[
+            { field: 'FileName', title: '文件名', minWidth: 160 },
+            { field: 'FileSize', title: '大小', templet: fmtSize, width: 100 },
+            { field: 'Remark', title: '备注', minWidth: 120 },
+            { field: 'UploadTime', title: '上传时间', minWidth: 140 },
+            { title: '操作', templet: '#attachBar', width: 120, fixed: 'right' }
+        ]],
+        tool: {
+            preview: function (d) { ems.preview(d.DownloadUrl + '?inline=1', d.FileName); },
+            download: function (d) { ems.download(d.DownloadUrl); },
+            del: function (d) { ems.del({ url: '/hr/employee/archive/attach/delete/' + d.Id, name: d.FileName, table: 'attachTable' }); }
+        }
+    });
+
+    /* ===== Tab 新增按钮 ===== */
+    $('#btnAddContract').on('click', function () { openContractForm(null); });
+    $('#btnAddCert').on('click', function () { openCertForm(null); });
+    $('#btnAddEdu').on('click', function () { openEduForm(null); });
+    $('#btnAddWork').on('click', function () { openWorkForm(null); });
+    $('#btnAddAttach').on('click', function () { openAttachForm(); });
+
+    /* ===== 合同弹窗 ===== */
+    function openContractForm(d) {
+        d = d || {};
+        var typeOpts = (contractTypes || []).map(function (t) {
+            return '<option value="' + esc(t.DictValue) + '"' + (t.DictValue == d.ContractType ? ' selected' : '') + '>' + esc(t.DictLabel) + '</option>';
+        }).join('');
+        var html = '<form class="layui-form ems-archive-form" id="contractForm" style="padding:15px;">'
+            + '<input type="hidden" name="Id" value="' + (d.Id || 0) + '">'
+            + '<input type="hidden" name="EmployeeId" value="' + EMP_ID + '">'
+            + fItem('合同编号', '<input class="layui-input" name="ContractNo" value="' + esc(d.ContractNo) + '" lay-verify="required">')
+            + fItem('合同类型', '<select name="ContractType"><option value="">请选择</option>' + typeOpts + '</select>')
+            + fRow2(fItem('开始日期', '<input type="date" class="layui-input" name="StartDate" value="' + esc(d.StartDate) + '">'),
+                    fItem('结束日期', '<input type="date" class="layui-input" name="EndDate" value="' + esc(d.EndDate) + '">'))
+            + fItem('签订日期', '<input type="date" class="layui-input" name="SignDate" value="' + esc(d.SignDate) + '">')
+            + fItem('状态', '<select name="Status"><option value="0"' + (d.Status == 0 ? ' selected' : '') + '>履行中</option><option value="1"' + (d.Status == 1 ? ' selected' : '') + '>已终止</option><option value="2"' + (d.Status == 2 ? ' selected' : '') + '>已到期</option></select>')
+            + fItem('附件', '<input type="file" name="file" class="layui-input">')
+            + fItem('备注', '<textarea class="layui-textarea" name="Remark">' + esc(d.Remark) + '</textarea>')
+            + '</form>';
+        var idx = layer.open({ type: 1, title: d.Id ? '编辑合同' : '新增合同', skin: 'ems-layer', area: ['620px', 'auto'],
+            btn: ['保存', '取消'], content: html, success: function () { form.render(); },
+            yes: function () { postForm('#contractForm', '/hr/employee/archive/contract/save', 'contractTable', idx); } });
+    }
+
+    /* ===== 证书弹窗 ===== */
+    function openCertForm(d) {
+        d = d || {};
+        var typeOpts = (certTypes || []).map(function (t) {
+            return '<option value="' + esc(t.DictValue) + '"' + (t.DictValue == d.CertType ? ' selected' : '') + '>' + esc(t.DictLabel) + '</option>';
+        }).join('');
+        var html = '<form class="layui-form ems-archive-form" id="certForm" style="padding:15px;">'
+            + '<input type="hidden" name="Id" value="' + (d.Id || 0) + '">'
+            + '<input type="hidden" name="EmployeeId" value="' + EMP_ID + '">'
+            + fItem('证书名称', '<input class="layui-input" name="CertName" value="' + esc(d.CertName) + '" lay-verify="required">')
+            + fItem('证书类型', '<select name="CertType"><option value="">请选择</option>' + typeOpts + '</select>')
+            + fRow2(fItem('编号', '<input class="layui-input" name="CertNo" value="' + esc(d.CertNo) + '">'),
+                    fItem('颁发机构', '<input class="layui-input" name="IssueOrg" value="' + esc(d.IssueOrg) + '">'))
+            + fRow2(fItem('颁发日期', '<input type="date" class="layui-input" name="IssueDate" value="' + esc(d.IssueDate) + '">'),
+                    fItem('有效期至', '<input type="date" class="layui-input" name="ExpireDate" value="' + esc(d.ExpireDate) + '">'))
+            + fItem('状态', '<select name="Status"><option value="0"' + (d.Status == 0 ? ' selected' : '') + '>有效</option><option value="1"' + (d.Status == 1 ? ' selected' : '') + '>已过期</option></select>')
+            + fItem('附件', '<input type="file" name="file" class="layui-input">')
+            + '</form>';
+        var idx = layer.open({ type: 1, title: d.Id ? '编辑证书' : '新增证书', skin: 'ems-layer', area: ['620px', 'auto'],
+            btn: ['保存', '取消'], content: html, success: function () { form.render(); },
+            yes: function () { postForm('#certForm', '/hr/employee/archive/cert/save', 'certTable', idx); } });
+    }
+
+    /* ===== 教育弹窗 ===== */
+    function openEduForm(d) {
+        d = d || {};
+        var html = '<form class="layui-form ems-archive-form" id="eduForm" style="padding:15px;">'
+            + '<input type="hidden" name="Id" value="' + (d.Id || 0) + '">'
+            + '<input type="hidden" name="EmployeeId" value="' + EMP_ID + '">'
+            + fItem('学校', '<input class="layui-input" name="SchoolName" value="' + esc(d.SchoolName) + '" lay-verify="required">')
+            + fRow2(fItem('专业', '<input class="layui-input" name="Major" value="' + esc(d.Major) + '">'),
+                    fItem('学位', '<input class="layui-input" name="Degree" value="' + esc(d.Degree) + '">'))
+            + fRow2(fItem('开始', '<input type="date" class="layui-input" name="StartDate" value="' + esc(d.StartDate) + '">'),
+                    fItem('结束', '<input type="date" class="layui-input" name="EndDate" value="' + esc(d.EndDate) + '">'))
+            + fItem('全日制', '<input type="checkbox" name="IsFullTime" value="true" title="是" ' + (d.IsFullTime === '是' || d.IsFullTime === true ? 'checked' : '') + '>')
+            + fItem('备注', '<textarea class="layui-textarea" name="Remark">' + esc(d.Remark) + '</textarea>')
+            + '</form>';
+        var idx = layer.open({ type: 1, title: d.Id ? '编辑教育经历' : '新增教育经历', skin: 'ems-layer', area: ['620px', 'auto'],
+            btn: ['保存', '取消'], content: html, success: function () { form.render(); },
+            yes: function () { postForm('#eduForm', '/hr/employee/archive/edu/save', 'eduTable', idx); } });
+    }
+
+    /* ===== 工作弹窗 ===== */
+    function openWorkForm(d) {
+        d = d || {};
+        var html = '<form class="layui-form ems-archive-form" id="workForm" style="padding:15px;">'
+            + '<input type="hidden" name="Id" value="' + (d.Id || 0) + '">'
+            + '<input type="hidden" name="EmployeeId" value="' + EMP_ID + '">'
+            + fItem('公司', '<input class="layui-input" name="CompanyName" value="' + esc(d.CompanyName) + '" lay-verify="required">')
+            + fItem('职位', '<input class="layui-input" name="Position" value="' + esc(d.Position) + '">')
+            + fRow2(fItem('开始', '<input type="date" class="layui-input" name="StartDate" value="' + esc(d.StartDate) + '">'),
+                    fItem('结束', '<input type="date" class="layui-input" name="EndDate" value="' + esc(d.EndDate) + '">'))
+            + fItem('备注', '<textarea class="layui-textarea" name="Remark">' + esc(d.Remark) + '</textarea>')
+            + '</form>';
+        var idx = layer.open({ type: 1, title: d.Id ? '编辑工作经历' : '新增工作经历', skin: 'ems-layer', area: ['620px', 'auto'],
+            btn: ['保存', '取消'], content: html, success: function () { form.render(); },
+            yes: function () { postForm('#workForm', '/hr/employee/archive/work/save', 'workTable', idx); } });
+    }
+
+    /* ===== 附件上传弹窗 ===== */
+    function openAttachForm() {
+        var html = '<form class="layui-form ems-archive-form" id="attachForm" style="padding:15px;">'
+            + '<div class="layui-form-item"><label class="layui-form-label">选择文件</label><div class="layui-input-block"><input type="file" name="file" class="layui-input" lay-verify="required"></div></div>'
+            + '<div class="layui-form-item layui-form-text"><label class="layui-form-label">备注</label><div class="layui-input-block"><textarea class="layui-textarea" name="Remark"></textarea></div></div>'
+            + '</form>';
+        var idx = layer.open({ type: 1, title: '上传附件', skin: 'ems-layer', area: ['520px', 'auto'],
+            btn: ['上传', '取消'], content: html, success: function () { form.render(); },
+            yes: function () {
+                var fd = new FormData(document.getElementById('attachForm'));
+                fd.append('EmployeeId', EMP_ID);
+                postFormData('/hr/employee/archive/attach/upload', fd, function () { ems.reloadTable('attachTable', null, false); }, idx);
+            } });
+    }
+
+    /* ===== 通用辅助 ===== */
+    function fItem(label, control) {
+        return '<div class="layui-form-item"><label class="layui-form-label">' + label + '</label><div class="layui-input-block">' + control + '</div></div>';
+    }
+    function fRow2(a, b) {
+        return '<div class="layui-row layui-col-space10"><div class="layui-col-md6">' + a + '</div><div class="layui-col-md6">' + b + '</div></div>';
+    }
+    function fRadio(label, name, opts) {
+        var s = opts.map(function (o) { return '<input type="radio" name="' + name + '" value="' + o[0] + '" title="' + o[1] + '"' + (o[2] ? ' checked' : '') + '>'; }).join('');
+        return '<div class="layui-form-item"><label class="layui-form-label">' + label + '</label><div class="layui-input-block">' + s + '</div></div>';
+    }
+    function esc(s) { return ems.escapeHtml(s == null ? '' : s); }
+    function contractStatus(d) {
+        var m = { 0: ['履行中', 'green'], 1: ['已终止', 'gray'], 2: ['已到期', 'orange'] };
+        var h = m[d.Status] || ['未知', 'gray'];
+        return '<span class="layui-badge layui-bg-' + h[1] + '">' + h[0] + '</span>';
+    }
+    function certStatus(d) {
+        var m = { 0: ['有效', 'green'], 1: ['已过期', 'orange'] };
+        var h = m[d.Status] || ['未知', 'gray'];
+        return '<span class="layui-badge layui-bg-' + h[1] + '">' + h[0] + '</span>';
+    }
+    function fmtSize(d) {
+        var n = d.FileSize || 0;
+        if (n < 1024) return n + ' B';
+        if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+        return (n / 1024 / 1024).toFixed(1) + ' MB';
+    }
+    function flattenDepts(tree, prefix) {
+        var out = [];
+        (Array.isArray(tree) ? tree : []).forEach(function (n) {
+            out.push({ id: n.Id, name: (prefix ? prefix + ' / ' : '') + n.DeptName });
+            if (n.Children && n.Children.length) out = out.concat(flattenDepts(n.Children, (prefix ? prefix + ' / ' : '') + n.DeptName));
+        });
+        return out;
+    }
+    function token() {
+        return $('input[name="__RequestVerificationToken"]').first().val() || '';
+    }
+    // 表单（含文件）提交
+    function postForm(formSel, url, tableId, layerIdx) {
+        var fd = new FormData($(formSel)[0]);
+        postFormData(url, fd, function () { ems.reloadTable(tableId, null, false); }, layerIdx);
+    }
+    function postFormData(url, fd, done, layerIdx) {
+        $.ajax({
+            url: url, type: 'POST', data: fd, processData: false, contentType: false,
+            headers: { 'RequestVerificationToken': token() },
+            success: function (res) {
+                if (res && (res.success === true || res.code === 200)) {
+                    if (layerIdx) layer.close(layerIdx);
+                    ems.success(res.message || '操作成功', function () { if (done) done(res); });
+                } else { ems.error((res && res.message) || '操作失败'); }
+            },
+            error: function () { ems.error('网络请求失败'); }
+        });
     }
 });
-
-function openEditModal() {
-    $('#editEmpModal').modal('show');
-}
-
-function saveEdit() {
-    var data = {
-        Id:       empId,
-        RealName: $('#editRealName').val(),
-        Gender:   parseInt($('#editGender').val()),
-        Phone:    $('#editPhone').val(),
-        Email:    $('#editEmail').val(),
-        IdCard:   $('#editIdCard').val(),
-        DeptId:   parseInt($('#editDeptId').val()) || null,
-        EntryDate: $('#editEntryDate').val() || null,
-        Remark:   $('#editRemark').val(),
-        // 回传扩展字段，避免快捷编辑时清空人事档案数据
-        BirthDate:       '@(Model.BirthDate?.ToString("yyyy-MM-dd") ?? "")' || null,
-        NativePlace:     '@(Model.NativePlace ?? "")' || null,
-        Education:       '@(Model.Education ?? "")' || null,
-        Major:           '@(Model.Major ?? "")' || null,
-        GraduateSchool:  '@(Model.GraduateSchool ?? "")' || null,
-        EmergencyContact:'@(Model.EmergencyContact ?? "")' || null,
-        EmergencyPhone:  '@(Model.EmergencyPhone ?? "")' || null,
-        Address:         '@(Model.Address ?? "")' || null,
-        BankAccount:     '@(Model.BankAccount ?? "")' || null,
-        BankName:        '@(Model.BankName ?? "")' || null,
-        Nationality:     '@(Model.Nationality ?? "")' || null,
-        PoliticalStatus: '@(Model.PoliticalStatus ?? "")' || null,
-        HighestDegree:   '@(Model.HighestDegree ?? "")' || null,
-        WorkStartDate:   '@(Model.WorkStartDate?.ToString("yyyy-MM-dd") ?? "")' || null,
-        TechnicalTitle:  '@(Model.TechnicalTitle ?? "")' || null,
-        TechnicalLevel:  '@(Model.TechnicalLevel ?? "")' || null,
-        SocialInsuranceNo:'@(Model.SocialInsuranceNo ?? "")' || null,
-        ProfilePhoto:    '@(Model.ProfilePhoto ?? "")' || null,
-    };
-    if (!data.RealName) { ems.msg('请填写姓名', {icon:2}); return; }
-    ajaxPost('/hr/employee/update', data, function(r) {
-        ems.msg(r.message, {icon:1, time:1500}, function() { location.reload(); });
-    });
-}
-
-function doFormal() {
-    var today = new Date().toISOString().split('T')[0];
-    ems.open({
-        type: 1, title: '办理转正', area: ['350px', '180px'],
-        content: '<div class="form-group" style="padding:15px"><label>转正日期</label><input type="date" id="formalDate" class="form-control" value="' + today + '"></div>',
-        btn: ['确认转正', '取消'],
-        yes: function(idx) {
-            var val = $('#formalDate').val();
-            if (!val) { ems.msg('请选择日期', {icon:2}); return; }
-            $.post('/hr/employee/formal', { id: empId, formalDate: val, __RequestVerificationToken: antiForgery },
-                function(r) {
-                    ems.close(idx);
-                    ems.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
-                        function() { if (r.success) location.reload(); });
-                });
-        }
-    });
-}
-
-function doLeave() {
-    var today = new Date().toISOString().split('T')[0];
-    ems.open({
-        type: 1, title: '办理离职', area: ['350px', '180px'],
-        content: '<div class="form-group" style="padding:15px"><label>离职日期</label><input type="date" id="leaveDate" class="form-control" value="' + today + '"></div>',
-        btn: ['确认离职', '取消'],
-        yes: function(idx) {
-            var val = $('#leaveDate').val();
-            if (!val) { ems.msg('请选择日期', {icon:2}); return; }
-            $.post('/hr/employee/leave', { id: empId, leaveDate: val, __RequestVerificationToken: antiForgery },
-                function(r) {
-                    ems.close(idx);
-                    ems.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
-                        function() { if (r.success) location.reload(); });
-                });
-        }
-    });
-}
-
-function uploadContractFile(contractId, input) {
-    if (!input.files[0]) return;
-    var formData = new FormData();
-    formData.append('file', input.files[0]);
-    var load = ems.loading(1);
-    $.ajax({
-        url: '/hr/contract/upload/' + contractId, type: 'POST',
-        data: formData, processData: false, contentType: false,
-        headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) {
-            ems.close(load);
-            ems.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
-                function() { if (r.success) location.reload(); });
-        }
-    });
-}
-
-function uploadCertFile(certId, input) {
-    if (!input.files[0]) return;
-    var formData = new FormData();
-    formData.append('file', input.files[0]);
-    var load = ems.loading(1);
-    $.ajax({
-        url: '/hr/cert/upload/' + certId, type: 'POST',
-        data: formData, processData: false, contentType: false,
-        headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) {
-            ems.close(load);
-            ems.msg(r.message, { icon: r.success ? 1 : 2, time: 1500 },
-                function() { if (r.success) location.reload(); });
-        }
-    });
-}
-
-// 统一删除附件（合同/证书）
-function deleteAttachment(type, id) {
-    var url = type === "contract"
-        ? "/hr/contract/file/delete/" + id
-        : "/hr/cert/file/delete/" + id;
-    ems.confirm("确认删除附件？记录本身将保留。",
-        {icon:3, btn:["确认删除","取消"]}, function(i) {
-        ems.close(i);
-        $.post(url, {__RequestVerificationToken: antiForgery},
-            function(r) { handleResult(r, ()=>location.reload()); });
-    });
-}
-
-// ── 新增合同 ────────────────────────────────────────────────
-function openAddContractModal() {
-    $('#ctNo,#ctRemark').val('');
-    var today = new Date().toISOString().split('T')[0];
-    $('#ctStart').val(today);
-    var next = new Date(); next.setFullYear(next.getFullYear()+1);
-    $('#ctEnd').val(next.toISOString().split('T')[0]);
-    $('#ctSign').val(today);
-    document.getElementById('ctFile').value = '';
-    document.querySelector('label[for="ctFile"]').textContent = '选择文件（可选）';
-    $('#addContractModal').modal('show');
-}
-
-function saveEmpContract() {
-    var no = $('#ctNo').val(), start = $('#ctStart').val(), end = $('#ctEnd').val();
-    if (!no || !start || !end) { ems.msg('请填写合同编号和起止日期', {icon:2}); return; }
-    var fd = new FormData();
-    fd.append('EmployeeId', empId);
-    fd.append('ContractNo', no);
-    fd.append('ContractType', $('#ctType').val());
-    fd.append('StartDate', start);
-    fd.append('EndDate', end);
-    if ($('#ctSign').val()) fd.append('SignDate', $('#ctSign').val());
-    fd.append('Remark', $('#ctRemark').val());
-    var file = document.getElementById('ctFile').files[0];
-    if (file) fd.append('file', file);
-
-    $('#ctSaveBtn').prop('disabled', true);
-    var load = ems.loading(1);
-    $.ajax({ url: '/hr/contract/create-with-file', type: 'POST',
-        data: fd, processData: false, contentType: false,
-        headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) {
-            ems.close(load); $('#ctSaveBtn').prop('disabled', false);
-            if (r.success) { $('#addContractModal').modal('hide'); location.reload(); }
-            else ems.msg(r.message, {icon:2});
-        }
-    });
-}
-
-// ── 证书资质：行内编辑 ───────────────────────────────────────
-function enterCertEdit(btn) {
-    var tr = btn.closest('tr');
-    var d = tr.dataset;
-    tr.dataset.displayHtml = tr.innerHTML;
-    var attHtml = tr.querySelector('.cert-att-cell') ? tr.querySelector('.cert-att-cell').outerHTML : '<td></td>';
-    tr.innerHTML =
-        '<td><input type="text" class="form-control form-control-sm cert-in-name" value="' + esc(d.certname) + '" placeholder="证书名称"></td>' +
-        '<td><input type="text" class="form-control form-control-sm cert-in-type" value="' + esc(d.certtype) + '" placeholder="类型"></td>' +
-        '<td><input type="text" class="form-control form-control-sm cert-in-no" value="' + esc(d.certno) + '" placeholder="编号"></td>' +
-        '<td><input type="date" class="form-control form-control-sm cert-in-expire" value="' + esc(d.expiredate) + '"></td>' +
-        '<td><select class="form-control form-control-sm cert-in-status"><option value="0"' + (d.status === '0' ? ' selected' : '') + '>有效</option><option value="1"' + (d.status !== '0' ? ' selected' : '') + '>已过期</option></select></td>' +
-        attHtml +
-        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveCertEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelCertEdit(this)">取消</button></td>';
-}
-
-function cancelCertEdit(btn) {
-    var tr = btn.closest('tr');
-    if (tr.dataset.displayHtml) tr.innerHTML = tr.dataset.displayHtml;
-}
-
-function saveCertEdit(btn) {
-    var tr = btn.closest('tr');
-    var id = tr.dataset.id;
-    var dto = {
-        Id:         parseInt(id),
-        CertName:   tr.querySelector('.cert-in-name').value,
-        CertType:   tr.querySelector('.cert-in-type').value,
-        CertNo:     tr.querySelector('.cert-in-no').value,
-        ExpireDate: tr.querySelector('.cert-in-expire').value || null,
-        Status:     parseInt(tr.querySelector('.cert-in-status').value),
-    };
-    if (!dto.CertName) { ems.msg('请填写证书名称', {icon:2}); return; }
-    var saveBtn = tr.querySelector('.btn-primary');
-    saveBtn.disabled = true;
-    ajaxPost('/hr/cert/update', dto, function(r) {
-        saveBtn.disabled = false;
-        if (r && r.success) location.reload();
-        else ems.msg((r && r.message) || '保存失败', {icon:2});
-    }, function(r) {
-        saveBtn.disabled = false;
-        ems.msg((r && r.message) || '保存失败', {icon:2});
-    });
-}
-
-function addCertRow() {
-    var tbody = document.getElementById('certTbody');
-    var empty = document.getElementById('certEmpty');
-    if (empty) empty.classList.add('d-none');
-    var tr = document.createElement('tr');
-    tr.className = 'cert-row';
-    tr.dataset.id = '';
-    tr.innerHTML =
-        '<td><input type="text" class="form-control form-control-sm cert-in-name" placeholder="证书名称"></td>' +
-        '<td><input type="text" class="form-control form-control-sm cert-in-type" placeholder="类型"></td>' +
-        '<td><input type="text" class="form-control form-control-sm cert-in-no" placeholder="编号"></td>' +
-        '<td><input type="date" class="form-control form-control-sm cert-in-expire"></td>' +
-        '<td><select class="form-control form-control-sm cert-in-status"><option value="0" selected>有效</option><option value="1">已过期</option></select></td>' +
-        '<td class="cert-att-cell"></td>' +
-        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveCertAdd(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelCertAdd(this)">取消</button></td>';
-    tbody.insertBefore(tr, tbody.firstChild);
-    tr.querySelector('.cert-in-name').focus();
-}
-
-function saveCertAdd(btn) {
-    var tr = btn.closest('tr');
-    var name = tr.querySelector('.cert-in-name').value;
-    if (!name) { ems.msg('请填写证书名称', {icon:2}); return; }
-    var fd = new FormData();
-    fd.append('EmployeeId', empId);
-    fd.append('CertName', name);
-    fd.append('CertType', tr.querySelector('.cert-in-type').value);
-    var no = tr.querySelector('.cert-in-no').value; if (no) fd.append('CertNo', no);
-    var exp = tr.querySelector('.cert-in-expire').value; if (exp) fd.append('ExpireDate', exp);
-    fd.append('Status', parseInt(tr.querySelector('.cert-in-status').value));
-    var saveBtn = tr.querySelector('.btn-primary');
-    saveBtn.disabled = true;
-    var load = ems.loading(1);
-    $.ajax({ url: '/hr/cert/create-with-file', type: 'POST',
-        data: fd, processData: false, contentType: false,
-        headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) {
-            ems.close(load); saveBtn.disabled = false;
-            if (r && r.success) location.reload();
-            else ems.msg((r && r.message) || '保存失败', {icon:2});
-        },
-        error: function() { ems.close(load); saveBtn.disabled = false; ems.msg('保存失败', {icon:2}); }
-    });
-}
-
-function cancelCertAdd(btn) {
-    var tr = btn.closest('tr');
-    tr.remove();
-    var tbody = document.getElementById('certTbody');
-    var empty = document.getElementById('certEmpty');
-    if (empty && tbody.children.length === 0) empty.classList.remove('d-none');
-}
-
-function deleteCert(id) {
-    ems.confirm('确认删除该证书？', {icon:3, btn:['确认删除','取消']}, function(i) {
-        ems.close(i);
-        $.post('/hr/cert/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
-            if (r && r.success) location.reload();
-            else ems.msg((r && r.message) || '删除失败', {icon:2});
-        });
-    });
-}
-
-// ── 教育经历：行内编辑 ───────────────────────────────────────
-function enterEduEdit(btn) {
-    var tr = btn.closest('tr');
-    var d = tr.dataset;
-    tr.dataset.displayHtml = tr.innerHTML;
-    tr.innerHTML =
-        '<td><input type="text" class="form-control form-control-sm edu-in-school" value="' + esc(d.school) + '" placeholder="学校名称"></td>' +
-        '<td><input type="text" class="form-control form-control-sm edu-in-major" value="' + esc(d.major) + '" placeholder="专业"></td>' +
-        '<td><input type="text" class="form-control form-control-sm edu-in-degree" value="' + esc(d.degree) + '" placeholder="学历"></td>' +
-        '<td><select class="form-control form-control-sm edu-in-full"><option value="1"' + (d.full === '1' ? ' selected' : '') + '>是</option><option value="0"' + (d.full !== '1' ? ' selected' : '') + '>否</option></select></td>' +
-        '<td><div class="d-flex align-items-center" style="gap:4px"><input type="date" class="form-control form-control-sm edu-in-start" value="' + esc(d.start) + '"><span>~</span><input type="date" class="form-control form-control-sm edu-in-end" value="' + esc(d.end) + '"></div></td>' +
-        '<td><input type="text" class="form-control form-control-sm edu-in-remark" value="' + esc(d.remark) + '" placeholder="备注"></td>' +
-        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveEduEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelEduEdit(this)">取消</button></td>';
-}
-
-function cancelEduEdit(btn) {
-    var tr = btn.closest('tr');
-    if (tr.dataset.displayHtml) tr.innerHTML = tr.dataset.displayHtml;
-}
-
-function saveEduEdit(btn) {
-    var tr = btn.closest('tr');
-    var id = tr.dataset.id;
-    var dto = {
-        SchoolName: tr.querySelector('.edu-in-school').value,
-        Major:      tr.querySelector('.edu-in-major').value,
-        Degree:     tr.querySelector('.edu-in-degree').value,
-        IsFullTime: tr.querySelector('.edu-in-full').value === '1',
-        StartDate:  tr.querySelector('.edu-in-start').value || null,
-        EndDate:    tr.querySelector('.edu-in-end').value || null,
-        Remark:     tr.querySelector('.edu-in-remark').value,
-    };
-    if (!dto.SchoolName || !dto.Major || !dto.Degree) { ems.msg('请填写学校、专业和学历', {icon:2}); return; }
-    var url = id ? '/hr/education/update' : '/hr/education/create?employeeId=' + empId;
-    if (id) dto.Id = parseInt(id);
-    var saveBtn = tr.querySelector('.btn-primary');
-    saveBtn.disabled = true;
-    ajaxPost(url, dto, function(r) {
-        saveBtn.disabled = false;
-        if (r && r.success) location.reload();
-        else ems.msg((r && r.message) || '保存失败', {icon:2});
-    }, function(r) {
-        saveBtn.disabled = false;
-        ems.msg((r && r.message) || '保存失败', {icon:2});
-    });
-}
-
-function addEduRow() {
-    var tbody = document.getElementById('eduTbody');
-    var empty = document.getElementById('eduEmpty');
-    if (empty) empty.classList.add('d-none');
-    var tr = document.createElement('tr');
-    tr.className = 'edu-row';
-    tr.dataset.id = '';
-    tr.innerHTML =
-        '<td><input type="text" class="form-control form-control-sm edu-in-school" placeholder="学校名称"></td>' +
-        '<td><input type="text" class="form-control form-control-sm edu-in-major" placeholder="专业"></td>' +
-        '<td><input type="text" class="form-control form-control-sm edu-in-degree" placeholder="学历"></td>' +
-        '<td><select class="form-control form-control-sm edu-in-full"><option value="1">是</option><option value="0">否</option></select></td>' +
-        '<td><div class="d-flex align-items-center" style="gap:4px"><input type="date" class="form-control form-control-sm edu-in-start"><span>~</span><input type="date" class="form-control form-control-sm edu-in-end"></div></td>' +
-        '<td><input type="text" class="form-control form-control-sm edu-in-remark" placeholder="备注"></td>' +
-        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveEduEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelEduAdd(this)">取消</button></td>';
-    tbody.insertBefore(tr, tbody.firstChild);
-    tr.querySelector('.edu-in-school').focus();
-}
-
-function cancelEduAdd(btn) {
-    var tr = btn.closest('tr');
-    tr.remove();
-    var tbody = document.getElementById('eduTbody');
-    var empty = document.getElementById('eduEmpty');
-    if (empty && tbody.children.length === 0) empty.classList.remove('d-none');
-}
-
-function deleteEdu(id) {
-    ems.confirm('确认删除该教育经历？', {icon:3, btn:['确认删除','取消']}, function(i) {
-        ems.close(i);
-        $.post('/hr/education/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
-            if (r && r.success) location.reload();
-            else ems.msg((r && r.message) || '删除失败', {icon:2});
-        });
-    });
-}
-
-// ── 工作经历：行内编辑 ───────────────────────────────────────
-function enterWorkEdit(btn) {
-    var tr = btn.closest('tr');
-    var d = tr.dataset;
-    tr.dataset.displayHtml = tr.innerHTML;
-    tr.innerHTML =
-        '<td><input type="text" class="form-control form-control-sm work-in-company" value="' + esc(d.company) + '" placeholder="公司名称"></td>' +
-        '<td><input type="text" class="form-control form-control-sm work-in-position" value="' + esc(d.position) + '" placeholder="职位"></td>' +
-        '<td><div class="d-flex align-items-center" style="gap:4px"><input type="date" class="form-control form-control-sm work-in-start" value="' + esc(d.start) + '"><span>~</span><input type="date" class="form-control form-control-sm work-in-end" value="' + esc(d.end) + '"></div></td>' +
-        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveWorkEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelWorkEdit(this)">取消</button></td>';
-}
-
-function cancelWorkEdit(btn) {
-    var tr = btn.closest('tr');
-    if (tr.dataset.displayHtml) tr.innerHTML = tr.dataset.displayHtml;
-}
-
-function saveWorkEdit(btn) {
-    var tr = btn.closest('tr');
-    var id = tr.dataset.id;
-    var dto = {
-        CompanyName: tr.querySelector('.work-in-company').value,
-        Position:    tr.querySelector('.work-in-position').value,
-        StartDate:   tr.querySelector('.work-in-start').value || null,
-        EndDate:     tr.querySelector('.work-in-end').value || null,
-    };
-    if (!dto.CompanyName || !dto.Position) { ems.msg('请填写公司和职位', {icon:2}); return; }
-    var url = id ? '/hr/workexp/update' : '/hr/workexp/create?employeeId=' + empId;
-    if (id) dto.Id = parseInt(id);
-    var saveBtn = tr.querySelector('.btn-primary');
-    saveBtn.disabled = true;
-    ajaxPost(url, dto, function(r) {
-        saveBtn.disabled = false;
-        if (r && r.success) location.reload();
-        else ems.msg((r && r.message) || '保存失败', {icon:2});
-    }, function(r) {
-        saveBtn.disabled = false;
-        ems.msg((r && r.message) || '保存失败', {icon:2});
-    });
-}
-
-function addWorkRow() {
-    var tbody = document.getElementById('workTbody');
-    var empty = document.getElementById('workEmpty');
-    if (empty) empty.classList.add('d-none');
-    var tr = document.createElement('tr');
-    tr.className = 'work-row';
-    tr.dataset.id = '';
-    tr.innerHTML =
-        '<td><input type="text" class="form-control form-control-sm work-in-company" placeholder="公司名称"></td>' +
-        '<td><input type="text" class="form-control form-control-sm work-in-position" placeholder="职位"></td>' +
-        '<td><div class="d-flex align-items-center" style="gap:4px"><input type="date" class="form-control form-control-sm work-in-start"><span>~</span><input type="date" class="form-control form-control-sm work-in-end"></div></td>' +
-        '<td class="text-right"><button class="btn btn-xs btn-primary" onclick="saveWorkEdit(this)">保存</button> <button class="btn btn-xs btn-default" onclick="cancelWorkAdd(this)">取消</button></td>';
-    tbody.insertBefore(tr, tbody.firstChild);
-    tr.querySelector('.work-in-company').focus();
-}
-
-function cancelWorkAdd(btn) {
-    var tr = btn.closest('tr');
-    tr.remove();
-    var tbody = document.getElementById('workTbody');
-    var empty = document.getElementById('workEmpty');
-    if (empty && tbody.children.length === 0) empty.classList.remove('d-none');
-}
-
-function deleteWork(id) {
-    ems.confirm('确认删除该工作经历？', {icon:3, btn:['确认删除','取消']}, function(i) {
-        ems.close(i);
-        $.post('/hr/workexp/delete/' + id, {__RequestVerificationToken: antiForgery}, function(r) {
-            if (r && r.success) location.reload();
-            else ems.msg((r && r.message) || '删除失败', {icon:2});
-        });
-    });
-}
 </script>
 }

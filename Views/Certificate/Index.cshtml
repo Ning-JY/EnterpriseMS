@@ -1,311 +1,264 @@
-@using EnterpriseMS.Domain.Entities.Hr
-@using EnterpriseMS.Services.DTOs.System
+@using EnterpriseMS.Common.Extensions
 @using EnterpriseMS.Services.DTOs.Hr
-@model List<EmployeeCertificate>
+@using EnterpriseMS.Services.DTOs.System
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
 @{
     ViewData["Title"] = "证书管理";
-    var warnDate  = DateTime.Today.AddDays(60);
-    var employees = ViewBag.Employees as List<EmployeeSimpleDto> ?? new();
-    var certTypes = ViewBag.CertTypes as List<DictDataDto>       ?? new();
+    var userId  = User.GetUserId();
+    bool canAdd    = await PermSvc.HasPermAsync(userId, "hr:cert:add");
+    bool canEdit   = await PermSvc.HasPermAsync(userId, "hr:cert:edit");
+    var employees  = ViewBag.Employees as List<EmployeeSimpleDto> ?? new();
+    var certTypes  = ViewBag.CertTypes as List<DictDataDto>       ?? new();
 }
 
-<div class="content-header"><div class="container-fluid">
-    <div class="row mb-2">
-        <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-medal mr-2"></i>证书管理</h1></div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-right">
-                <li class="breadcrumb-item"><a href="/">首页</a></li>
-                <li class="breadcrumb-item">员工档案</li>
-                <li class="breadcrumb-item active">证书管理</li>
-            </ol>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-rate"></i> 证书管理
     </div>
-</div></div>
-
-<section class="content"><div class="container-fluid">
-
-@if ((int)(ViewBag.WarnCount ?? 0) > 0)
-{
-    <div class="alert alert-warning alert-dismissible">
-        <button type="button" class="close" data-dismiss="alert">×</button>
-        <i class="fas fa-medal mr-2"></i>
-        <strong>到期提醒：</strong>有 <strong>@ViewBag.WarnCount</strong> 张证书将在 60 天内到期。
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">HR管理</a>
+        <a><cite>证书管理</cite></a>
     </div>
-}
-
-    <!-- 搜索 -->
-    <div class="card card-default search-card">
-        <div class="card-body">
-            <form id="searchForm" method="get" action="/hr/cert">
-                <div class="row">
-                    <div class="col-md-3">
-                        <input name="keyword" class="form-control form-control-sm" placeholder="员工 / 证书名称 / 编号" value="@ViewBag.Keyword">
-                    </div>
-                    <div class="col-md-3">
-                        <select name="status" class="form-control form-control-sm">
-                            <option value="">全部状态</option>
-                            <option value="0" selected="@(ViewBag.Status?.ToString()=="0"?"selected":null)">有效</option>
-                            <option value="1" selected="@(ViewBag.Status?.ToString()=="1"?"selected":null)">已过期</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary btn-sm mr-1"><i class="fas fa-search"></i> 搜索</button>
-                        <a href="/hr/cert" class="btn btn-default btn-sm"><i class="fas fa-redo"></i> 重置</a>
-                    </div>
-                        <div class="col-md-4 text-right">
-                        <button type="button" class="btn btn-success btn-sm" onclick="openAddModal()">
-                            <i class="fas fa-plus"></i> 新增证书
-                        </button>
-                    </div>
-                </div>
-                <input type="hidden" name="page" id="pageInput" value="1">
-            </form>
-        </div>
-    </div>
-
-    <!-- 列表 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">共 @ViewBag.Total 条</h3>
-        </div>
-    <div class="card-body table-responsive p-0">
-        <table class="table table-hover table-sm">
-            <thead class="thead-light">
-                <tr>
-                    <th>员工</th><th>证书名称</th><th>类型</th>
-                    <th>证书编号</th><th>发证机构</th><th>有效期至</th><th>状态</th><th>附件</th><th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var cert in Model)
-                {
-                    var isExpiring = cert.Status == 0 && cert.ExpireDate.HasValue && cert.ExpireDate <= warnDate;
-                    <tr class="@(isExpiring ? "table-warning" : "")">
-                        <td><strong>@(cert.Employee?.RealName ?? "-")</strong></td>
-                        <td>@cert.CertName</td>
-                        <td><span class="badge badge-light">@cert.CertType</span></td>
-                        <td><code class="small">@(cert.CertNo ?? "-")</code></td>
-                        <td class="small text-muted">@(cert.IssueOrg ?? "-")</td>
-                        <td class="small @(isExpiring ? "text-danger font-weight-bold" : "")">
-                            @(cert.ExpireDate.HasValue ? cert.ExpireDate.Value.ToString("yyyy-MM-dd") : "长期有效")
-                            @if (isExpiring) { <span class="badge badge-warning ml-1">即将到期</span> }
-                        </td>
-                        <td>
-                            @if (cert.Status == 0) { <span class="badge badge-success">有效</span> }
-                            else { <span class="badge badge-danger">已过期</span> }
-                        </td>
-                        <td>
-                            @if (cert.FileName != null)
-                            {
-                                <div class="d-flex align-items-center flex-wrap gap-1">
-                                    <a href="/hr/cert/download/@cert.Id"
-                                       class="btn btn-xs btn-info" title="下载">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                    <label class="btn btn-xs btn-warning mb-0" title="重新上传">
-                                        <i class="fas fa-sync-alt"></i>
-                                        <input type="file" style="display:none"
-                                               onchange="uploadCert(@cert.Id, this)">
-                                    </label>
-                                    <button class="btn btn-xs btn-outline-danger"
-                                            onclick="deleteCertFile(@cert.Id)" title="删除附件">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                    <small class="text-muted d-block w-100 mt-1">
-                                        @(cert.FileName.Length > 14 ? cert.FileName[..14] + "…" : cert.FileName)
-                                    </small>
-                                </div>
-                            }
-                            else
-                            {
-                                <label class="btn btn-xs btn-outline-secondary mb-0" title="上传证书扫描件">
-                                    <i class="fas fa-upload"></i>
-                                    <input type="file" style="display:none"
-                                           onchange="uploadCert(@cert.Id, this)">
-                                </label>
-                            }
-                        </td>
-                        <td>
-                            <button class="btn btn-xs btn-danger"
-                                    onclick="deleteCert(@cert.Id,'@EncodeHelper.SafeEncode(cert.CertName)')" title="删除">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                }
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="9" class="text-center text-muted py-4">暂无数据</td></tr>
-                }
-            </tbody>
-        </table>
-    </div>
-    @{
-        var paged = new EnterpriseMS.Common.PagedResult<EmployeeCertificate>
-        {
-            Items = Model, Total = (int)(ViewBag.Total ?? 0),
-            Page = (int)(ViewBag.Page ?? 1), PageSize = (int)(ViewBag.Size ?? 15)
-        };
-    }
-    <partial name="_Pagination" model="paged" />
 </div>
-</div></section>
+
+<!-- 搜索卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="certSearch">
+            <div class="layui-inline">
+                <input type="text" name="keyword" placeholder="员工 / 证书名称 / 编号"
+                       autocomplete="off" class="layui-input">
+            </div>
+            <div class="layui-inline">
+                <select name="status">
+                    <option value="">全部状态</option>
+                    <option value="0">有效</option>
+                    <option value="1">已过期</option>
+                </select>
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="certSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+            </div>
+            <div class="layui-inline ems-search-actions">
+                @if (canAdd)
+                {
+                    <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                        <i class="layui-icon layui-icon-add-1"></i> 新增证书
+                    </button>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 列表卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>证书列表</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
+                <i class="layui-icon layui-icon-cols"></i> 筛选列
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnExport">
+                <i class="layui-icon layui-icon-export"></i> 导出
+            </button>
+        </div>
+    </div>
+    <div class="layui-card-body">
+        <table id="certTable" lay-filter="certTable"></table>
+    </div>
+</div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="certBar">
+    {{# if (d.FileName) { }}
+    <a class="ems-icon-btn primary" title="下载" lay-event="download"><i class="layui-icon layui-icon-download-circle"></i></a>
+    <a class="ems-icon-btn" title="重新上传" lay-event="upload"><i class="layui-icon layui-icon-upload"></i></a>
+    <a class="ems-icon-btn warn" title="删除附件" lay-event="delfile"><i class="layui-icon layui-icon-delete"></i></a>
+    {{# } else { }}
+    <a class="ems-icon-btn" title="上传附件" lay-event="upload"><i class="layui-icon layui-icon-upload"></i></a>
+    {{# } }}
+    @if (canEdit)
+    {
+        <text><a class="ems-icon-btn danger" title="删除" lay-event="del"><i class="layui-icon layui-icon-close"></i></a></text>
+    }
+</script>
 
 <!-- 新增证书弹窗 -->
-<div class="modal fade" id="certModal" tabindex="-1">
-    <div class="modal-dialog modal-lg"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">新增证书</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+<div class="ems-modal-box" id="certModal">
+    <div class="layui-form-item">
+        <label class="layui-form-label">员工 <span class="layui-font-red">*</span></label>
+        <div class="layui-input-block">
+            <select id="certEmpId" class="layui-input">
+                <option value="">-- 请选择员工 --</option>
+                @foreach (var e in employees)
+                {
+                    <option value="@e.Id">@e.Display</option>
+                }
+            </select>
         </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>员工 <span class="text-danger">*</span></label>
-                <select id="certEmpId" class="form-control">
-                    <option value="">-- 请选择员工 --</option>
-                    @foreach (var e in employees)
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline" style="width:48%">
+            <label class="layui-form-label" style="width:auto">证书名称 <span class="layui-font-red">*</span></label>
+            <div class="layui-input-inline" style="width:62%"><input type="text" id="certName" class="layui-input" placeholder="如：注册城乡规划师"></div>
+        </div>
+        <div class="layui-inline" style="width:48%">
+            <label class="layui-form-label" style="width:auto">证书类型</label>
+            <div class="layui-input-inline" style="width:62%">
+                <select id="certType" class="layui-input">
+                    @foreach (var t in certTypes)
                     {
-                        <option value="@e.Id">@e.Display</option>
+                        <option value="@t.DictValue">@t.DictLabel</option>
                     }
                 </select>
             </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>证书名称 <span class="text-danger">*</span></label>
-                        <input type="text" id="certName" class="form-control" placeholder="如：注册城乡规划师">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>证书类型</label>
-                        <select id="certType" class="form-control">
-                            @foreach (var t in certTypes)
-                            {
-                                <option value="@t.DictValue">@t.DictLabel</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>证书编号</label>
-                        <input type="text" id="certNo" class="form-control" placeholder="证书编号">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>发证机构</label>
-                        <input type="text" id="certOrg" class="form-control" placeholder="如：住房和城乡建设部">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>发证日期</label>
-                        <input type="date" id="certIssue" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>有效期至</label>
-                        <input type="date" id="certExpire" class="form-control">
-                        <small class="text-muted">留空表示长期有效</small>
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>证书扫描件 <small class="text-muted">（可选，PDF/图片，最大 20MB）</small></label>
-                <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="certFile"
-                           accept=".pdf,.jpg,.jpeg,.png">
-                    <label class="custom-file-label" for="certFile">点击选择文件</label>
-                </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline" style="width:48%">
+            <label class="layui-form-label" style="width:auto">证书编号</label>
+            <div class="layui-input-inline" style="width:62%"><input type="text" id="certNo" class="layui-input" placeholder="证书编号"></div>
+        </div>
+        <div class="layui-inline" style="width:48%">
+            <label class="layui-form-label" style="width:auto">发证机构</label>
+            <div class="layui-input-inline" style="width:62%"><input type="text" id="certOrg" class="layui-input" placeholder="如：住房和城乡建设部"></div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline" style="width:48%">
+            <label class="layui-form-label" style="width:auto">发证日期</label>
+            <div class="layui-input-inline" style="width:62%"><input type="date" id="certIssue" class="layui-input"></div>
+        </div>
+        <div class="layui-inline" style="width:48%">
+            <label class="layui-form-label" style="width:auto">有效期至</label>
+            <div class="layui-input-inline" style="width:62%"><input type="date" id="certExpire" class="layui-input">
+                <small class="layui-font-12">留空为长期有效</small>
             </div>
         </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary" id="certSaveBtn" onclick="saveCert()">
-                <i class="fas fa-save mr-1"></i> 保存
-            </button>
-        </div>
-    </div></div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">证书扫描件</label>
+        <div class="layui-input-block"><input type="file" id="certFile" accept=".pdf,.jpg,.jpeg,.png" class="layui-input"></div>
+    </div>
+    <div class="ems-modal-foot">
+        <button class="layui-btn layui-btn-sm" onclick="closeCertModal()">取消</button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" id="certSaveBtn" onclick="saveCert()">保存</button>
+    </div>
 </div>
+
+<input type="file" id="certFileInput" style="display:none" accept=".pdf,.jpg,.jpeg,.png">
 
 @section Scripts {
 <script>
-var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+ems.ready(function () {
+    var $ = layui.jquery;
+    layui.form.render();
+    var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+    var curUploadId = 0;
 
-document.getElementById('certFile')?.addEventListener('change', function() {
-    this.nextElementSibling.textContent = this.files[0]?.name ?? '点击选择文件';
+    var colsConfig = [
+        { field: 'Employee', title: '员工', width: 110,
+          templet: function (d) { return '<strong>' + ems.escapeHtml(d.Employee?.RealName || '-') + '</strong>'; } },
+        { field: 'CertName', title: '证书名称', minWidth: 160, templet: ems.tpl.text('CertName') },
+        { field: 'CertType', title: '类型', width: 120,
+          templet: function (d) { return '<span class="layui-badge-rim">' + ems.escapeHtml(d.CertType || '-') + '</span>'; } },
+        { field: 'CertNo',   title: '编号', width: 130, templet: function (d) { return d.CertNo ? '<span class="layui-font-12">' + ems.escapeHtml(d.CertNo) + '</span>' : '-'; } },
+        { field: 'IssueOrg', title: '发证机构', width: 150, templet: ems.tpl.text('IssueOrg') },
+        { field: 'ExpireDate', title: '有效期至', width: 140,
+          templet: function (d) {
+              if (!d.ExpireDate) return '长期有效';
+              var exp = new Date(d.ExpireDate);
+              var warn = new Date(); warn.setDate(warn.getDate() + 60);
+              var expiring = d.Status === 0 && exp <= warn;
+              var cls = expiring ? 'layui-font-red ' : '';
+              var html = '<span class="' + cls + '">' + exp.toISOString().slice(0, 10) + '</span>';
+              if (expiring) html += ' <span class="layui-badge layui-bg-orange">即将到期</span>';
+              return html;
+          } },
+        { field: 'Status', title: '状态', width: 90, align: 'center',
+          templet: ems.tpl.badge('Status', { 0: ['有效', 'green'], 1: ['已过期', 'red'] }) },
+        { title: '操作', width: 150, align: 'center', toolbar: '#certBar' }
+    ];
+
+    ems.initTable({
+        elem: '#certTable', id: 'certTable', url: '/hr/cert/list', cols: [colsConfig],
+        tool: {
+            download: function (d) { window.location.href = '/hr/cert/download/' + d.Id; },
+            upload:   function (d) { curUploadId = d.Id; $('#certFileInput').click(); },
+            delfile:  function (d) {
+                ems.confirm('确认删除该证书附件？证书记录将保留。', { icon: 3, btn: ['确认删除', '取消'] }, function (i) {
+                    ems.close(i);
+                    $.post('/hr/cert/file/delete/' + d.Id, { __RequestVerificationToken: antiForgery }, function (r) { if (r.success) ems.msg(r.message, { icon: 1, time: 1200 }, reloadCert); else ems.msg(r.message, { icon: 2 }); });
+                });
+            },
+            del:      function (d) {
+                ems.confirm('确认删除证书 <b>' + ems.escapeHtml(d.CertName) + '</b>？', { icon: 3, btn: ['确认删除', '取消'] }, function (i) {
+                    ems.close(i);
+                    $.post('/hr/cert/delete/' + d.Id, { __RequestVerificationToken: antiForgery }, function (r) { if (r.success) ems.msg(r.message, { icon: 1, time: 1200 }, reloadCert); else ems.msg(r.message, { icon: 2 }); });
+                });
+            }
+        }
+    });
+
+    function reloadCert() { layui.table.reload('certTable'); }
+
+    $('#certFileInput').on('change', function () { uploadCert(curUploadId, this); });
+
+    $('#btnAdd').on('click', function () {
+        ['certEmpId', 'certName', 'certNo', 'certOrg', 'certIssue', 'certExpire'].forEach(function (id) { $('#' + id).val(''); });
+        $('#certFile').val('');
+        layui.form.render('select');
+        layer.open({ type: 1, title: '新增证书', area: ['640px'], content: $('#certModal'), shadeClose: false,
+            success: function () { layui.form.render('select'); } });
+    });
+
+    window.closeCertModal = function () { layer.closeAll(); };
+
+    window.saveCert = function () {
+        var empId = parseInt($('#certEmpId').val()), name = $('#certName').val();
+        if (!empId || !name) { ems.msg('请填写员工和证书名称', { icon: 2 }); return; }
+        var fd = new FormData();
+        fd.append('EmployeeId', empId);
+        fd.append('CertName', name);
+        fd.append('CertType', $('#certType').val());
+        if ($('#certNo').val())     fd.append('CertNo', $('#certNo').val());
+        if ($('#certOrg').val())    fd.append('IssueOrg', $('#certOrg').val());
+        if ($('#certIssue').val())  fd.append('IssueDate', $('#certIssue').val());
+        if ($('#certExpire').val()) fd.append('ExpireDate', $('#certExpire').val());
+        var file = document.getElementById('certFile').files[0];
+        if (file) fd.append('file', file);
+        $('#certSaveBtn').prop('disabled', true);
+        var load = ems.loading(1);
+        $.ajax({ url: '/hr/cert/create-with-file', type: 'POST', data: fd, processData: false, contentType: false,
+            success: function (r) {
+                ems.close(load); $('#certSaveBtn').prop('disabled', false);
+                if (r.success) { layer.closeAll(); ems.msg(r.message, { icon: 1, time: 1200 }, reloadCert); }
+                else ems.msg(r.message, { icon: 2 });
+            },
+            error: function () { ems.close(load); $('#certSaveBtn').prop('disabled', false); ems.msg('请求失败', { icon: 2 }); }
+        });
+    };
+
+    window.uploadCert = function (id, input) {
+        if (!input.files[0]) return;
+        var fd = new FormData(); fd.append('file', input.files[0]);
+        var load = ems.loading(1);
+        $.ajax({ url: '/hr/cert/upload/' + id, type: 'POST', data: fd, processData: false, contentType: false,
+            headers: { 'RequestVerificationToken': antiForgery },
+            success: function (r) { ems.close(load); input.value = ''; if (r.success) ems.msg('上传成功', { icon: 1, time: 1200 }, reloadCert); else ems.msg(r.message, { icon: 2 }); },
+            error: function () { ems.close(load); input.value = ''; ems.msg('上传失败', { icon: 2 }); }
+        });
+    };
+
+    $('#btnFilter').on('click', function () { ems.colFilter('certTable', colsConfig); });
+    $('#btnExport').on('click', function () { ems.exportMenu('certTable', '证书列表'); });
+
+    ems.bindSearch('certSearch', 'certTable');
 });
-
-function openAddModal() {
-    ['certEmpId','certName','certNo','certOrg','certIssue','certExpire'].forEach(id => {
-        document.getElementById(id).value = '';
-    });
-    document.getElementById('certFile').value = '';
-    document.querySelector('label[for="certFile"]').textContent = '点击选择文件';
-    $('#certModal').modal('show');
-}
-
-function saveCert() {
-    var empId = $('#certEmpId').val(), name = $('#certName').val();
-    if (!empId || !name) { ems.msg('请填写员工和证书名称', {icon:2}); return; }
-
-    var fd = new FormData();
-    fd.append('EmployeeId', empId);
-    fd.append('CertName',   name);
-    fd.append('CertType',   $('#certType').val());
-    if ($('#certNo').val())     fd.append('CertNo',    $('#certNo').val());
-    if ($('#certOrg').val())    fd.append('IssueOrg',  $('#certOrg').val());
-    if ($('#certIssue').val())  fd.append('IssueDate', $('#certIssue').val());
-    if ($('#certExpire').val()) fd.append('ExpireDate', $('#certExpire').val());
-    var file = document.getElementById('certFile').files[0];
-    if (file) fd.append('file', file);
-
-    $('#certSaveBtn').prop('disabled', true);
-    var load = ems.loading(1);
-    $.ajax({ url: '/hr/cert/create-with-file', type: 'POST',
-        data: fd, processData: false, contentType: false,
-        headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) {
-            ems.close(load); $('#certSaveBtn').prop('disabled', false);
-            if (r.success) { $('#certModal').modal('hide'); handleResult(r, ()=>location.reload()); }
-            else ems.msg(r.message, {icon:2});
-        },
-        error: function() { ems.close(load); $('#certSaveBtn').prop('disabled', false); ems.msg('请求失败', {icon:2}); }
-    });
-}
-
-function deleteCert(id, name) {
-    ems.confirm('确认删除证书 <b>' + name + '</b>？', {icon:3, btn:['确认删除','取消']}, function(i) {
-        ems.close(i);
-        $.post('/hr/cert/delete/' + id, {__RequestVerificationToken: antiForgery},
-            function(r) { handleResult(r, ()=>location.reload()); });
-    });
-}
-
-function uploadCert(id, input) {
-    if (!input.files[0]) return;
-    var fd = new FormData(); fd.append('file', input.files[0]);
-    var load = ems.loading(1);
-    $.ajax({ url: '/hr/cert/upload/' + id, type: 'POST',
-        data: fd, processData: false, contentType: false,
-        headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) { ems.close(load); handleResult(r, ()=>location.reload()); }
-    });
-}
-
-function deleteCertFile(id) {
-    ems.confirm('确认删除该证书附件？证书记录将保留。', {icon:3, btn:['确认删除','取消']}, function(i) {
-        ems.close(i);
-        $.post('/hr/cert/file/delete/' + id, {__RequestVerificationToken: antiForgery},
-            function(r) { handleResult(r, ()=>location.reload()); });
-    });
-}
 </script>
 }

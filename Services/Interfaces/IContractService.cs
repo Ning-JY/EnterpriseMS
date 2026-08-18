@@ -19,6 +19,7 @@ public interface IContractService
         IFormFile? file, string operBy);
 
     Task<(string path, string name)?> UploadAsync(long id, IFormFile file, string operBy);
+    Task UpdateAsync(ContractUpdateDto dto, string operBy);
     Task<(string Path, string FileName)?> GetDownloadInfoAsync(long id);
     Task DeleteAsync(long id);
     Task DeleteFileAsync(long id, string operBy);

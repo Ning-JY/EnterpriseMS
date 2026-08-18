@@ -26,4 +26,10 @@ public class LogController : BaseAuthController
         ViewBag.Total   = paged.Total;
         return View(paged.Items);
     }
+
+    // 列表页 AJAX 数据源（前端 layui 表格调用）
+    [HttpGet("list")]
+    [HasPermission("sys:log:list")]
+    public async Task<IActionResult> List(string? keyword, int page = 1, int size = 20)
+        => ApiOk(await _logSvc.GetPagedAsync(keyword, page, size));
 }

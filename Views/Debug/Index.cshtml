@@ -5,178 +5,135 @@
     var applied = ViewBag.Applied as List<string>               ?? new();
 }
 
-<div class="content-header"><div class="container-fluid">
-    <div class="row mb-2">
-        <div class="col-sm-6">
-            <h1 class="m-0">
-                <i class="fas fa-bug text-warning mr-2"></i>Debug 工具
-                <span class="badge badge-warning ml-2" style="font-size:12px">仅超管可见</span>
-            </h1>
-        </div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-right">
-                <li class="breadcrumb-item"><a href="/">首页</a></li>
-                <li class="breadcrumb-item">系统管理</li>
-                <li class="breadcrumb-item active">Debug 工具</li>
-            </ol>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-bug"></i> Debug 工具
+        <span class="layui-badge layui-bg-orange" style="margin-left:8px;font-size:12px">仅超管可见</span>
     </div>
-</div></div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>Debug 工具</cite></a>
+    </div>
+</div>
 
-<section class="content"><div class="container-fluid">
-
-<div class="alert alert-warning">
-    <i class="fas fa-exclamation-triangle mr-2"></i>
-    <strong>注意：</strong>此页面仅用于开发测试阶段。种子数据写入为<strong>幂等操作</strong>，
+<div class="ems-alert warn">
+    <i class="layui-icon layui-icon-tips"></i>
+    <b>注意：</b>此页面仅用于开发测试阶段。种子数据写入为<b>幂等操作</b>，
     已存在的记录（按主键判断）会自动跳过，不会覆盖业务数据。
 </div>
 
-<div class="row">
+<div class="layui-row layui-col-space14">
 
     <!-- 左列：操作区 -->
-    <div class="col-md-7">
+    <div class="layui-col-md7">
 
         <!-- 快捷操作：仅写入菜单/权限 -->
-        <div class="card card-warning card-outline">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-bolt mr-2"></i>快速补充菜单和字典
-                </h3>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header"><i class="layui-icon layui-icon-light"></i> 快速补充菜单和字典</div>
+            <div class="layui-card-body">
+                <p class="layui-font-gray" style="margin-top:0">
                     仅写入菜单、角色菜单、字典类型、字典数据。
                     适合版本升级后<strong>补充新菜单权限</strong>而不重建数据库时使用。
                 </p>
-                <button class="btn btn-warning" id="seedMenuBtn" onclick="seedMenu()">
-                    <i class="fas fa-list-ul mr-1"></i>写入菜单 / 字典种子数据
+                <button class="layui-btn layui-btn-warm" id="seedMenuBtn" onclick="seedMenu()">
+                    <i class="layui-icon layui-icon-list"></i> 写入菜单 / 字典种子数据
                 </button>
-                <div id="seedMenuResult" class="mt-3"></div>
+                <div id="seedMenuResult" style="margin-top:12px"></div>
             </div>
         </div>
 
         <!-- 写入全量种子数据 -->
-        <div class="card card-danger card-outline">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-database mr-2"></i>写入全量种子数据
-                </h3>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header"><i class="layui-icon layui-icon-form"></i> 写入全量种子数据</div>
+            <div class="layui-card-body">
+                <p class="layui-font-gray" style="margin-top:0">
                     写入所有表的种子数据（部门、用户、员工、项目等），已存在的记录自动跳过。
                     适合首次部署或新增了种子数据后补充。
                 </p>
-                <div class="input-group mb-3" style="max-width:400px">
-                    <input type="text" id="seedConfirm" class="form-control"
-                           placeholder="输入 CONFIRM 确认操作">
-                    <div class="input-group-append">
-                        <button class="btn btn-danger" onclick="seedAll()">
-                            <i class="fas fa-play mr-1"></i>执行
-                        </button>
-                    </div>
-                </div>
-                <div id="seedResult" class="mt-2"></div>
+                <input type="text" id="seedConfirm" class="layui-input" placeholder="输入 CONFIRM 确认操作">
+                <button class="layui-btn layui-btn-danger" style="margin-top:10px" onclick="seedAll()">
+                    <i class="layui-icon layui-icon-play"></i> 执行
+                </button>
+                <div id="seedResult" style="margin-top:12px"></div>
             </div>
         </div>
 
         <!-- 清空权限缓存 -->
-        <div class="card card-info card-outline">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-eraser mr-2"></i>清空权限缓存
-                </h3>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header"><i class="layui-icon layui-icon-clear"></i> 清空权限缓存</div>
+            <div class="layui-card-body">
+                <p class="layui-font-gray" style="margin-top:0">
                     清空所有在线用户的权限缓存，用户下次操作时会重新从数据库加载权限。
                     适合修改了角色权限后<strong>无需重启服务</strong>立即生效。
                 </p>
-                <button class="btn btn-info" onclick="clearCache()">
-                    <i class="fas fa-broom mr-1"></i>清空所有用户权限缓存
+                <button class="layui-btn layui-btn-normal" onclick="clearCache()">
+                    <i class="layui-icon layui-icon-clear"></i> 清空所有用户权限缓存
                 </button>
-                <div id="cacheResult" class="mt-3"></div>
+                <div id="cacheResult" style="margin-top:12px"></div>
             </div>
         </div>
 
         <!-- 执行数据库迁移 -->
-        <div class="card card-secondary card-outline">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-code-branch mr-2"></i>执行数据库迁移
-                </h3>
-            </div>
-            <div class="card-body">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header"><i class="layui-icon layui-icon-template-1"></i> 执行数据库迁移</div>
+            <div class="layui-card-body">
                 @if (!pending.Any())
                 {
-                    <p class="text-success mb-2">
-                        <i class="fas fa-check-circle mr-1"></i>
+                    <p class="layui-font-green" style="margin:0 0 8px">
+                        <i class="layui-icon layui-icon-ok-circle"></i>
                         数据库已是最新版本（已执行 @applied.Count 个迁移）
                     </p>
                 }
                 else
                 {
-                    <p class="text-warning mb-2">
-                        <i class="fas fa-exclamation-circle mr-1"></i>
-                        有 <strong>@pending.Count</strong> 个待执行迁移：
-                        @string.Join("、", pending)
+                    <p class="layui-font-orange" style="margin:0 0 8px">
+                        <i class="layui-icon layui-icon-help"></i>
+                        有 <strong>@pending.Count</strong> 个待执行迁移：@string.Join("、", pending)
                     </p>
                 }
-                <div class="input-group" style="max-width:400px">
-                    <input type="text" id="migrateConfirm" class="form-control"
-                           placeholder="输入 CONFIRM 确认迁移">
-                    <div class="input-group-append">
-                        <button class="btn btn-secondary" onclick="runMigrate()">
-                            <i class="fas fa-database mr-1"></i>执行迁移
-                        </button>
-                    </div>
-                </div>
-                <div id="migrateResult" class="mt-3"></div>
+                <input type="text" id="migrateConfirm" class="layui-input" placeholder="输入 CONFIRM 确认迁移">
+                <button class="layui-btn" style="margin-top:10px" onclick="runMigrate()">
+                    <i class="layui-icon layui-icon-template-1"></i> 执行迁移
+                </button>
+                <div id="migrateResult" style="margin-top:12px"></div>
             </div>
         </div>
 
         <!-- AI 模型配置 -->
-        <div class="card card-purple card-outline">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-robot mr-2"></i>AI 模型配置
-                </h3>
-                <div class="card-tools">
-                    <span id="aiStatus" class="badge badge-secondary">未加载</span>
-                </div>
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">
+                <i class="layui-icon layui-icon-util"></i> AI 模型配置
+                <span id="aiStatus" class="layui-badge layui-bg-orange" style="float:right">未加载</span>
             </div>
-            <div class="card-body">
-                <p class="text-muted mb-3">
-                    配置 AI 服务的 API Key 和模型。保存后<strong>立即生效</strong>，无需重启。
-                    支持 OpenAI / DeepSeek / 通义千问等兼容 OpenAI 协议的服务。
-                </p>
-                <div class="form-group">
-                    <label>API Key <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="fas fa-key"></i></span>
-                        </div>
-                        <input type="password" id="aiApiKey" class="form-control" placeholder="sk-..." />
-                        <div class="input-group-append">
-                            <button class="btn btn-outline-secondary" type="button"
-                                    onclick="togglePassword('aiApiKey')">
-                                <i class="fas fa-eye"></i>
-                            </button>
+            <div class="layui-card-body">
+                <form class="layui-form" lay-filter="aiForm" onsubmit="return false">
+                    <p class="layui-font-gray" style="margin-top:0">
+                        配置 AI 服务的 API Key 和模型。保存后<strong>立即生效</strong>，无需重启。
+                        支持 OpenAI / DeepSeek / 通义千问等兼容 OpenAI 协议的服务。
+                    </p>
+                    <div class="layui-form-item" style="margin-bottom:14px">
+                        <label class="layui-form-label" style="width:auto;text-align:left;padding-left:0">API Key <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block">
+                            <div style="display:flex;gap:6px">
+                                <input type="password" id="aiApiKey" class="layui-input" placeholder="sk-...">
+                                <button type="button" class="layui-btn layui-btn-primary" style="flex:0 0 auto" onclick="togglePassword('aiApiKey')">
+                                    <i class="layui-icon layui-icon-eye"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-8">
-                        <div class="form-group">
-                            <label>API Base URL</label>
-                            <input type="text" id="aiBaseUrl" class="form-control"
-                                   value="https://api.openai.com/v1" />
+                    <div class="layui-form-item" style="margin-bottom:14px">
+                        <label class="layui-form-label" style="width:auto;text-align:left;padding-left:0">API Base URL</label>
+                        <div class="layui-input-inline" style="width:100%">
+                            <input type="text" id="aiBaseUrl" class="layui-input" value="https://api.openai.com/v1">
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label>模型</label>
-                            <select id="aiModel" class="form-select">
+                    <div class="layui-form-item" style="margin-bottom:14px">
+                        <label class="layui-form-label" style="width:auto;text-align:left;padding-left:0">模型</label>
+                        <div class="layui-input-inline" style="width:100%">
+                            <select id="aiModel" class="layui-input">
                                 <option value="gpt-4o">GPT-4o</option>
                                 <option value="gpt-4o-mini">GPT-4o Mini</option>
                                 <option value="gpt-4-turbo">GPT-4 Turbo</option>
@@ -188,66 +145,53 @@
                             </select>
                         </div>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>自定义模型名称</label>
-                            <input type="text" id="aiCustomModel" class="form-control"
-                                   placeholder="如不使用预设，可直接输入模型名称" />
+                    <div class="layui-form-item" style="margin-bottom:14px">
+                        <label class="layui-form-label" style="width:auto;text-align:left;padding-left:0">自定义模型名称</label>
+                        <div class="layui-input-inline" style="width:100%">
+                            <input type="text" id="aiCustomModel" class="layui-input" placeholder="如不使用预设，可直接输入模型名称">
                         </div>
                     </div>
-                </div>
-                <div class="d-flex">
-                    <button class="btn btn-purple mr-2" onclick="saveAiConfig()" id="aiSaveBtn">
-                        <i class="fas fa-save mr-1"></i>保存配置
+                    <button type="button" class="layui-btn layui-btn-normal" onclick="saveAiConfig()" id="aiSaveBtn">
+                        <i class="layui-icon layui-icon-edit"></i> 保存配置
                     </button>
-                    <button class="btn btn-outline-info" onclick="testAiConfig()" id="aiTestBtn">
-                        <i class="fas fa-plug mr-1"></i>测试连接
+                    <button type="button" class="layui-btn layui-btn-primary" onclick="testAiConfig()" id="aiTestBtn">
+                        <i class="layui-icon layui-icon-link"></i> 测试连接
                     </button>
-                </div>
-                <div id="aiResult" class="mt-3"></div>
+                    <div id="aiResult" style="margin-top:12px"></div>
+                </form>
             </div>
         </div>
 
     </div>
 
     <!-- 右列：数据库状态 -->
-    <div class="col-md-5">
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">
-                    <i class="fas fa-table mr-2"></i>当前数据量
-                </h3>
-                <div class="card-tools">
-                    <button class="btn btn-xs btn-outline-secondary" onclick="location.reload()">
-                        <i class="fas fa-sync-alt"></i> 刷新
-                    </button>
-                </div>
+    <div class="layui-col-md5">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">
+                <i class="layui-icon layui-icon-table"></i> 当前数据量
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-normal" style="float:right;margin-top:8px" onclick="location.reload()">
+                    <i class="layui-icon layui-icon-refresh"></i> 刷新
+                </button>
             </div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
-                    <thead class="thead-light">
-                        <tr><th>数据表</th><th class="text-right">记录数</th><th>状态</th></tr>
-                    </thead>
+            <div class="layui-card-body" style="padding:0">
+                <table class="layui-table" lay-size="sm" lay-skin="line" style="margin:0">
+                    <thead><tr><th>数据表</th><th style="text-align:right">记录数</th><th>状态</th></tr></thead>
                     <tbody>
                         @foreach (var kv in stats)
                         {
                             <tr>
                                 <td>@kv.Key</td>
-                                <td class="text-right">
-                                    <strong class="@(kv.Value == 0 ? "text-danger" : "text-success")">
-                                        @kv.Value
-                                    </strong>
+                                <td style="text-align:right">
+                                    <strong class="@(kv.Value == 0 ? "layui-font-red" : "layui-font-green")">@kv.Value</strong>
                                 </td>
                                 <td>
                                     @if (kv.Value == 0)
                                     {
-                                        <span class="badge badge-danger">空</span>
+                                        <span class="ems-tag ems-tag-red">空</span>
                                     }
                                     else
                                     {
-                                        <span class="badge badge-success">正常</span>
+                                        <span class="ems-tag ems-tag-green">正常</span>
                                     }
                                 </td>
                             </tr>
@@ -260,27 +204,16 @@
         <!-- Migration 历史 -->
         @if (applied.Any())
         {
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-history mr-2"></i>已执行迁移
-                        <span class="badge badge-light ml-1">@applied.Count</span>
-                    </h3>
-                    <div class="card-tools">
-                        <button type="button" class="btn btn-tool"
-                                data-card-widget="collapse">
-                            <i class="fas fa-minus"></i>
-                        </button>
-                    </div>
+            <div class="layui-card ems-card">
+                <div class="layui-card-header">
+                    <i class="layui-icon layui-icon-time"></i> 已执行迁移
+                    <span class="layui-badge layui-bg-gray" style="float:right;margin-top:8px">@applied.Count</span>
                 </div>
-                <div class="card-body p-0">
-                    <ul class="list-group list-group-flush" style="font-size:12px">
+                <div class="layui-card-body">
+                    <ul style="margin:0;padding-left:18px;font-size:12px">
                         @foreach (var m in applied.AsEnumerable().Reverse())
                         {
-                            <li class="list-group-item py-1">
-                                <i class="fas fa-check text-success mr-1"></i>
-                                @m
-                            </li>
+                            <li style="margin-bottom:4px"><i class="layui-icon layui-icon-ok layui-font-green"></i> @m</li>
                         }
                     </ul>
                 </div>
@@ -289,7 +222,6 @@
     </div>
 
 </div>
-</div></section>
 
 @section Scripts {
 <script>
@@ -300,18 +232,18 @@ function seedMenu() {
     if (!confirm('确认写入菜单和字典种子数据？已存在的记录会自动跳过。')) return;
     var btn = document.getElementById('seedMenuBtn');
     btn.disabled = true;
-    var load = ems.loading(1, {shade: [0.3, '#000']});
-    $.post('/system/debug/seed-menu', {__RequestVerificationToken: antiForgery},
-        function(r) {
+    var load = ems.loading(1, { shade: [0.3, '#000'] });
+    $.post('/system/debug/seed-menu', { __RequestVerificationToken: antiForgery },
+        function (r) {
             ems.close(load);
             btn.disabled = false;
             var el = document.getElementById('seedMenuResult');
             if (r.success) {
-                var html = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i>' + r.message + '<ul class="mb-0 mt-1">';
-                if (Array.isArray(r.data)) r.data.forEach(function(d) { html += '<li class="small">' + d + '</li>'; });
+                var html = '<div class="ems-alert teal"><i class="layui-icon layui-icon-ok"></i> ' + r.message + '<ul style="margin:6px 0 0;padding-left:18px">';
+                if (Array.isArray(r.data)) r.data.forEach(function (d) { html += '<li>' + d + '</li>'; });
                 el.innerHTML = html + '</ul></div>';
             } else {
-                el.innerHTML = '<div class="alert alert-danger py-2">' + r.message + '</div>';
+                el.innerHTML = '<div class="ems-alert warn"><i class="layui-icon layui-icon-close-fill"></i> ' + r.message + '</div>';
             }
         }
     );
@@ -321,33 +253,33 @@ function seedMenu() {
 function seedAll() {
     var confirm_val = document.getElementById('seedConfirm').value;
     if (confirm_val !== 'CONFIRM') {
-        ems.msg('请输入 CONFIRM 确认操作', {icon:2}); return;
+        ems.msg('请输入 CONFIRM 确认操作', { icon: 2 }); return;
     }
-    var load = ems.loading(1, {shade: [0.3, '#000']});
+    var load = ems.loading(1, { shade: [0.3, '#000'] });
     $.post('/system/debug/seed',
-        {confirm: confirm_val, __RequestVerificationToken: antiForgery},
-        function(r) {
+        { confirm: confirm_val, __RequestVerificationToken: antiForgery },
+        function (r) {
             ems.close(load);
             var el = document.getElementById('seedResult');
             if (r.success) {
-                var html = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i><strong>' + r.message + '</strong>';
+                var html = '<div class="ems-alert teal"><i class="layui-icon layui-icon-ok"></i> <strong>' + r.message + '</strong>';
                 var d = r.data;
                 if (d.Details && d.Details.length) {
-                    html += '<ul class="mb-0 mt-1 small">';
-                    d.Details.forEach(function(line) { html += '<li>' + line + '</li>'; });
+                    html += '<ul style="margin:6px 0 0;padding-left:18px">';
+                    d.Details.forEach(function (line) { html += '<li>' + line + '</li>'; });
                     html += '</ul>';
                 }
                 if (d.Errors && d.Errors.length) {
-                    html += '<ul class="mb-0 mt-1 small text-danger">';
-                    d.Errors.forEach(function(e) { html += '<li>' + e + '</li>'; });
+                    html += '<ul style="margin:6px 0 0;padding-left:18px" class="layui-font-red">';
+                    d.Errors.forEach(function (e) { html += '<li>' + e + '</li>'; });
                     html += '</ul>';
                 }
                 el.innerHTML = html + '</div>';
                 document.getElementById('seedConfirm').value = '';
                 // 3秒后刷新数据量
-                setTimeout(function() { location.reload(); }, 3000);
+                setTimeout(function () { location.reload(); }, 3000);
             } else {
-                el.innerHTML = '<div class="alert alert-danger py-2">' + r.message + '</div>';
+                el.innerHTML = '<div class="ems-alert warn"><i class="layui-icon layui-icon-close-fill"></i> ' + r.message + '</div>';
             }
         }
     );
@@ -357,13 +289,13 @@ function seedAll() {
 function clearCache() {
     var load = ems.loading(1);
     $.post('/system/debug/clear-cache',
-        {__RequestVerificationToken: antiForgery},
-        function(r) {
+        { __RequestVerificationToken: antiForgery },
+        function (r) {
             ems.close(load);
             var el = document.getElementById('cacheResult');
             el.innerHTML = r.success
-                ? '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i>' + r.message + '</div>'
-                : '<div class="alert alert-danger py-2">' + r.message + '</div>';
+                ? '<div class="ems-alert teal"><i class="layui-icon layui-icon-ok"></i> ' + r.message + '</div>'
+                : '<div class="ems-alert warn"><i class="layui-icon layui-icon-close-fill"></i> ' + r.message + '</div>';
         }
     );
 }
@@ -372,26 +304,26 @@ function clearCache() {
 function runMigrate() {
     var confirm_val = document.getElementById('migrateConfirm').value;
     if (confirm_val !== 'CONFIRM') {
-        ems.msg('请输入 CONFIRM 确认迁移', {icon:2}); return;
+        ems.msg('请输入 CONFIRM 确认迁移', { icon: 2 }); return;
     }
-    var load = ems.loading(1, {shade:[0.3,'#000']});
+    var load = ems.loading(1, { shade: [0.3, '#000'] });
     $.post('/system/debug/migrate',
-        {confirm: confirm_val, __RequestVerificationToken: antiForgery},
-        function(r) {
+        { confirm: confirm_val, __RequestVerificationToken: antiForgery },
+        function (r) {
             ems.close(load);
             var el = document.getElementById('migrateResult');
             if (r.success) {
-                var html = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i><strong>' + r.message + '</strong>';
+                var html = '<div class="ems-alert teal"><i class="layui-icon layui-icon-ok"></i> <strong>' + r.message + '</strong>';
                 if (Array.isArray(r.data) && r.data.length) {
-                    html += '<ul class="mb-0 mt-1 small">';
-                    r.data.forEach(function(m) { html += '<li>' + m + '</li>'; });
+                    html += '<ul style="margin:6px 0 0;padding-left:18px">';
+                    r.data.forEach(function (m) { html += '<li>' + m + '</li>'; });
                     html += '</ul>';
                 }
                 el.innerHTML = html + '</div>';
                 document.getElementById('migrateConfirm').value = '';
-                setTimeout(function() { location.reload(); }, 2000);
+                setTimeout(function () { location.reload(); }, 2000);
             } else {
-                el.innerHTML = '<div class="alert alert-danger py-2">' + r.message + '</div>';
+                el.innerHTML = '<div class="ems-alert warn"><i class="layui-icon layui-icon-close-fill"></i> ' + r.message + '</div>';
             }
         }
     );
@@ -404,7 +336,7 @@ function togglePassword(id) {
 }
 
 function loadAiConfig() {
-    $.get('/system/debug/ai-config', function(r) {
+    $.get('/system/debug/ai-config', function (r) {
         if (r.success && r.data) {
             var d = r.data;
             document.getElementById('aiApiKey').value = d.apiKey || '';
@@ -425,10 +357,10 @@ function loadAiConfig() {
 function updateAiStatus(apiKey) {
     var el = document.getElementById('aiStatus');
     if (apiKey) {
-        el.className = 'badge badge-success';
+        el.className = 'layui-badge layui-bg-green';
         el.textContent = '已配置';
     } else {
-        el.className = 'badge badge-warning';
+        el.className = 'layui-badge layui-bg-orange';
         el.textContent = 'Demo模式';
     }
 }
@@ -453,19 +385,19 @@ function saveAiConfig() {
         contentType: 'application/json',
         data: JSON.stringify(data),
         headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) {
+        success: function (r) {
             btn.disabled = false;
             var el = document.getElementById('aiResult');
             if (r.success) {
-                el.innerHTML = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i>' + r.message + '</div>';
+                el.innerHTML = '<div class="ems-alert teal"><i class="layui-icon layui-icon-ok"></i> ' + r.message + '</div>';
                 updateAiStatus(data.apiKey);
             } else {
-                el.innerHTML = '<div class="alert alert-danger py-2">' + r.message + '</div>';
+                el.innerHTML = '<div class="ems-alert warn"><i class="layui-icon layui-icon-close-fill"></i> ' + r.message + '</div>';
             }
         },
-        error: function() {
+        error: function () {
             btn.disabled = false;
-            document.getElementById('aiResult').innerHTML = '<div class="alert alert-danger py-2">请求失败</div>';
+            document.getElementById('aiResult').innerHTML = '<div class="ems-alert warn"><i class="layui-icon layui-icon-close-fill"></i> 请求失败</div>';
         }
     });
 }
@@ -477,36 +409,39 @@ function testAiConfig() {
         model: getSelectedModel()
     };
     if (!data.apiKey) {
-        ems.msg('请先输入 API Key', {icon: 2}); return;
+        ems.msg('请先输入 API Key', { icon: 2 }); return;
     }
     var btn = document.getElementById('aiTestBtn');
     btn.disabled = true;
-    var load = ems.loading(1, {shade: [0.3, '#000']});
+    var load = ems.loading(1, { shade: [0.3, '#000'] });
     $.ajax({
         url: '/system/debug/ai-test',
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(data),
         headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) {
+        success: function (r) {
             ems.close(load);
             btn.disabled = false;
             var el = document.getElementById('aiResult');
             if (r.success) {
-                el.innerHTML = '<div class="alert alert-success py-2"><i class="fas fa-check mr-1"></i><strong>连接成功！</strong> AI回复：' + r.message + '</div>';
+                el.innerHTML = '<div class="ems-alert teal"><i class="layui-icon layui-icon-ok"></i> <strong>连接成功！</strong> AI回复：' + r.message + '</div>';
             } else {
-                el.innerHTML = '<div class="alert alert-danger py-2"><i class="fas fa-times mr-1"></i>' + r.message + '</div>';
+                el.innerHTML = '<div class="ems-alert warn"><i class="layui-icon layui-icon-close-fill"></i> ' + r.message + '</div>';
             }
         },
-        error: function() {
+        error: function () {
             ems.close(load);
             btn.disabled = false;
-            document.getElementById('aiResult').innerHTML = '<div class="alert alert-danger py-2">请求失败</div>';
+            document.getElementById('aiResult').innerHTML = '<div class="ems-alert warn"><i class="layui-icon layui-icon-close-fill"></i> 请求失败</div>';
         }
     });
 }
 
 // 页面加载时读取AI配置
-$(function() { loadAiConfig(); });
+ems.ready(function () {
+    layui.form.render('select');
+    loadAiConfig();
+});
 </script>
 }

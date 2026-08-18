@@ -152,6 +152,92 @@ public class EmployeeService : IEmployeeService
         await _uow.SaveChangesAsync();
     }
 
+    /// <summary>仅更新基本信息卡片字段，不影响任职/学历等其它字段</summary>
+    public async Task UpdateBasicAsync(UpdateBasicDto dto, string operBy)
+    {
+        var emp = await _uow.Employees.GetByIdAsync(dto.Id);
+        if (emp == null) throw new NotFoundException("员工不存在");
+        emp.RealName         = dto.RealName;
+        emp.Gender           = dto.Gender;
+        emp.Phone            = dto.Phone;
+        emp.Email            = dto.Email;
+        emp.IdCard           = dto.IdCard;
+        emp.Nationality      = dto.Nationality;
+        emp.BirthDate        = dto.BirthDate;
+        emp.PoliticalStatus  = dto.PoliticalStatus;
+        emp.NativePlace      = dto.NativePlace;
+        emp.Address          = dto.Address;
+        emp.EmergencyContact = dto.EmergencyContact;
+        emp.EmergencyPhone   = dto.EmergencyPhone;
+        emp.UpdatedBy        = operBy;
+        _uow.Employees.Update(emp);
+        await SyncBoundUserAsync(emp);
+        await _uow.SaveChangesAsync();
+    }
+
+    /// <summary>仅更新任职信息卡片字段</summary>
+    public async Task UpdateJobAsync(UpdateJobDto dto, string operBy)
+    {
+        var emp = await _uow.Employees.GetByIdAsync(dto.Id);
+        if (emp == null) throw new NotFoundException("员工不存在");
+        emp.DeptId           = dto.DeptId;
+        emp.PostId           = dto.PostId;
+        emp.EntryDate        = dto.EntryDate;
+        emp.ProbationEndDate = dto.ProbationEndDate;
+        emp.FormalDate       = dto.FormalDate;
+        emp.WorkStartDate    = dto.WorkStartDate;
+        emp.SocialInsuranceNo = dto.SocialInsuranceNo;
+        emp.BankAccount      = dto.BankAccount;
+        emp.BankName         = dto.BankName;
+        emp.UpdatedBy        = operBy;
+        _uow.Employees.Update(emp);
+        await SyncBoundUserAsync(emp);
+        await _uow.SaveChangesAsync();
+    }
+
+    /// <summary>仅更新学历信息卡片字段</summary>
+    public async Task UpdateEducationAsync(UpdateEducationDto dto, string operBy)
+    {
+        var emp = await _uow.Employees.GetByIdAsync(dto.Id);
+        if (emp == null) throw new NotFoundException("员工不存在");
+        emp.Education      = dto.Education;
+        emp.HighestDegree  = dto.HighestDegree;
+        emp.GraduateSchool = dto.GraduateSchool;
+        emp.Major          = dto.Major;
+        emp.TechnicalTitle = dto.TechnicalTitle;
+        emp.TechnicalLevel = dto.TechnicalLevel;
+        emp.UpdatedBy      = operBy;
+        _uow.Employees.Update(emp);
+        await _uow.SaveChangesAsync();
+    }
+
+    public async Task UpdateProfilePhotoAsync(long id, string? photoPath, string operBy)
+    {
+        var emp = await _uow.Employees.GetByIdAsync(id);
+        if (emp == null) throw new NotFoundException("员工不存在");
+        emp.ProfilePhoto = photoPath;
+        emp.UpdatedBy    = operBy;
+        _uow.Employees.Update(emp);
+        await _uow.SaveChangesAsync();
+    }
+
+    /// <summary>员工已绑定登录账号时，同步其基本/任职信息保持一致</summary>
+    private async Task SyncBoundUserAsync(Employee emp)
+    {
+        var boundUser = await _uow.Users.Query(false)
+            .FirstOrDefaultAsync(u => u.EmployeeId == emp.Id);
+        if (boundUser != null)
+        {
+            boundUser.RealName  = emp.RealName;
+            boundUser.Phone     = emp.Phone;
+            boundUser.Email     = emp.Email;
+            boundUser.DeptId    = emp.DeptId;
+            boundUser.PostId    = emp.PostId;
+            boundUser.UpdatedBy = emp.UpdatedBy;
+            _uow.Users.Update(boundUser);
+        }
+    }
+
     public async Task FormalAsync(long id, DateTime formalDate, string operBy)
     {
         var emp = await _uow.Employees.GetByIdAsync(id);

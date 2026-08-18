@@ -1,0 +1,115 @@
+@using EnterpriseMS.Services.DTOs.System
+@model DictDataDto
+@{
+    var isEdit   = Model != null;
+    var isDialog = Context.Request.Query["_dialog"] == "1";
+    var dictType = (string)(ViewBag.DictType ?? Model?.DictType ?? "");
+    var typeName = (string)(ViewBag.DictTypeName ?? dictType);
+    ViewData["Title"] = isEdit ? "编辑字典项" : "新增字典项";
+}
+
+<div class="ems-page @(isDialog ? "ems-dialog" : "")">
+@if (!isDialog)
+{
+<div class="ems-page-head">
+    <div class="ems-page-title">@(isEdit ? "编辑字典项" : "新增字典项")</div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>字典项</cite></a>
+    </div>
+</div>
+}
+
+<form class="layui-form dict-data-form" lay-filter="dictDataForm">
+<div class="layui-card ems-card">
+    <div class="layui-card-body">
+        <input type="hidden" name="Id" value="@(Model?.Id)">
+        <input type="hidden" name="DictType" value="@dictType">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">所属类型</label>
+            <div class="layui-input-block">
+                <input type="text" class="layui-input layui-disabled" readonly
+                       value="@typeName@(string.IsNullOrEmpty(dictType) ? "" : $"（{dictType}）")">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">字典标签</label>
+            <div class="layui-input-block">
+                <input type="text" name="DictLabel" value="@Model?.DictLabel" maxlength="100"
+                       lay-verify="required" placeholder="展示给用户看的文字，如：市政工程"
+                       autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">字典键值</label>
+            <div class="layui-input-block">
+                <input type="text" name="DictValue" value="@Model?.DictValue" maxlength="100"
+                       lay-verify="required" placeholder="程序中使用的值，如：municipal"
+                       autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <div class="layui-inline">
+                <label class="layui-form-label">排序</label>
+                <div class="layui-input-inline" style="width:120px;">
+                    <input type="number" name="Sort" value="@(Model?.Sort ?? 0)" min="0"
+                           autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-inline">
+                <label class="layui-form-label">默认项</label>
+                <div class="layui-input-inline" style="width:180px;">
+                    <input type="checkbox" name="IsDefault" lay-skin="switch"
+                           lay-text="是|否" @(Model != null && Model.IsDefault == 1 ? "checked" : "")>
+                </div>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-block">
+                <input type="radio" name="Status" value="1" title="正常" checked="@(Model == null || Model.Status == 1)">
+                <input type="radio" name="Status" value="0" title="停用" checked="@(Model != null && Model.Status == 0)">
+            </div>
+        </div>
+    </div>
+</div>
+<div class="ems-form-foot">
+    <button class="layui-btn" lay-submit lay-filter="dictDataForm">
+        <i class="layui-icon layui-icon-ok"></i> 保存
+    </button>
+    <button type="button" class="layui-btn layui-btn-primary" id="btnCancel">
+        <i class="layui-icon layui-icon-close"></i> 取消
+    </button>
+</div>
+</form>
+</div>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    var isEdit = @(isEdit ? "true" : "false");
+
+    ems.bindSubmit('dictDataForm', function (field) {
+        field.Sort      = Number(field.Sort) || 0;
+        field.Status    = Number(field.Status);
+        if (isNaN(field.Status)) field.Status = 1;
+        field.IsDefault = (field.IsDefault === 'on' || field.IsDefault === true) ? 1 : 0;
+
+        if (isEdit) {
+            field.Id = Number(field.Id);
+            return { url: '/system/dict/data/update', data: field, table: 'dictDataTable' };
+        }
+        delete field.Id;
+        return { url: '/system/dict/data/create', data: field, table: 'dictDataTable' };
+    });
+
+    $('#btnCancel').on('click', function () { ems.closeSelf(); });
+});
+</script>
+}

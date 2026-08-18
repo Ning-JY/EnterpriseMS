@@ -1,0 +1,233 @@
+@using EnterpriseMS.Services.DTOs.User
+@using EnterpriseMS.Services.DTOs.System
+@using System.Text.Json
+@model UserDetailDto
+@{
+    var isEdit = Model != null;
+    var isDialog = Context.Request.Query["_dialog"] == "1";
+    ViewData["Title"] = isEdit ? "编辑用户" : "新增用户";
+    var roles = ViewBag.Roles as List<RoleListDto> ?? new List<RoleListDto>();
+    var posts = ViewBag.Posts as List<EnterpriseMS.Domain.Entities.System.SysPost>
+                ?? new List<EnterpriseMS.Domain.Entities.System.SysPost>();
+}
+
+<div class="ems-page @(isDialog ? "ems-dialog" : "")">
+@if (!isDialog)
+{
+<div class="ems-page-head">
+    <div class="ems-page-title">@(isEdit ? "编辑用户" : "新增用户")</div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a href="javascript:;">用户管理</a>
+        <a><cite>@(isEdit ? "编辑" : "新增")</cite></a>
+    </div>
+</div>
+}
+
+<form class="layui-form" lay-filter="userForm">
+<div class="layui-card ems-card">
+    <div class="layui-card-body">
+            <input type="hidden" name="Id" value="@(Model?.Id)">
+
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">用户名</label>
+            <div class="layui-input-inline">
+                <input type="text" name="Username" value="@Model?.Username" maxlength="50"
+                       placeholder="登录账号" autocomplete="off" class="layui-input"
+                       lay-verify="required" disabled="@isEdit">
+            </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">姓名</label>
+            <div class="layui-input-inline">
+                <input type="text" name="RealName" value="@Model?.RealName" maxlength="50"
+                       placeholder="真实姓名" autocomplete="off" class="layui-input"
+                       lay-verify="required">
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">密码</label>
+            <div class="layui-input-inline">
+                <input type="password" name="Password" autocomplete="new-password"
+                       placeholder="@(isEdit ? "留空则不修改" : "至少6位")" class="layui-input"
+                       lay-verify="@(isEdit ? "" : "required")">
+            </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">手机号</label>
+            <div class="layui-input-inline">
+                <input type="text" name="Phone" value="@Model?.Phone" placeholder="手机号码"
+                       autocomplete="off" class="layui-input" lay-verify="phone">
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">邮箱</label>
+            <div class="layui-input-inline">
+                <input type="text" name="Email" value="@Model?.Email" placeholder="电子邮箱"
+                       autocomplete="off" class="layui-input" lay-verify="email">
+            </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">岗位</label>
+            <div class="layui-input-inline">
+                <select name="PostId">
+                    <option value="">请选择岗位</option>
+                    @foreach (var p in posts)
+                    {
+                        <option value="@p.Id" selected="@(Model?.PostId == p.Id)">@p.PostName</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">所属部门</label>
+            <div class="layui-input-inline">
+                @await Component.InvokeAsync("DeptSelect", new {
+                    id = "DeptId", name = "DeptId",
+                    selectedId = Model?.DeptId ?? 0L,
+                    emptyText = "请选择部门", cssClass = ""
+                })
+            </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">绑定员工</label>
+            <div class="layui-input-inline">
+                <select name="EmployeeId" id="EmployeeId" lay-search lay-filter="EmployeeId">
+                    <option value="">不绑定（系统账号）</option>
+                    @{
+                        var employees = (ViewBag.Employees as IEnumerable<dynamic>) ?? Array.Empty<dynamic>();
+                        var curEmp = Model?.EmployeeId;
+                    }
+                    @foreach (var e in employees)
+                    {
+                        var disabled = e.IsBound && e.Id != curEmp;
+                        <option value="@e.Id" selected="@(e.Id == curEmp)" disabled="@disabled">@e.Display</option>
+                    }
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-form-item">
+        <label class="layui-form-label">角色</label>
+        <div class="layui-input-block">
+            @if (roles.Count == 0)
+            {
+                <div class="layui-form-mid layui-word-aux">暂无可分配的角色</div>
+            }
+            else
+            {
+                foreach (var r in roles)
+                {
+                    <input type="checkbox" name="role" value="@r.Id" title="@r.RoleName"
+                           lay-skin="primary" checked="@(Model != null && Model.RoleIds.Contains(r.Id))">
+                }
+            }
+        </div>
+    </div>
+
+    <div class="layui-form-item layui-form-text">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block">
+            <textarea name="Remark" placeholder="备注信息" class="layui-textarea">@Model?.Remark</textarea>
+        </div>
+    </div>
+
+    <div class="layui-form-item ems-sync-tip" id="empSyncTip">
+        <div class="layui-input-block">
+            <div class="layui-form-mid layui-word-aux">
+                已绑定员工档案，姓名 / 手机 / 邮箱 / 部门以员工档案为准，请到员工详情中修改。
+            </div>
+        </div>
+    </div>
+
+        </div>
+    </div>
+    <div class="ems-form-foot">
+        <button class="layui-btn" lay-submit lay-filter="userForm">
+            <i class="layui-icon layui-icon-ok"></i> 保存
+        </button>
+        <button type="button" class="layui-btn layui-btn-primary" id="btnCancel">
+            <i class="layui-icon layui-icon-close"></i> 取消
+        </button>
+    </div>
+</form>
+</div>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    var isEdit = @(isEdit ? "true" : "false");
+    var currentEmpId = '@(Model?.EmployeeId)';
+    var initEmp = @Html.Raw(ViewBag.EmployeeDetail == null ? "null" : JsonSerializer.Serialize(ViewBag.EmployeeDetail));
+
+    // 初始化：已绑定员工则用预渲染的档案直接填充（不再打开时 AJAX 拉详情撑高）
+    if (initEmp && currentEmpId) {
+        fillFromEmployee(initEmp);
+    }
+
+    // 选中员工后，从员工档案同步基础信息并锁定（交互异步，不影响打开时居中）
+    layui.form.on('select(EmployeeId)', function () { syncEmployee(); });
+
+    function fillFromEmployee(e) {
+        $('input[name=RealName]').val(e.RealName).prop('readonly', true);
+        $('input[name=Phone]').val(e.Phone || '').prop('readonly', true);
+        $('input[name=Email]').val(e.Email || '').prop('readonly', true);
+        if (e.DeptId) $('select[name=DeptId]').val(e.DeptId);
+        ems.renderForm('userForm');
+        $('#empSyncTip').show();
+    }
+
+    function syncEmployee() {
+        var empId = $('#EmployeeId').val();
+        var $lock = $('input[name=RealName], input[name=Phone], input[name=Email]');
+
+        if (!empId) {
+            $lock.prop('readonly', false);
+            $('#empSyncTip').hide();
+            return;
+        }
+        ems.get('/hr/employee/json/' + empId, function (e) {
+            fillFromEmployee(e);
+        });
+    }
+
+    // 保存
+    ems.bindSubmit('userForm', function (field) {
+        field.RoleIds = ems.checkboxValues('role');
+        delete field.role;
+        ems.nums(field, ['DeptId', 'PostId', 'EmployeeId']);
+
+        if (isEdit) {
+            field.Id = Number(field.Id);
+            if (!field.Password) delete field.Password;
+        } else {
+            delete field.Id;
+            if (!field.Password || field.Password.length < 6) {
+                ems.error('密码至少6位');
+                return null;
+            }
+        }
+
+        return {
+            url: isEdit ? '/system/user/update' : '/system/user/create',
+            data: field,
+            table: 'userTable'
+        };
+    });
+
+    $('#btnCancel').on('click', function () { ems.closeSelf(); });
+});
+</script>
+}

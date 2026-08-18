@@ -20,11 +20,10 @@ public class Project : BaseEntity
     [Column("contract_amount")]   public decimal  ContractAmount  { get; set; }
     [Column("is_joint_venture")]  public bool     IsJointVenture  { get; set; }
     [Column("our_ratio")]         public decimal? OurRatio        { get; set; }
-    [Column("tech_leader_id")]    public long?    TechLeaderId    { get; set; }
-    [Column("biz_leader_id")]     public long?    BizLeaderId     { get; set; }
     [Column("sign_date")]         public DateTime? SignDate        { get; set; }
     [Column("plan_end_date")]     public DateTime? PlanEndDate     { get; set; }
     [Column("actual_end_date")]   public DateTime? ActualEndDate   { get; set; }
+    [Column("actual_start_date")] public DateTime? ActualStartDate { get; set; }
     [Column("bid_deadline")]      public DateTime? BidDeadline     { get; set; }
     [Column("progress_status")]   public int      ProgressStatus  { get; set; } = 0;
     [Column("status_updated_at")] public DateTime? StatusUpdatedAt { get; set; } // 最后状态变更时间
@@ -38,8 +37,6 @@ public class Project : BaseEntity
     [Column("remark")]            public string?  Remark          { get; set; }
 
     public SysDept?  Dept          { get; set; }
-    public Employee? TechLeader    { get; set; }
-    public Employee? BizLeader     { get; set; }
     public Employee? ProjectLeader { get; set; }
     public ICollection<ProjectMember>     Members     { get; set; } = new List<ProjectMember>();
     public ICollection<ProjectMilestone>  Milestones  { get; set; } = new List<ProjectMilestone>();

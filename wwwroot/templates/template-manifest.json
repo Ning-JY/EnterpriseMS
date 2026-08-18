@@ -1,4 +1,4 @@
-{
+﻿{
   "Templates": [
     {
       "id": "inquiry-audit-report",
@@ -225,27 +225,6 @@
           "label": "\u7B7E\u7AE0\uFF08\u56FE\u7247\uFF09",
           "required": false,
           "type": "image",
-          "source": "manual",
-          "binding": null,
-          "configKey": null,
-          "defaultValue": null,
-          "helpText": null,
-          "options": null
-        }
-      ]
-    },
-    {
-      "id": "\u6D4B\u8BD5-20260728040748",
-      "name": "\u6D4B\u8BD5",
-      "fileName": "\u6D4B\u8BD5-20260728040748.docx",
-      "description": "cs",
-      "createdAt": "2026-07-28",
-      "fields": [
-        {
-          "name": "\u57FA\u672C",
-          "label": "\u57FA\u672C",
-          "required": true,
-          "type": "text",
           "source": "manual",
           "binding": null,
           "configKey": null,

@@ -8,96 +8,71 @@
         "前期商务","预计启动","标书制作中","投标/磋商中","已中标签合同中",
         "已签回合同","执行中","成果提交","已完成","已终止"
     };
-    string[] progressBadge = {
-        "badge-secondary","badge-secondary","badge-warning","badge-warning","badge-info",
-        "badge-info","badge-primary","badge-primary","badge-success","badge-dark"
-    };
+    // 与上方 progressText 顺序对应的 ems-tag 语义色（替代原 Bootstrap badge-*）
+    string[] progressTag = { "gray","gray","orange","orange","blue","blue","teal","teal","green","gray" };
 }
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">个人产值统计</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item active">个人产值统计</li>
-                </ol>
-            </div>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-chart"></i> 个人产值统计
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a><cite>个人产值统计</cite></a>
     </div>
 </div>
 
-<section class="content"><div class="container-fluid">
-
 @if (ViewBag.Error != null)
 {
-    <div class="alert alert-warning">
-        <i class="fas fa-exclamation-triangle mr-2"></i>
+    <div class="ems-alert warn">
+        <i class="layui-icon layui-icon-tips"></i>
         @ViewBag.Error
-        <div class="mt-2">
-            <a href="/system/user" class="btn btn-sm btn-primary">去用户管理绑定员工</a>
+        <div style="margin-top:8px">
+            <a class="layui-btn layui-btn-sm layui-btn-normal" href="javascript:ems.openTab('/system/user','用户管理')">去用户管理绑定员工</a>
         </div>
     </div>
 }
 
 @if (!hasEmployee)
 {
-    <div class="alert alert-warning">
-        <i class="fas fa-exclamation-triangle mr-2"></i>
-        您的账号暂未绑定员工档案，无法统计个人产值。
-        请联系管理员在<a href="/system/user" class="font-weight-bold">用户管理</a>中绑定员工档案。
+    <div class="ems-alert warn">
+        <i class="layui-icon layui-icon-tips"></i>
+        您的账号暂未绑定员工档案，无法统计个人产值。请联系管理员在
+        <a class="layui-font-teal" href="javascript:ems.openTab('/system/user','用户管理')">用户管理</a>中绑定员工档案。
     </div>
 }
 else
 {
     var statsList = stats.ToList();
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="info-box bg-primary">
-                <span class="info-box-icon"><i class="fas fa-project-diagram"></i></span>
-                <div class="info-box-content">
-                    <span class="info-box-text">参与项目</span>
-                    <span class="info-box-number">@ViewBag.ProjectCount 个</span>
-                </div>
-            </div>
+    <div class="ems-stat-cards">
+        <div class="ems-stat-card">
+            <div class="label"><i class="layui-icon layui-icon-template-1"></i> 参与项目</div>
+            <div class="value layui-font-teal layui-font-30">@ViewBag.ProjectCount 个</div>
         </div>
-        <div class="col-md-3">
-            <div class="info-box bg-success">
-                <span class="info-box-icon"><i class="fas fa-coins"></i></span>
-                <div class="info-box-content">
-                    <span class="info-box-text">合同产值合计</span>
-                    <span class="info-box-number">¥@totC.ToString("N2")万</span>
-                </div>
-            </div>
+        <div class="ems-stat-card">
+            <div class="label"><i class="layui-icon layui-icon-rmb"></i> 合同产值合计</div>
+            <div class="value layui-font-green layui-font-30">¥@totC.ToString("N2") 万</div>
         </div>
-        <div class="col-md-3">
-            <div class="info-box bg-info">
-                <span class="info-box-icon"><i class="fas fa-user-tie"></i></span>
-                <div class="info-box-content">
-                    <span class="info-box-text">统计人员</span>
-                    <span class="info-box-number">@ViewBag.EmployeeName</span>
-                </div>
-            </div>
+        <div class="ems-stat-card">
+            <div class="label"><i class="layui-icon layui-icon-user"></i> 本人产值合计</div>
+            <div class="value layui-font-purple layui-font-30">¥@statsList.Sum(s => (decimal)s.MyContractValue).ToString("N2") 万</div>
         </div>
-        <div class="col-md-3">
-            <div class="info-box bg-warning">
-                <span class="info-box-icon"><i class="fas fa-chart-bar"></i></span>
-                <div class="info-box-content">
-                    <span class="info-box-text">执行中项目</span>
-                    <span class="info-box-number">@statsList.Count(s=>(int)s.ProgressStatus==6) 个</span>
-                </div>
-            </div>
+        <div class="ems-stat-card">
+            <div class="label"><i class="layui-icon layui-icon-user"></i> 统计人员</div>
+            <div class="value layui-font-blue layui-font-30">@ViewBag.EmployeeName</div>
+        </div>
+        <div class="ems-stat-card">
+            <div class="label"><i class="layui-icon layui-icon-chart"></i> 执行中项目</div>
+            <div class="value layui-font-orange layui-font-30">@statsList.Count(s => (int)s.ProgressStatus == 6) 个</div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">产值明细（本人产值 = 项目实际合同额 × 占比）</h3>
-        </div>
-        <div class="card-body table-responsive p-0">
-            <table class="table table-hover table-sm">
-                <thead class="thead-light">
+    <div class="layui-card ems-card">
+        <div class="layui-card-header">产值明细（本人产值 = 项目实际合同额 × 占比）</div>
+        <div class="layui-card-body">
+            <table class="layui-table" lay-size="sm" lay-skin="line">
+                <thead>
                     <tr>
                         <th>项目编号</th><th>项目名称</th><th>部门</th>
                         <th>职责</th><th>占比</th>
@@ -107,58 +82,46 @@ else
                 <tbody>
                     @foreach (var s in statsList)
                     {
-                                decimal sMyContractValue = Convert.ToDecimal(s.MyContractValue);
-                                decimal sContractAmount = Convert.ToDecimal(s.ContractAmount);
+                        decimal sMyContractValue = Convert.ToDecimal(s.MyContractValue);
+                        decimal sContractAmount = Convert.ToDecimal(s.ContractAmount);
                         int ps = (int)s.ProgressStatus;
                         <tr>
-                            <td><a href="/project/@s.ProjId"><code class="small">@s.ProjNo</code></a></td>
-                            <td><a href="/project/@s.ProjId" class="font-weight-bold text-dark">@s.ProjName</a></td>
-                            <td class="small text-muted">@(s.DeptName??"-")</td>
-                            <td><span class="badge badge-light">@s.Role</span></td>
+                            <td><a class="layui-font-teal" href="/project/@s.ProjId"><code>@s.ProjNo</code></a></td>
+                            <td><a class="layui-font-teal" href="/project/@s.ProjId"><strong>@s.ProjName</strong></a></td>
+                            <td class="layui-font-gray">@(s.DeptName ?? "-")</td>
+                            <td><span class="layui-badge layui-bg-gray">@s.Role</span></td>
                             <td>
-                                        <strong class="text-primary">@s.Ratio.ToString("N2")%</strong>
-                                <div class="progress progress-xs mt-1">
-                                    <div class="progress-bar bg-success" style="width:@s.Ratio%"></div>
-                                </div>
+                                <strong class="layui-font-teal">@s.Ratio.ToString("N2")%</strong>
+                                <div class="ems-progress" style="margin-top:4px"><span style="width:@(s.Ratio)%"></span></div>
                             </td>
-                                    <td class="text-right">¥@sContractAmount.ToString("N2")</td>
-                                    <td class="text-right font-weight-bold text-success">¥@sMyContractValue.ToString("N2")</td>
-                            <td><span class="badge @progressBadge[ps]">@progressText[ps]</span></td>
+                            <td class="text-right">¥@sContractAmount.ToString("N2")</td>
+                            <td class="text-right layui-font-green"><strong>¥@sMyContractValue.ToString("N2")</strong></td>
+                            <td><span class="ems-tag ems-tag-@progressTag[ps]">@progressText[ps]</span></td>
                         </tr>
                     }
                     @if (!statsList.Any())
                     {
-                        <tr><td colspan="8" class="text-center text-muted py-4">暂无参与项目记录</td></tr>
+                        <tr><td colspan="8" class="ems-empty">暂无参与项目记录</td></tr>
                     }
                 </tbody>
-                @if (statsList.Any())
-                {
-                    <tfoot class="table-active">
-                        <tr>
-                            <td colspan="6" class="text-right font-weight-bold">合计：</td>
-                            <td class="font-weight-bold text-success">¥@statsList.Sum(s=>(decimal)s.MyContractValue).ToString("N2") 万</td>
-                            <td></td>
-                        </tr>
-                    </tfoot>
-                }
             </table>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card card-outline card-primary">
-                <div class="card-header"><h3 class="card-title">按状态统计</h3></div>
-                <div class="card-body p-0">
-                    <table class="table table-sm">
-                        <thead class="thead-light"><tr><th>状态</th><th>项目数</th><th>产值（万）</th></tr></thead>
+    <div class="layui-row layui-col-space14">
+        <div class="layui-col-md6">
+            <div class="layui-card ems-card">
+                <div class="layui-card-header">按状态统计</div>
+                <div class="layui-card-body" style="padding:0">
+                    <table class="layui-table" lay-size="sm" lay-skin="line" style="margin:0">
+                        <thead><tr><th>状态</th><th>项目数</th><th>产值（万）</th></tr></thead>
                         <tbody>
-                            @foreach (var grp in statsList.GroupBy(s=>(int)s.ProgressStatus).OrderBy(g=>g.Key))
+                            @foreach (var grp in statsList.GroupBy(s => (int)s.ProgressStatus).OrderBy(g => g.Key))
                             {
                                 <tr>
-                                    <td><span class="badge @progressBadge[grp.Key]">@progressText[grp.Key]</span></td>
+                                    <td><span class="ems-tag ems-tag-@progressTag[grp.Key]">@progressText[grp.Key]</span></td>
                                     <td>@grp.Count()</td>
-                                    <td class="font-weight-bold">¥@grp.Sum(s=>(decimal)s.MyContractValue).ToString("N2")</td>
+                                    <td><strong>¥@grp.Sum(s => (decimal)s.MyContractValue).ToString("N2")</strong></td>
                                 </tr>
                             }
                         </tbody>
@@ -166,19 +129,19 @@ else
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card card-outline card-success">
-                <div class="card-header"><h3 class="card-title">按职责统计</h3></div>
-                <div class="card-body p-0">
-                    <table class="table table-sm">
-                        <thead class="thead-light"><tr><th>职责</th><th>项目数</th><th>产值（万）</th></tr></thead>
+        <div class="layui-col-md6">
+            <div class="layui-card ems-card">
+                <div class="layui-card-header">按职责统计</div>
+                <div class="layui-card-body" style="padding:0">
+                    <table class="layui-table" lay-size="sm" lay-skin="line" style="margin:0">
+                        <thead><tr><th>职责</th><th>项目数</th><th>产值（万）</th></tr></thead>
                         <tbody>
-                            @foreach (var grp in statsList.GroupBy(s=>(string)s.Role).OrderByDescending(g=>g.Sum(s=>(decimal)s.MyContractValue)))
+                            @foreach (var grp in statsList.GroupBy(s => (string)s.Role).OrderByDescending(g => g.Sum(s => (decimal)s.MyContractValue)))
                             {
                                 <tr>
-                                    <td><span class="badge badge-info">@grp.Key</span></td>
+                                    <td><span class="layui-badge layui-bg-blue">@grp.Key</span></td>
                                     <td>@grp.Count()</td>
-                                    <td class="font-weight-bold text-success">¥@grp.Sum(s=>(decimal)s.MyContractValue).ToString("N2")</td>
+                                    <td class="layui-font-green"><strong>¥@grp.Sum(s => (decimal)s.MyContractValue).ToString("N2")</strong></td>
                                 </tr>
                             }
                         </tbody>
@@ -188,5 +151,3 @@ else
         </div>
     </div>
 }
-
-</div></section>

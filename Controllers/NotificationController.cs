@@ -11,6 +11,7 @@ namespace EnterpriseMS.Controllers;
 /// 通知中心。铃铛展示在页眉（ViewComponent），本控制器提供"查看全部"列表页与标记已读接口。
 /// 通知属于个人提醒，所有已登录用户均可访问（不附加额外权限码），匿名用户重定向登录。
 /// </summary>
+[Route("notification")]
 public class NotificationController : BaseAuthController
 {
     private readonly INotificationService _notifSvc;
@@ -21,17 +22,38 @@ public class NotificationController : BaseAuthController
         _notifSvc = notifSvc;
     }
 
+    [HttpGet("")]
     public async Task<IActionResult> Index()
     {
         var userId = User.GetUserId();
         if (userId == 0)
-            return RedirectToAction("Login", "Account", new { returnUrl = "/notifications" });
+            return RedirectToAction("Login", "Account", new { returnUrl = "/notification" });
 
         var summary = await _notifSvc.GetForUserAsync(userId, 500);
-        return View(summary);
+        ViewBag.UnreadCount = summary.UnreadCount;
+        return View();
     }
 
-    [HttpPost("mark-read")]
+    [HttpGet("list")]
+    public async Task<IActionResult> List(int page = 1, int size = 20)
+    {
+        var userId = User.GetUserId();
+        if (userId == 0) return ApiFail("未授权", 401);
+
+        var summary = await _notifSvc.GetForUserAsync(userId, 500);
+        var items = summary.Items;
+        var total = items.Count;
+        var pagedItems = items.Skip((page - 1) * size).Take(size)
+            .Select(i => new
+            {
+                i.Id, i.Title, i.Content, Link = i.Link ?? "", i.Level, i.IsRead, i.CreatedAt
+            }).Cast<object>().ToList();
+
+        var paged = new PagedResult<object> { Items = pagedItems, Total = total, Page = page, PageSize = size };
+        return ApiOk(paged);
+    }
+
+    [HttpPost("mark-read/{id}")]
     public async Task<IActionResult> MarkRead(long id)
     {
         var userId = User.GetUserId();

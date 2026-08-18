@@ -1,395 +1,417 @@
 @model EnterpriseMS.Services.DTOs.Bid.BidProjectDto
-@using EnterpriseMS.Domain.Enums
 @{
     ViewData["Title"] = $"投标详情 - {Model.ProjectName}";
     Layout = "_Layout";
+
+    var parseStage  = Model.ParseStage;
+    var vetoItems   = Model.Requirements.Where(r => r.IsVeto).ToList();
+    var reviewItems = Model.Requirements.Where(r => r.NeedsReview).ToList();
 }
 
-@* 招标文件解析模块专用样式：刻意自包含、不依赖 AdminLTE/Bootstrap 之外的任何库，
-   否决性条款用警示色单独提出，不与普通要求混排——这是本模块最重要的视觉原则。 *@
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0">
-                    @Model.ProjectName
-                    <small class="ml-2">投标详情</small>
-                </h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item"><a href="/Bid">投标管理</a></li>
-                    <li class="breadcrumb-item active">投标详情</li>
-                </ol>
-            </div>
+@* 招标文件解析模块专用样式：原 tp-* 类在全站无任何 CSS 定义（迁移前即为裸样式），
+   此处按 ems 设计语言最小化重建为 bid-*，只覆盖本模块独有的视觉（阶段条 / 否决条款块 /
+   要求行 / 流式输出区）。通用外观一律复用 ems.css + layui 原生 class。 *@
+@section Styles {
+<style>
+    .bid-stage-wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .bid-stage-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .bid-stage { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 16px;
+                 background: #f5f6f8; color: #8a94a6; font-size: 13px; }
+    .bid-stage .num { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px;
+                      border-radius: 50%; background: #d9dde5; color: #fff; font-size: 11px; }
+    .bid-stage.live { background: #fff3e0; color: #e09000; }
+    .bid-stage.live .num { background: #e09000; }
+    .bid-stage.done { background: #e8f3f1; color: #0d6b64; }
+    .bid-stage.done .num { background: #0d6b64; }
+
+    .bid-veto-box { background: #fdecec; border: 1px solid #f4c7c7; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+    .bid-veto-title { font-size: 13px; font-weight: 600; color: #c0392b; margin-bottom: 8px; }
+    .bid-veto-item { font-size: 13px; line-height: 1.7; color: #7a2f2f; padding: 4px 0; border-top: 1px dashed #f0cccc; }
+    .bid-veto-item:first-of-type { border-top: none; }
+
+    .bid-review-box { background: #eaf3ff; border: 1px solid #b9d3ef; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+    .bid-review-title { font-size: 13px; font-weight: 600; color: #2b6cb0; margin-bottom: 8px; }
+
+    .bid-req-row { position: relative; font-size: 13px; line-height: 1.8; color: #1f2d3d;
+                   padding: 6px 8px; border: 1px solid #eef1f5; border-radius: 6px; margin-bottom: 6px; background: #fff; }
+    .bid-req-row .layui-btn { float: right; margin-left: 8px; }
+    .bid-src { color: #8a94a6; font-size: 12px; margin-left: 4px; }
+    .bid-cat { font-size: 13px; font-weight: 600; color: #0d6b64; margin: 10px 0 6px; }
+
+    .bid-badge { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; margin-right: 6px; }
+    .bid-badge-veto { background: #fdecec; color: #c0392b; }
+    .bid-badge-review { background: #eaf3ff; color: #2b6cb0; }
+
+    .bid-confirm-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+                       margin-top: 12px; padding: 10px 12px; border: 1px dashed #d9dde5; border-radius: 8px; background: #fafbfc; }
+    .bid-confirm-bar.done { border-style: solid; border-color: #bcd6c5; background: #eaf2ec; }
+
+    .bid-output { margin-top: 14px; padding: 14px; border: 1px solid #eef1f5; border-radius: 8px; background: #fafbfc;
+                  max-height: 500px; overflow-y: auto; white-space: pre-wrap; font-size: 13px; line-height: 1.8; }
+    .bid-preview { white-space: pre-wrap; max-height: 60vh; overflow-y: auto; padding: 15px; background: #fafbfc; border-radius: 8px; }
+    .bid-chapter-row { border: 1px solid #eef1f5; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;
+                       display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+    .ems-alert.danger { background: #fdecec; color: #c0392b; }
+    .bid-file-input { height: auto !important; line-height: normal !important; padding: 7px 10px; }
+
+    /* ~/js/bid-ai.js 不可改动，其兜底分支仍会输出 text-danger / text-muted，
+       此处按 ems 配色补一条兼容规则，避免出现无样式文本 */
+    .text-danger { color: #e05050; }
+    .text-muted { color: #8a94a6; }
+</style>
+}
+
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-read"></i> @Model.ProjectName
+        <span class="layui-font-12">投标详情</span>
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">投标管理</a>
+        <a><cite>投标详情</cite></a>
+    </div>
+</div>
+
+<!-- 解析阶段进度 + 页面操作 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-body bid-stage-wrap">
+        <div class="bid-stage-bar">
+            <span class="bid-stage @(parseStage >= 1 ? "done" : "")"><span class="num">1</span>上传文件</span>
+            <span class="bid-stage @(parseStage == 1 ? "live" : (parseStage >= 2 ? "done" : ""))"><span class="num">2</span>AI 解析</span>
+            <span class="bid-stage @(parseStage == 2 ? "live" : (parseStage >= 3 ? "done" : ""))"><span class="num">3</span>人工确认要素表</span>
+            <span class="bid-stage @(parseStage >= 3 ? "done" : "")"><span class="num">4</span>进入内容生成</span>
+        </div>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnEditBid">
+                <i class="layui-icon layui-icon-edit"></i> 编辑
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" id="btnBackList">
+                <i class="layui-icon layui-icon-return"></i> 返回列表
+            </button>
         </div>
     </div>
 </div>
 
-<section class="content">
-<div class="container-fluid">
-    <div class="row mb-3">
-        <div class="col-md-12 text-right">
-            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">
-                <i class="fas fa-edit mr-1"></i>编辑
-            </a>
-            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-arrow-left mr-1"></i>返回列表
-            </a>
-        </div>
-    </div>
+<div class="layui-row layui-col-space12">
 
-    @{
-        var parseStage = Model.ParseStage;
-    }
-    <div class="row mb-3">
-        <div class="col-md-12">
-            <div class="tp-stage-bar">
-                <div class="tp-stage @(parseStage >= 1 ? "tp-done" : "")"><span class="tp-stage-num">01</span>上传文件</div>
-                <div class="tp-stage @(parseStage == 1 ? "tp-live" : (parseStage >= 2 ? "tp-done" : ""))"><span class="tp-stage-num">02</span>AI 解析</div>
-                <div class="tp-stage @(parseStage == 2 ? "tp-live" : (parseStage >= 3 ? "tp-done" : ""))"><span class="tp-stage-num">03</span>人工确认要素表</div>
-                <div class="tp-stage @(parseStage >= 3 ? "tp-done" : "")"><span class="tp-stage-num">04</span>进入内容生成</div>
-            </div>
-        </div>
-    </div>
+    <!-- ── 左栏 ─────────────────────────────────────────── -->
+    <div class="layui-col-md4">
 
-    <div class="row">
-        <div class="col-md-4">
-            <div class="card mb-3">
-                <div class="card-header">基本信息</div>
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">项目名称</dt>
-                        <dd class="col-sm-8">@Model.ProjectName</dd>
-                        <dt class="col-sm-4">项目编号</dt>
-                        <dd class="col-sm-8">@Model.ProjectCode</dd>
-                        <dt class="col-sm-4">招标人</dt>
-                        <dd class="col-sm-8">@(Model.Tenderer ?? "-")</dd>
-                        <dt class="col-sm-4">预算金额</dt>
-                        <dd class="col-sm-8">@(Model.Budget?.ToString("N2") ?? "-") 万元</dd>
-                        <dt class="col-sm-4">截止日期</dt>
-                        <dd class="col-sm-8">@(Model.Deadline?.ToString("yyyy-MM-dd") ?? "-")</dd>
-                        <dt class="col-sm-4">状态</dt>
-                        <dd class="col-sm-8">
-                            <span class="badge bg-@(GetStatusColor(Model.Status))">
-                                @GetStatusName(Model.Status)
-                            </span>
-                        </dd>
-                    </dl>
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">基本信息</div>
+            <div class="layui-card-body">
+                <div class="ems-info-list">
+                    <div class="ems-info-item"><span class="label">项目名称</span><span class="val"><strong>@Model.ProjectName</strong></span></div>
+                    <div class="ems-info-item"><span class="label">项目编号</span><span class="val">@Model.ProjectCode</span></div>
+                    <div class="ems-info-item"><span class="label">招标人</span><span class="val">@(Model.Tenderer ?? "-")</span></div>
+                    <div class="ems-info-item"><span class="label">预算金额</span><span class="val layui-font-teal">@(Model.Budget?.ToString("N2") ?? "-") <span class="layui-font-12"><strong>万元</strong></span></span></div>
+                    <div class="ems-info-item"><span class="label">截止日期</span><span class="val">@(Model.Deadline?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+                    <div class="ems-info-item">
+                        <span class="label">状态</span>
+                        <span class="val">
+                            <span class="layui-badge layui-bg-@GetStatusColor(Model.Status)">@GetStatusName(Model.Status)</span>
+                        </span>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>招标文件解析</span>
-                    <span class="badge bg-@(parseStage == 3 ? "success" : (parseStage == 2 ? "warning" : "secondary"))">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">
+                <span>招标文件解析</span>
+                <div class="ems-card-tools">
+                    <span class="layui-badge layui-bg-@(parseStage == 3 ? "green" : (parseStage == 2 ? "orange" : "gray"))">
                         @Model.ParseStageName
                     </span>
                 </div>
-                <div class="card-body">
-                    @if (!string.IsNullOrWhiteSpace(Model.SourceFileName))
-                    {
-                        <div class="mb-2 text-muted" style="font-size:12px;">
-                            <i class="fas fa-file-alt mr-1"></i>@Model.SourceFileName
-                        </div>
-                    }
-                    <div class="mb-3">
-                        <input type="file" id="bidFile" class="form-control" accept=".pdf,.docx,.doc" />
-                        <small class="text-muted">支持 PDF / Word；扫描件暂不支持文字识别</small>
-                    </div>
-                    <button type="button" class="btn btn-primary w-100" onclick="analyzeDocument()">
-                        <i class="fas fa-robot mr-1"></i> AI解析招标文件
-                    </button>
-                    <div id="analyzeProgress" class="mt-3" style="display:none;">
-                        <div class="progress">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%">
-                                正在解析（按章节分块处理，大文件可能需要数十秒到数分钟）...
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
-
-            <div class="card mb-3">
-                <div class="card-header">快捷操作</div>
-                <div class="card-body">
-                    @if (parseStage != 3)
-                    {
-                        <div class="alert alert-light border mb-2" style="font-size:11.5px;padding:6px 10px;">
-                            <i class="fas fa-info-circle mr-1"></i>建议先完成"人工确认招标要素表"，再生成正文内容
-                        </div>
-                    }
-                    <button type="button" class="btn btn-success w-100 mb-2" onclick="generateFullBid()">
-                        <i class="fas fa-magic"></i> 一键生成全部章节
-                    </button>
-                    <button type="button" class="btn btn-warning w-100 mb-2" onclick="reviewBid()">
-                        <i class="fas fa-check-circle"></i> AI审查标书
-                    </button>
-                    <button type="button" class="btn btn-primary w-100 mb-2" onclick="matchPersonnel()">
-                        <i class="fas fa-users"></i> 智能匹配人员
-                    </button>
-                    <button type="button" class="btn btn-info w-100 mb-2" onclick="assembleDocument('all')">
-                        <i class="fas fa-file-alt"></i> 组卷（完整文件）
-                    </button>
-                    <div class="row">
-                        <div class="col-6">
-                            <button type="button" class="btn btn-outline-info w-100" onclick="assembleDocument('technical')">
-                                技术部分
-                            </button>
-                        </div>
-                        <div class="col-6">
-                            <button type="button" class="btn btn-outline-info w-100" onclick="assembleDocument('commercial')">
-                                商务部分
-                            </button>
-                        </div>
+            <div class="layui-card-body">
+                @if (!string.IsNullOrWhiteSpace(Model.SourceFileName))
+                {
+                    <div class="layui-font-gray" style="font-size:12px;margin-bottom:8px">
+                        <i class="layui-icon layui-icon-file"></i> @Model.SourceFileName
                     </div>
+                }
+                <div style="margin-bottom:12px">
+                    <input type="file" id="bidFile" class="layui-input bid-file-input" accept=".pdf,.docx,.doc">
+                    <div class="layui-word-aux" style="margin-top:6px">支持 PDF / Word；扫描件暂不支持文字识别</div>
                 </div>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-header">导出文件</div>
-                <div class="card-body">
-                    <div class="form-group mb-2">
-                        <select id="exportPart" class="form-control form-control-sm">
-                            <option value="all">完整投标文件</option>
-                            <option value="technical">仅技术部分</option>
-                            <option value="commercial">仅商务部分</option>
-                        </select>
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-fluid" onclick="analyzeDocument()">
+                    <i class="layui-icon layui-icon-engine"></i> AI 解析招标文件
+                </button>
+                <div id="analyzeProgress" style="display:none;margin-top:14px">
+                    <div class="ems-alert info">
+                        <i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i>
+                        正在解析（按章节分块处理，大文件可能需要数十秒到数分钟）...
                     </div>
-                    <div class="row">
-                        <div class="col-6">
-                            <button type="button" class="btn btn-success w-100" onclick="exportDocument('word')">
-                                <i class="fas fa-file-word mr-1"></i>导出Word
-                            </button>
-                        </div>
-                        <div class="col-6">
-                            <button type="button" class="btn btn-danger w-100" onclick="exportDocument('pdf')">
-                                <i class="fas fa-file-pdf mr-1"></i>导出PDF
-                            </button>
-                        </div>
-                    </div>
-                    <div id="exportStatus" class="mt-2" style="font-size:11.5px;"></div>
-                    <small class="text-muted d-block mt-1">PDF导出依赖服务器LibreOffice环境；若不可用请改用Word格式</small>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-8">
-            @{
-                var vetoItems = Model.Requirements.Where(r => r.IsVeto).ToList();
-                var reviewItems = Model.Requirements.Where(r => r.NeedsReview).ToList();
-            }
-
-            @if (vetoItems.Any())
-            {
-                <div class="tp-veto-box">
-                    <div class="tp-veto-title"><i class="fas fa-exclamation-triangle mr-1"></i>否决性条款 · @vetoItems.Count 项（不满足将导致废标，请重点核对）</div>
-                    @foreach (var v in vetoItems)
-                    {
-                        <div class="tp-veto-item">
-                            @v.Content
-                            @if (!string.IsNullOrWhiteSpace(v.SourceRef))
-                            {
-                                <span class="tp-src">[@v.SourceRef]</span>
-                            }
-                        </div>
-                    }
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">快捷操作</div>
+            <div class="layui-card-body">
+                @if (parseStage != 3)
+                {
+                    <div class="ems-alert warn" style="margin-bottom:10px;font-size:12px">
+                        <i class="layui-icon layui-icon-tips"></i> 建议先完成“人工确认招标要素表”，再生成正文内容
+                    </div>
+                }
+                <button type="button" class="layui-btn layui-btn-fluid" style="background:#2e9e5b;margin-bottom:8px" onclick="generateFullBid()">
+                    <i class="layui-icon layui-icon-star"></i> 一键生成全部章节
+                </button>
+                <button type="button" class="layui-btn layui-btn-warm layui-btn-fluid" style="margin-bottom:8px" onclick="reviewBid()">
+                    <i class="layui-icon layui-icon-ok-circle"></i> AI 审查标书
+                </button>
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-fluid" style="margin-bottom:8px" onclick="matchPersonnel()">
+                    <i class="layui-icon layui-icon-friends"></i> 智能匹配人员
+                </button>
+                <button type="button" class="layui-btn layui-btn-fluid" style="background:#1890ff;margin-bottom:8px" onclick="assembleDocument('all')">
+                    <i class="layui-icon layui-icon-file-b"></i> 组卷（完整文件）
+                </button>
+                <div class="layui-row layui-col-space8">
+                    <div class="layui-col-xs6">
+                        <button type="button" class="layui-btn layui-btn-primary layui-btn-fluid" onclick="assembleDocument('technical')">技术部分</button>
+                    </div>
+                    <div class="layui-col-xs6">
+                        <button type="button" class="layui-btn layui-btn-primary layui-btn-fluid" onclick="assembleDocument('commercial')">商务部分</button>
+                    </div>
                 </div>
-            }
+            </div>
+        </div>
 
-            @if (reviewItems.Any())
-            {
-                <div class="tp-review-box">
-                    <div class="tp-review-title"><i class="fas fa-search mr-1"></i>待人工确认 · @reviewItems.Count 项（AI未能在原文中定位到出处，需人工核实后才能确认要素表）</div>
-                    @foreach (var r in reviewItems)
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">导出文件</div>
+            <div class="layui-card-body">
+                <div style="margin-bottom:10px">
+                    <select id="exportPart" class="layui-input">
+                        <option value="all">完整投标文件</option>
+                        <option value="technical">仅技术部分</option>
+                        <option value="commercial">仅商务部分</option>
+                    </select>
+                </div>
+                <div class="layui-row layui-col-space8">
+                    <div class="layui-col-xs6">
+                        <button type="button" class="layui-btn layui-btn-fluid" style="background:#2e9e5b" onclick="exportDocument('word')">
+                            <i class="layui-icon layui-icon-export"></i> 导出 Word
+                        </button>
+                    </div>
+                    <div class="layui-col-xs6">
+                        <button type="button" class="layui-btn layui-btn-danger layui-btn-fluid" onclick="exportDocument('pdf')">
+                            <i class="layui-icon layui-icon-export"></i> 导出 PDF
+                        </button>
+                    </div>
+                </div>
+                <div id="exportStatus" style="margin-top:10px;font-size:12px"></div>
+                <div class="layui-word-aux" style="margin-top:6px">PDF 导出依赖服务器 LibreOffice 环境；若不可用请改用 Word 格式</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── 右栏 ─────────────────────────────────────────── -->
+    <div class="layui-col-md8">
+
+        @if (vetoItems.Any())
+        {
+            <div class="bid-veto-box">
+                <div class="bid-veto-title">
+                    <i class="layui-icon layui-icon-notice"></i>
+                    否决性条款 · @vetoItems.Count 项（不满足将导致废标，请重点核对）
+                </div>
+                @foreach (var v in vetoItems)
+                {
+                    <div class="bid-veto-item">
+                        @v.Content
+                        @if (!string.IsNullOrWhiteSpace(v.SourceRef))
+                        {
+                            <span class="bid-src">[@v.SourceRef]</span>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (reviewItems.Any())
+        {
+            <div class="bid-review-box">
+                <div class="bid-review-title">
+                    <i class="layui-icon layui-icon-search"></i>
+                    待人工确认 · @reviewItems.Count 项（AI 未能在原文中定位到出处，需人工核实后才能确认要素表）
+                </div>
+                @foreach (var r in reviewItems)
+                {
+                    <div class="bid-req-row" style="border-color:#b9d3ef;">
+                        <button class="layui-btn layui-btn-xs layui-btn-primary"
+                                data-req-id="@r.Id" data-content="@r.Content"
+                                onclick="resolveRequirement(this)">核对</button>
+                        <span class="bid-badge bid-badge-review">待确认</span>@r.Content
+                    </div>
+                }
+            </div>
+        }
+
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">
+                <span>招标要求</span>
+                <div class="ems-card-tools">
+                    <span class="layui-badge layui-bg-cyan">@Model.Requirements.Count 项</span>
+                </div>
+            </div>
+            <div class="layui-card-body" style="max-height:320px;overflow-y:auto">
+                @if (Model.Requirements.Any())
+                {
+                    @foreach (var req in Model.Requirements.GroupBy(r => r.Category))
                     {
-                        <div class="tp-req-row" style="border-color:#b9d3ef;">
-                            <span class="tp-badge-review">待确认</span>@r.Content
-                            <button class="btn btn-xs btn-outline-primary float-right" style="font-size:10px;padding:1px 6px;"
-                                    data-req-id="@r.Id" data-content="@r.Content"
-                                    onclick="resolveRequirement(this)">
-                                核对
+                        <div class="bid-cat">@req.Key</div>
+                        @foreach (var item in req)
+                        {
+                            <div class="bid-req-row">
+                                @if (item.IsVeto)
+                                {
+                                    <span class="bid-badge bid-badge-veto">否决项</span>
+                                }
+                                @if (item.NeedsReview)
+                                {
+                                    <span class="bid-badge bid-badge-review">待确认</span>
+                                }
+                                <span class="layui-font-gray" style="font-size:12px">@(item.ScoreWeight?.ToString() ?? "")分</span>
+                                @item.Content
+                                @if (!string.IsNullOrWhiteSpace(item.SourceRef))
+                                {
+                                    <span class="bid-src">[@item.SourceRef]</span>
+                                }
+                            </div>
+                        }
+                    }
+
+                    @if (parseStage == 2)
+                    {
+                        <div class="bid-confirm-bar">
+                            <span style="font-size:12.5px;color:#495057;">
+                                @if (reviewItems.Any())
+                                {
+                                    <text>还有 @reviewItems.Count 项待确认，处理完成后才能确认要素表</text>
+                                }
+                                else
+                                {
+                                    <text>所有条目已有出处定位，可以确认招标要素表</text>
+                                }
+                            </span>
+                            <button type="button"
+                                    class="layui-btn layui-btn-sm @(reviewItems.Any() ? "layui-btn-disabled" : "")"
+                                    style="@(reviewItems.Any() ? "" : "background:#2e9e5b")"
+                                    onclick="confirmElements()" @(reviewItems.Any() ? "disabled" : "")>
+                                <i class="layui-icon layui-icon-ok"></i> 确认招标要素表
                             </button>
                         </div>
                     }
-                </div>
-            }
-
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>招标要求</span>
-                    <span class="badge bg-info">@Model.Requirements.Count 项</span>
-                </div>
-                <div class="card-body" style="max-height: 320px; overflow-y: auto;">
-                    @if (Model.Requirements.Any())
+                    else if (parseStage == 3)
                     {
-                        @foreach (var req in Model.Requirements.GroupBy(r => r.Category))
-                        {
-                            <h6 class="text-primary mt-2">@req.Key</h6>
-                            @foreach (var item in req)
-                            {
-                                <div class="tp-req-row">
-                                    @if (item.IsVeto)
-                                    {
-                                        <span class="tp-badge-veto">否决项</span>
-                                    }
-                                    @if (item.NeedsReview)
-                                    {
-                                        <span class="tp-badge-review">待确认</span>
-                                    }
-                                    <small class="text-muted">@(item.ScoreWeight?.ToString() ?? "")分</small>
-                                    @item.Content
-                                    @if (!string.IsNullOrWhiteSpace(item.SourceRef))
-                                    {
-                                        <span class="tp-src">[@item.SourceRef]</span>
-                                    }
-                                </div>
-                            }
-                        }
+                        <div class="bid-confirm-bar done">
+                            <span style="font-size:12.5px;color:#2f7a4f;">
+                                <i class="layui-icon layui-icon-ok-circle"></i>
+                                已于 @(Model.ElementsConfirmedAt?.ToString("yyyy-MM-dd HH:mm")) 由 @Model.ElementsConfirmedBy 确认
+                            </span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="ems-empty">请先上传招标文件进行 AI 解析</div>
+                }
+            </div>
+        </div>
 
-                        @if (parseStage == 2)
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">
+                <span>标书章节</span>
+                <div class="ems-card-tools">
+                    <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" onclick="showAddChapter()">
+                        <i class="layui-icon layui-icon-add-1"></i> 添加章节
+                    </button>
+                </div>
+            </div>
+            <div class="layui-card-body">
+                <div id="chaptersList">
+                    @if (Model.Documents.Any())
+                    {
+                        @foreach (var doc in Model.Documents.OrderBy(d => d.SortOrder))
                         {
-                            <div class="tp-confirm-bar">
-                                <span style="font-size:12.5px;color:#495057;">
-                                    @if (reviewItems.Any())
-                                    {
-                                        <text>还有 @reviewItems.Count 项待确认，处理完成后才能确认要素表</text>
-                                    }
-                                    else
-                                    {
-                                        <text>所有条目已有出处定位，可以确认招标要素表</text>
-                                    }
-                                </span>
-                                <button type="button" class="btn btn-sm @(reviewItems.Any() ? "btn-secondary" : "btn-success")"
-                                        onclick="confirmElements()" @(reviewItems.Any() ? "disabled" : "")>
-                                    <i class="fas fa-check mr-1"></i>确认招标要素表
-                                </button>
-                            </div>
-                        }
-                        else if (parseStage == 3)
-                        {
-                            <div class="tp-confirm-bar" style="border-style:solid;border-color:#bcd6c5;background:#eaf2ec;">
-                                <span style="font-size:12.5px;color:#2f7a4f;">
-                                    <i class="fas fa-check-circle mr-1"></i>
-                                    已于 @(Model.ElementsConfirmedAt?.ToString("yyyy-MM-dd HH:mm")) 由 @Model.ElementsConfirmedBy 确认
-                                </span>
+                            <div class="bid-chapter-row" data-doc-id="@doc.Id">
+                                <div>
+                                    <strong>@doc.ChapterName</strong>
+                                    <span class="layui-badge layui-bg-@GetDocStatusColor(doc.Status)" style="margin-left:6px">
+                                        @GetDocStatusName(doc.Status)
+                                    </span>
+                                    <span class="layui-font-gray" style="font-size:12px;margin-left:6px">@(doc.WordCount ?? 0) 字</span>
+                                </div>
+                                <div>
+                                    <button class="layui-btn layui-btn-xs layui-btn-primary" onclick="previewChapter(@doc.Id, '@EncodeHelper.SafeEncode(doc.ChapterName)')">预览</button>
+                                    <button class="layui-btn layui-btn-xs" style="background:#2e9e5b" onclick="regenerateChapter('@EncodeHelper.SafeEncode(doc.ChapterName)')">重新生成</button>
+                                </div>
                             </div>
                         }
                     }
                     else
                     {
-                        <div class="text-muted text-center py-3">
-                            请先上传招标文件进行AI解析
-                        </div>
+                        <div class="ems-empty">暂无章节，请使用“一键生成全部章节”或手动添加</div>
                     }
                 </div>
-            </div>
 
-            <div class="card mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>标书章节</span>
-                    <button class="btn btn-sm btn-outline-primary" onclick="showAddChapter()">+ 添加章节</button>
-                </div>
-                <div class="card-body">
-                    <div id="chaptersList">
-                        @if (Model.Documents.Any())
-                        {
-                            @foreach (var doc in Model.Documents.OrderBy(d => d.SortOrder))
-                            {
-                                <div class="card mb-2" data-doc-id="@doc.Id">
-                                    <div class="card-body p-2">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <div>
-                                                <strong>@doc.ChapterName</strong>
-                                                <span class="badge bg-@(GetDocStatusColor(doc.Status)) ms-2">
-                                                    @GetDocStatusName(doc.Status)
-                                                </span>
-                                                <small class="text-muted ms-2">@(doc.WordCount ?? 0) 字</small>
-                                            </div>
-                                            <div>
-                                                <button class="btn btn-sm btn-outline-primary" onclick="previewChapter(@doc.Id, '@EncodeHelper.SafeEncode(doc.ChapterName)')">预览</button>
-                                                <button class="btn btn-sm btn-outline-success" onclick="regenerateChapter('@EncodeHelper.SafeEncode(doc.ChapterName)')">重新生成</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        }
-                        else
-                        {
-                            <div class="text-muted text-center py-3">
-                                暂无章节，请使用"一键生成全部章节"或手动添加
-                            </div>
-                        }
+                <div id="generatingProgress" style="display:none;margin-top:14px">
+                    <div class="ems-alert info">
+                        <i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i>
+                        正在生成：<span id="generatingChapter"></span>
                     </div>
-
-                    <div id="generatingProgress" class="mt-3" style="display:none;">
-                        <div class="alert alert-info">
-                            <i class="fas fa-hourglass-half"></i> 正在生成：<span id="generatingChapter"></span>
-                        </div>
-                    </div>
-
-                    <div id="generatingOutput" class="mt-3 border rounded p-3 bg-light"
-                         style="display:none; max-height: 500px; overflow-y: auto; white-space: pre-wrap;"></div>
                 </div>
-            </div>
 
-            <div class="card" id="reviewResult" style="display:none;">
-                <div class="card-header">AI审查结果</div>
-                <div class="card-body" id="reviewContent"></div>
+                <div id="generatingOutput" class="bid-output" style="display:none;"></div>
             </div>
         </div>
+
+        <div class="layui-card ems-card" id="reviewResult" style="display:none;">
+            <div class="layui-card-header">AI 审查结果</div>
+            <div class="layui-card-body" id="reviewContent"></div>
+        </div>
+
     </div>
 </div>
 
-<!-- 章节预览/编辑弹窗 -->
-<div class="modal fade" id="chapterModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="chapterModalTitle">章节内容</h5>
-                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <div id="chapterPreview" style="white-space: pre-wrap; max-height: 60vh; overflow-y: auto; padding: 15px; background: #f8f9fa; border-radius: 5px;"></div>
-                <div id="chapterEditArea" style="display:none;">
-                    <textarea id="chapterContentEdit" class="form-control" rows="20" style="font-size: 14px;"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
-                <button type="button" class="btn btn-primary" id="btnToggleEdit" onclick="toggleEditMode()">编辑</button>
-                <button type="button" class="btn btn-success" id="btnSaveContent" style="display:none;" onclick="saveChapterContent()">保存</button>
-            </div>
-        </div>
+<!-- 章节预览/编辑弹窗（layer type:1 承载） -->
+<div class="ems-modal-box" id="chapterModal">
+    <span id="chapterModalTitle" style="display:none">章节内容</span>
+    <div id="chapterPreview" class="bid-preview"></div>
+    <div id="chapterEditArea" style="display:none;">
+        <textarea id="chapterContentEdit" class="layui-textarea" rows="20" style="font-size:14px;min-height:52vh"></textarea>
+    </div>
+    <div class="ems-modal-foot">
+        <button type="button" class="layui-btn layui-btn-primary" onclick="closeChapterModal()">关闭</button>
+        <button type="button" class="layui-btn layui-btn-normal" id="btnToggleEdit" onclick="toggleEditMode()">编辑</button>
+        <button type="button" class="layui-btn" id="btnSaveContent" style="display:none;background:#2e9e5b" onclick="saveChapterContent()">保存</button>
     </div>
 </div>
 
-<!-- 组卷结果弹窗 -->
-<div class="modal fade" id="assembleModal" tabindex="-1">
-    <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="assembleModalTitle">投标文件</h5>
-                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <div id="assembleInfo" class="mb-3"></div>
-                <ul class="nav nav-tabs" id="assembleTabs" role="tablist"></ul>
-                <div class="tab-content" id="assembleTabContent"></div>
-                <div id="assembleLoading" class="text-center py-4" style="display:none;">
-                    <div class="spinner-border text-primary"></div>
-                    <p class="mt-2">正在组装文档...</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
-                <button type="button" class="btn btn-success" onclick="copyAssembleContent()">
-                    <i class="fas fa-copy"></i> 复制全部内容
-                </button>
-            </div>
-        </div>
+<!-- 组卷结果弹窗（layer type:1 承载） -->
+<div class="ems-modal-box" id="assembleModal">
+    <span id="assembleModalTitle" style="display:none">投标文件</span>
+    <div id="assembleInfo" style="margin-bottom:12px"></div>
+    <div class="layui-tab layui-tab-brief" lay-filter="assembleTab" style="margin:0">
+        <ul class="layui-tab-title" id="assembleTabs"></ul>
+        <div class="layui-tab-content" id="assembleTabContent"></div>
+    </div>
+    <div id="assembleLoading" class="ems-empty" style="display:none;">
+        <i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i>
+        <div style="margin-top:8px">正在组装文档...</div>
+    </div>
+    <div class="ems-modal-foot">
+        <button type="button" class="layui-btn layui-btn-primary" onclick="closeAssembleModal()">关闭</button>
+        <button type="button" class="layui-btn" style="background:#2e9e5b" onclick="copyAssembleContent()">
+            <i class="layui-icon layui-icon-file-b"></i> 复制全部内容
+        </button>
     </div>
 </div>
 
@@ -397,6 +419,103 @@
     <script src="~/js/bid-ai.js"></script>
     <script>
         var bidProjectId = @Model.Id;
+
+        /* ──────────────────────────────────────────────────────────────
+           同源 fetch 自动携带 CSRF 令牌
+           后端全局启用 AutoValidateAntiforgeryToken（Program.cs），令牌头名为
+           RequestVerificationToken。旧版由 site.js 的 fetch 包装统一附带，新版
+           _Layout 只引 ems.js（仅包装 jQuery.ajax），故在此补齐。
+           说明：只在请求发出前补一个请求头，不改动任何调用点的 URL / 方法 /
+           请求体 / 响应处理，也不改动 ~/js/bid-ai.js（其流式生成同样受益）。
+           ────────────────────────────────────────────────────────────── */
+        (function () {
+            if (window.__bidFetchCsrfPatched) return;
+            window.__bidFetchCsrfPatched = true;
+            var rawFetch = window.fetch;
+            if (typeof rawFetch !== 'function') return;
+
+            window.fetch = function (input, init) {
+                init = init || {};
+                var url = (typeof input === 'string') ? input : ((input && input.url) || '');
+                var method = (init.method || (input && input.method) || 'GET').toUpperCase();
+                var sameOrigin = url.indexOf('http') !== 0 || url.indexOf(location.origin) === 0;
+
+                if (sameOrigin && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+                    var el = document.querySelector('input[name="__RequestVerificationToken"]');
+                    var token = el ? el.value : '';
+                    if (token) {
+                        var headers = new Headers(init.headers || (input && input.headers) || {});
+                        if (!headers.has('RequestVerificationToken')) {
+                            headers.set('RequestVerificationToken', token);
+                        }
+                        init = Object.assign({}, init, { headers: headers });
+                    }
+                }
+                return rawFetch.call(window, input, init);
+            };
+        })();
+
+        /* ──────────────────────────────────────────────────────────────
+           弹窗：原 Bootstrap modal → layui layer(type:1)
+           容器 id / 内部元素 id 全部保持不变，业务 JS 逻辑零改动
+           ────────────────────────────────────────────────────────────── */
+        var _chapterLayer = null;
+        var _assembleLayer = null;
+
+        function openChapterModal() {
+            var title = document.getElementById('chapterModalTitle').textContent || '章节内容';
+            if (_chapterLayer !== null) { layer.title(title, _chapterLayer); return; }
+            $('#chapterModal').show();
+            _chapterLayer = layer.open({
+                type: 1,
+                title: title,
+                area: ['1040px', '86%'],
+                skin: 'ems-layer',
+                shadeClose: false,
+                content: $('#chapterModal'),
+                end: function () { _chapterLayer = null; $('#chapterModal').hide().appendTo('body'); }
+            });
+        }
+        function closeChapterModal() { if (_chapterLayer !== null) layer.close(_chapterLayer); }
+
+        function openAssembleModal() {
+            var title = document.getElementById('assembleModalTitle').textContent || '投标文件';
+            if (_assembleLayer !== null) { layer.title(title, _assembleLayer); return; }
+            $('#assembleModal').show();
+            _assembleLayer = layer.open({
+                type: 1,
+                title: title,
+                area: ['1040px', '86%'],
+                skin: 'ems-layer',
+                shadeClose: false,
+                content: $('#assembleModal'),
+                end: function () { _assembleLayer = null; $('#assembleModal').hide().appendTo('body'); }
+            });
+        }
+        function closeAssembleModal() { if (_assembleLayer !== null) layer.close(_assembleLayer); }
+
+        ems.ready(function () {
+            // bid-ai.js（按要求不可修改）中仍保留 Bootstrap 的 $('#xxx').modal('show') 调用，
+            // 这里补一个兜底垫片，把它转接到 layer，避免任何遗留调用路径报错。
+            if ($.fn && !$.fn.modal) {
+                $.fn.modal = function (action) {
+                    var id = this.attr('id');
+                    if (action === 'hide') {
+                        if (id === 'chapterModal')  closeChapterModal();
+                        if (id === 'assembleModal') closeAssembleModal();
+                    } else {
+                        if (id === 'chapterModal')  openChapterModal();
+                        if (id === 'assembleModal') openAssembleModal();
+                    }
+                    return this;
+                };
+            }
+
+            $('#btnEditBid').on('click', function () {
+                ems.openEdit({ title: '编辑投标', url: '/bid/edit/' + bidProjectId, area: ['860px', '92%'] });
+            });
+            $('#btnBackList').on('click', function () { ems.openTab('/bid', '投标台账'); });
+        });
 
         async function analyzeDocument() {
             var fileInput = document.getElementById('bidFile');
@@ -476,10 +595,14 @@
                     ems.warn('出处不能为空，否则该条目会继续保留"待确认"状态');
                     return;
                 }
+                // ems.confirm 只透传「确定」回调，"否，非否决项" 分支通过 layer 原生 btn2 保留
                 ems.confirm('该条目是否为否决性条款（不满足将直接导致废标）？',
-                    { icon: 3, btn: ['是，否决项', '否，非否决项'] },
-                    function (i2) { ems.close(i2); submitResolveRequirement(requirementId, sourceRef, true); },
-                    function () { submitResolveRequirement(requirementId, sourceRef, false); }
+                    {
+                        icon: 3,
+                        btn: ['是，否决项', '否，非否决项'],
+                        btn2: function () { submitResolveRequirement(requirementId, sourceRef, false); }
+                    },
+                    function () { submitResolveRequirement(requirementId, sourceRef, true); }
                 );
             });
         }
@@ -570,8 +693,8 @@
             document.getElementById('btnToggleEdit').textContent = '编辑';
             document.getElementById('btnSaveContent').style.display = 'none';
 
-            document.getElementById('chapterPreview').innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div><p>加载中...</p></div>';
-            $('#chapterModal').modal('show');
+            document.getElementById('chapterPreview').innerHTML = '<div class="ems-empty"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i><p>加载中...</p></div>';
+            openChapterModal();
 
             try {
                 var docResponse = await fetch('/Bid/GetDocument?docId=' + docId, {
@@ -593,28 +716,31 @@
                 if (content) {
                     document.getElementById('chapterPreview').innerHTML = '<div style="white-space: pre-wrap; line-height: 1.8;">' + escapeHtml(content) + '</div>';
                 } else {
-                    document.getElementById('chapterPreview').innerHTML = '<div class="text-muted">暂无内容，请先生成标书</div>';
+                    document.getElementById('chapterPreview').innerHTML = '<div class="layui-font-gray">暂无内容，请先生成标书</div>';
                 }
+                // 文本域预置原始内容（与迁移前一致：编辑态直接拿到未经渲染的原文）
+                document.getElementById('chapterContentEdit').value = content;
             } catch (e) {
-                document.getElementById('chapterPreview').innerHTML = '<div class="text-danger">加载失败：' + e.message + '</div>';
+                document.getElementById('chapterPreview').innerHTML = '<div class="layui-font-red">加载失败：' + e.message + '</div>';
             }
         }
 
         function toggleEditMode() {
             isEditMode = !isEditMode;
             var preview = document.getElementById('chapterPreview');
-            var editArea = document.getElementById('chapterEditArea');
+            var editArea = document.getElementById('chapterEditArea');       // 包裹层：只负责显示/隐藏
+            var editInput = document.getElementById('chapterContentEdit');   // 文本域：承载内容（保存时读它）
             var btnToggle = document.getElementById('btnToggleEdit');
             var btnSave = document.getElementById('btnSaveContent');
 
             if (isEditMode) {
-                editArea.value = preview.innerText;
+                editInput.value = preview.innerText;
                 preview.style.display = 'none';
                 editArea.style.display = 'block';
                 btnToggle.textContent = '预览';
                 btnSave.style.display = 'inline-block';
             } else {
-                preview.innerHTML = '<div style="white-space: pre-wrap;">' + escapeHtml(editArea.value) + '</div>';
+                preview.innerHTML = '<div style="white-space: pre-wrap;">' + escapeHtml(editInput.value) + '</div>';
                 preview.style.display = 'block';
                 editArea.style.display = 'none';
                 btnToggle.textContent = '编辑';
@@ -654,7 +780,7 @@
             document.getElementById('assembleTabs').innerHTML = '';
             document.getElementById('assembleTabContent').innerHTML = '';
             document.getElementById('assembleLoading').style.display = 'block';
-            $('#assembleModal').modal('show');
+            openAssembleModal();
 
             try {
                 var response = await fetch('/Bid/Assemble', {
@@ -670,11 +796,11 @@
                     assembleData = result.data;
                     displayAssembleResult(result.data);
                 } else {
-                    document.getElementById('assembleInfo').innerHTML = '<div class="alert alert-warning">' + (result.message || '组卷失败') + '</div>';
+                    document.getElementById('assembleInfo').innerHTML = '<div class="ems-alert warn">' + (result.message || '组卷失败') + '</div>';
                 }
             } catch (e) {
                 document.getElementById('assembleLoading').style.display = 'none';
-                document.getElementById('assembleInfo').innerHTML = '<div class="alert alert-danger">请求失败：' + e.message + '</div>';
+                document.getElementById('assembleInfo').innerHTML = '<div class="ems-alert danger">请求失败：' + e.message + '</div>';
             }
         }
 
@@ -683,7 +809,7 @@
         async function exportDocument(format) {
             var part = document.getElementById('exportPart').value;
             var statusEl = document.getElementById('exportStatus');
-            statusEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin mr-1"></i>正在生成' + (format === 'pdf' ? 'PDF' : 'Word') + '文件...</span>';
+            statusEl.innerHTML = '<span class="layui-font-gray"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 正在生成' + (format === 'pdf' ? 'PDF' : 'Word') + '文件...</span>';
 
             var url = '/Bid/Export' + (format === 'pdf' ? 'Pdf' : 'Word') + '?bidProjectId=' + bidProjectId + '&part=' + part;
 
@@ -693,12 +819,12 @@
 
                 if (contentType.indexOf('application/json') !== -1) {
                     var result = await response.json();
-                    statusEl.innerHTML = '<div class="alert alert-warning py-1 px-2 mb-0">' + escapeHtml(result.message || '导出失败') + '</div>';
+                    statusEl.innerHTML = '<div class="ems-alert warn">' + escapeHtml(result.message || '导出失败') + '</div>';
                     return;
                 }
 
                 if (!response.ok) {
-                    statusEl.innerHTML = '<div class="alert alert-danger py-1 px-2 mb-0">导出失败（HTTP ' + response.status + '）</div>';
+                    statusEl.innerHTML = '<div class="ems-alert danger">导出失败（HTTP ' + response.status + '）</div>';
                     return;
                 }
 
@@ -719,18 +845,18 @@
 
                 if (warningsHeader) {
                     var warnings = decodeURIComponent(warningsHeader).split(' | ');
-                    statusEl.innerHTML = '<div class="alert alert-warning py-1 px-2 mb-0">' +
+                    statusEl.innerHTML = '<div class="ems-alert warn">' +
                         warnings.map(function(w) { return '<div>' + escapeHtml(w) + '</div>'; }).join('') + '</div>';
                 } else {
-                    statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check-circle mr-1"></i>已下载</span>';
+                    statusEl.innerHTML = '<span class="layui-font-green"><i class="layui-icon layui-icon-ok-circle"></i> 已下载</span>';
                 }
             } catch (e) {
-                statusEl.innerHTML = '<div class="alert alert-danger py-1 px-2 mb-0">请求失败：' + escapeHtml(e.message) + '</div>';
+                statusEl.innerHTML = '<div class="ems-alert danger">请求失败：' + escapeHtml(e.message) + '</div>';
             }
         }
 
         function displayAssembleResult(data) {
-            var infoHtml = '<div class="alert alert-info py-2"><strong>' + escapeHtml(data.ProjectName) + '</strong> - 组装时间：' + data.AssembleTime + '</div>';
+            var infoHtml = '<div class="ems-alert info"><strong>' + escapeHtml(data.ProjectName) + '</strong> - 组装时间：' + data.AssembleTime + '</div>';
             document.getElementById('assembleInfo').innerHTML = infoHtml;
 
             var tabsHtml = '';
@@ -738,40 +864,43 @@
             var first = true;
 
             if (data.TechnicalPart && data.TechnicalPart.Chapters.length > 0) {
-                tabsHtml += '<li class="nav-item"><a class="nav-link' + (first ? ' active' : '') + '" data-toggle="tab" href="#tabTechnical">技术部分 (' + data.TechnicalPart.WordCount + '字)</a></li>';
-                contentHtml += '<div class="tab-pane fade' + (first ? ' show active' : '') + '" id="tabTechnical">';
+                tabsHtml += '<li class="' + (first ? 'layui-this' : '') + '" id="tabTechnical">技术部分 (' + data.TechnicalPart.WordCount + '字)</li>';
+                contentHtml += '<div class="layui-tab-item' + (first ? ' layui-show' : '') + '">';
                 contentHtml += buildPartContent(data.TechnicalPart);
                 contentHtml += '</div>';
                 first = false;
             }
 
             if (data.CommercialPart && data.CommercialPart.Chapters.length > 0) {
-                tabsHtml += '<li class="nav-item"><a class="nav-link' + (first ? ' active' : '') + '" data-toggle="tab" href="#tabCommercial">商务部分 (' + data.CommercialPart.WordCount + '字)</a></li>';
-                contentHtml += '<div class="tab-pane fade' + (first ? ' show active' : '') + '" id="tabCommercial">';
+                tabsHtml += '<li class="' + (first ? 'layui-this' : '') + '" id="tabCommercial">商务部分 (' + data.CommercialPart.WordCount + '字)</li>';
+                contentHtml += '<div class="layui-tab-item' + (first ? ' layui-show' : '') + '">';
                 contentHtml += buildPartContent(data.CommercialPart);
                 contentHtml += '</div>';
                 first = false;
             }
 
             if (data.FullDocument && data.FullDocument.Chapters.length > 0) {
-                tabsHtml += '<li class="nav-item"><a class="nav-link' + (first ? ' active' : '') + '" data-toggle="tab" href="#tabFull">完整文件 (' + data.FullDocument.WordCount + '字)</a></li>';
-                contentHtml += '<div class="tab-pane fade' + (first ? ' show active' : '') + '" id="tabFull">';
-                contentHtml += '<div style="white-space: pre-wrap; line-height: 1.8; padding: 15px; background: #f8f9fa; border-radius: 5px; max-height: 60vh; overflow-y: auto;">';
+                tabsHtml += '<li class="' + (first ? 'layui-this' : '') + '" id="tabFull">完整文件 (' + data.FullDocument.WordCount + '字)</li>';
+                contentHtml += '<div class="layui-tab-item' + (first ? ' layui-show' : '') + '">';
+                contentHtml += '<div style="white-space: pre-wrap; line-height: 1.8; padding: 15px; background: #fafbfc; border-radius: 8px; max-height: 60vh; overflow-y: auto;">';
                 contentHtml += escapeHtml(data.FullDocument.Content);
                 contentHtml += '</div></div>';
             }
 
             document.getElementById('assembleTabs').innerHTML = tabsHtml;
             document.getElementById('assembleTabContent').innerHTML = contentHtml;
+
+            // layui tab 需要重新渲染才能响应切换（等价于原 Bootstrap 的 data-toggle="tab"）
+            layui.element.render('tab', 'assembleTab');
         }
 
         function buildPartContent(part) {
             var html = '';
             part.Chapters.forEach(function(chapter, index) {
-                html += '<div class="card mb-3">';
-                html += '<div class="card-header"><strong>' + (index + 1) + '. ' + escapeHtml(chapter.Name) + '</strong>';
-                html += ' <span class="badge badge-secondary ml-2">' + chapter.WordCount + '字</span></div>';
-                html += '<div class="card-body">';
+                html += '<div class="layui-card ems-card">';
+                html += '<div class="layui-card-header"><strong>' + (index + 1) + '. ' + escapeHtml(chapter.Name) + '</strong>';
+                html += ' <span class="layui-badge layui-bg-gray" style="margin-left:8px">' + chapter.WordCount + '字</span></div>';
+                html += '<div class="layui-card-body">';
                 html += '<div style="white-space: pre-wrap; line-height: 1.8;">' + escapeHtml(chapter.Content) + '</div>';
                 html += '</div></div>';
             });
@@ -813,7 +942,7 @@
             progressEl.style.display = 'block';
             outputEl.style.display = 'block';
             document.getElementById('generatingChapter').textContent = '智能匹配人员';
-            outputEl.innerHTML = '<div class="text-center"><div class="spinner-border text-primary"></div><p>正在从数据库中匹配符合要求的人员...</p></div>';
+            outputEl.innerHTML = '<div class="ems-empty"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i><p>正在从数据库中匹配符合要求的人员...</p></div>';
 
             try {
                 var response = await fetch('/Bid/MatchPersonnel', {
@@ -840,10 +969,10 @@
                     displayPersonnelMatchResult(data);
                 } else {
                     var msg = (data && (data.message || data.Message)) || result.message || '未找到匹配人员';
-                    outputEl.innerHTML = '<div class="alert alert-warning">' + escapeHtml(msg) + '</div>';
+                    outputEl.innerHTML = '<div class="ems-alert warn">' + escapeHtml(msg) + '</div>';
                 }
             } catch (e) {
-                outputEl.innerHTML = '<div class="alert alert-danger">请求失败：' + e.message + '</div>';
+                outputEl.innerHTML = '<div class="ems-alert danger">请求失败：' + e.message + '</div>';
             } finally {
                 progressEl.style.display = 'none';
             }
@@ -851,7 +980,7 @@
 
         function displayPersonnelMatchResult(data) {
             var outputEl = document.getElementById('generatingOutput');
-            var html = '<div class="alert alert-info py-2">' + escapeHtml(data.summary || data.Summary || '') + '</div>';
+            var html = '<div class="ems-alert info">' + escapeHtml(data.summary || data.Summary || '') + '</div>';
 
             var personnel = data.matchedPersonnel || data.MatchedPersonnel || [];
             if (personnel.length > 0) {
@@ -866,32 +995,32 @@
                     var conflicts = p.conflictWarnings || p.ConflictWarnings || [];
                     var hasConflict = conflicts.length > 0;
 
-                    html += '<div class="card mb-2" style="border-left:4px solid ' + (hasConflict ? '#d9822b' : '#28a745') + ';">';
-                    html += '<div class="card-body p-2">';
-                    html += '<div class="d-flex justify-content-between align-items-start">';
+                    html += '<div class="layui-card ems-card" style="border-left:4px solid ' + (hasConflict ? '#e09000' : '#2e9e5b') + ';margin-top:8px">';
+                    html += '<div class="layui-card-body" style="padding:10px 12px">';
+                    html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">';
                     html += '<div><strong>' + escapeHtml(name) + '</strong>';
-                    html += ' <span class="text-muted" style="font-size:12px;">' + escapeHtml(dept) + ' · ' + escapeHtml(edu) + ' · 工作' + years + '年</span></div>';
-                    html += '<span class="badge badge-primary">匹配得分 ' + score + '</span>';
+                    html += ' <span class="layui-font-gray" style="font-size:12px;">' + escapeHtml(dept) + ' · ' + escapeHtml(edu) + ' · 工作' + years + '年</span></div>';
+                    html += '<span class="layui-badge layui-bg-blue">匹配得分 ' + score + '</span>';
                     html += '</div>';
 
                     if (hasConflict) {
-                        html += '<div class="alert alert-warning py-1 px-2 mt-2 mb-1" style="font-size:11.5px;">';
-                        conflicts.forEach(function(c) { html += '<div><i class="fas fa-exclamation-triangle mr-1"></i>' + escapeHtml(c) + '</div>'; });
+                        html += '<div class="ems-alert warn" style="margin-top:8px;font-size:11.5px;">';
+                        conflicts.forEach(function(c) { html += '<div><i class="layui-icon layui-icon-notice"></i> ' + escapeHtml(c) + '</div>'; });
                         html += '</div>';
                     }
 
-                    html += '<div class="mt-2" style="font-size:12px;">';
+                    html += '<div style="margin-top:8px;font-size:12px;">';
                     certs.forEach(function(c) {
                         var certName = c.certName || c.CertName || '';
                         var validity = c.validityStatus || c.ValidityStatus || 'Valid';
-                        var badgeClass = validity === 'Expired' ? 'badge-danger' : (validity === 'ExpiringSoon' ? 'badge-warning' : (validity === 'Unknown' ? 'badge-secondary' : 'badge-success'));
+                        var badgeClass = validity === 'Expired' ? 'layui-bg-red' : (validity === 'ExpiringSoon' ? 'layui-bg-orange' : (validity === 'Unknown' ? 'layui-bg-gray' : 'layui-bg-green'));
                         var validityLabel = validity === 'Expired' ? '已过期' : (validity === 'ExpiringSoon' ? '即将到期' : (validity === 'Unknown' ? '未登记有效期' : '有效'));
-                        if (certName) html += '<span class="badge ' + badgeClass + ' mr-1 mb-1">' + escapeHtml(certName) + ' · ' + validityLabel + '</span>';
+                        if (certName) html += '<span class="layui-badge ' + badgeClass + '" style="margin:0 6px 6px 0">' + escapeHtml(certName) + ' · ' + validityLabel + '</span>';
                     });
                     html += '</div>';
 
                     if (basis.length > 0) {
-                        html += '<ul class="mb-0 mt-1" style="font-size:11.5px;color:#495057;padding-left:18px;">';
+                        html += '<ul style="margin:4px 0 0;font-size:11.5px;color:#495057;padding-left:18px;">';
                         basis.forEach(function(b) { html += '<li>' + escapeHtml(b) + '</li>'; });
                         html += '</ul>';
                     }
@@ -899,12 +1028,12 @@
                     html += '</div></div>';
                 });
             } else {
-                html += '<div class="alert alert-warning py-2"><i class="fas fa-exclamation-triangle"></i> 暂无符合条件的人员</div>';
+                html += '<div class="ems-alert warn"><i class="layui-icon layui-icon-notice"></i> 暂无符合条件的人员</div>';
             }
 
             var unmatched = data.unmatchedRequirements || data.UnmatchedRequirements || [];
             if (unmatched.length > 0) {
-                html += '<div class="alert alert-warning py-2 mt-2"><strong>未匹配的要求：</strong><ul class="mb-0">';
+                html += '<div class="ems-alert warn" style="margin-top:8px"><strong>未匹配的要求：</strong><ul style="margin:0">';
                 unmatched.forEach(function(req) {
                     html += '<li>' + escapeHtml(req) + '</li>';
                 });
@@ -913,23 +1042,23 @@
 
             var unrecognized = data.unrecognizedRequirements || data.UnrecognizedRequirements || [];
             if (unrecognized.length > 0) {
-                html += '<div class="alert alert-info py-2 mt-2" style="background:#e9f1fb;border-color:#b9d3ef;">';
-                html += '<strong><i class="fas fa-search mr-1"></i>系统无法自动识别证书类型，需人工直接核对：</strong><ul class="mb-0">';
+                html += '<div class="ems-alert info" style="margin-top:8px">';
+                html += '<strong><i class="layui-icon layui-icon-search"></i> 系统无法自动识别证书类型，需人工直接核对：</strong><ul style="margin:0">';
                 unrecognized.forEach(function(req) {
                     html += '<li>' + escapeHtml(req) + '</li>';
                 });
                 html += '</ul></div>';
             }
 
-            html += '<div class="mt-3"><button class="btn btn-primary" onclick="generatePersonnelSection()"><i class="fas fa-magic mr-1"></i>根据匹配结果生成人员配置文档</button>';
-            html += ' <small class="text-muted ml-2">存在岗位冲突的人员不会被写入正文，需人工确认后再补充</small></div>';
+            html += '<div style="margin-top:14px"><button class="layui-btn layui-btn-normal" onclick="generatePersonnelSection()"><i class="layui-icon layui-icon-star"></i> 根据匹配结果生成人员配置文档</button>';
+            html += ' <span class="layui-font-gray" style="font-size:12px;margin-left:8px">存在岗位冲突的人员不会被写入正文，需人工确认后再补充</span></div>';
 
             outputEl.innerHTML = html;
         }
 
         async function generatePersonnelSection() {
             var outputEl = document.getElementById('generatingOutput');
-            outputEl.innerHTML += '<div class="mt-3"><div class="alert alert-info"><i class="fas fa-spinner fa-spin"></i> 正在生成人员配置文档...</div></div>';
+            outputEl.innerHTML += '<div style="margin-top:14px"><div class="ems-alert info"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 正在生成人员配置文档...</div></div>';
 
             try {
                 var response = await fetch('/Bid/GeneratePersonnelSection', {
@@ -975,7 +1104,7 @@
         async function reviewBid() {
             document.getElementById('reviewResult').style.display = 'block';
             document.getElementById('reviewContent').innerHTML =
-                '<div class="text-center"><div class="spinner-border text-primary"></div><p>正在审查...</p></div>';
+                '<div class="ems-empty"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i><p>正在审查...</p></div>';
 
             try {
                 var response = await fetch('/Bid/Review', {
@@ -989,21 +1118,21 @@
                     displayReviewResult(result.data);
                 } else {
                     document.getElementById('reviewContent').innerHTML =
-                        '<div class="alert alert-danger">' + result.message + '</div>';
+                        '<div class="ems-alert danger">' + result.message + '</div>';
                 }
             } catch (e) {
                 document.getElementById('reviewContent').innerHTML =
-                    '<div class="alert alert-danger">请求失败：' + e.message + '</div>';
+                    '<div class="ems-alert danger">请求失败：' + e.message + '</div>';
             }
         }
 
         function displayReviewResult(data) {
-            var html = '<div class="mb-3"><strong>综合评分：</strong>';
-            var scoreClass = data.overallScore >= 80 ? 'success' : data.overallScore >= 60 ? 'warning' : 'danger';
-            html += '<span class="badge bg-' + scoreClass + ' fs-6">' + data.overallScore + '分</span></div>';
+            var html = '<div style="margin-bottom:12px"><strong>综合评分：</strong>';
+            var scoreClass = data.overallScore >= 80 ? 'green' : data.overallScore >= 60 ? 'orange' : 'red';
+            html += '<span class="layui-badge layui-bg-' + scoreClass + '">' + data.overallScore + '分</span></div>';
 
             if (data.missingItems && data.missingItems.length > 0) {
-                html += '<h6 class="text-danger">缺失内容：</h6><ul>';
+                html += '<div class=" layui-font-red" style="margin-top:10px">缺失内容：</div><ul>';
                 data.missingItems.forEach(function(item) {
                     html += '<li>' + item + '</li>';
                 });
@@ -1011,19 +1140,19 @@
             }
 
             if (data.issues && data.issues.length > 0) {
-                html += '<h6 class="text-warning">问题列表：</h6>';
+                html += '<div class=" layui-font-orange" style="margin-top:10px">问题列表：</div>';
                 data.issues.forEach(function(issue) {
-                    html += '<div class="alert alert-' +
-                        (issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warning' : 'info') +
-                        ' py-2">';
+                    html += '<div class="ems-alert ' +
+                        (issue.severity === 'high' ? 'danger' : issue.severity === 'medium' ? 'warn' : 'info') +
+                        '" style="margin-top:6px">';
                     html += '<strong>[' + issue.chapter + ']</strong> ' + issue.description;
-                    if (issue.suggestion) html += '<br><small class="text-muted">建议：' + issue.suggestion + '</small>';
+                    if (issue.suggestion) html += '<br><span class="layui-font-gray" style="font-size:12px">建议：' + issue.suggestion + '</span>';
                     html += '</div>';
                 });
             }
 
             if (data.suggestions && data.suggestions.length > 0) {
-                html += '<h6 class="text-primary">改进建议：</h6><ul>';
+                html += '<div class=" layui-font-teal" style="margin-top:10px">改进建议：</div><ul>';
                 data.suggestions.forEach(function(item) {
                     html += '<li>' + item + '</li>';
                 });
@@ -1036,17 +1165,18 @@
 }
 
 @functions {
+    // 配色与列表页 STATUS_MAP 保持一致（layui 无 bg-teal，就绪用 cyan）
     string GetStatusColor(int status) => status switch
     {
-        0 => "secondary",
-        1 => "info",
-        2 => "primary",
-        3 => "warning",
-        4 => "success",
-        5 => "info",
-        6 => "success",
-        7 => "danger",
-        _ => "secondary"
+        0 => "gray",
+        1 => "blue",
+        2 => "orange",
+        3 => "orange",
+        4 => "cyan",
+        5 => "blue",
+        6 => "green",
+        7 => "gray",
+        _ => "gray"
     };
 
     string GetStatusName(int status) => status switch
@@ -1064,12 +1194,12 @@
 
     string GetDocStatusColor(int status) => status switch
     {
-        0 => "secondary",
-        1 => "success",
-        2 => "warning",
-        3 => "info",
-        4 => "primary",
-        _ => "secondary"
+        0 => "gray",
+        1 => "green",
+        2 => "orange",
+        3 => "cyan",
+        4 => "blue",
+        _ => "gray"
     };
 
     string GetDocStatusName(int status) => status switch

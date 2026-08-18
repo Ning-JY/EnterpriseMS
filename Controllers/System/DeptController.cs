@@ -23,17 +23,45 @@ public class DeptController : BaseAuthController
     }
 
     [HasPermission("sys:dept:list")]
-    public async Task<IActionResult> Index()
-    {
-        var tree = await _deptSvc.GetTreeAsync();
-        return View(tree);
-    }
+    public IActionResult Index() => View();
+
+    [HttpGet("list")]
+    [HasPermission("sys:dept:list")]
+    public async Task<IActionResult> List(string? keyword, int page = 1, int size = 10)
+        => ApiOk(await _deptSvc.GetPagedAsync(keyword, page, size));
 
     [HttpGet("tree")]
     public async Task<IActionResult> Tree()
     {
         var tree = await _deptSvc.GetTreeAsync();
         return ApiOk(tree);
+    }
+
+    // 新增 / 编辑表单（iframe 弹层）
+    [HttpGet("form")]
+    [HasPermission("sys:dept:list")]
+    public async Task<IActionResult> Form(long? id, long? parentId)
+    {
+        DeptTreeDto? model = null;
+        if (id.HasValue)
+        {
+            model = await _deptSvc.GetByIdAsync(id.Value);
+            if (model == null) return NotFound();
+        }
+
+        // 上级部门下拉：把树拍平成带缩进的选项
+        var tree = await _deptSvc.GetTreeAsync();
+        var options = new List<(long Id, string Name, int Depth)>();
+        void Flatten(DeptTreeDto n, int depth)
+        {
+            options.Add((n.Id, n.DeptName, depth));
+            foreach (var c in n.Children) Flatten(c, depth + 1);
+        }
+        foreach (var n in tree) Flatten(n, 0);
+
+        ViewBag.ParentId = parentId;
+        ViewBag.DeptOptions = options;
+        return View(model);
     }
 
     [HttpPost("create"), ValidateAntiForgeryToken]

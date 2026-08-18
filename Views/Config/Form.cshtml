@@ -1,0 +1,70 @@
+@using System.Linq
+@model List<EnterpriseMS.Domain.Entities.System.SysConfig>
+@{
+    var isDialog = Context.Request.Query["_dialog"] == "1";
+    ViewData["Title"] = "编辑系统参数";
+}
+<div class="ems-page @(isDialog ? "ems-dialog" : "")">
+@if (!isDialog)
+{
+<div class="ems-page-head">
+    <div class="ems-page-title">编辑系统参数</div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>系统参数</cite></a>
+    </div>
+</div>
+}
+
+<form class="layui-form" lay-filter="configForm">
+@foreach (var group in Model.GroupBy(c => c.GroupName))
+{
+    <div class="layui-card ems-card">
+        <div class="layui-card-header">@group.Key</div>
+        <div class="layui-card-body">
+        @foreach (var c in group.OrderBy(x => x.Sort))
+        {
+            <div class="layui-form-item config-row" data-key="@c.ConfigKey">
+                <label class="layui-form-label" title="@c.ConfigKey" style="width:200px;text-align:left;padding-left:0">@c.ConfigKey</label>
+                <div class="layui-input-block" style="margin-left:210px">
+                    <input type="text" class="layui-input" name="val" value="@c.ConfigValue" placeholder="@c.ConfigKey">
+                </div>
+            </div>
+        }
+        </div>
+    </div>
+}
+    <div class="ems-form-foot">
+        <button class="layui-btn" lay-submit lay-filter="configForm">
+            <i class="layui-icon layui-icon-ok"></i> 保存
+        </button>
+        <button type="button" class="layui-btn layui-btn-primary" id="btnCancel">
+            <i class="layui-icon layui-icon-close"></i> 取消
+        </button>
+    </div>
+</form>
+</div>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    ems.bindSubmit('configForm', function () {
+        var list = [];
+        $('.config-row').each(function () {
+            var key = $(this).data('key');
+            var val = $(this).find('input.layui-input').val();
+            list.push({ ConfigKey: key, ConfigValue: val });
+        });
+        return {
+            url: '/system/config/save',
+            json: true,
+            data: list,
+            table: 'configTable'
+        };
+    });
+
+    $('#btnCancel').on('click', function () { ems.closeSelf(); });
+});
+</script>
+}

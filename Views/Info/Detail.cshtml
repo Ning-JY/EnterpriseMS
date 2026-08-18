@@ -1,25 +1,62 @@
 @using EnterpriseMS.Domain.Entities.Info
 @model InfoArticle
 @{
+    // 公开页（/pub/Detail/{id}，[AllowAnonymous]）：与 Info/Index 同理 Layout = null，
+    // 避免 _Layout 的「跳回主框架」脚本把匿名访客送去登录页。自包含 layui + ems.css。
+    Layout = null;
     ViewData["Title"] = Model.Title;
 }
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@ViewData["Title"] - 企业管理系统</title>
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css">
+    <link rel="stylesheet" href="~/css/ems.css" asp-append-version="true">
+    <style>
+        /* 公开页专用补充样式（本页 Layout=null，不污染 ems.css；仅 3 条） */
+        body.ems-page { min-height: 100vh; }
+        .ems-pub-meta { padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; margin-bottom: 16px; }
+        /* 纯文本正文：保留后台录入的换行与空格 */
+        .ems-pub-content { white-space: pre-wrap; line-height: 1.9; font-size: 15px; color: #1f2d3d; }
+    </style>
+</head>
+<body class="ems-page">
 
-<section class="content"><div class="container-fluid">
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-bullhorn mr-2 text-primary"></i>@Model.Title</h3>
-            <div class="card-tools">
-                <a href="/pub" class="btn btn-sm btn-default"><i class="fas fa-arrow-left mr-1"></i>返回列表</a>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="text-muted small mb-3 border-bottom pb-2">
-                <span class="badge badge-info mr-1">@(Model.Category?.CategoryName ?? "未分类")</span>
-                <i class="far fa-clock mr-1"></i>发布时间：@(Model.PublishTime?.ToString("yyyy-MM-dd HH:mm") ?? Model.CreatedAt.ToString("yyyy-MM-dd HH:mm"))
-                <span class="ml-2"><i class="far fa-eye mr-1"></i>阅读 @Model.ViewCount</span>
-                @if (Model.IsTop == 1) { <span class="ml-2 badge badge-danger">置顶</span> }
-            </div>
-            <div style="white-space: pre-wrap; line-height: 1.8; font-size: 15px;">@Model.Content</div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-notice"></i> 公告详情
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="/pub">公开信息</a>
+        <a href="/pub">通知公告</a>
+        <a><cite>@Model.Title</cite></a>
+    </div>
+</div>
+
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>@Model.Title</span>
+        <div class="ems-card-tools">
+            <a href="/pub" class="layui-btn layui-btn-sm layui-btn-primary">
+                <i class="layui-icon layui-icon-return"></i> 返回列表
+            </a>
         </div>
     </div>
-</div></section>
+    <div class="layui-card-body">
+        <div class="ems-detail-meta ems-pub-meta">
+            <span class="layui-badge layui-bg-blue">@(Model.Category?.CategoryName ?? "未分类")</span>
+            <span><i class="layui-icon layui-icon-time"></i>&nbsp;发布时间：@(Model.PublishTime?.ToString("yyyy-MM-dd HH:mm") ?? Model.CreatedAt.ToString("yyyy-MM-dd HH:mm"))</span>
+            <span><i class="layui-icon layui-icon-read"></i>&nbsp;阅读 @Model.ViewCount</span>
+            @if (Model.IsTop == 1) { <span class="layui-badge layui-bg-red">置顶</span> }
+        </div>
+        <div class="ems-pub-content">@Model.Content</div>
+    </div>
+</div>
+
+<script src="~/lib/layui/layui.js"></script>
+<script src="~/js/ems.js" asp-append-version="true"></script>
+</body>
+</html>

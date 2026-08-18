@@ -1,187 +1,201 @@
 @{
     ViewData["Title"] = "成果报告模板管理";
-    Layout = "_Layout";
 }
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0"><i class="fas fa-file-word mr-2"></i>成果报告模板管理</h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item">造价小工具</li>
-                    <li class="breadcrumb-item active">成果报告模板</li>
-                </ol>
-            </div>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-template-1"></i> 成果报告模板
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">造价小工具</a>
+        <a><cite>成果报告模板</cite></a>
     </div>
 </div>
 
-<section class="content">
-    <div class="container-fluid">
-
-        <!-- 操作区 -->
-        <div class="card card-default search-card">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-10"></div>
-                    <div class="col-md-2 text-right">
-                        <a href="/templatereport/templateconfig" class="btn btn-success btn-sm">
-                            <i class="fas fa-plus"></i> 新增模板
-                        </a>
-                    </div>
-                </div>
+<!-- 搜索卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="tplSearch">
+            <div class="layui-inline">
+                <input type="text" name="keyword" placeholder="模板名称 / 描述"
+                       autocomplete="off" class="layui-input">
             </div>
-        </div>
-
-        <!-- 列表 -->
-        <div class="card">
-            <div class="card-header">
-                <h3 class="card-title">模板列表</h3>
+            <div class="layui-inline">
+                <select name="category" id="categoryFilter" lay-filter="categoryFilter" style="width:150px">
+                    <option value="">全部分类</option>
+                </select>
             </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-sm table-hover mb-0">
-                        <thead class="thead-light">
-                            <tr>
-                                <th>模板名称</th>
-                                <th>描述</th>
-                                <th>字段数</th>
-                                <th>创建日期</th>
-                                <th style="width:230px;">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tplBody">
-                            <tr><td colspan="5" class="text-center text-muted py-4">
-                                <i class="fas fa-spinner fa-spin mr-1"></i>加载中…
-                            </td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="tplSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
             </div>
-        </div>
-
+            <div class="layui-inline ems-search-actions">
+                <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                    <i class="layui-icon layui-icon-add-1"></i> 新增模板
+                </button>
+                <button type="button" class="layui-btn" id="btnGenerate">
+                    <i class="layui-icon layui-icon-file-b"></i> 生成报告
+                </button>
+            </div>
+        </form>
     </div>
-</section>
+</div>
 
-@* 字段占位符查看弹窗 *@
-<div class="modal fade" id="fieldsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title"><i class="fas fa-tags mr-1"></i>模板占位符字段</h5>
-                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-            </div>
-            <div class="modal-body">
-                <div class="alert alert-info small">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    以下为模板内识别到的占位符（<code>{{字段名}}</code>）。在项目详情页生成报告时，系统会以同名项目字段自动填充。
-                </div>
-                <div id="fieldsContent" class="border rounded p-2" style="max-height:50vh;overflow:auto;">
-                    <div class="text-muted text-center py-3">加载中…</div>
-                </div>
-            </div>
+<!-- 列表卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>模板列表</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
+                <i class="layui-icon layui-icon-cols"></i> 筛选列
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnExport">
+                <i class="layui-icon layui-icon-export"></i> 导出
+            </button>
         </div>
+    </div>
+    <div class="layui-card-body">
+        <table id="tplTable" lay-filter="tplTable"></table>
+    </div>
+</div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="tplBar">
+    <a class="ems-icon-btn primary" title="占位符字段" lay-event="fields"><i class="layui-icon layui-icon-list"></i></a>
+    <a class="ems-icon-btn success" title="下载模板" lay-event="download"><i class="layui-icon layui-icon-download-circle"></i></a>
+    <a class="ems-icon-btn danger" title="删除" lay-event="del"><i class="layui-icon layui-icon-delete"></i></a>
+</script>
+
+<!-- 占位符字段弹窗 -->
+<div class="ems-modal-box" id="fieldsModal">
+    <div class="ems-alert teal">
+        以下为模板内识别到的占位符（<code>{{字段名}}</code>）。在项目详情页生成报告时，系统会以同名项目字段自动填充。
+    </div>
+    <div id="fieldsContent" style="max-height:50vh;overflow:auto;margin-top:12px">
+        <div class="ems-empty">加载中…</div>
     </div>
 </div>
 
 @section Scripts {
-    <script>
-        function loadTemplateList() {
-            fetch('/templatereport/templates')
-                .then(function (r) { return r.json(); })
-                .then(function (res) {
-                    var $body = $('#tplBody');
-                    if (res.code === 200 && res.data && res.data.length) {
-                        var html = '';
-                        res.data.forEach(function (t) {
-                            var fieldCnt = t.fields ? t.fields.length : 0;
-                            html += '<tr>' +
-                                '<td><i class="fas fa-file-word text-primary mr-1"></i><strong>' + escapeHtml(t.name) + '</strong></td>' +
-                                '<td class="small text-muted">' + escapeHtml(t.description || '-') + '</td>' +
-                                '<td><span class="badge badge-info">' + fieldCnt + '</span></td>' +
-                                '<td class="small text-muted">' + escapeHtml(t.createdAt || '-') + '</td>' +
-                                '<td>' +
-                                    '<button class="btn btn-xs btn-outline-info mr-1" onclick="showFields(\'' + t.id + '\',\'' + escapeHtml(t.name) + '\')">' +
-                                        '<i class="fas fa-tags"></i> 字段' +
-                                    '</button>' +
-                                    '<a class="btn btn-xs btn-outline-success mr-1" href="/templatereport/download/' + encodeURIComponent(t.id) + '">' +
-                                        '<i class="fas fa-download"></i> 下载' +
-                                    '</a>' +
-                                    '<button class="btn btn-xs btn-outline-danger" onclick="deleteTemplate(\'' + t.id + '\',\'' + escapeHtml(t.name) + '\')">' +
-                                        '<i class="fas fa-trash"></i> 删除' +
-                                    '</button>' +
-                                '</td>' +
-                            '</tr>';
-                        });
-                        $body.html(html);
-                    } else {
-                        $body.html('<tr><td colspan="5" class="text-center text-muted py-4">暂无模板，请点击右上角「新增模板」</td></tr>');
-                    }
-                })
-                .catch(function () {
-                    $('#tplBody').html('<tr><td colspan="5" class="text-center text-danger py-4">模板加载失败，请刷新重试</td></tr>');
-                });
-        }
+<script>
+ems.ready(function () {
+    var $ = layui.jquery;
 
-        function showFields(id, name) {
-            $('#fieldsContent').html('<div class="text-muted text-center py-3">加载中…</div>');
-            $('#fieldsModal .modal-title').html('<i class="fas fa-tags mr-1"></i>' + escapeHtml(name) + ' · 占位符');
-            $('#fieldsModal').modal('show');
-            fetch('/templatereport/scan-placeholders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ TemplateId: id })
-            })
-                .then(function (r) { return r.json(); })
-                .then(function (res) {
-                    if (res.code === 200 && res.data && res.data.length) {
-                        var html = '<div class="row">';
-                        res.data.forEach(function (p) {
-                            html += '<div class="col-md-6 mb-2">' +
-                                '<code class="small">{{' + escapeHtml(p.name) + '}}</code>' +
-                                '<div class="text-muted" style="font-size:11px;">' + escapeHtml(p.context || '') + '</div>' +
-                            '</div>';
-                        });
-                        html += '</div>';
-                        $('#fieldsContent').html(html);
-                    } else {
-                        $('#fieldsContent').html('<div class="text-muted text-center py-3">未识别到占位符</div>');
-                    }
-                })
-                .catch(function () {
-                    $('#fieldsContent').html('<div class="text-danger text-center py-3">加载失败</div>');
-                });
-        }
+    var colsConfig = [
+        { field: 'Name', title: '模板名称', minWidth: 200,
+          templet: function (d) {
+              return '<i class="layui-icon layui-icon-file-b layui-font-teal"></i> <strong>' +
+                     ems.escapeHtml(d.Name) + '</strong>';
+          } },
+        { field: 'Description', title: '描述', minWidth: 200, templet: ems.tpl.text('Description') },
+        { field: 'FieldCount', title: '字段数', width: 100, align: 'center',
+          templet: function (d) {
+              return '<span class="layui-badge layui-bg-blue">' + (d.FieldCount || 0) + '</span>';
+          } },
+        { field: 'FileName', title: '模板文件', minWidth: 160, hide: true, templet: ems.tpl.text('FileName') },
+        { field: 'CreatedAt', title: '创建日期', width: 160, templet: ems.tpl.text('CreatedAt') },
+        { field: 'Category', title: '分类', width: 110, templet: function (d) {
+              return d.Category
+                  ? '<span class="layui-badge layui-bg-gray">' + ems.escapeHtml(d.Category) + '</span>'
+                  : '<span class="layui-font-gray">—</span>';
+          } },
+        { title: '操作', width: 140, align: 'center', toolbar: '#tplBar' }
+    ];
 
-        function deleteTemplate(id, name) {
-            ems.confirm('确认删除模板 <b>' + name + '</b>？删除后不可恢复。',
-                { icon: 3, title: '删除确认', btn: ['确认删除', '取消'] }, function (i) {
-                ems.close(i);
-                $.ajax({
-                    url: '/templatereport/delete',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ TemplateId: id }),
-                    success: function (r) {
-                        ems.msg(r.message || '已删除', { icon: r.success ? 1 : 2, time: 1500 }, function () {
-                            if (r.success) loadTemplateList();
+    ems.initTable({
+        elem: '#tplTable',
+        id:   'tplTable',
+        url:  '/templatereport/list',
+        cols: [colsConfig],
+
+        tool: {
+            fields:   function (d) { showFields(d.Id, d.Name); },
+            download: function (d) {
+                window.location.href = '/templatereport/download/' + encodeURIComponent(d.Id);
+            },
+            del: function (d) {
+                ems.confirm('确认删除模板 <b>' + ems.escapeHtml(d.Name) + '</b>？删除后不可恢复。',
+                    { icon: 3, title: '删除确认', btn: ['确认删除', '取消'] }, function () {
+                        ems.post({
+                            url:  '/templatereport/delete',
+                            data: { TemplateId: d.Id },
+                            done: function () { ems.reloadTable('tplTable', null, false); }
                         });
-                    },
-                    error: function () { ems.msg('请求失败', { icon: 2 }); }
+                    });
+            }
+        }
+    });
+
+    // 占位符字段：弹窗展示扫描结果
+    function showFields(id, name) {
+        $('#fieldsContent').html('<div class="ems-empty">加载中…</div>');
+        layer.open({
+            type: 1,
+            title: ems.escapeHtml(name) + ' · 占位符',
+            skin: 'ems-layer',
+            area: ['720px'],
+            content: $('#fieldsModal'),
+            shadeClose: false
+        });
+
+        // 纯查询接口，不弹「操作成功」提示，故直接用 $.ajax（token 由 ems.js 全局注入）
+        $.ajax({
+            url: '/templatereport/scan-placeholders',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ TemplateId: id }),
+            success: function (res) {
+                var list = (res && res.code === 200 && res.data) ? res.data : [];
+                if (!list.length) {
+                    $('#fieldsContent').html('<div class="ems-empty">未识别到占位符</div>');
+                    return;
+                }
+                var html = '<div class="ems-info-grid">';
+                list.forEach(function (p) {
+                    html += '<div class="ems-info-item"><span class="val">' +
+                            '<code>{{' + ems.escapeHtml(p.name) + '}}</code>' +
+                            '<div class="layui-font-12 layui-font-gray">' + ems.escapeHtml(p.context || '') + '</div>' +
+                            '</span></div>';
                 });
+                html += '</div>';
+                $('#fieldsContent').html(html);
+            },
+            error: function () {
+                $('#fieldsContent').html('<div class="ems-empty layui-font-red">加载失败</div>');
+            }
+        });
+    }
+
+    // 新增模板 / 生成报告：整页跳转（均为完整独立页面）
+    $('#btnAdd').on('click', function () {
+        ems.openTab('/templatereport/templateconfig', '模板配置');
+    });
+    $('#btnGenerate').on('click', function () {
+        ems.openTab('/templatereport/index', '模板化报告生成');
+    });
+
+    $('#btnFilter').on('click', function () { ems.colFilter('tplTable', colsConfig); });
+    $('#btnExport').on('click', function () { ems.exportMenu('tplTable', '成果报告模板'); });
+
+    // 分类筛选
+    $.get('/templatereport/categories', function (res) {
+        if (res && res.code === 200 && res.data && res.data.length) {
+            var html = '<option value="">全部分类</option>';
+            res.data.forEach(function (c) {
+                html += '<option value="' + ems.escapeHtml(c) + '">' + ems.escapeHtml(c) + '</option>';
             });
+            $('#categoryFilter').html(html);
+            layui.form.render('select');
         }
+    });
+    layui.form.on('select(categoryFilter)', function (obj) {
+        ems.reloadTable('tplTable', obj.value ? { Category: obj.value } : null, false);
+    });
 
-        function escapeHtml(str) {
-            return String(str).replace(/[&<>"']/g, function (m) {
-                return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
-            });
-        }
-
-        loadTemplateList();
-    </script>
+    ems.bindSearch('tplSearch', 'tplTable');
+});
+</script>
 }

@@ -47,7 +47,7 @@ public class RoleService : IRoleService
         {
             RoleName = dto.RoleName, RoleCode = dto.RoleCode,
             DataScope = dto.DataScope, Sort = dto.Sort,
-            Remark = dto.Remark, CreatedBy = operBy,
+            Status = dto.Status, Remark = dto.Remark, CreatedBy = operBy,
         };
         await _uow.Roles.AddAsync(role);
         await _uow.SaveChangesAsync();
@@ -62,10 +62,12 @@ public class RoleService : IRoleService
         role.RoleName  = dto.RoleName;
         role.DataScope = dto.DataScope;
         role.Sort      = dto.Sort;
+        role.Status    = dto.Status;
         role.Remark    = dto.Remark;
         role.UpdatedBy = operBy;
         _uow.Roles.Update(role);
-        await AssignMenusAsync(dto.Id, dto.MenuIds);
+        // 注意：菜单分配交由独立的 AssignMenus（分配权限页）处理，
+        // 此处不可重设 MenuIds，否则编辑角色基本信息会把已分配菜单清空。
         await _uow.SaveChangesAsync();
         await _permSvc.ClearRoleUsersCacheAsync(dto.Id);
     }

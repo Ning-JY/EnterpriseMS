@@ -1,70 +1,130 @@
 @using EnterpriseMS.Domain.Entities.Info
 @model List<InfoArticle>
 @{
+    // 公开页（/pub，[AllowAnonymous]）：不能走 _Layout。
+    // _Layout 内含「非 iframe 访问即跳回主框架 /?redirect=...」的脚本，而 / 需要登录，
+    // 匿名访客会被弹去登录页。因此这里 Layout = null，自包含引入 layui + ems.css，
+    // 视觉与站内新标准（ems-page-head + ems-card）保持一致。
+    Layout = null;
     ViewData["Title"] = "通知公告";
-    var cats = ViewBag.Categories as List<InfoCategory> ?? new();
+    var cats     = ViewBag.Categories as List<InfoCategory> ?? new();
     var curCatId = ViewBag.CategoryId as long?;
-    var total = (int)(ViewBag.Total ?? 0);
-    var page = (int)(ViewBag.Page ?? 1);
+    var total    = (int)(ViewBag.Total ?? 0);
+    // 变量名避开 "page"（Razor 保留指令名），改用 curPage 以免解析歧义
+    var curPage  = (int)(ViewBag.Page ?? 1);
 }
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>@ViewData["Title"] - 企业管理系统</title>
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css">
+    <link rel="stylesheet" href="~/css/ems.css" asp-append-version="true">
+    <style>
+        /* 公开页专用补充样式（本页 Layout=null，不污染 ems.css；仅 4 条） */
+        body.ems-page { min-height: 100vh; }
+        .ems-pub-cats .layui-btn { margin-right: 8px; }
+        .ems-pub-title { font-size: 16px; font-weight: 600; color: #1f2d3d; margin-bottom: 8px; }
+        .ems-pub-title a { color: #1f2d3d; }
+        .ems-pub-title a:hover { color: #0d6b64; }
+        .ems-pub-summary { font-size: 13px; color: #8a94a6; line-height: 1.7; margin: 10px 0 12px; }
+    </style>
+</head>
+<body class="ems-page">
 
-<section class="content"><div class="container-fluid">
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-bullhorn mr-2 text-primary"></i>通知公告</h3>
-        </div>
-        <div class="card-body">
-            <!-- 分类筛选 -->
-            <div class="mb-3">
-                <a href="/pub" class="badge @(curCatId == null ? "badge-primary" : "badge-light") p-2 mr-1">全部</a>
-                @foreach (var c in cats)
-                {
-                    <a href="/pub?categoryId=@c.Id"
-                       class="badge @(curCatId == c.Id ? "badge-primary" : "badge-light") p-2 mr-1">@c.CategoryName</a>
-                }
-            </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-notice"></i> 通知公告
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="/pub">公开信息</a>
+        <a><cite>通知公告</cite></a>
+    </div>
+</div>
 
-                @if (Model.Any())
-                {
-                    foreach (var a in Model)
-                    {
-                        <div class="card card-outline card-outline-primary shadow-sm mb-3">
-                            <div class="card-body">
-                                <h5 class="mb-1">
-                                    <a href="/pub/Detail/@a.Id" class="text-dark">@a.Title</a>
-                                    @if (a.IsTop == 1) { <span class="badge badge-danger ml-1">置顶</span> }
-                                    @if (a.Status == 0) { <span class="badge badge-secondary ml-1">草稿</span> }
-                                </h5>
-                                <div class="text-muted small mb-2">
-                                    <span class="badge badge-info mr-1">@(a.Category?.CategoryName ?? "未分类")</span>
-                                    <i class="far fa-clock mr-1"></i>@(a.PublishTime?.ToString("yyyy-MM-dd") ?? a.CreatedAt.ToString("yyyy-MM-dd"))
-                                    <span class="ml-2"><i class="far fa-eye mr-1"></i>@a.ViewCount</span>
-                                </div>
-                                <p class="text-muted mb-2">
-                                    @(string.IsNullOrEmpty(a.Content)
-                                        ? "（暂无内容）"
-                                        : (a.Content.Length > 120 ? a.Content.Substring(0, 120) + "…" : a.Content))
-                                </p>
-                                <a href="/pub/Detail/@a.Id" class="btn btn-sm btn-outline-primary">阅读全文</a>
-                            </div>
-                        </div>
-                    }
+<!-- 分类筛选 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body ems-pub-cats">
+        <a href="/pub" class="layui-btn layui-btn-sm @(curCatId == null ? "" : "layui-btn-primary")">全部</a>
+        @foreach (var c in cats)
+        {
+            <a href="/pub?categoryId=@c.Id"
+               class="layui-btn layui-btn-sm @(curCatId == c.Id ? "" : "layui-btn-primary")">@c.CategoryName</a>
+        }
+    </div>
+</div>
 
-                    {
-                        var paged = new EnterpriseMS.Common.PagedResult<InfoArticle>
-                        {
-                            Items = Model, Total = total, Page = page, PageSize = 12,
-                        };
-                        <partial name="_Pagination" model="paged" />
-                    }
-                }
-            else
-            {
-                <div class="text-center text-muted py-5">
-                    <i class="fas fa-inbox fa-3x mb-3"></i>
-                    <p>暂无公开公告</p>
+@if (Model.Any())
+{
+    foreach (var a in Model)
+    {
+        <div class="layui-card ems-card">
+            <div class="layui-card-body">
+                <div class="ems-pub-title">
+                    <a href="/pub/Detail/@a.Id">@a.Title</a>
+                    @if (a.IsTop == 1) { <span class="layui-badge layui-bg-red">置顶</span> }
+                    @if (a.Status == 0) { <span class="layui-badge layui-bg-gray">草稿</span> }
                 </div>
-            }
+                <div class="ems-detail-meta">
+                    <span class="layui-badge layui-bg-blue">@(a.Category?.CategoryName ?? "未分类")</span>
+                    <span><i class="layui-icon layui-icon-time"></i>&nbsp;@(a.PublishTime?.ToString("yyyy-MM-dd") ?? a.CreatedAt.ToString("yyyy-MM-dd"))</span>
+                    <span><i class="layui-icon layui-icon-read"></i>&nbsp;@a.ViewCount</span>
+                </div>
+                <div class="ems-pub-summary">
+                    @(string.IsNullOrEmpty(a.Content)
+                        ? "（暂无内容）"
+                        : (a.Content.Length > 120 ? a.Content.Substring(0, 120) + "…" : a.Content))
+                </div>
+                <a href="/pub/Detail/@a.Id" class="layui-btn layui-btn-sm layui-btn-primary">
+                    <i class="layui-icon layui-icon-release"></i> 阅读全文
+                </a>
+            </div>
+        </div>
+    }
+
+    <div class="layui-card ems-card">
+        <div class="layui-card-body">
+            <div id="pubPage"></div>
         </div>
     </div>
-</div></section>
+}
+else
+{
+    <div class="layui-card ems-card">
+        <div class="layui-card-body">
+            <div class="ems-empty">
+                <i class="layui-icon layui-icon-notice"></i>
+                <div>暂无公开公告</div>
+            </div>
+        </div>
+    </div>
+}
+
+<script src="~/lib/layui/layui.js"></script>
+<script src="~/js/ems.js" asp-append-version="true"></script>
+<script>
+// 服务端分页：laypage 只负责渲染与跳转，数据仍由 InfoController.Index 渲染
+layui.use('laypage', function () {
+    var total   = @total;
+    var curPage = @curPage;
+    var catId   = '@(curCatId?.ToString() ?? "")';
+    if (!total) return;
+    layui.laypage.render({
+        elem: 'pubPage',
+        count: total,
+        limit: 12,
+        curr: curPage,
+        layout: ['count', 'prev', 'page', 'next', 'skip'],
+        jump: function (obj, first) {
+            if (first) return;
+            var url = '/pub?page=' + obj.curr;
+            if (catId) url += '&categoryId=' + encodeURIComponent(catId);
+            location.href = url;
+        }
+    });
+});
+</script>
+</body>
+</html>

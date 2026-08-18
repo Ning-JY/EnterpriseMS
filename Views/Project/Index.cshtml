@@ -1,209 +1,190 @@
-@using EnterpriseMS.Common
 @using EnterpriseMS.Common.Extensions
-@using EnterpriseMS.Services.DTOs.Project
-@model PagedResult<ProjectListDto>
+@using EnterpriseMS.Services.DTOs.System
 @inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
 @{
     ViewData["Title"] = "项目台账";
-    Layout = "_Layout";
-    var query  = ViewBag.Query  as ProjectQueryDto ?? new ProjectQueryDto();
-    var userId = User.GetUserId();
+    var userId  = User.GetUserId();
     bool canAdd = await PermSvc.HasPermAsync(userId, "proj:project:add");
+    bool canEdit = await PermSvc.HasPermAsync(userId, "proj:project:edit");
+    bool canReport = await PermSvc.HasPermAsync(userId, "proj:project:list");
+    var bizTypes = ViewBag.BizTypes as List<DictDataDto> ?? new();
+    string[] statusText = {"前期商务","预计启动","标书制作中","投标/磋商中","已中标·签合同中","已签回合同","执行中","成果提交","已完成","已终止"};
 }
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-project-diagram mr-2"></i>项目台账</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item active">项目管理</li>
-                </ol>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-console"></i> 项目台账
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">项目管理</a>
+        <a><cite>项目台账</cite></a>
+    </div>
+</div>
+
+<!-- 搜索卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="projSearch">
+            <div class="layui-inline">
+                <input type="text" name="Keyword" placeholder="项目名称 / 业主 / 编号"
+                       autocomplete="off" class="layui-input">
             </div>
-        </div>
-    </div>
-</div>
-
-<section class="content">
-<div class="container-fluid">
-
-    <!-- 搜索 -->
-    <div class="card card-default">
-        <div class="card-body">
-            <form id="searchForm" method="get" action="/project">
-                <div class="row">
-                    <div class="col-md-4">
-                        <input type="text" name="Keyword" class="form-control form-control-sm"
-                               placeholder="项目名称 / 业主 / 编号" value="@query.Keyword">
-                    </div>
-                    <div class="col-md-2">
-                        <select name="ProgressStatus" class="form-control form-control-sm">
-                            <option value="">全部状态</option>
-                            @for (int i = 0; i <= 9; i++)
-                            {
-                                <option value="@i" selected="@(query.ProgressStatus == i ? "selected" : null)">
-                                    @EnterpriseMS.Common.ProjectProgress.GetProgressText(i)
-                                </option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary btn-sm mr-1">
-                            <i class="fas fa-search"></i> 搜索
-                        </button>
-                        <a href="/project" class="btn btn-default btn-sm">
-                            <i class="fas fa-redo"></i> 重置
-                        </a>
-                    </div>
-                    <div class="col-md-4 text-right">
-                        @if (canAdd)
-                        {
-                            <button type="button" class="btn btn-success btn-sm" onclick="openCreateModal()">
-                                <i class="fas fa-plus"></i> 新建项目
-                            </button>
-                            <a href="/project/import" class="btn btn-info btn-sm">
-                                <i class="fas fa-file-import"></i> 批量导入
-                            </a>
-                        }
-                    </div>
-                </div>
-                <input type="hidden" name="Page" id="pageInput" value="1">
-                <input type="hidden" name="Size" value="@query.Size">
-            </form>
-        </div>
-    </div>
-
-    <!-- 列表 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">共 @Model.Total 个项目</h3>
-        </div>
-        <div class="card-body table-responsive p-0">
-            <table class="table table-hover table-sm">
-                <thead class="thead-light">
-                    <tr>
-                        <th>项目编号</th>
-                        <th>项目名称</th>
-                        <th>承接部门</th>
-                        <th>项目业主</th>
-                        <th>合同金额</th>
-                        <th>进度状态</th>
-                        <th>技术负责人</th>
-                        <th>里程碑</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var p in Model.Items)
+            <div class="layui-inline">
+                @await Component.InvokeAsync("DeptSelect", new {
+                    id = "DeptId", name = "DeptId", selectedId = 0L,
+                    emptyText = "全部部门", cssClass = ""
+                })
+            </div>
+            <div class="layui-inline">
+                <select name="ProgressStatus">
+                    <option value="">全部状态</option>
+                    @for (int i = 0; i <= 9; i++)
                     {
-                        <tr>
-                            <td>
-                                <small class="text-muted font-monospace">@p.ProjNo</small>
-                            </td>
-                            <td>
-                                <a href="/project/@p.Id" class="text-dark font-weight-bold">
-                                    @p.ProjName
-                                </a>
-                            </td>
-                            <td>@(p.DeptName ?? "-")</td>
-                            <td>
-                                @p.OwnerName
-                                @if (!string.IsNullOrEmpty(p.OwnerPhone))
-                                {
-                                    <br><small class="text-muted">@p.OwnerPhone</small>
-                                }
-                            </td>
-                            <td class="font-weight-bold text-primary">
-                                ¥ @p.ContractAmount.ToString("N2") 万
-                                @if (p.IsJointVenture && p.OurRatio.HasValue)
-                                {
-                                        <br>
-                                
-                                        <small class="text-muted">我方 @(p.OurRatio.Value.ToString("N2"))%</small>
-                                }
-                            </td>
-                            <td>
-                                @{
-                                    var badgeClass = p.ProgressStatus switch {
-                                        0 or 1 => "badge-secondary",
-                                        2 or 3 => "badge-warning",
-                                        4 or 5 => "badge-info",
-                                        6 or 7 => "badge-primary",
-                                        8      => "badge-success",
-                                        9      => "badge-danger",
-                                        _      => "badge-light",
-                                    };
-                                }
-                                <span class="badge @badgeClass">@p.ProgressText</span>
-                            </td>
-                            <td>@(p.TechLeaderName ?? "-")</td>
-                            <td>
-                                <small>@p.MilestoneDone / @p.MilestoneTotal</small>
-                                <div class="progress progress-xs mt-1">
-                                    <div class="progress-bar bg-success"
-                                         style="width:@(p.MilestoneTotal > 0 ? (p.MilestoneDone * 100 / p.MilestoneTotal) : 0)%">
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <a href="/project/@p.Id" class="btn btn-xs btn-info" title="详情">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                @if (await PermSvc.HasPermAsync(userId, "proj:project:edit")
-                                    && p.ProgressStatus != 9)
-                                {
-                                    <a href="/project/edit/@p.Id" class="btn btn-xs btn-warning" title="编辑">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                }
-                                <button class="btn btn-xs btn-outline-secondary" title="用章申请" onclick="ems.msg('用章申请功能开发中',{icon:0})">
-                                    <i class="fas fa-stamp"></i>
-                                </button>
-                                <button class="btn btn-xs btn-outline-secondary" title="审批流程" onclick="ems.msg('审批流程功能开发中',{icon:0})">
-                                    <i class="fas fa-project-diagram"></i>
-                                </button>
-                            </td>
-                        </tr>
+                        <option value="@i">@statusText[i]</option>
                     }
-                    @if (!Model.Items.Any())
+                </select>
+            </div>
+            <div class="layui-inline">
+                <select name="BizType">
+                    <option value="">全部业务类型</option>
+                    @foreach (var bt in bizTypes)
                     {
-                        <tr><td colspan="9" class="text-center text-muted py-4">暂无数据</td></tr>
+                        <option value="@bt.DictValue">@bt.DictLabel</option>
                     }
-                </tbody>
-            </table>
+                </select>
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="projSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+            </div>
+            <div class="layui-inline ems-search-actions">
+                @if (canAdd)
+                {
+                    <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                        <i class="layui-icon layui-icon-add-1"></i> 新建项目
+                    </button>
+                }
+                @if (await PermSvc.HasPermAsync(userId, "proj:project:import"))
+                {
+                    <button type="button" class="layui-btn" id="btnImport">
+                        <i class="layui-icon layui-icon-upload-circle"></i> 批量导入
+                    </button>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 列表卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>项目列表</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
+                <i class="layui-icon layui-icon-cols"></i> 筛选列
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnExport">
+                <i class="layui-icon layui-icon-export"></i> 导出
+            </button>
         </div>
-        <partial name="_Pagination" model="Model" />
     </div>
-
+    <div class="layui-card-body">
+        <table id="projTable" lay-filter="projTable"></table>
+    </div>
 </div>
 
-<!-- 新建项目模态框 -->
-<div class="modal fade" id="createProjModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="fas fa-plus mr-1"></i> 新建项目</h5>
-        <button type="button" class="close text-white" data-dismiss="modal" aria-label="关闭">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body" id="createModalBody">
-        <div class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2 mb-0">加载中…</p></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script>
-function openCreateModal() {
-    $('#createModalBody').html('<div class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2 mb-0">加载中…</p></div>');
-    $('#createProjModal').modal('show');
-    $.get('/project/create?modal=1', function (html) {
-        $('#createModalBody').html(html);
-    }).fail(function () {
-        $('#createModalBody').html('<div class="alert alert-danger">加载失败，请刷新后重试。</div>');
-    });
-}
+<!-- 行操作列 -->
+<script type="text/html" id="projBar">
+    <a class="ems-icon-btn primary" title="详情" lay-event="detail"><i class="layui-icon layui-icon-about"></i></a>
+    @if (canEdit)
+    {
+        <text>
+        {{# if (d.ProgressStatus !== 9) { }}
+        <a class="ems-icon-btn edit" title="编辑" lay-event="edit"><i class="layui-icon layui-icon-edit"></i></a>
+        {{# } }}
+        </text>
+    }
+    @if (canReport)
+    {
+        <text>
+        <a class="ems-icon-btn success" title="生成报告" lay-event="report"><i class="layui-icon layui-icon-file"></i></a>
+        </text>
+    }
+    <a class="ems-icon-btn warn" title="用章申请" lay-event="seal"><i class="layui-icon layui-icon-auz"></i></a>
 </script>
-</section>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+
+    var colsConfig = [
+        { field: 'ProjNo',    title: '编号', width: 140,
+          templet: function (d) { return '<span class="layui-font-12">' + ems.escapeHtml(d.ProjNo) + '</span>'; } },
+        { field: 'ProjName',  title: '项目名称', minWidth: 220,
+          templet: function (d) {
+              var html = '<a class="layui-link" lay-event="detail">' + ems.escapeHtml(d.ProjName) + '</a>';
+              if (d.BizType) html += ' <span class="layui-badge-rim">' + ems.escapeHtml(d.BizType) + '</span>';
+              return html;
+          } },
+        { field: 'DeptName',  title: '承接部门', width: 130, templet: ems.tpl.text('DeptName') },
+        { field: 'OwnerName', title: '项目业主', width: 140,
+          templet: function (d) {
+              var html = ems.escapeHtml(d.OwnerName || '-');
+              if (d.OwnerPhone) html += '<br><span class="layui-font-12 layui-font-gray">' + ems.escapeHtml(d.OwnerPhone) + '</span>';
+              return html;
+          } },
+        { field: 'ContractAmount', title: '合同金额(万)', width: 150,
+          templet: function (d) {
+              var html = '<span class="layui-font-teal ">¥' + (d.ContractAmount || 0).toFixed(2) + '</span>';
+              if (d.IsJointVenture && d.OurRatio) html += '<br><span class="layui-font-12 layui-font-gray">我方 ' + (d.OurRatio * 100).toFixed(1) + '%</span>';
+              return html;
+          } },
+        { field: 'ProgressStatus', title: '进度状态', width: 110, align: 'center',
+          templet: ems.tpl.badge('ProgressStatus', {
+              0: ['前期商务', 'gray'], 1: ['预计启动', 'blue'], 2: ['标书制作中', 'orange'],
+              3: ['投标/磋商中', 'orange'], 4: ['已中标·签合同', 'teal'], 5: ['已签回合同', 'teal'],
+              6: ['执行中', 'green'], 7: ['成果提交', 'green'], 8: ['已完成', 'green'], 9: ['已终止', 'red']
+          }) },
+        { field: 'ProjectLeaderName', title: '项目负责人', width: 110, templet: ems.tpl.text('ProjectLeaderName') },
+        { field: 'Milestone', title: '里程碑', width: 130,
+          templet: function (d) {
+              var total = d.MilestoneTotal || 0, done = d.MilestoneDone || 0;
+              var pct = total > 0 ? Math.round(done * 100 / total) : 0;
+              return '<span class="layui-font-12">' + done + '/' + total + '</span>'
+                   + '<div class="layui-progress layui-progress-small" style="margin-top:4px"><div class="layui-progress-bar layui-bg-green" style="width:' + pct + '%"></div></div>';
+          } },
+        { title: '操作', width: 160, align: 'center', toolbar: '#projBar' }
+    ];
+
+    ems.initTable({
+        elem: '#projTable',
+        id:   'projTable',
+        url:  '/project/list',
+        cols: [colsConfig],
+
+        tool: {
+            detail: function (d) { ems.openTab('/project/' + d.Id, '项目详情 - ' + d.ProjName); },
+            edit:   function (d) { ems.openEdit({ title: '编辑项目 - ' + d.ProjName, url: '/project/edit/' + d.Id, area: ['860px', '92%'] }); },
+            report: function (d) { ems.openTab('/project/' + d.Id + '?report=1', '项目报告 - ' + d.ProjName); },
+            seal:   function () { ems.msg('用章申请功能开发中', { icon: 0 }); }
+        }
+    });
+
+    $('#btnAdd').on('click', function () {
+        ems.openAdd({ title: '新建项目', url: '/project/create', area: ['740px', '90%'] });
+    });
+
+    $('#btnImport').on('click', function () {
+        ems.openTab('/project/import', '项目批量导入');
+    });
+
+    $('#btnFilter').on('click', function () { ems.colFilter('projTable', colsConfig); });
+    $('#btnExport').on('click', function () { ems.exportMenu('projTable', '项目台账'); });
+
+    ems.bindSearch('projSearch', 'projTable');
+});
+</script>
+}

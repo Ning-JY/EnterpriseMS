@@ -1,0 +1,98 @@
+@{
+    ViewData["Title"] = "分配权限";
+    var isDialog = Context.Request.Query["_dialog"] == "1";
+    var roleId = (long)ViewBag.RoleId;
+    var roleName = (string)ViewBag.RoleName;
+    var menuIds = (List<long>)ViewBag.MenuIds ?? new List<long>();
+}
+
+<div class="ems-page @(isDialog ? "ems-dialog" : "")">
+@if (!isDialog)
+{
+<div class="ems-page-head">
+    <div class="ems-page-title">分配权限 - @roleName</div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>分配权限</cite></a>
+    </div>
+</div>
+}
+
+<div class="layui-card ems-card">
+    <div class="layui-card-body">
+        <div class="layui-form-item">
+            <div class="layui-form-mid layui-word-aux">为角色「<b>@roleName</b>」勾选可访问的菜单（含按钮权限）</div>
+        </div>
+        <div id="menuTree" class="ems-menu-tree"></div>
+    </div>
+</div>
+<div class="ems-form-foot">
+    <button class="layui-btn" id="btnSave">
+        <i class="layui-icon layui-icon-ok"></i> 保存
+    </button>
+    <button type="button" class="layui-btn layui-btn-primary" id="btnCancel">
+        <i class="layui-icon layui-icon-close"></i> 取消
+    </button>
+</div>
+</div>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    var roleId = Number('@roleId');
+    var menuIds = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(menuIds));
+
+    // 菜单树 → layui.tree 数据（带勾选态）
+    function mapTree(list) {
+        return (list || []).map(function (n) {
+            return {
+                title: n.MenuName,
+                id: n.Id,
+                spread: true,
+                checked: menuIds.indexOf(n.Id) > -1,
+                children: mapTree(n.Children)
+            };
+        });
+    }
+
+    var menuTree = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MenuTree));
+    layui.tree.render({
+        elem: '#menuTree',
+        id: 'menuTree',
+        data: mapTree(menuTree),
+        showCheckbox: true,
+        accordion: false
+    });
+
+    // 递归收集所有「勾选且为叶子节点」的 id（不收集父节点）。
+    // 原因：layui.tree 勾选子节点会向上级联勾选父节点，保存父节点 id 后，
+    // 重新打开时 setChecked 会再次点击父节点 → 向下级联勾选其全部子节点，
+    // 造成「只选一个子节点却保存整组」的 bug。只存叶子节点可彻底规避。
+    function collect(nodes, arr) {
+        (nodes || []).forEach(function (n) {
+            var hasChild = n.children && n.children.length;
+            if (!hasChild) {
+                arr.push(n.id);
+            } else {
+                collect(n.children, arr);
+            }
+        });
+        return arr;
+    }
+
+    $('#btnSave').on('click', function () {
+        var checked = collect(layui.tree.getChecked('menuTree'), []);
+        ems.post({
+            url: '/system/role/assignmenus?roleId=' + roleId,
+            data: checked,
+            json: true,
+            okMsg: '权限分配成功',
+            done: function () { ems.closeSelf('roleTable'); }
+        });
+    });
+
+    $('#btnCancel').on('click', function () { ems.closeSelf(); });
+});
+</script>
+}

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Filters;
@@ -20,17 +22,43 @@ public class MenuController : BaseAuthController
     }
 
     [HasPermission("sys:menu:list")]
-    public async Task<IActionResult> Index()
-    {
-        var tree = await _menuSvc.GetTreeAsync();
-        return View(tree);
-    }
+    public IActionResult Index() => View();
+
+    [HttpGet("list")]
+    [HasPermission("sys:menu:list")]
+    public async Task<IActionResult> List(string? keyword)
+        => ApiOk(await _menuSvc.GetFlatListAsync(keyword));
 
     [HttpGet("tree")]
     public async Task<IActionResult> Tree()
     {
         var tree = await _menuSvc.GetTreeAsync();
         return ApiOk(tree);
+    }
+
+    // ── 新增 / 编辑表单页（iframe 弹窗，isDialog 模式）─────────
+    [HttpGet("form")]
+    [HasPermission("sys:menu:list")]
+    public async Task<IActionResult> Form(long? id, long? parentId)
+    {
+        MenuTreeDto? menu = null;
+        if (id.HasValue && id.Value > 0)
+            menu = await _menuSvc.GetByIdAsync(id.Value);
+
+        // 父级菜单下拉：扁平化菜单树；编辑时排除自身及其子孙
+        var tree = await _menuSvc.GetTreeAsync();
+        var options = new List<(long Id, string Name, int Depth)>();
+        void Flatten(MenuTreeDto node, int depth)
+        {
+            if (menu != null && node.Id == menu.Id) return; // 跳过自身及其子树
+            options.Add((node.Id, node.MenuName, depth));
+            foreach (var c in node.Children) Flatten(c, depth + 1);
+        }
+        foreach (var root in tree) Flatten(root, 0);
+
+        ViewBag.MenuOptions = options;
+        ViewBag.ParentId = parentId;
+        return View("Form", menu);
     }
 
     [HttpPost("create"), ValidateAntiForgeryToken]

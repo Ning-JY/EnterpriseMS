@@ -4,9 +4,11 @@ using EnterpriseMS.Domain.Entities.Project;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Services.DTOs.Project;
-using EnterpriseMS.Services.Interfaces;
 using EnterpriseMS.Services.DTOs.Report;
+using EnterpriseMS.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Reflection;
 
 namespace EnterpriseMS.Services.Impl;
 
@@ -16,6 +18,7 @@ public class ProjectService : IProjectService
     private readonly IMapper _mapper;
     private readonly IPermissionService _permSvc;
     private readonly ILogger<ProjectService> _logger;
+    private readonly IEnumerable<ITemplateDataSource> _sources;
 
     // 允许上传的文件扩展名白名单
     private static readonly HashSet<string> AllowedFileExts = new(StringComparer.OrdinalIgnoreCase)
@@ -26,15 +29,14 @@ public class ProjectService : IProjectService
     };
 
     public ProjectService(IUnitOfWork uow, IMapper mapper,
-        IPermissionService permSvc, ILogger<ProjectService> logger)
-    { _uow = uow; _mapper = mapper; _permSvc = permSvc; _logger = logger; }
+        IPermissionService permSvc, ILogger<ProjectService> logger,
+        IEnumerable<ITemplateDataSource> sources)
+    { _uow = uow; _mapper = mapper; _permSvc = permSvc; _logger = logger; _sources = sources; }
 
     public async Task<PagedResult<ProjectListDto>> GetPagedAsync(ProjectQueryDto query, long operUserId)
     {
         var q = _uow.Projects.Query()
             .Include(p => p.Dept)
-            .Include(p => p.TechLeader)
-            .Include(p => p.BizLeader)
             .Include(p => p.Milestones)
             .AsQueryable();
         // ── 数据权限过滤（按部门 / 项目成员隔离，列表与详情共用）─────────
@@ -71,8 +73,7 @@ public class ProjectService : IProjectService
     {
         var q = _uow.Projects.Query(false)
             .Include(p => p.Dept)
-            .Include(p => p.TechLeader)
-            .Include(p => p.BizLeader)
+            .Include(p => p.ProjectLeader)
             .Include(p => p.Members).ThenInclude(m => m.Employee)
             .Include(p => p.Milestones).ThenInclude(m => m.Owner)
             .Include(p => p.Acceptances)
@@ -860,8 +861,7 @@ public class ProjectService : IProjectService
             ["预估造价金额"]       = p.LimitPrice.HasValue ? $"{p.LimitPrice:N2} 万元" : "",
             ["建设规模"]       = p.BuildingScale ?? "",
             ["承接部门"]       = p.DeptName ?? "",
-            ["技术负责人"]     = p.TechLeaderName ?? "",
-            ["商务负责人"]     = p.BizLeaderName ?? "",
+            ["项目负责人"]     = p.ProjectLeaderName ?? "",
             ["合同金额"]       = $"{p.ContractAmount:N2} 万元",
             ["实际合同金额"]   = $"{p.ActualAmount:N2} 万元",
             ["是否联合体"]     = p.IsJointVenture ? "是" : "否",
@@ -892,44 +892,32 @@ public class ProjectService : IProjectService
         return ms;
     }
 
-    // ── 成果报告：按模板字段 Source 解析占位符值（project/config/computed/manual）──
-    // 模板字段通过 manifest 的 source/binding/configKey 声明取值来源，实现「按项目自动带出」。
+    // ── 成果报告：按模板字段 source 派发到对应 ITemplateDataSource 解析占位符值 ──
+    // 模板字段通过 source/binding/configKey 声明取值来源，实现「按数据上下文自动带出」。
     public async Task<Dictionary<string, string>> BuildReportFieldValuesAsync(
-        ProjectDetailDto p, TemplateInfoDto tpl, Dictionary<string, string>? manual)
+        string contextSource, string instanceId, TemplateInfoDto tpl, Dictionary<string, string>? manual)
     {
         var values = new Dictionary<string, string>();
-
-        var projectBindings = new Dictionary<string, string>
-        {
-            ["ProjName"]       = p.ProjName,
-            ["OwnerName"]      = p.OwnerName,
-            ["BuildingScale"]  = p.BuildingScale ?? "",
-            ["ProjNo"]         = p.ProjNo,
-            ["LimitPrice"]     = p.LimitPrice?.ToString() ?? "",
-            ["ContractAmount"] = p.ContractAmount.ToString(),
-        };
+        var providerMap = _sources.ToDictionary(p => p.SourceId, p => p);
 
         foreach (var f in tpl.Fields)
         {
-            if (f.Source == "project" && !string.IsNullOrEmpty(f.Binding))
-            {
-                values[f.Name] = projectBindings.TryGetValue(f.Binding, out var v) ? v : "";
-            }
-            else if (f.Source == "config" && !string.IsNullOrEmpty(f.ConfigKey))
-            {
-                var cfg = await _uow.SysConfigs.Query()
-                    .Where(c => c.ConfigKey == f.ConfigKey)
-                    .Select(c => c.ConfigValue)
-                    .FirstOrDefaultAsync() ?? "";
-                values[f.Name] = cfg;
-            }
-            else if (f.Source == "manual")
+            if (f.Source == "manual")
             {
                 values[f.Name] = (manual != null && manual.TryGetValue(f.Name, out var mv) && !string.IsNullOrWhiteSpace(mv))
                     ? mv
                     : (f.DefaultValue ?? "");
             }
-            // computed 字段在下方统一计算
+            else if (providerMap.TryGetValue(f.Source, out var provider))
+            {
+                var resolved = await provider.ResolveAsync(instanceId);
+                var key = f.Source == "config" ? f.ConfigKey : f.Binding;
+                values[f.Name] = (key != null && resolved.TryGetValue(key, out var v)) ? v : "";
+            }
+            else
+            {
+                values[f.Name] = "";
+            }
         }
 
         // 计算字段：审减金额 = 送审 - 审定；审减率 = 审减 / 送审

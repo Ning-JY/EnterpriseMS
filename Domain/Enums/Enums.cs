@@ -19,15 +19,4 @@ public enum ProjectStatus
     Terminated = 9      // 已终止
 }
 public enum MilestoneStatus { NotStarted = 0, InProgress = 1, Done = 2 }
-public enum BudgetTaskType
-{
-    EstimateCompile = 0,    // 概算编制
-    BudgetCompile = 1,      // 预算编制
-    SettlementCompile = 2,  // 结算编制
-    EstimateReview = 3,     // 概算评审
-    BudgetReview = 4,       // 预算评审
-    SettlementReview = 5    // 结算评审
-}
-public enum BudgetTaskStatus { Draft = 0, InProgress = 1, InnerReview = 2, Reviewing = 3, Done = 4 }
-public enum OpinionType     { Reduce = 0, Adjust = 1, Confirm = 2, Explain = 3 }
 public enum ArticleStatus   { Draft = 0, Published = 1, Withdrawn = 2 }

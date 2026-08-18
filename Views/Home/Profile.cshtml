@@ -2,132 +2,117 @@
 @model UserDetailDto
 @{
     ViewData["Title"] = "个人中心";
+    var initial = string.IsNullOrEmpty(Model.RealName) ? "?" : Model.RealName.Substring(0, 1);
 }
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">个人中心</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item active">个人中心</li>
-                </ol>
-            </div>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-user"></i> 个人中心
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a><cite>个人中心</cite></a>
     </div>
 </div>
 
-<section class="content"><div class="container-fluid">
-<div class="row">
+<div class="layui-row layui-col-space14">
     <!-- 个人信息 -->
-    <div class="col-md-4">
-        <div class="card card-primary card-outline">
-            <div class="card-body text-center">
-                <div class="mb-3">
-                    <i class="fas fa-user-circle fa-5x text-muted"></i>
-                </div>
-                <h4 class="mb-1">@Model.RealName</h4>
-                <p class="text-muted mb-0">@(Model.DeptName ?? "暂无部门")</p>
-                <p class="text-muted small">@(Model.PostName ?? "")</p>
+    <div class="layui-col-md4">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">个人信息</div>
+            <div class="layui-card-body" style="text-align:center">
+                <div class="ems-detail-avatar" style="margin:0 auto 12px">@initial</div>
+                <h3 style="margin:0 0 6px"><strong>@Model.RealName</strong></h3>
+                <div class="layui-font-gray">@(Model.DeptName ?? "暂无部门")</div>
+                <div class="layui-font-gray" style="margin-top:2px">@(Model.PostName ?? "")</div>
             </div>
-            <div class="card-footer p-0">
-                <table class="table table-sm table-borderless mb-0">
-                    <tr>
-                        <td class="text-muted pl-3">用户名</td>
-                        <td><code>@Html.Encode(Model.Username)</code></td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted pl-3">角色</td>
-                        <td>
+            <div class="layui-card-body" style="padding-top:0;border-top:1px solid #f0f0f0">
+                <div class="ems-info-list">
+                    <div class="ems-info-item"><span class="label">用户名</span><span class="val"><code>@Html.Encode(Model.Username)</code></span></div>
+                    <div class="ems-info-item">
+                        <span class="label">角色</span>
+                        <span class="val">
                             @foreach (var r in Model.RoleNames)
-                            { <span class="badge badge-info mr-1">@Html.Encode(r)</span> }
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="text-muted pl-3">最后登录</td>
-                        <td class="small">@(Model.LastLoginTime?.ToString("MM-dd HH:mm") ?? "首次登录")</td>
-                    </tr>
-                </table>
+                            { <span class="layui-badge layui-bg-blue" style="margin-right:4px">@Html.Encode(r)</span> }
+                        </span>
+                    </div>
+                    <div class="ems-info-item"><span class="label">最后登录</span><span class="val">@(Model.LastLoginTime?.ToString("MM-dd HH:mm") ?? "首次登录")</span></div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- 编辑信息 & 修改密码 -->
-    <div class="col-md-8">
+    <div class="layui-col-md8">
         <!-- 基本信息 -->
-        <div class="card card-default">
-            <div class="card-header">
-                <h3 class="card-title">基本信息</h3>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>姓名 <span class="text-danger">*</span></label>
-                            <input type="text" id="realName" class="form-control"
-                                   value="@Model.RealName" maxlength="50">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">基本信息</div>
+            <div class="layui-card-body">
+                <form class="layui-form" lay-filter="profileForm" onsubmit="return false">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">姓名 <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block">
+                            <input type="text" id="realName" class="layui-input" value="@Model.RealName" maxlength="50">
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>手机号</label>
-                            <input type="text" id="phone" class="form-control"
-                                   value="@Html.Encode(Model.Phone ?? "")">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">手机号</label>
+                        <div class="layui-input-block">
+                            <input type="text" id="phone" class="layui-input" value="@Html.Encode(Model.Phone ?? "")">
                         </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>邮箱</label>
-                    <input type="email" id="email" class="form-control"
-                           value="@Html.Encode(Model.Email ?? "")">
-                </div>
-                <button type="button" class="btn btn-primary" onclick="saveProfile()">
-                    <i class="fas fa-save mr-1"></i> 保存信息
-                </button>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">邮箱</label>
+                        <div class="layui-input-block">
+                            <input type="email" id="email" class="layui-input" value="@Html.Encode(Model.Email ?? "")">
+                        </div>
+                    </div>
+                    <div class="ems-form-foot" style="text-align:left">
+                        <button type="button" class="layui-btn layui-btn-normal" onclick="saveProfile()">
+                            <i class="layui-icon layui-icon-edit"></i> 保存信息
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
 
         <!-- 修改密码 -->
-        <div class="card card-default">
-            <div class="card-header">
-                <h3 class="card-title">修改密码</h3>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label>原密码 <span class="text-danger">*</span></label>
-                    <input type="password" id="oldPwd" class="form-control"
-                           placeholder="请输入当前密码">
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>新密码 <span class="text-danger">*</span></label>
-                            <input type="password" id="newPwd" class="form-control"
-                                   placeholder="最少6位">
+        <div class="layui-card ems-card">
+            <div class="layui-card-header">修改密码</div>
+            <div class="layui-card-body">
+                <form class="layui-form" lay-filter="pwdForm" onsubmit="return false">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">原密码 <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block">
+                            <input type="password" id="oldPwd" class="layui-input" placeholder="请输入当前密码">
                         </div>
                     </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>确认新密码 <span class="text-danger">*</span></label>
-                            <input type="password" id="confirmPwd" class="form-control"
-                                   placeholder="再次输入新密码">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">新密码 <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block">
+                            <input type="password" id="newPwd" class="layui-input" placeholder="最少6位">
                         </div>
                     </div>
-                </div>
-                <button type="button" class="btn btn-warning" onclick="changePwd()">
-                    <i class="fas fa-key mr-1"></i> 修改密码
-                </button>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">确认新密码 <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block">
+                            <input type="password" id="confirmPwd" class="layui-input" placeholder="再次输入新密码">
+                        </div>
+                    </div>
+                    <div class="ems-form-foot" style="text-align:left">
+                        <button type="button" class="layui-btn layui-btn-warm" onclick="changePwd()">
+                            <i class="layui-icon layui-icon-key"></i> 修改密码
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
-</div></section>
 
 @section Scripts {
 <script>
-var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
-
 function saveProfile() {
     var data = {
         Id:       @Model.Id,
@@ -138,9 +123,12 @@ function saveProfile() {
         PostId:   null,
         RoleIds:  @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RoleIds ?? new List<long>()))
     };
-    if (!data.RealName) { ems.msg('请填写姓名', {icon:2}); return; }
-    ajaxPost('/system/user/update', data, function(r) {
-        ems.msg(r.message, {icon:1, time:1500}, function() { location.reload(); });
+    if (!data.RealName) { ems.msg('请填写姓名', { icon: 2 }); return; }
+    ems.post({
+        url: '/system/user/update',
+        data: data,
+        json: true,
+        done: function () { location.reload(); }
     });
 }
 
@@ -148,13 +136,16 @@ function changePwd() {
     var oldP = $('#oldPwd').val();
     var newP = $('#newPwd').val();
     var conf = $('#confirmPwd').val();
-    if (!oldP || !newP) { ems.msg('请填写原密码和新密码', {icon:2}); return; }
-    if (newP.length < 6) { ems.msg('新密码不能少于6位', {icon:2}); return; }
-    if (newP !== conf)   { ems.msg('两次密码不一致', {icon:2}); return; }
-    ajaxPost('/system/user/changepwd', { OldPassword: oldP, NewPassword: newP }, function(r) {
-        ems.msg(r.message, {icon:1, time:1500}, function() {
+    if (!oldP || !newP) { ems.msg('请填写原密码和新密码', { icon: 2 }); return; }
+    if (newP.length < 6) { ems.msg('新密码不能少于6位', { icon: 2 }); return; }
+    if (newP !== conf)   { ems.msg('两次密码不一致', { icon: 2 }); return; }
+    ems.post({
+        url: '/system/user/changepwd',
+        data: { OldPassword: oldP, NewPassword: newP },
+        json: true,
+        done: function () {
             $('#oldPwd,#newPwd,#confirmPwd').val('');
-        });
+        }
     });
 }
 </script>

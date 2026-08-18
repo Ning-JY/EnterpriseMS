@@ -1,133 +1,98 @@
-@using EnterpriseMS.Domain.Entities.System
+@using EnterpriseMS.Common.Extensions
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
 @{
     ViewData["Title"] = "系统参数设置";
-    Layout = "_Layout";
-    var configs = (ViewBag.Configs as List<SysConfig>) ?? new List<SysConfig>();
-    var groups = configs
-        .GroupBy(c => c.GroupName ?? "system")
-        .OrderBy(g => g.Key)
-        .ToList();
+    var userId = User.GetUserId();
+    bool canEdit = await PermSvc.HasPermAsync(userId, "sys:config:edit");
 }
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-sliders-h mr-2"></i>系统参数设置</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item">系统管理</li>
-                    <li class="breadcrumb-item active">系统参数</li>
-                </ol>
-            </div>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-set"></i> 系统参数设置
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>系统参数</cite></a>
     </div>
 </div>
 
-<section class="content">
-<div class="container-fluid">
-    <!-- 操作区 -->
-    <div class="card card-default search-card">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-10"></div>
-                <div class="col-md-2 text-right">
-                    <button type="button" class="btn btn-success btn-sm" onclick="saveConfigs()">
-                        <i class="fas fa-save"></i> 保存
-                    </button>
-                </div>
+<!-- 搜索卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="configSearch">
+            <div class="layui-inline">
+                <input type="text" name="Keyword" placeholder="参数键 / 值 / 分组"
+                       autocomplete="off" class="layui-input">
             </div>
-        </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="configSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+            </div>
+            <div class="layui-inline ems-search-actions">
+                @if (canEdit)
+                {
+                    <button type="button" class="layui-btn layui-btn-normal" id="btnEdit">
+                        <i class="layui-icon layui-icon-edit"></i> 编辑参数
+                    </button>
+                }
+            </div>
+        </form>
     </div>
+</div>
 
-    <!-- 参数列表 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">参数列表</h3>
-        </div>
-        <div class="card-body">
-            <form id="configForm">
-                @if (!configs.Any())
-                {
-                    <div class="text-center text-muted py-4">暂无系统参数</div>
-                }
-                @foreach (var g in groups)
-                {
-                    <h5 class="text-muted mt-3 mb-2"><i class="fas fa-folder mr-1"></i>@g.Key</h5>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered mb-0">
-                            <thead class="thead-light">
-                                <tr>
-                                    <th style="width:32%">参数</th>
-                                    <th>值</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var c in g.OrderBy(x => x.Sort))
-                                {
-                                    <tr>
-                                        <td>
-                                            <code>@c.ConfigKey</code>
-                                            @if (!string.IsNullOrEmpty(c.Remark))
-                                            {
-                                                <div class="small text-muted mt-1">@c.Remark</div>
-                                            }
-                                        </td>
-                                        <td>
-                                            <input class="form-control form-control-sm"
-                                                   data-key="@c.ConfigKey"
-                                                   data-type="@c.ConfigType"
-                                                   data-group="@c.GroupName"
-                                                   data-sort="@c.Sort"
-                                                   value="@c.ConfigValue" />
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </form>
-        </div>
-        <div class="card-footer text-right">
-            <button type="button" class="btn btn-primary" onclick="saveConfigs()">
-                <i class="fas fa-save mr-1"></i>保存修改
+<!-- 列表卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>参数列表</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
+                <i class="layui-icon layui-icon-cols"></i> 筛选列
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnExport">
+                <i class="layui-icon layui-icon-export"></i> 导出
             </button>
         </div>
     </div>
+    <div class="layui-card-body">
+        <table id="configTable" lay-filter="configTable"></table>
+    </div>
 </div>
-</section>
 
 @section Scripts {
-    <script>
-        function saveConfigs() {
-            var list = [];
-            $('#configForm [data-key]').each(function () {
-                list.push({
-                    ConfigKey: $(this).data('key'),
-                    ConfigValue: $(this).val(),
-                    ConfigType: $(this).data('type') || 'text',
-                    GroupName: $(this).data('group') || 'system',
-                    Sort: parseInt($(this).data('sort')) || 0
-                });
-            });
-            if (!list.length) { ems.msg('没有可保存的参数', { icon: 2 }); return; }
-            var load = ems.loading(1);
-            // CSRF Token 由 site.js 的全局 $.ajaxSetup 自动注入
-            $.ajax({
-                url: '/system/config/save',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(list),
-                success: function (r) {
-                    ems.close(load);
-                    ems.msg(r.message || '保存成功', { icon: r.success ? 1 : 2 });
-                },
-                error: function () {
-                    ems.close(load);
-                    ems.msg('保存失败，请重试', { icon: 2 });
-                }
-            });
-        }
-    </script>
+<script>
+ems.ready(function () {
+
+    var colsConfig = [
+        { field: 'GroupName',   title: '分组' },
+        { field: 'ConfigKey',   title: '参数键', templet: function (d) { return '<code>' + d.ConfigKey + '</code>'; } },
+        { field: 'ConfigValue', title: '参数值' },
+        { field: 'ConfigType',  title: '类型', width: 90, align: 'center' },
+        { field: 'Sort',        title: '排序', width: 80, align: 'center' }
+    ];
+
+    ems.initTable({
+        elem: '#configTable',
+        id:   'configTable',
+        url:  '/system/config/list',
+        cols: [colsConfig]
+    });
+
+    $('#btnEdit').on('click', function () {
+        ems.open({ title: '编辑系统参数', url: '/system/config/form' });
+    });
+
+    $('#btnFilter').on('click', function () {
+        ems.colFilter('configTable', colsConfig);
+    });
+
+    $('#btnExport').on('click', function () {
+        ems.exportMenu('configTable', '系统参数');
+    });
+
+    ems.bindSearch('configSearch', 'configTable');
+});
+</script>
 }

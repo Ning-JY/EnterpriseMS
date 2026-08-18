@@ -1,0 +1,140 @@
+@using EnterpriseMS.Services.DTOs.System
+@model MenuTreeDto
+@{
+    var isEdit = Model != null;
+    var isDialog = Context.Request.Query["_dialog"] == "1";
+    ViewData["Title"] = isEdit ? "编辑菜单" : "新增菜单";
+    var options = ViewBag.MenuOptions as List<(long Id, string Name, int Depth)> ?? new List<(long, string, int)>();
+    var parentId = (long?)ViewBag.ParentId;
+}
+
+<div class="ems-page @(isDialog ? "ems-dialog" : "")">
+@if (!isDialog)
+{
+<div class="ems-page-head">
+    <div class="ems-page-title">@(isEdit ? "编辑菜单" : "新增菜单")</div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>@(isEdit ? "编辑" : "新增")</cite></a>
+    </div>
+</div>
+}
+
+<form class="layui-form menu-create-form" lay-filter="menuForm">
+<div class="layui-card ems-card">
+    <div class="layui-card-body">
+        <input type="hidden" name="Id" value="@(Model?.Id)">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">菜单名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="MenuName" value="@Model?.MenuName" maxlength="50"
+                       lay-verify="required" placeholder="请输入菜单名称" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">菜单类型</label>
+            <div class="layui-input-block">
+                <select name="MenuType">
+                    <option value="M" selected="@(Model == null || Model.MenuType == "M")">目录</option>
+                    <option value="C" selected="@(Model != null && Model.MenuType == "C")">菜单</option>
+                    <option value="F" selected="@(Model != null && Model.MenuType == "F")">按钮</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">上级菜单</label>
+            <div class="layui-input-block">
+                <select name="ParentId">
+                    <option value="0">顶级菜单（无上级）</option>
+                    @foreach (var o in options)
+                    {
+                        var sel = (isEdit && Model != null && Model.ParentId == o.Id)
+                               || (!isEdit && parentId == o.Id);
+                        <option value="@o.Id" selected="@sel">
+                            @(new string('　', o.Depth * 2))@o.Name
+                        </option>
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">图标</label>
+            <div class="layui-input-block">
+                <input type="text" name="Icon" value="@Model?.Icon" maxlength="50"
+                       placeholder="layui 图标类名，如 layui-icon-list" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">路由地址</label>
+            <div class="layui-input-block">
+                <input type="text" name="Path" value="@Model?.Path" maxlength="200"
+                       placeholder="如 /system/user（按钮可留空）" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">权限标识</label>
+            <div class="layui-input-block">
+                <input type="text" name="Perms" value="@Model?.Perms" maxlength="100"
+                       placeholder="如 sys:user:list（按钮必填）" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">排序</label>
+            <div class="layui-input-block">
+                <input type="number" name="Sort" value="@(Model?.Sort ?? 0)" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">是否显示</label>
+            <div class="layui-input-block">
+                <input type="radio" name="Visible" value="1" title="显示" checked="@(Model == null || Model.Visible == 1)">
+                <input type="radio" name="Visible" value="0" title="隐藏" checked="@(Model != null && Model.Visible == 0)">
+            </div>
+        </div>
+    </div>
+</div>
+<div class="ems-form-foot">
+    <button class="layui-btn" lay-submit lay-filter="menuForm">
+        <i class="layui-icon layui-icon-ok"></i> 保存
+    </button>
+    <button type="button" class="layui-btn layui-btn-primary" id="btnCancel">
+        <i class="layui-icon layui-icon-close"></i> 取消
+    </button>
+</div>
+</form>
+</div>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    var isEdit = @(isEdit ? "true" : "false");
+
+    ems.bindSubmit('menuForm', function (field) {
+        field.ParentId = Number(field.ParentId) || 0;
+        field.Sort = Number(field.Sort) || 0;
+        field.Visible = Number(field.Visible) || 0;
+        if (isEdit) {
+            field.Id = Number(field.Id);
+        } else {
+            delete field.Id;
+        }
+        return {
+            url: isEdit ? '/system/menu/update' : '/system/menu/create',
+            data: field,
+            table: 'menuTable'
+        };
+    });
+
+    $('#btnCancel').on('click', function () { ems.closeSelf(); });
+});
+</script>
+}

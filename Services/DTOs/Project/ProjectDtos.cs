@@ -14,10 +14,10 @@ public class ProjectListDto
     public decimal  ContractAmount  { get; set; }
     public bool     IsJointVenture  { get; set; }
     public decimal? OurRatio        { get; set; }
-    public string?  TechLeaderName  { get; set; }
-    public string?  BizLeaderName   { get; set; }
+    public string?  ProjectLeaderName { get; set; }
     public DateTime? SignDate       { get; set; }
     public DateTime? PlanEndDate    { get; set; }
+    public DateTime? ActualStartDate { get; set; }
     public int      ProgressStatus  { get; set; }
     public string   ProgressText    { get; set; } = "";
     public decimal  ActualAmount    { get; set; }
@@ -37,8 +37,9 @@ public class ProjectSelectItemDto
 public class ProjectDetailDto : ProjectListDto
 {
     public long?    DeptId          { get; set; }
-    public long?    TechLeaderId    { get; set; }
-    public long?    BizLeaderId     { get; set; }
+    public long?    ProjectLeaderId { get; set; }
+    public string?  ProjectCategory { get; set; }
+    public string?  ProjectOverview { get; set; }
     public decimal? LimitPrice      { get; set; }
     public string?  BuildingScale   { get; set; }
     public DateTime? ActualEndDate  { get; set; }
@@ -184,10 +185,9 @@ public class CreateProjectDto
     public decimal  ContractAmount   { get; set; }
     public bool     IsJointVenture   { get; set; }
     public decimal? OurRatio         { get; set; }
-    public long?    TechLeaderId     { get; set; }
-    public long?    BizLeaderId      { get; set; }
     public DateTime? SignDate        { get; set; }
     public DateTime? PlanEndDate     { get; set; }
+    public DateTime? ActualStartDate { get; set; }
     public DateTime? BidDeadline     { get; set; }
     public string?  BuildingScale    { get; set; }
     public string?  Remark           { get; set; }

@@ -27,7 +27,7 @@ public static class DictSeeds
             new SysDictType { Id = 11, DictName = "技术职称",         DictType = "technical_title",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 12, DictName = "技术等级",         DictType = "technical_level",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
             // 以下两类原本在字典中做了枚举镜像，但代码仍以枚举为准、从不读字典，属双数据源陷阱，已移除。
-            // 项目进度(proj_status)/概预算任务(budget_task_type) 以 ProjectStatus / BudgetTaskType 枚举为唯一真源。
+            // 项目进度(proj_status) 以 ProjectStatus 枚举为唯一真源；概预算模块已整体移除。
             // 状态类改为字典驱动：员工状态 / 合同状态（见下）
             new SysDictType { Id = 13, DictName = "员工状态",         DictType = "employee_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 14, DictName = "合同状态",         DictType = "contract_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" },

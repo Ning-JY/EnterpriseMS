@@ -1,3 +1,4 @@
+using EnterpriseMS.Common;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Services.DTOs.System;
 
@@ -7,5 +8,6 @@ namespace EnterpriseMS.Services.Interfaces;
 public interface IConfigService
 {
     Task<List<SysConfig>> GetAllAsync();
+    Task<PagedResult<ConfigListDto>> GetPagedAsync(string? keyword, int page, int size);
     Task SaveAsync(List<SysConfigDto> configs);
 }

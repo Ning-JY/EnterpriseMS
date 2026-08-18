@@ -20,10 +20,39 @@ public class DictController : BaseAuthController
     }
 
     [HasPermission("sys:dict:list")]
-    public async Task<IActionResult> Index()
+    public IActionResult Index() => View();
+
+    [HttpGet("list")]
+    [HasPermission("sys:dict:list")]
+    public async Task<IActionResult> List(string? keyword, int page = 1, int size = 10)
+        => ApiOk(await _dictSvc.GetPagedAsync(keyword, page, size));
+
+    // 字典项管理列表（含停用项）—— 供字典管理页右侧「业务类型/字典项」表格使用
+    [HttpGet("data/list")]
+    [HasPermission("sys:dict:list")]
+    public async Task<IActionResult> DataList(string? dictType, string? keyword)
+        => ApiOk(await _dictSvc.GetDataListAsync(dictType ?? "", keyword));
+
+    // 新增 / 编辑字典项表单（iframe 弹层）
+    [HttpGet("data/form")]
+    [HasPermission("sys:dict:list")]
+    public async Task<IActionResult> DataForm(long? id, string? dictType)
     {
-        var types = await _dictSvc.GetAllTypesAsync();
-        return View(types);
+        DictDataDto? model = null;
+        if (id.HasValue && id.Value > 0)
+        {
+            model = await _dictSvc.GetDataByIdAsync(id.Value);
+            if (model == null) return NotFound();
+        }
+        ViewBag.DictType     = model?.DictType ?? dictType ?? "";
+        ViewBag.DictTypeName = ViewBag.DictType;
+        if (!string.IsNullOrWhiteSpace((string)ViewBag.DictType))
+        {
+            var t = (await _dictSvc.GetAllTypesAsync())
+                .FirstOrDefault(x => x.DictType == (string)ViewBag.DictType);
+            if (t != null) ViewBag.DictTypeName = t.DictName;
+        }
+        return View("DataForm", model);
     }
 
     [HttpGet("data/{dictType}")]
@@ -31,6 +60,20 @@ public class DictController : BaseAuthController
     {
         var data = await _dictSvc.GetDataByTypeAsync(dictType);
         return ApiOk(data);
+    }
+
+    // 新增 / 编辑字典类型表单（iframe 弹层）
+    [HttpGet("form")]
+    [HasPermission("sys:dict:list")]
+    public async Task<IActionResult> Form(long? id)
+    {
+        DictTypeDto? model = null;
+        if (id.HasValue)
+        {
+            model = await _dictSvc.GetByIdAsync(id.Value);
+            if (model == null) return NotFound();
+        }
+        return View(model);
     }
 
     [HttpPost("type/create"), ValidateAntiForgeryToken]

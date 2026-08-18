@@ -1,7 +1,6 @@
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Entities.Hr;
 using EnterpriseMS.Domain.Entities.Project;
-using EnterpriseMS.Domain.Entities.Budget;
 using EnterpriseMS.Domain.Entities.Info;
 
 namespace EnterpriseMS.Domain.Interfaces;
@@ -24,6 +23,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<EmployeeCertificate>  Certificates   { get; }
     IRepository<EmployeeEducation>    Educations     { get; }
     IRepository<EmployeeWorkExp>      WorkExperiences{ get; }
+    IRepository<EmployeeAttachment>   Attachments   { get; }
     // 项目
     IRepository<Project>           Projects      { get; }
     IRepository<ProjectMember>     ProjMembers   { get; }
@@ -33,10 +33,6 @@ public interface IUnitOfWork : IDisposable
     IRepository<ProjectContract>   ProjContracts { get; }
     IRepository<ProjectInvoice>    ProjInvoices  { get; }
     IRepository<ProjectFile>       ProjFiles     { get; }
-    // 概预算
-    IRepository<BudgetTask>    BudgetTasks    { get; }
-    IRepository<BudgetSection> BudgetSections { get; }
-    IRepository<ReviewOpinion> ReviewOpinions { get; }
     // 公开信息
     IRepository<InfoArticle>  InfoArticles   { get; }
     IRepository<InfoCategory> InfoCategories { get; }

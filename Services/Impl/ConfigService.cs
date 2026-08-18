@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using EnterpriseMS.Common;
+using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Services.DTOs.System;
@@ -15,6 +16,22 @@ public class ConfigService : IConfigService
 
     public async Task<List<SysConfig>> GetAllAsync()
         => await _uow.SysConfigs.Query().OrderBy(c => c.GroupName).ThenBy(c => c.Sort).ToListAsync();
+
+    public async Task<PagedResult<ConfigListDto>> GetPagedAsync(string? keyword, int page, int size)
+    {
+        var q = _uow.SysConfigs.Query();
+        if (!string.IsNullOrWhiteSpace(keyword))
+            q = q.Where(c => c.ConfigKey.Contains(keyword) || c.ConfigValue.Contains(keyword)
+                          || c.GroupName.Contains(keyword));
+        var paged = await q.OrderBy(c => c.GroupName).ThenBy(c => c.Sort).ToPagedAsync(page, size);
+        var items = paged.Items.Select(c => new ConfigListDto
+        {
+            Id = c.Id, GroupName = c.GroupName, ConfigKey = c.ConfigKey,
+            ConfigValue = c.ConfigValue, ConfigType = c.ConfigType, Sort = c.Sort
+        }).ToList();
+        return new PagedResult<ConfigListDto>
+        { Items = items, Total = paged.Total, Page = page, PageSize = size };
+    }
 
     public async Task SaveAsync(List<SysConfigDto> configs)
     {

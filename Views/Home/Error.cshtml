@@ -1,6 +1,17 @@
-@{ ViewData["Title"] = "错误"; Layout = "_Layout"; }
-<section class="content"><div class="container-fluid text-center py-5">
-<i class="fas fa-exclamation-triangle fa-5x text-danger mb-3"></i>
-<h3>@(ViewBag.Message ?? "服务器内部错误")</h3>
-<a href="/" class="btn btn-primary mt-3"><i class="fas fa-home mr-1"></i>返回首页</a>
-</div></section>
+@{
+    ViewData["Title"] = "错误";
+    Layout = "_Layout";
+}
+<!-- 居中提示卡片：max-width / margin / text-align 为布局居中所需（已最小化内联） -->
+<div class="layui-card" style="max-width:460px;margin:10vh auto 0;text-align:center">
+    <div class="layui-card-body" style="padding:44px 24px">
+        <i class="layui-icon layui-icon-tips layui-font-orange" style="font-size:56px"></i>
+        <h3 class="layui-font-orange" style="margin:14px 0 6px">@(ViewBag.Message ?? "服务器内部错误")</h3>
+        <p class="layui-font-gray">请稍后重试，或联系系统管理员。</p>
+        <div style="margin-top:22px">
+            <a class="layui-btn layui-btn-normal" href="javascript:ems.openTab('/','首页')">
+                <i class="layui-icon layui-icon-home"></i> 返回首页
+            </a>
+        </div>
+    </div>
+</div>

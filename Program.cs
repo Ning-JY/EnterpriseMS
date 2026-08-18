@@ -15,6 +15,7 @@ using EnterpriseMS.Domain.Interfaces;
 using EnterpriseMS.Middlewares;
 using EnterpriseMS.Services.Impl;
 using EnterpriseMS.Services.Interfaces;
+using EnterpriseMS.Services.Impl.TemplateSources;
 using EnterpriseMS.Services.Mappings;
 using EnterpriseMS.Services.AI;
 using EnterpriseMS.Services.Export;
@@ -71,6 +72,7 @@ try
     builder.Services.AddScoped<ICertificateService,    CertificateService>();
     builder.Services.AddScoped<IEducationService,      EducationService>();
     builder.Services.AddScoped<IWorkExpService,        WorkExpService>();
+    builder.Services.AddScoped<IEmployeeAttachmentService, EmployeeAttachmentService>();
     builder.Services.AddScoped<IKbService,             KbService>();
     builder.Services.AddScoped<IHangfireService, HangfireService>();
     builder.Services.AddScoped<INotificationService, NotificationService>();
@@ -83,6 +85,14 @@ try
 
     // ── 模板化报告生成 ──────────────────────────────────────────
     builder.Services.AddScoped<IReportGeneratorService, ReportGeneratorService>();
+
+    // ── 通用模板数据源（DI 自动发现，供配置器与填充向导枚举）──────────
+    builder.Services.AddScoped<ITemplateDataSource, ManualDataSource>();
+    builder.Services.AddScoped<ITemplateDataSource, ConfigDataSource>();
+    builder.Services.AddScoped<ITemplateDataSource, ProjectDataSource>();
+    builder.Services.AddScoped<ITemplateDataSource, EmployeeDataSource>();
+    builder.Services.AddScoped<ITemplateDataSource, ProjectContractDataSource>();
+    builder.Services.AddScoped<ITemplateDataSource, EmployeeContractDataSource>();
 
     // ── 报表查询（从 ReportController 下沉，避免 Controller 直连 DbContext）──
     builder.Services.AddScoped<IReportService, ReportService>();
@@ -260,6 +270,17 @@ try
         {
             await db.Database.MigrateAsync();
             Log.Information("数据库迁移检查完成（无待执行迁移则直接跳过）");
+
+            // 首次启动把现有 template-manifest.json 迁入模板表（幂等，已存在则跳过）
+            try
+            {
+                var rpt = scope.ServiceProvider.GetService<IReportGeneratorService>();
+                if (rpt != null) await rpt.SeedFromManifestIfEmptyAsync();
+            }
+            catch (Exception ex)
+            {
+                Log.Warning(ex, "模板种子数据同步跳过：{Msg}", ex.Message);
+            }
         }
         catch (Exception ex)
         {
@@ -297,7 +318,7 @@ try
         Log.Warning("Hangfire 定时任务注册失败（不影响主功能）：{Msg}", ex.Message);
     }
 
-    Log.Information("EnterpriseMS 启动成功 → http://localhost:5080");
+    Log.Information("EnterpriseMS 启动成功 → http://localhost:5090");
     app.Run();
 }
 catch (Exception ex)

@@ -1,75 +1,104 @@
-@model EnterpriseMS.Services.DTOs.System.NotificationSummary
 @{
     ViewData["Title"] = "通知中心";
+    var unread = ViewBag.UnreadCount ?? 0;
 }
-<section class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0">通知中心</h1>
-            </div>
-            <div class="col-sm-6 text-right">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-notif-mark-all>
-                    <i class="fas fa-check-double mr-1"></i> 全部标为已读
-                </button>
-            </div>
-        </div>
-    </div>
-</section>
 
-<section class="content">
-    <div class="container-fluid">
-        <div class="card card-primary card-outline">
-            <div class="card-header">
-                <h3 class="card-title">
-                    共 <span class="badge badge-warning">@Model.UnreadCount</span> 条未读
-                </h3>
-            </div>
-            <div class="card-body p-0">
-                @if (Model.Items.Count == 0)
-                {
-                    <div class="text-center text-muted py-5">
-                        <i class="far fa-bell fa-2x mb-2"></i>
-                        <p class="mb-0">暂无通知</p>
-                    </div>
-                }
-                else
-                {
-                    @foreach (var item in Model.Items)
-                    {
-                        var href = item.Link ?? "javascript:void(0)";
-                        string icon = item.Level switch
-                        {
-                            "danger"  => "fa-exclamation-circle text-danger",
-                            "warning" => "fa-exclamation-triangle text-warning",
-                            "success" => "fa-check-circle text-success",
-                            _         => "fa-info-circle text-info"
-                        };
-                        <a href="@href"
-                           data-notif-id="@item.Id"
-                           data-notif-link="@item.Link"
-                           class="notif-item d-block px-3 py-3 border-bottom @(item.IsRead ? "is-read text-muted" : "")">
-                            <div class="d-flex">
-                                <i class="fas @icon mt-1 mr-3 fa-fw"></i>
-                                <div class="flex-grow-1" style="min-width:0">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="notif-title font-weight-@(item.IsRead ? "normal" : "bold")">@item.Title</span>
-                                        <span class="text-muted text-sm ml-2">@item.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
-                                    </div>
-                                    <div class="text-sm text-muted text-truncate">@item.Content</div>
-                                </div>
-                                @if (!item.IsRead)
-                                {
-                                    <span class="notif-dot bg-warning ml-2 mt-2"></span>
-                                }
-                            </div>
-                        </a>
-                    }
-                }
-            </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-notice"></i> 通知中心
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a><cite>通知中心</cite></a>
+    </div>
+</div>
+
+<!-- 概览卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <div class="layui-inline" style="line-height:34px">
+            <span class="layui-badge layui-bg-orange">@unread</span> 条未读通知
+        </div>
+        <div class="layui-inline ems-search-actions">
+            <button type="button" class="layui-btn layui-btn-normal" id="btnReadAll">
+                <i class="layui-icon layui-icon-ok-circle"></i> 全部标为已读
+            </button>
         </div>
     </div>
-</section>
+</div>
+
+<!-- 列表卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header"><span>通知列表</span></div>
+    <div class="layui-card-body">
+        <table id="notifTable" lay-filter="notifTable"></table>
+    </div>
+</div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="notifBar">
+    <a class="ems-icon-btn primary" title="查看" lay-event="view"><i class="layui-icon layui-icon-eye"></i></a>
+    {{# if (!d.IsRead) { }}
+    <a class="ems-icon-btn" title="标记已读" lay-event="read"><i class="layui-icon layui-icon-ok"></i></a>
+    {{# } }}
+</script>
 
 @section Scripts {
+<script>
+ems.ready(function () {
+    var $ = layui.jquery;
+    layui.form.render();
+
+    function markRead(id, navigate) {
+        $.ajax({
+            url: '/Notification/mark-read/' + id, type: 'POST',
+            success: function () {
+                if (navigate) window.location.href = navigate;
+                else ems.reloadTable('notifTable', null, false);
+            },
+            error: function () { ems.msg('操作失败', { icon: 2 }); }
+        });
+    }
+
+    var colsConfig = [
+        { field: 'IsRead', title: '状态', width: 80, align: 'center',
+          templet: function (d) {
+              return d.IsRead
+                  ? '<span class="layui-font-12 layui-font-gray">已读</span>'
+                  : '<span class="layui-badge-dot layui-bg-orange"></span>';
+          } },
+        { field: 'Level', title: '级别', width: 90, align: 'center',
+          templet: ems.tpl.badge('Level', {
+              danger:   ['紧急', 'red'],
+              warning:  ['提醒', 'orange'],
+              success:  ['完成', 'green'],
+              info:     ['通知', 'blue']
+          }) },
+        { field: 'Title', title: '标题', minWidth: 200,
+          templet: function (d) {
+              return '<strong class="' + (d.IsRead ? 'layui-font-gray' : '') + '">' + ems.escapeHtml(d.Title) + '</strong>';
+          } },
+        { field: 'Content', title: '内容', minWidth: 240,
+          templet: function (d) { return '<div class="layui-font-12 layui-font-gray ems-ellipsis">' + ems.escapeHtml(d.Content) + '</div>'; } },
+        { field: 'CreatedAt', title: '时间', width: 150, templet: ems.tpl.dateTime('CreatedAt') },
+        { title: '操作', width: 110, align: 'center', toolbar: '#notifBar' }
+    ];
+
+    ems.initTable({
+        elem: '#notifTable', id: 'notifTable', url: '/Notification/list', cols: [colsConfig],
+        tool: {
+            view: function (d) { markRead(d.Id, d.Link && d.Link.trim() !== '' ? d.Link : null); },
+            read: function (d) { markRead(d.Id, null); }
+        }
+    });
+
+    $('#btnReadAll').on('click', function () {
+        ems.post({
+            url: '/Notification/mark-all-read',
+            done: function () { ems.reloadTable('notifTable', null, false); }
+        });
+    });
+});
+</script>
 }

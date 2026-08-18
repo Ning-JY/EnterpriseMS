@@ -18,11 +18,20 @@ public class ConfigController : BaseAuthController
     }
 
     [HasPermission("sys:config:list")]
-    public async Task<IActionResult> Index()
+    public IActionResult Index() => View();
+
+    [HttpGet("list")]
+    [HasPermission("sys:config:list")]
+    public async Task<IActionResult> List(string? keyword, int page = 1, int size = 10)
+        => ApiOk(await _configSvc.GetPagedAsync(keyword, page, size));
+
+    /// <summary>编辑系统参数表单（在 layer dialog 弹层中打开）</summary>
+    [HttpGet("form")]
+    [HasPermission("sys:config:edit")]
+    public async Task<IActionResult> Form()
     {
         var configs = await _configSvc.GetAllAsync();
-        ViewBag.Configs = configs;
-        return View();
+        return View(configs);
     }
 
     [HttpGet("all")]

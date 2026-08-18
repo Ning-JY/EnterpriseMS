@@ -7,9 +7,9 @@ using EnterpriseMS.Domain.Base;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Entities.Hr;
 using EnterpriseMS.Domain.Entities.Project;
-using EnterpriseMS.Domain.Entities.Budget;
 using EnterpriseMS.Domain.Entities.Info;
 using EnterpriseMS.Domain.Entities.Bid;
+using EnterpriseMS.Domain.Entities.Report;
 using EnterpriseMS.Infrastructure.Data.Seeds;
 using Serilog;
 
@@ -38,16 +38,13 @@ public class AppDbContext : DbContext
     public DbSet<EmployeeCertificate> Certificates { get; set; }
     public DbSet<EmployeeEducation> Educations { get; set; }
     public DbSet<EmployeeWorkExp> WorkExperiences { get; set; }
+    public DbSet<EmployeeAttachment> Attachments { get; set; }
     // 项目
     public DbSet<Project> Projects { get; set; }
     public DbSet<ProjectMember> ProjMembers { get; set; }
     public DbSet<ProjectMilestone> Milestones { get; set; }
     public DbSet<ProjectAcceptance> Acceptances { get; set; }
     public DbSet<ProjectOperLog> ProjLogs { get; set; }
-    // 概预算
-    public DbSet<BudgetTask> BudgetTasks { get; set; }
-    public DbSet<BudgetSection> BudgetSections { get; set; }
-    public DbSet<ReviewOpinion> ReviewOpinions { get; set; }
     // 项目扩展
     public DbSet<ProjectContract> ProjContracts { get; set; }
     public DbSet<ProjectInvoice> ProjInvoices { get; set; }
@@ -66,6 +63,9 @@ public class AppDbContext : DbContext
     // 通知中心
     public DbSet<SysNotification> Notifications { get; set; }
     public DbSet<SysNotificationRead> NotificationReads { get; set; }
+    // 模板化报告
+    public DbSet<TemplateDefinition> TemplateDefinitions { get; set; }
+    public DbSet<TemplateField> TemplateFields { get; set; }
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -106,10 +106,6 @@ public class AppDbContext : DbContext
             .HasForeignKey(a => a.ProjectId);
         mb.Entity<ProjectOperLog>().HasOne(l => l.Project).WithMany(p => p.OperLogs)
             .HasForeignKey(l => l.ProjectId);
-        mb.Entity<BudgetSection>().HasOne(s => s.Task).WithMany(t => t.Sections)
-            .HasForeignKey(s => s.TaskId);
-        mb.Entity<ReviewOpinion>().HasOne(o => o.Task).WithMany(t => t.Opinions)
-            .HasForeignKey(o => o.TaskId);
         mb.Entity<InfoArticle>().HasOne(a => a.Category).WithMany(c => c.Articles)
             .HasForeignKey(a => a.CategoryId);
         mb.Entity<KbFile>().HasOne(f => f.Category).WithMany(c => c.Files)
@@ -145,10 +141,17 @@ public class AppDbContext : DbContext
         mb.Entity<ProjectFile>().HasIndex(f => f.ProjectId);
         mb.Entity<BidRequirement>().HasIndex(r => r.BidProjectId);
         mb.Entity<BidDocument>().HasIndex(d => d.BidProjectId);
-        mb.Entity<BudgetSection>().HasIndex(s => s.TaskId);
-        mb.Entity<ReviewOpinion>().HasIndex(o => o.TaskId);
         mb.Entity<InfoArticle>().HasIndex(a => a.CategoryId);
         mb.Entity<KbFile>().HasIndex(f => f.CategoryId);
+
+        // 模板化报告：模板定义与字段
+        mb.Entity<TemplateDefinition>().HasKey(t => t.Id);
+        mb.Entity<TemplateDefinition>().Property(t => t.Id).HasMaxLength(100);
+        mb.Entity<TemplateDefinition>().HasMany(t => t.Fields)
+            .WithOne().HasForeignKey(f => f.TemplateId).OnDelete(DeleteBehavior.Cascade);
+        mb.Entity<TemplateField>().HasKey(f => f.Id);
+        mb.Entity<TemplateField>().Property(f => f.Id).ValueGeneratedOnAdd();
+        mb.Entity<TemplateField>().Property(f => f.TemplateId).HasMaxLength(100);
 
         // 全局软删除过滤器
         foreach (var entityType in mb.Model.GetEntityTypes())
@@ -190,7 +193,6 @@ public class AppDbContext : DbContext
         DictSeeds.Seed(mb);
         HrSeeds.Seed(mb);
         ProjectSeeds.Seed(mb);
-        BudgetSeeds.Seed(mb);
         InfoSeeds.Seed(mb);
     }
 
@@ -198,7 +200,6 @@ public class AppDbContext : DbContext
      * SystemSeeds  → 部门/岗位/角色/用户/字典/角色菜单
      * HrSeeds      → 员工/合同/证书
      * ProjectSeeds → 项目/成员/里程碑/验收
-     * BudgetSeeds  → 概预算任务/分部
      * InfoSeeds    → 知识库分类/菜单
      */
     /// <summary>供 DebugController 调用的公共包装</summary>

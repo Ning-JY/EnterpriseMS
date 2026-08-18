@@ -25,15 +25,20 @@ public class CertificateController : BaseAuthController
     }
 
     [HasPermission("hr:cert:list")]
-    public async Task<IActionResult> Index(string? keyword, int? status, int page = 1, int size = 15)
+    public async Task<IActionResult> Index()
     {
-        var paged = await _svc.GetPagedAsync(keyword, status, page, size);
-        ViewBag.WarnCount = paged.WarnCount;
+        // 列表数据由 /hr/cert/list (AJAX) 提供，本页仅做容器。
         ViewBag.CertTypes = await _dictSvc.GetDataByTypeAsync(DictType.CertType);
         ViewBag.Employees = await _empQrySvc.GetAllOnJobAsync();
-        ViewBag.Keyword = keyword; ViewBag.Status = status;
-        ViewBag.Page = page; ViewBag.Total = paged.Total; ViewBag.Size = size;
-        return View(paged.Items);
+        return View();
+    }
+
+    [HttpGet("list")]
+    [HasPermission("hr:cert:list")]
+    public async Task<IActionResult> List(string? keyword, int? status, int page = 1, int size = 15)
+    {
+        var paged = await _svc.GetPagedAsync(keyword, status, page, size);
+        return ApiOk(paged);
     }
 
     [HttpPost("create-with-file")]
@@ -72,7 +77,11 @@ public class CertificateController : BaseAuthController
     public async Task<IActionResult> Download(long id)
     {
         var info = await _svc.GetDownloadInfoAsync(id);
-        if (info == null || !global::System.IO.File.Exists(info.Value.Path)) return NotFound();
+        if (info == null || !global::System.IO.File.Exists(info.Value.Path))
+        {
+            return NotFound();
+        }
+
         return FileServingHelper.ServePhysicalFile(info.Value.Path, info.Value.FileName,
             global::System.IO.Path.GetExtension(info.Value.Path));
     }

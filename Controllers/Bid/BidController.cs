@@ -14,26 +14,45 @@ namespace EnterpriseMS.Controllers.Bid;
 public class BidController : BaseAuthController
 {
     private readonly IBidService _bidService;
+    private readonly IProjectService _projSvc;
     private readonly ILogger<BidController> _logger;
 
-    public BidController(IBidService bidService, IPermissionService permSvc, ILogger<BidController> logger)
+    public BidController(IBidService bidService, IPermissionService permSvc, IProjectService projSvc, ILogger<BidController> logger)
         : base(permSvc)
     {
         _bidService = bidService;
+        _projSvc = projSvc;
         _logger = logger;
     }
 
     [HasPermission("bid:project:list")]
-    public async Task<IActionResult> Index(BidListQuery query)
+    public IActionResult Index()
     {
+        return View();
+    }
+
+    // ── AJAX 列表数据（新标准 layui 表格）──
+    // BidController 使用约定路由（无控制器级 [Route]），动作名 List 即对应 /bid/list
+    [HttpGet]
+    [HasPermission("bid:project:list")]
+    public async Task<IActionResult> List(string? keyword, int? status, int page = 1, int size = 20)
+    {
+        var query = new BidListQuery
+        {
+            Keyword  = keyword,
+            Status   = status,
+            Page     = page,
+            PageSize = size
+        };
         var result = await _bidService.GetPagedAsync(query);
-        ViewBag.Query = query;
-        return View(result);
+        return ApiOk(result);
     }
 
     [HasPermission("bid:project:list")]
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
+        // 关联项目下拉预渲染（原前端 $.get('/project/simple-list') 打开时异步 → 改为服务端同步，避免弹窗打开时异步撑高）
+        ViewBag.Projects = await _projSvc.GetSimpleListAsync();
         return View();
     }
 

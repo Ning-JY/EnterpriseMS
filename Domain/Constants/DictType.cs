@@ -15,7 +15,6 @@ public static class DictType
     public const string BizType          = "biz_type";
     public const string ProcurementType  = "procurement_type";
     public const string ProjectStatus    = "proj_status";
-    public const string BudgetTaskType   = "budget_task_type";
     public const string Nationality      = "nationality";
     public const string PoliticalStatus  = "political_status";
     public const string Education        = "education";
@@ -32,7 +31,7 @@ public static class DictType
     public static readonly HashSet<string> All = new()
     {
         CertType, ContractType, MilestoneType, BizType, ProcurementType,
-        ProjectStatus, BudgetTaskType, Nationality, PoliticalStatus, Education,
+        ProjectStatus, Nationality, PoliticalStatus, Education,
         TechnicalTitle, TechnicalLevel, EmployeeStatus, ContractStatus, ProjNoPrefix
     };
 }

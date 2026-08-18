@@ -25,20 +25,20 @@ public class ContractController : BaseAuthController
     }
 
     [HasPermission("hr:contract:list")]
-    public async Task<IActionResult> Index(string? keyword, int? status, int page = 1, int size = 15)
+    public async Task<IActionResult> Index()
+    {
+        // 列表数据由 /hr/contract/list (AJAX) 提供，本页仅做容器。
+        ViewBag.ContractTypes = await _dictSvc.GetDataByTypeAsync(DictType.ContractType);
+        ViewBag.Employees     = await _empQrySvc.GetAllOnJobAsync();
+        return View();
+    }
+
+    [HttpGet("list")]
+    [HasPermission("hr:contract:list")]
+    public async Task<IActionResult> List(string? keyword, int? status, int page = 1, int size = 15)
     {
         var paged = await _svc.GetPagedAsync(keyword, status, page, size);
-        ViewBag.WarnCount     = paged.WarnCount;
-        ViewBag.ContractTypes = await _dictSvc.GetDataByTypeAsync(DictType.ContractType);
-        var contractStatusOpts = await _dictSvc.GetDataByTypeAsync(DictType.ContractStatus);
-        ViewBag.ContractStatusOptions = contractStatusOpts;
-        var contractStatusMap = new Dictionary<int, string>();
-        foreach (var o in contractStatusOpts) if (int.TryParse(o.DictValue, out var v)) contractStatusMap[v] = o.DictLabel;
-        ViewBag.ContractStatusMap = contractStatusMap;
-        ViewBag.Employees     = await _empQrySvc.GetAllOnJobAsync();
-        ViewBag.Keyword = keyword; ViewBag.Status = status;
-        ViewBag.Page = page; ViewBag.Total = paged.Total; ViewBag.Size = size;
-        return View(paged.Items);
+        return ApiOk(paged);
     }
 
     [HttpPost("create-with-file")]

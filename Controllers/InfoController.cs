@@ -83,28 +83,35 @@ public class InfoController : BaseAuthController
         return View(a);
     }
 
-    // ── 后台管理列表 ───────────────────────────────────────
-    public async Task<IActionResult> Manage(long? categoryId, string? keyword, int page = 1)
+    // ── 后台管理列表（容器，数据由 ManageList AJAX 提供）────
+    public async Task<IActionResult> Manage()
     {
-        var cats = await _uow.InfoCategories.Query()
+        ViewBag.Categories = await _uow.InfoCategories.Query()
             .Where(c => !c.IsDeleted).OrderBy(c => c.Sort).ToListAsync();
+        return View();
+    }
 
+    [HttpGet]
+    public async Task<IActionResult> ManageList(long? categoryId, string? keyword, int page = 1, int size = 15)
+    {
         var q = _uow.InfoArticles.Query().Include(a => a.Category).Where(a => !a.IsDeleted);
         if (categoryId.HasValue) q = q.Where(a => a.CategoryId == categoryId.Value);
-        if (!string.IsNullOrWhiteSpace(keyword))
-            q = q.Where(a => a.Title.Contains(keyword));
+        if (!string.IsNullOrWhiteSpace(keyword)) q = q.Where(a => a.Title.Contains(keyword));
 
         var total = await q.CountAsync();
         var list  = await q.OrderByDescending(a => a.IsTop)
                            .ThenByDescending(a => a.CreatedAt)
-                           .Skip((page - 1) * 15).Take(15).ToListAsync();
+                           .Skip((page - 1) * size).Take(size).ToListAsync();
 
-        ViewBag.Categories = cats;
-        ViewBag.CategoryId = categoryId;
-        ViewBag.Keyword    = keyword;
-        ViewBag.Total      = total;
-        ViewBag.Page       = page;
-        return View(list);
+        var items = list.Select(a => new
+        {
+            a.Id, a.Title, a.Content, a.IsTop, a.IsPublic, a.Status,
+            a.PublishTime, a.ViewCount,
+            CategoryName = a.Category != null ? a.Category.CategoryName : "未分类"
+        }).Cast<object>().ToList();
+
+        var paged = new PagedResult<object> { Items = items, Total = total, Page = page, PageSize = size };
+        return ApiOk(paged);
     }
 
     // ── 获取单条（编辑回填）───────────────────────────────
@@ -183,12 +190,30 @@ public class InfoController : BaseAuthController
         return ApiOk<object>(null!, "已删除");
     }
 
-    // ── 分类管理 ──────────────────────────────────────────
-    public async Task<IActionResult> Category()
+    // ── 分类管理（容器，数据由 CategoryList AJAX 提供）─────────
+    public IActionResult Category()
     {
-        var list = await _uow.InfoCategories.Query()
-            .Where(c => !c.IsDeleted).OrderBy(c => c.Sort).ToListAsync();
-        return View(list);
+        return View();
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CategoryList(string? keyword, int page = 1, int size = 15)
+    {
+        var q = _uow.InfoCategories.Query().Where(c => !c.IsDeleted);
+        if (!string.IsNullOrWhiteSpace(keyword))
+            q = q.Where(c => c.CategoryName.Contains(keyword));
+
+        var total = await q.CountAsync();
+        var list  = await q.OrderBy(c => c.Sort)
+                           .Skip((page - 1) * size).Take(size).ToListAsync();
+
+        var items = list.Select(c => new
+        {
+            c.Id, c.CategoryName, c.Sort, c.IsPublic, c.Status
+        }).Cast<object>().ToList();
+
+        var paged = new PagedResult<object> { Items = items, Total = total, Page = page, PageSize = size };
+        return ApiOk(paged);
     }
 
     // ── 获取单个分类（编辑回填）───────────────────────────

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using EnterpriseMS.Domain.Entities.Budget;
 using Microsoft.EntityFrameworkCore;
 using EnterpriseMS.Domain.Entities.Hr;
 using EnterpriseMS.Domain.Entities.Info;
@@ -97,8 +96,6 @@ public class SystemSeedService : ISystemSeedService
         total += await SeedOne<ProjectMember>   ("项目成员");
         total += await SeedOne<ProjectMilestone>("工作节点");
         total += await SeedOne<ProjectAcceptance>("验收记录");
-        total += await SeedOne<BudgetTask>   ("概预算任务");
-        total += await SeedOne<BudgetSection>("概预算分部");
 
         // 二次补齐菜单 / 角色菜单 / 字典（与 SeedMenu 保持一致的幂等写入）
         await SeedOne<SysMenu>   ("菜单");

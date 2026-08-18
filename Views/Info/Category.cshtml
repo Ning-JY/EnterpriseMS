@@ -1,188 +1,184 @@
-@using EnterpriseMS.Domain.Entities.Info
-@using System.Text.Encodings.Web
-@model List<InfoCategory>
 @{
-    ViewData["Title"] = "公告分类管理";
-}
-@section Styles {
-    <style>.cat-desc { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }</style>
+    ViewData["Title"] = "分类管理";
 }
 
-<div class="content-header"><div class="container-fluid">
-    <div class="row mb-2">
-        <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-tags mr-2"></i>分类管理</h1></div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-right">
-                <li class="breadcrumb-item"><a href="/">首页</a></li>
-                <li class="breadcrumb-item"><a href="/info/manage">资讯公告</a></li>
-                <li class="breadcrumb-item active">分类管理</li>
-            </ol>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-tags"></i> 分类管理
     </div>
-</div></div>
-
-<section class="content"><div class="container-fluid">
-
-    <!-- 操作区 -->
-    <div class="card card-default search-card">
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-10"></div>
-                <div class="col-md-2 text-right">
-                    <button type="button" class="btn btn-success btn-sm" onclick="openCategoryModal(0)">
-                        <i class="fas fa-plus"></i> 新建分类
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 列表 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">共 @Model.Count 个</h3>
-        </div>
-    <div class="card-body table-responsive p-0">
-        <table class="table table-sm table-hover">
-            <thead class="thead-light">
-                <tr><th>名称</th><th>排序</th><th>公开</th><th>状态</th><th class="text-center">操作</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var c in Model)
-                {
-                    <tr class="@(c.Status == 0 ? "table-secondary" : "")">
-                        <td><strong>@c.CategoryName</strong></td>
-                        <td>@c.Sort</td>
-                        <td>@(c.IsPublic == 1 ? "是" : "否")</td>
-                        <td>
-                            @if (c.Status == 1)
-                            {
-                                <span class="badge badge-success">启用</span>
-                            }
-                            else
-                            {
-                                <span class="badge badge-secondary">禁用</span>
-                            }
-                        </td>
-                        <td class="text-center">
-                            <button class="btn btn-xs btn-primary mr-1" onclick="openCategoryModal(@c.Id)" title="编辑">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-xs btn-danger"
-                                    onclick="deleteCategory(@c.Id, '@EncodeHelper.SafeEncode(c.CategoryName)')" title="删除">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                }
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="5" class="text-center text-muted py-4">暂无分类</td></tr>
-                }
-            </tbody>
-        </table>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="/info/manage">资讯公告</a>
+        <a><cite>分类管理</cite></a>
     </div>
 </div>
-</div></section>
 
-<!-- 分类编辑弹窗 -->
-<div class="modal fade" id="catModal" tabindex="-1">
-    <div class="modal-dialog"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-tags mr-2"></i>分类编辑</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        </div>
-        <form id="catForm">
-            @Html.AntiForgeryToken()
-            <input type="hidden" id="catId" name="id" value="0">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>分类名称 <span class="text-danger">*</span></label>
-                    <input type="text" id="catName" name="categoryName" class="form-control" placeholder="如：公司通知、行业动态" maxlength="50">
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>排序</label>
-                            <input type="number" id="catSort" name="sort" class="form-control" value="0">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>状态</label>
-                            <select id="catStatus" name="status" class="form-control">
-                                <option value="1">启用</option>
-                                <option value="0">禁用</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input" id="catPublic" name="isPublic" value="true">
-                    <label class="custom-control-label" for="catPublic">公开展示（/pub 筛选项可见）</label>
-                </div>
+<!-- 搜索卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="catSearch">
+            <div class="layui-inline">
+                <input type="text" name="keyword" placeholder="搜索分类名称" autocomplete="off" class="layui-input">
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="saveCategory()">
-                    <i class="fas fa-save mr-1"></i> 保存
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="catSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+            </div>
+            <div class="layui-inline ems-search-actions">
+                <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                    <i class="layui-icon layui-icon-add-1"></i> 新建分类
                 </button>
             </div>
         </form>
-    </div></div>
+    </div>
+</div>
+
+<!-- 列表卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>分类列表</span>
+        <span class="layui-badge layui-bg-gray" data-list-count style="margin-left:8px">0</span>
+    </div>
+    <div class="layui-card-body">
+        <table id="catTable" lay-filter="catTable"></table>
+    </div>
+</div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="catBar">
+    <a class="ems-icon-btn primary" title="编辑" lay-event="edit"><i class="layui-icon layui-icon-edit"></i></a>
+    <a class="ems-icon-btn danger" title="删除" lay-event="del"><i class="layui-icon layui-icon-close"></i></a>
+</script>
+
+<!-- 分类编辑弹窗 -->
+<div class="ems-modal-box" id="catModal">
+    <div class="layui-form-item">
+        <label class="layui-form-label">分类名称 <span class="layui-font-red">*</span></label>
+        <div class="layui-input-block">
+            <input type="text" id="catName" class="layui-input" maxlength="50" placeholder="如：公司通知、行业动态">
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline">
+            <label class="layui-form-label">排序</label>
+            <div class="layui-input-inline" style="width:120px">
+                <input type="number" id="catSort" class="layui-input" value="0">
+            </div>
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-inline" style="width:120px">
+                <select id="catStatus">
+                    <option value="1">启用</option>
+                    <option value="0">禁用</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <input type="checkbox" id="catPublic" lay-skin="primary" title="公开展示（/pub 筛选项可见）">
+    </div>
+    <div class="ems-modal-foot">
+        <button class="layui-btn layui-btn-sm" onclick="layer.closeAll()">取消</button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" id="saveCatBtn" onclick="saveCategory()">保存</button>
+    </div>
 </div>
 
 @section Scripts {
 <script>
-var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+ems.ready(function () {
+    var $ = layui.jquery;
+    layui.form.render();
+    var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+    var editId = 0;
 
-function openCategoryModal(id) {
-    var form = document.getElementById('catForm');
-    form.reset();
-    $('#catId').val(id || 0);
-    $('#catSort').val(0);
-    $('#catStatus').val(1);
-    $('#catPublic').prop('checked', false);
-    if (id && id > 0) {
-        $.get('/Info/api/category/' + id, function (r) {
-            if (r && r.success) {
-                var d = r.data;
-                $('#catName').val(d.categoryName);
-                $('#catSort').val(d.sort);
-                $('#catStatus').val(d.status);
-                $('#catPublic').prop('checked', d.isPublic == 1);
-            } else {
-                ems.msg((r && r.message) || '加载失败', { icon: 2 });
+    var colsConfig = [
+        { field: 'CategoryName', title: '名称', minWidth: 160,
+          templet: function (d) { return '<strong>' + ems.escapeHtml(d.CategoryName) + '</strong>'; } },
+        { field: 'Sort', title: '排序', width: 90, align: 'center', templet: ems.tpl.text('Sort') },
+        { field: 'IsPublic', title: '公开', width: 90, align: 'center',
+          templet: ems.tpl.badge('IsPublic', { 1: ['公开', 'green'], 0: ['私有', 'gray'] }) },
+        { field: 'Status', title: '状态', width: 90, align: 'center',
+          templet: ems.tpl.badge('Status', { 1: ['启用', 'green'], 0: ['禁用', 'gray'] }) },
+        { title: '操作', width: 110, align: 'center', toolbar: '#catBar' }
+    ];
+
+    ems.initTable({
+        elem: '#catTable', id: 'catTable', url: '/Info/CategoryList', cols: [colsConfig],
+        tool: {
+            edit: function (d) { openCatModal(d.Id); },
+            del:  function (d) {
+                ems.confirm('确认删除该分类 <b>' + ems.escapeHtml(d.CategoryName) + '</b>？', { icon: 3, btn: ['确认删除', '取消'] }, function () {
+                    var fd = new FormData();
+                    fd.append('__RequestVerificationToken', antiForgery);
+                    $.ajax({
+                        url: '/api/category/delete/' + d.Id, type: 'POST', data: fd,
+                        processData: false, contentType: false,
+                        success: function (r) { if (r.success) ems.msg(r.message, { icon: 1, time: 1200 }, reloadCat); else ems.msg(r.message, { icon: 2 }); },
+                        error: function () { ems.msg('删除失败', { icon: 2 }); }
+                    });
+                });
             }
-        });
-    }
-    $('#catModal').modal('show');
-}
-
-function saveCategory() {
-    if (!$('#catName').val().trim()) { ems.msg('请填写分类名称', { icon: 2 }); return; }
-    var fd = new FormData(document.getElementById('catForm'));
-    $.ajax({
-        url: '/Info/api/category/save', type: 'POST', data: fd,
-        processData: false, contentType: false,
-        success: function (r) { handleResult(r, function () { $('#catModal').modal('hide'); location.reload(); }); },
-        error: function () { ems.msg('保存失败，请重试', { icon: 2 }); }
+        }
     });
-}
 
-function deleteCategory(id, name) {
-    ems.confirm('确认删除分类 <b>' + name + '</b>？', { icon: 3, btn: ['确认删除', '取消'] },
-        function (i) {
-            ems.close(i);
-            var fd = new FormData();
-            fd.append('__RequestVerificationToken', antiForgery);
-            $.ajax({
-                url: '/Info/api/category/delete/' + id, type: 'POST', data: fd,
-                processData: false, contentType: false,
-                success: function (r) { handleResult(r, function () { $('#catModal').modal('hide'); location.reload(); }); },
-                error: function () { ems.msg('删除失败', { icon: 2 }); }
+    function reloadCat() { layui.table.reload('catTable'); }
+
+    $('#btnAdd').on('click', function () {
+        editId = 0;
+        $('#catName').val(''); $('#catSort').val(0); $('#catStatus').val(1);
+        $('#catPublic').prop('checked', false); layui.form.render();
+        layer.open({ type: 1, skin: 'ems-layer', title: '新建分类', area: ['480px'], content: $('#catModal'), shadeClose: false,
+            success: function () { layui.form.render(); } });
+    });
+
+    window.openCatModal = function (id) {
+        editId = id || 0;
+        $('#catName').val(''); $('#catSort').val(0); $('#catStatus').val(1);
+        $('#catPublic').prop('checked', false); layui.form.render();
+        if (id && id > 0) {
+            $.get('/api/category/' + id, function (r) {
+                if (r && r.success) {
+                    var d = r.data;
+                    $('#catName').val(d.categoryName);
+                    $('#catSort').val(d.sort);
+                    $('#catStatus').val(d.status);
+                    $('#catPublic').prop('checked', d.isPublic == 1);
+                    layui.form.render();
+                } else { ems.msg((r && r.message) || '加载失败', { icon: 2 }); }
             });
+        }
+        layer.open({ type: 1, skin: 'ems-layer', title: id > 0 ? '编辑分类' : '新建分类', area: ['480px'], content: $('#catModal'), shadeClose: false,
+            success: function () { layui.form.render(); } });
+    };
+
+    window.saveCategory = function () {
+        var name = $('#catName').val().trim();
+        if (!name) { ems.msg('请填写分类名称', { icon: 2 }); return; }
+        var fd = new FormData();
+        fd.append('__RequestVerificationToken', antiForgery);
+        fd.append('id', editId);
+        fd.append('categoryName', name);
+        fd.append('sort', parseInt($('#catSort').val()) || 0);
+        fd.append('status', parseInt($('#catStatus').val()));
+        fd.append('isPublic', $('#catPublic').is(':checked'));
+        $('#saveCatBtn').prop('disabled', true);
+        var load = ems.loading(1);
+        $.ajax({
+            url: '/api/category/save', type: 'POST', data: fd,
+            processData: false, contentType: false,
+            success: function (r) {
+                ems.close(load); $('#saveCatBtn').prop('disabled', false);
+                if (r.success) { layer.closeAll(); ems.msg(r.message, { icon: 1, time: 1200 }, reloadCat); }
+                else ems.msg(r.message, { icon: 2 });
+            },
+            error: function () { ems.close(load); $('#saveCatBtn').prop('disabled', false); ems.msg('保存失败，请重试', { icon: 2 }); }
         });
-}
+    };
+
+    ems.bindSearch('catSearch', 'catTable');
+});
 </script>
 }

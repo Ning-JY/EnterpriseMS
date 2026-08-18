@@ -1,86 +1,88 @@
-@using EnterpriseMS.Domain.Entities.System
-@model List<SysOperLog>
-@{ ViewData["Title"] = "操作日志"; }
+@{
+    ViewData["Title"] = "操作日志";
+}
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-history mr-2"></i>操作日志</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item"><a href="/system">系统管理</a></li>
-                    <li class="breadcrumb-item active">操作日志</li>
-                </ol>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-log"></i> 操作日志
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>操作日志</cite></a>
+    </div>
+</div>
+
+<!-- 搜索卡片：仅关键字 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="logSearch">
+            <div class="layui-inline">
+                <input type="text" name="Keyword" placeholder="操作标题 / 操作人"
+                       autocomplete="off" class="layui-input">
             </div>
-        </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="logSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
-<section class="content"><div class="container-fluid">
-    <!-- 搜索 -->
-    <div class="card card-default search-card">
-        <div class="card-body">
-            <form id="searchForm" method="get" action="/system/log">
-                <div class="row">
-                    <div class="col-md-3">
-                        <input name="keyword" class="form-control form-control-sm" placeholder="标题 / 操作人" value="@ViewBag.Keyword">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary btn-sm mr-1"><i class="fas fa-search"></i> 搜索</button>
-                        <a href="/system/log" class="btn btn-default btn-sm"><i class="fas fa-redo"></i> 重置</a>
-                    </div>
-                </div>
-                <input type="hidden" name="page" id="pageInput" value="1">
-            </form>
+<!-- 列表卡片：筛选/导出在卡片头部 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>操作日志</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
+                <i class="layui-icon layui-icon-cols"></i> 筛选列
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnExport">
+                <i class="layui-icon layui-icon-export"></i> 导出
+            </button>
         </div>
     </div>
-
-    <!-- 列表 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">共 @ViewBag.Total 条</h3>
-        </div>
-    <div class="card-body table-responsive p-0">
-        <table class="table table-hover table-sm">
-            <thead class="thead-light">
-                <tr><th>操作标题</th><th>操作人</th><th>操作类型</th><th>IP地址</th><th>操作时间</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var log in Model)
-                {
-                    <tr>
-                        <td>@log.Title</td>
-                        <td>@(log.OperName ?? "-")</td>
-                        <td>
-                            @switch (log.BusinessType)
-                            {
-                                case "INSERT": <span class="badge badge-success">新增</span> break;
-                                case "UPDATE": <span class="badge badge-info">修改</span> break;
-                                case "DELETE": <span class="badge badge-danger">删除</span> break;
-                                default:       <span class="badge badge-secondary">其他</span> break;
-                            }
-                        </td>
-                        <td class="text-muted small">@(log.OperIp ?? "-")</td>
-                        <td class="text-muted small">@log.OperTime.ToString("MM-dd HH:mm:ss")</td>
-                    </tr>
-                }
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="5" class="text-center text-muted py-4">暂无日志</td></tr>
-                }
-            </tbody>
-        </table>
+    <div class="layui-card-body">
+        <table id="logTable" lay-filter="logTable"></table>
     </div>
-    @{
-        var logPaged = new EnterpriseMS.Common.PagedResult<SysOperLog>
-        {
-            Items    = Model,
-            Total    = (int)(ViewBag.Total    ?? 0),
-            Page     = (int)(ViewBag.Page     ?? 1),
-            PageSize = (int)(ViewBag.Size      ?? 20),
-        };
-    }
-    <partial name="_Pagination" model="logPaged" />
 </div>
-</div></section>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+
+    var colsConfig = [
+        { field: 'Title',       title: '操作标题' },
+        { field: 'BusinessType', title: '业务类型', align: 'center', templet: function (d) {
+            var m = { 'INSERT': '新增', 'UPDATE': '修改', 'DELETE': '删除' };
+            return m[d.BusinessType] || d.BusinessType || '-';
+        } },
+        { field: 'Method',  title: '方法' },
+        { field: 'OperName', title: '操作人' },
+        { field: 'OperIp',  title: 'IP' },
+        { field: 'OperTime', title: '操作时间', templet: ems.tpl.dateTime('OperTime') },
+        { field: 'Status',  title: '状态', align: 'center',
+          templet: ems.tpl.badge('Status', { 1: ['正常', 'green'], 0: ['异常', 'red'] }) }
+    ];
+
+    ems.initTable({
+        elem: '#logTable',
+        id:   'logTable',
+        url:  '/system/log/list',
+        cols: [colsConfig]
+    });
+
+    $('#btnFilter').on('click', function () {
+        ems.colFilter('logTable', colsConfig);
+    });
+
+    $('#btnExport').on('click', function () {
+        ems.exportMenu('logTable', '操作日志');
+    });
+
+    ems.bindSearch('logSearch', 'logTable');
+});
+</script>
+}

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using EnterpriseMS.Common;
+using EnterpriseMS.Services.AI;
+using EnterpriseMS.Services.AI.Models;
 using EnterpriseMS.Services.Interfaces;
 
 namespace EnterpriseMS.Controllers.System;
@@ -17,9 +19,10 @@ public class DebugController : BaseAuthController
 {
     private readonly ISystemSeedService _seedSvc;
     private readonly IPermissionService _permSvc;
+    private readonly IAIService _aiSvc;
 
-    public DebugController(ISystemSeedService seedSvc, IPermissionService permSvc): base(permSvc)
-    { _seedSvc = seedSvc; _permSvc = permSvc; }
+    public DebugController(ISystemSeedService seedSvc, IPermissionService permSvc, IAIService aiSvc): base(permSvc)
+    { _seedSvc = seedSvc; _permSvc = permSvc; _aiSvc = aiSvc; }
 
     // ── 只允许 superadmin 访问的统一检查 ──────────────────────
     private bool IsSuperAdmin()
@@ -110,5 +113,50 @@ public class DebugController : BaseAuthController
         if (!pending.Any())
             return ApiOk("无待执行的迁移，数据库已是最新版本");
         return ApiOk(pending, $"迁移完成，共执行 {pending.Count} 个迁移");
+    }
+
+    // ── 读取 AI 配置（Demo模式时 apiKey 为空）────────────────
+    [HttpGet("ai-config")]
+    public async Task<IActionResult> GetAiConfig()
+    {
+        if (!IsSuperAdmin())
+            return ApiFail("无权限，仅超级管理员可操作");
+        return ApiOk(await _aiSvc.GetConfigAsync());
+    }
+
+    // ── 保存 AI 配置（即时生效，写入 App_Data/ai-config.json）────
+    [HttpPost("ai-config")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveAiConfig([FromBody] AiConfigDto dto)
+    {
+        if (!IsSuperAdmin())
+            return ApiFail("无权限，仅超级管理员可操作");
+        try
+        {
+            await _aiSvc.SaveConfigAsync(dto);
+            return ApiOk("AI 配置已保存，立即生效");
+        }
+        catch (Exception ex)
+        {
+            return ApiFail($"保存失败：{ex.Message}");
+        }
+    }
+
+    // ── 测试 AI 连通性（按前端传入的 key/baseUrl/model 实测一次）──
+    [HttpPost("ai-test")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> TestAiConfig([FromBody] AiConfigDto dto)
+    {
+        if (!IsSuperAdmin())
+            return ApiFail("无权限，仅超级管理员可操作");
+        try
+        {
+            var reply = await _aiSvc.TestConnectionAsync(dto?.ApiKey ?? "", dto?.BaseUrl ?? "", dto?.Model ?? "");
+            return ApiOk(reply, "连接成功");
+        }
+        catch (Exception ex)
+        {
+            return ApiFail($"连接失败：{ex.Message}");
+        }
     }
 }

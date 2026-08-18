@@ -1,328 +1,274 @@
-@using EnterpriseMS.Domain.Entities.Hr
-@using EnterpriseMS.Services.DTOs.System
+@using EnterpriseMS.Common.Extensions
 @using EnterpriseMS.Services.DTOs.Hr
-@using System.Collections.Generic
-@model List<EmployeeContract>
+@using EnterpriseMS.Services.DTOs.System
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
 @{
     ViewData["Title"] = "合同管理";
-    var warnDate = DateTime.Today.AddDays(30);
-    var employees  = ViewBag.Employees  as List<EmployeeSimpleDto>  ?? new();
-    var ctTypes    = ViewBag.ContractTypes as List<DictDataDto>     ?? new();
-    var ctStatusOpts  = ViewBag.ContractStatusOptions as List<DictDataDto> ?? new List<DictDataDto>();
-    var ctStatusMap   = ViewBag.ContractStatusMap  as Dictionary<int, string>  ?? new Dictionary<int, string>();
-    var ctStatusBadge = new Dictionary<int, string> { { 0, "badge-success" }, { 1, "badge-secondary" }, { 2, "badge-danger" } };
+    var userId  = User.GetUserId();
+    bool canAdd    = await PermSvc.HasPermAsync(userId, "hr:contract:add");
+    bool canEdit   = await PermSvc.HasPermAsync(userId, "hr:contract:edit");
+    var employees  = ViewBag.Employees    as List<EmployeeSimpleDto> ?? new();
+    var ctTypes    = ViewBag.ContractTypes as List<DictDataDto>      ?? new();
 }
 
-<div class="content-header"><div class="container-fluid">
-    <div class="row mb-2">
-        <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-file-contract mr-2"></i>合同管理</h1></div>
-        <div class="col-sm-6">
-            <ol class="breadcrumb float-sm-right">
-                <li class="breadcrumb-item"><a href="/">首页</a></li>
-                <li class="breadcrumb-item">员工档案</li>
-                <li class="breadcrumb-item active">合同管理</li>
-            </ol>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-file"></i> 合同管理
     </div>
-</div></div>
-
-<section class="content"><div class="container-fluid">
-
-@if ((int)(ViewBag.WarnCount ?? 0) > 0)
-{
-    <div class="alert alert-warning alert-dismissible">
-        <button type="button" class="close" data-dismiss="alert">×</button>
-        <i class="fas fa-exclamation-triangle mr-2"></i>
-        <strong>到期提醒：</strong>有 <strong>@ViewBag.WarnCount</strong> 份合同将在 30 天内到期。
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">HR管理</a>
+        <a><cite>合同管理</cite></a>
     </div>
-}
-
-    <!-- 搜索 -->
-    <div class="card card-default search-card">
-        <div class="card-body">
-            <form id="searchForm" method="get" action="/hr/contract">
-                <div class="row">
-                    <div class="col-md-3">
-                        <input name="keyword" class="form-control form-control-sm" placeholder="员工姓名 / 合同编号" value="@ViewBag.Keyword">
-                    </div>
-                    <div class="col-md-3">
-                        <select name="status" class="form-control form-control-sm">
-                            <option value="">全部状态</option>
-                            @foreach (var o in ctStatusOpts)
-                            {
-                                <option value="@o.DictValue" selected="@(ViewBag.Status?.ToString()==o.DictValue?"selected":null)">@o.DictLabel</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary btn-sm mr-1"><i class="fas fa-search"></i> 搜索</button>
-                        <a href="/hr/contract" class="btn btn-default btn-sm"><i class="fas fa-redo"></i> 重置</a>
-                    </div>
-                        <div class="col-md-4 text-right">
-                        <button type="button" class="btn btn-success btn-sm" onclick="openAddModal()">
-                            <i class="fas fa-plus"></i> 新增合同
-                        </button>
-                    </div>
-                </div>
-                <input type="hidden" name="page" id="pageInput" value="1">
-            </form>
-        </div>
-    </div>
-
-    <!-- 列表 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">共 @ViewBag.Total 条</h3>
-        </div>
-    <div class="card-body table-responsive p-0">
-        <table class="table table-hover table-sm">
-            <thead class="thead-light">
-                <tr>
-                    <th>员工</th><th>合同编号</th><th>类型</th>
-                    <th>开始日期</th><th>到期日期</th><th>状态</th><th>附件</th><th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var ct in Model)
-                {
-                    var isExpiring = ct.Status == 0 && ct.EndDate <= warnDate;
-                    <tr class="@(isExpiring ? "table-warning" : "")">
-                        <td><strong>@(ct.Employee?.RealName ?? "-")</strong></td>
-                        <td><code class="small">@ct.ContractNo</code></td>
-                        <td>@ct.ContractType</td>
-                        <td class="small">@ct.StartDate.ToString("yyyy-MM-dd")</td>
-                        <td class="small @(isExpiring ? "text-danger font-weight-bold" : "")">
-                            @ct.EndDate.ToString("yyyy-MM-dd")
-                            @if (isExpiring) { <span class="badge badge-warning ml-1">即将到期</span> }
-                        </td>
-                        <td>
-                            <span class="badge @(ctStatusBadge.TryGetValue(ct.Status, out var csb) ? csb : "badge-secondary")">@(ctStatusMap.TryGetValue(ct.Status, out var cst) ? cst : ct.Status.ToString())</span>
-                        </td>
-                        <td>
-                            @if (ct.FileName != null)
-                            {
-                                <div class="d-flex align-items-center flex-wrap gap-1">
-                                    <a href="/hr/contract/download/@ct.Id"
-                                       class="btn btn-xs btn-info" title="下载">
-                                        <i class="fas fa-download"></i>
-                                    </a>
-                                    <label class="btn btn-xs btn-warning mb-0" title="重新上传">
-                                        <i class="fas fa-sync-alt"></i>
-                                        <input type="file" style="display:none"
-                                               onchange="uploadContract(@ct.Id, this)">
-                                    </label>
-                                    <button class="btn btn-xs btn-outline-danger"
-                                            onclick="deleteContractFile(@ct.Id)" title="删除附件">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                    <small class="text-muted d-block w-100 mt-1">
-                                        @(ct.FileName.Length > 16 ? ct.FileName[..16] + "…" : ct.FileName)
-                                    </small>
-                                </div>
-                            }
-                            else
-                            {
-                                <label class="btn btn-xs btn-outline-secondary mb-0" title="上传附件">
-                                    <i class="fas fa-upload"></i> 上传
-                                    <input type="file" style="display:none"
-                                           onchange="uploadContract(@ct.Id, this)">
-                                </label>
-                            }
-                        </td>
-                        <td>
-                            @if (ct.Status == 0)
-                            {
-                                <button class="btn btn-xs btn-warning"
-                                        onclick="terminate(@ct.Id)" title="终止">
-                                    <i class="fas fa-ban"></i>
-                                </button>
-                            }
-                            <button class="btn btn-xs btn-danger"
-                                    onclick="deleteContract(@ct.Id,'@EncodeHelper.SafeEncode(ct.ContractNo)')" title="删除">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                }
-                @if (!Model.Any())
-                {
-                    <tr><td colspan="8" class="text-center text-muted py-4">暂无数据</td></tr>
-                }
-            </tbody>
-        </table>
-    </div>
-    @{
-        var paged = new EnterpriseMS.Common.PagedResult<EmployeeContract>
-        {
-            Items = Model, Total = (int)(ViewBag.Total ?? 0),
-            Page = (int)(ViewBag.Page ?? 1), PageSize = (int)(ViewBag.Size ?? 15)
-        };
-    }
-    <partial name="_Pagination" model="paged" />
 </div>
-</div></section>
+
+<!-- 搜索卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="ctSearch">
+            <div class="layui-inline">
+                <input type="text" name="keyword" placeholder="员工姓名 / 合同编号"
+                       autocomplete="off" class="layui-input">
+            </div>
+            <div class="layui-inline">
+                <select name="status">
+                    <option value="">全部状态</option>
+                    <option value="0">生效中</option>
+                    <option value="1">已到期</option>
+                    <option value="2">已终止</option>
+                </select>
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="ctSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+            </div>
+            <div class="layui-inline ems-search-actions">
+                @if (canAdd)
+                {
+                    <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                        <i class="layui-icon layui-icon-add-1"></i> 新增合同
+                    </button>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 列表卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>合同列表</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
+                <i class="layui-icon layui-icon-cols"></i> 筛选列
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnExport">
+                <i class="layui-icon layui-icon-export"></i> 导出
+            </button>
+        </div>
+    </div>
+    <div class="layui-card-body">
+        <table id="ctTable" lay-filter="ctTable"></table>
+    </div>
+</div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="ctBar">
+    {{# if (d.FileName) { }}
+    <a class="ems-icon-btn primary" title="下载" lay-event="download"><i class="layui-icon layui-icon-download-circle"></i></a>
+    <a class="ems-icon-btn" title="重新上传" lay-event="upload"><i class="layui-icon layui-icon-upload"></i></a>
+    <a class="ems-icon-btn warn" title="删除附件" lay-event="delfile"><i class="layui-icon layui-icon-delete"></i></a>
+    {{# } else { }}
+    <a class="ems-icon-btn" title="上传附件" lay-event="upload"><i class="layui-icon layui-icon-upload"></i></a>
+    {{# } }}
+    @if (canEdit)
+    {
+        <text>
+        {{# if (d.Status === 0) { }}
+        <a class="ems-icon-btn warn" title="终止" lay-event="terminate"><i class="layui-icon layui-icon-close-fill"></i></a>
+        {{# } }}
+        <a class="ems-icon-btn danger" title="删除" lay-event="del"><i class="layui-icon layui-icon-close"></i></a>
+        </text>
+    }
+</script>
 
 <!-- 新增合同弹窗 -->
-<div class="modal fade" id="contractModal" tabindex="-1">
-    <div class="modal-dialog modal-lg"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title">新增合同</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+<div class="ems-modal-box" id="ctModal">
+    <div class="layui-form-item">
+        <label class="layui-form-label">员工 <span class="layui-font-red">*</span></label>
+        <div class="layui-input-block">
+            <select id="cEmpId" class="layui-input">
+                <option value="">-- 请选择员工 --</option>
+                @foreach (var e in employees)
+                {
+                    <option value="@e.Id">@e.Display</option>
+                }
+            </select>
         </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label>员工 <span class="text-danger">*</span></label>
-                <select id="cEmpId" class="form-control">
-                    <option value="">-- 请选择员工 --</option>
-                    @foreach (var e in employees)
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline" style="width:48%">
+            <label class="layui-form-label" style="width:auto">合同编号 <span class="layui-font-red">*</span></label>
+            <div class="layui-input-inline" style="width:62%"><input type="text" id="cNo" class="layui-input" placeholder="如 HT2024-001"></div>
+        </div>
+        <div class="layui-inline" style="width:48%">
+            <label class="layui-form-label" style="width:auto">合同类型</label>
+            <div class="layui-input-inline" style="width:62%">
+                <select id="cType" class="layui-input">
+                    @foreach (var t in ctTypes)
                     {
-                        <option value="@e.Id">@e.Display</option>
+                        <option value="@t.DictValue">@t.DictLabel</option>
                     }
                 </select>
             </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>合同编号 <span class="text-danger">*</span></label>
-                        <input type="text" id="cNo" class="form-control" placeholder="如 HT2024-001">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>合同类型</label>
-                        <select id="cType" class="form-control">
-                            @foreach (var t in ctTypes)
-                            {
-                                <option value="@t.DictValue">@t.DictLabel</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>开始日期 <span class="text-danger">*</span></label>
-                        <input type="date" id="cStart" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>结束日期 <span class="text-danger">*</span></label>
-                        <input type="date" id="cEnd" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>签订日期</label>
-                        <input type="date" id="cSign" class="form-control">
-                    </div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>合同附件 <small class="text-muted">（可选，PDF/Word/图片，最大20MB）</small></label>
-                <div class="custom-file">
-                    <input type="file" class="custom-file-input" id="cFile"
-                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
-                    <label class="custom-file-label" for="cFile">点击选择文件</label>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>备注</label>
-                <textarea id="cRemark" class="form-control" rows="2"></textarea>
-            </div>
         </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary" id="saveBtn" onclick="saveContract()">
-                <i class="fas fa-save mr-1"></i> 保存
-            </button>
+    </div>
+    <div class="layui-form-item">
+        <div class="layui-inline" style="width:32%">
+            <label class="layui-form-label" style="width:auto">开始日期 <span class="layui-font-red">*</span></label>
+            <div class="layui-input-inline" style="width:60%"><input type="date" id="cStart" class="layui-input"></div>
         </div>
-    </div></div>
+        <div class="layui-inline" style="width:32%">
+            <label class="layui-form-label" style="width:auto">结束日期 <span class="layui-font-red">*</span></label>
+            <div class="layui-input-inline" style="width:60%"><input type="date" id="cEnd" class="layui-input"></div>
+        </div>
+        <div class="layui-inline" style="width:32%">
+            <label class="layui-form-label" style="width:auto">签订日期</label>
+            <div class="layui-input-inline" style="width:60%"><input type="date" id="cSign" class="layui-input"></div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">合同附件</label>
+        <div class="layui-input-block"><input type="file" id="cFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="layui-input"></div>
+    </div>
+    <div class="layui-form-item layui-form-text">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block"><textarea id="cRemark" class="layui-textarea" rows="2"></textarea></div>
+    </div>
+    <div class="ems-modal-foot">
+        <button class="layui-btn layui-btn-sm" onclick="closeCtModal()">取消</button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" id="saveBtn" onclick="saveContract()">保存</button>
+    </div>
 </div>
+
+<input type="file" id="ctFileInput" style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
 
 @section Scripts {
 <script>
-var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+ems.ready(function () {
+    var $ = layui.jquery;
+    layui.form.render();
+    var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
+    var curUploadId = 0;
 
-document.getElementById('cFile')?.addEventListener('change', function() {
-    this.nextElementSibling.textContent = this.files[0]?.name ?? '点击选择文件';
+    var colsConfig = [
+        { field: 'Employee', title: '员工', width: 110,
+          templet: function (d) { return '<strong>' + ems.escapeHtml(d.Employee?.RealName || '-') + '</strong>'; } },
+        { field: 'ContractNo', title: '合同编号', width: 140, templet: function (d) { return '<span class="layui-font-12">' + ems.escapeHtml(d.ContractNo || '-') + '</span>'; } },
+        { field: 'ContractType', title: '类型', width: 120, templet: function (d) { return '<span class="layui-badge-rim">' + ems.escapeHtml(d.ContractType || '-') + '</span>'; } },
+        { field: 'StartDate', title: '开始日期', width: 120, templet: function (d) { return d.StartDate ? ems.fmtDate(d.StartDate) : '-'; } },
+        { field: 'EndDate', title: '到期日期', width: 140,
+          templet: function (d) {
+              if (!d.EndDate) return '-';
+              var end = new Date(d.EndDate);
+              var warn = new Date(); warn.setDate(warn.getDate() + 30);
+              var expiring = d.Status === 0 && end <= warn;
+              var cls = expiring ? 'layui-font-red ' : '';
+              var html = '<span class="' + cls + '">' + end.toISOString().slice(0, 10) + '</span>';
+              if (expiring) html += ' <span class="layui-badge layui-bg-orange">即将到期</span>';
+              return html;
+          } },
+        { field: 'Status', title: '状态', width: 100, align: 'center',
+          templet: ems.tpl.badge('Status', { 0: ['生效中', 'green'], 1: ['已到期', 'gray'], 2: ['已终止', 'red'] }) },
+        { title: '操作', width: 160, align: 'center', toolbar: '#ctBar' }
+    ];
+
+    ems.initTable({
+        elem: '#ctTable', id: 'ctTable', url: '/hr/contract/list', cols: [colsConfig],
+        tool: {
+            download: function (d) { window.location.href = '/hr/contract/download/' + d.Id; },
+            upload:   function (d) { curUploadId = d.Id; $('#ctFileInput').click(); },
+            delfile:  function (d) {
+                ems.confirm('确认删除该合同附件？合同记录将保留。', { icon: 3, btn: ['确认删除', '取消'] }, function (i) {
+                    ems.close(i);
+                    $.post('/hr/contract/file/delete/' + d.Id, { __RequestVerificationToken: antiForgery }, function (r) { if (r.success) ems.msg(r.message, { icon: 1, time: 1200 }, reloadCt); else ems.msg(r.message, { icon: 2 }); });
+                });
+            },
+            terminate: function (d) {
+                ems.confirm('确认终止该合同？', { icon: 3, btn: ['确认', '取消'] }, function (i) {
+                    ems.close(i);
+                    $.post('/hr/contract/terminate', { id: d.Id, __RequestVerificationToken: antiForgery }, function (r) { if (r.success) ems.msg(r.message, { icon: 1, time: 1200 }, reloadCt); else ems.msg(r.message, { icon: 2 }); });
+                });
+            },
+            del:      function (d) {
+                ems.confirm('确认永久删除合同 <b>' + ems.escapeHtml(d.ContractNo) + '</b>？', { icon: 3, btn: ['确认删除', '取消'] }, function (i) {
+                    ems.close(i);
+                    $.post('/hr/contract/delete/' + d.Id, { __RequestVerificationToken: antiForgery }, function (r) { if (r.success) ems.msg(r.message, { icon: 1, time: 1200 }, reloadCt); else ems.msg(r.message, { icon: 2 }); });
+                });
+            }
+        }
+    });
+
+    function reloadCt() { layui.table.reload('ctTable'); }
+    $('#ctFileInput').on('change', function () { uploadCt(curUploadId, this); });
+
+    $('#btnAdd').on('click', function () {
+        ['cEmpId', 'cNo', 'cSign', 'cRemark'].forEach(function (id) { $('#' + id).val(''); });
+        var today = new Date().toISOString().split('T')[0];
+        var next  = new Date(); next.setFullYear(next.getFullYear() + 1);
+        $('#cStart').val(today);
+        $('#cEnd').val(next.toISOString().split('T')[0]);
+        $('#cFile').val('');
+        layui.form.render('select');
+        layer.open({ type: 1, title: '新增合同', area: ['640px'], content: $('#ctModal'), shadeClose: false,
+            success: function () { layui.form.render('select'); } });
+    });
+
+    window.closeCtModal = function () { layer.closeAll(); };
+
+    window.saveContract = function () {
+        var empId = parseInt($('#cEmpId').val()), no = $('#cNo').val();
+        var start = $('#cStart').val(), end = $('#cEnd').val();
+        if (!empId || !no || !start || !end) { ems.msg('请填写员工、合同编号、起止日期', { icon: 2 }); return; }
+        var fd = new FormData();
+        fd.append('EmployeeId', empId);
+        fd.append('ContractNo', no);
+        fd.append('ContractType', $('#cType').val());
+        fd.append('StartDate', start);
+        fd.append('EndDate', end);
+        if ($('#cSign').val()) fd.append('SignDate', $('#cSign').val());
+        fd.append('Remark', $('#cRemark').val());
+        var file = document.getElementById('cFile').files[0];
+        if (file) fd.append('file', file);
+        $('#saveBtn').prop('disabled', true);
+        var load = ems.loading(1);
+        $.ajax({ url: '/hr/contract/create-with-file', type: 'POST', data: fd, processData: false, contentType: false,
+            success: function (r) {
+                ems.close(load); $('#saveBtn').prop('disabled', false);
+                if (r.success) { layer.closeAll(); ems.msg(r.message, { icon: 1, time: 1200 }, reloadCt); }
+                else ems.msg(r.message, { icon: 2 });
+            },
+            error: function () { ems.close(load); $('#saveBtn').prop('disabled', false); ems.msg('请求失败', { icon: 2 }); }
+        });
+    };
+
+    window.uploadCt = function (id, input) {
+        if (!input.files[0]) return;
+        var fd = new FormData(); fd.append('file', input.files[0]);
+        var load = ems.loading(1);
+        $.ajax({ url: '/hr/contract/upload/' + id, type: 'POST', data: fd, processData: false, contentType: false,
+            headers: { 'RequestVerificationToken': antiForgery },
+            success: function (r) { ems.close(load); input.value = ''; if (r.success) ems.msg('上传成功', { icon: 1, time: 1200 }, reloadCt); else ems.msg(r.message, { icon: 2 }); },
+            error: function () { ems.close(load); input.value = ''; ems.msg('上传失败', { icon: 2 }); }
+        });
+    };
+
+    $('#btnFilter').on('click', function () { ems.colFilter('ctTable', colsConfig); });
+    $('#btnExport').on('click', function () { ems.exportMenu('ctTable', '合同列表'); });
+
+    ems.bindSearch('ctSearch', 'ctTable');
 });
-
-function openAddModal() {
-    ['cEmpId','cNo','cSign','cRemark'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('cStart').value = new Date().toISOString().split('T')[0];
-    var d = new Date(); d.setFullYear(d.getFullYear()+1);
-    document.getElementById('cEnd').value = d.toISOString().split('T')[0];
-    document.getElementById('cFile').value = '';
-    document.querySelector('label[for="cFile"]').textContent = '点击选择文件';
-    $('#contractModal').modal('show');
-}
-
-function saveContract() {
-    var empId = $('#cEmpId').val(), no = $('#cNo').val();
-    var start = $('#cStart').val(), end = $('#cEnd').val();
-    if (!empId || !no || !start || !end) {
-        ems.msg('请填写员工、合同编号、起止日期', {icon:2}); return;
-    }
-    var file = document.getElementById('cFile').files[0];
-    var fd   = new FormData();
-    fd.append('EmployeeId',   empId);
-    fd.append('ContractNo',   no);
-    fd.append('ContractType', $('#cType').val());
-    fd.append('StartDate',    start);
-    fd.append('EndDate',      end);
-    if ($('#cSign').val()) fd.append('SignDate', $('#cSign').val());
-    fd.append('Remark', $('#cRemark').val());
-    if (file) fd.append('file', file);
-
-    $('#saveBtn').prop('disabled', true);
-    var load = ems.loading(1);
-    $.ajax({ url: '/hr/contract/create-with-file', type: 'POST',
-        data: fd, processData: false, contentType: false,
-        headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) {
-            ems.close(load); $('#saveBtn').prop('disabled', false);
-            if (r.success) { $('#contractModal').modal('hide'); handleResult(r, ()=>location.reload()); }
-            else ems.msg(r.message, {icon:2});
-        },
-        error: function() { ems.close(load); $('#saveBtn').prop('disabled', false); ems.msg('请求失败', {icon:2}); }
-    });
-}
-
-function terminate(id) {
-    ems.confirm('确认终止该合同？', {icon:3, btn:['确认','取消']}, function(i) {
-        ems.close(i);
-        $.post('/hr/contract/terminate', {id, __RequestVerificationToken: antiForgery},
-            function(r) { handleResult(r, ()=>location.reload()); });
-    });
-}
-
-function deleteContract(id, no) {
-    ems.confirm('确认永久删除合同 <b>' + no + '</b>？', {icon:3, btn:['确认删除','取消']}, function(i) {
-        ems.close(i);
-        $.post('/hr/contract/delete/' + id, {__RequestVerificationToken: antiForgery},
-            function(r) { handleResult(r, ()=>location.reload()); });
-    });
-}
-
-function uploadContract(id, input) {
-    if (!input.files[0]) return;
-    var fd = new FormData(); fd.append('file', input.files[0]);
-    var load = ems.loading(1);
-    $.ajax({ url: '/hr/contract/upload/' + id, type: 'POST',
-        data: fd, processData: false, contentType: false,
-        headers: { 'RequestVerificationToken': antiForgery },
-        success: function(r) { ems.close(load); handleResult(r, ()=>location.reload()); }
-    });
-}
-
-function deleteContractFile(id) {
-    ems.confirm('确认删除该合同附件？合同记录将保留。', {icon:3, btn:['确认删除','取消']}, function(i) {
-        ems.close(i);
-        $.post('/hr/contract/file/delete/' + id, {__RequestVerificationToken: antiForgery},
-            function(r) { handleResult(r, ()=>location.reload()); });
-    });
-}
 </script>
 }

@@ -1,4 +1,8 @@
 @{
+    // 登录页：Layout = null（不能走 _Layout —— 其内含「跳回主框架」脚本，会造成登录死循环）。
+    // 自包含：只引 layui.css（提供 layui-icon / layui-input / layui-btn），
+    // 已彻底移除 AdminLTE / FontAwesome / Bootstrap 依赖（这些库在 wwwroot/lib 下也已不存在）。
+    // 配色对齐全站主色 青绿 #0d6b64 / 深石板灰 #0f172a。
     Layout = null;
     ViewData["Title"] = "登录";
 }
@@ -8,14 +12,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>企业管理信息系统 - 登录</title>
-    <link rel="stylesheet" href="~/lib/adminlte/css/adminlte.min.css">
-    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css">
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css">
     <style>
         *, *::before, *::after { box-sizing: border-box; }
         body {
             margin: 0;
             min-height: 100vh;
-            background: #eef2f7;
+            background: #f0f2f5;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -33,7 +36,7 @@
         /* ── 左侧装饰面板 ── */
         .login-panel {
             flex: 1;
-            background: linear-gradient(150deg, #1a6db5 0%, #0d4d8a 55%, #062f5e 100%);
+            background: linear-gradient(150deg, #0d6b64 0%, #0a544f 55%, #0f172a 100%);
             padding: 48px 40px;
             display: flex;
             flex-direction: column;
@@ -71,10 +74,10 @@
             align-items: center;
             justify-content: center;
         }
-        .panel-brand-icon i { color: white; font-size: 16px; }
-        .panel-brand-name { color: white; font-size: 16px; font-weight: 600; letter-spacing: .3px; }
+        .panel-brand-icon i { color: #fff; font-size: 18px; }
+        .panel-brand-name { color: #fff; font-size: 16px; font-weight: 600; letter-spacing: .3px; }
         .panel-content { position: relative; z-index: 1; }
-        .panel-content h2 { color: white; font-size: 26px; font-weight: 600; line-height: 1.45; margin-bottom: 14px; }
+        .panel-content h2 { color: #fff; font-size: 26px; font-weight: 600; line-height: 1.45; margin-bottom: 14px; }
         .panel-content p { color: rgba(255,255,255,.6); font-size: 14px; line-height: 1.8; }
         .panel-dots { display: flex; gap: 6px; }
         .panel-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.25); }
@@ -87,8 +90,8 @@
             flex-direction: column;
             justify-content: center;
         }
-        .login-form-wrap h1 { font-size: 22px; font-weight: 600; color: #1a1a2e; margin-bottom: 6px; }
-        .login-form-wrap .login-subtitle { font-size: 14px; color: #888; margin-bottom: 32px; }
+        .login-form-wrap h1 { font-size: 22px; font-weight: 600; color: #1f2d3d; margin-bottom: 6px; }
+        .login-form-wrap .login-subtitle { font-size: 14px; color: #8a94a6; margin-bottom: 32px; }
         .form-field { margin-bottom: 18px; }
         .form-field label { display: block; font-size: 13px; font-weight: 500; color: #555; margin-bottom: 6px; }
         .input-group-custom { position: relative; }
@@ -98,12 +101,15 @@
             top: 50%;
             transform: translateY(-50%);
             color: #bbb;
-            font-size: 14px;
+            font-size: 15px;
             pointer-events: none;
+            z-index: 1;
         }
-        .input-group-custom input {
+        /* 覆盖 layui-input 默认尺寸，保留本页图标内嵌输入框的设计 */
+        .input-group-custom .layui-input {
             width: 100%;
             height: 42px;
+            line-height: 42px;
             padding: 0 12px 0 38px;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
@@ -113,25 +119,28 @@
             outline: none;
             transition: border-color .15s, box-shadow .15s, background .15s;
         }
-        .input-group-custom input:focus {
-            border-color: #378ADD;
+        .input-group-custom .layui-input:focus {
+            border-color: #0d6b64;
             background: #fff;
-            box-shadow: 0 0 0 3px rgba(55,138,221,.12);
+            box-shadow: 0 0 0 3px rgba(13,107,100,.12);
         }
         .alert-login {
-            background: #fff5f5;
-            border: 1px solid #fecdcc;
+            background: #fdecec;
+            border: 1px solid #f9d6d6;
             border-radius: 8px;
             padding: 10px 14px;
             font-size: 13px;
             color: #c0392b;
             margin-bottom: 18px;
         }
+        .alert-login i { margin-right: 4px; font-size: 14px; }
+        /* 覆盖 layui-btn 默认尺寸/配色 */
         .btn-submit {
             width: 100%;
             height: 42px;
-            background: #185FA5;
-            color: white;
+            line-height: 42px;
+            background: #0d6b64;
+            color: #fff;
             border: none;
             border-radius: 8px;
             font-size: 14px;
@@ -140,8 +149,9 @@
             transition: background .15s;
             margin-bottom: 22px;
             letter-spacing: .5px;
+            padding: 0;
         }
-        .btn-submit:hover { background: #0d4d8a; }
+        .btn-submit:hover { background: #0a544f; color: #fff; }
         .btn-submit:active { transform: scale(.99); }
         .demo-divider {
             display: flex;
@@ -163,7 +173,7 @@
             text-align: center;
             transition: border-color .15s, background .15s;
         }
-        .demo-btn:hover { border-color: #bbb; background: #f0f0f0; }
+        .demo-btn:hover { border-color: #0d6b64; background: #e8f3f1; }
         .demo-btn strong { display: block; font-weight: 600; color: #333; font-size: 12px; margin-bottom: 2px; }
         .demo-btn span { font-size: 11px; opacity: .7; }
         .login-footer { font-size: 12px; color: #ccc; text-align: center; margin-top: 22px; }
@@ -179,7 +189,7 @@
         <div class="login-panel">
             <div class="panel-brand">
                 <div class="panel-brand-icon">
-                    <i class="fas fa-layer-group"></i>
+                    <i class="layui-icon layui-icon-app"></i>
                 </div>
                 <span class="panel-brand-name"><b>企业</b>管理系统</span>
             </div>
@@ -202,7 +212,7 @@
             @if (!ViewData.ModelState.IsValid)
             {
                 <div class="alert-login">
-                    <i class="fas fa-exclamation-circle mr-1"></i>
+                    <i class="layui-icon layui-icon-tips"></i>
                     @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
                     {
                         <span>@err.ErrorMessage</span>
@@ -210,15 +220,15 @@
                 </div>
             }
 
-            <form asp-action="Login" asp-controller="Account" method="post">
+            <form class="layui-form" asp-action="Login" asp-controller="Account" method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="@ViewBag.ReturnUrl">
 
                 <div class="form-field">
                     <label>用户名</label>
                     <div class="input-group-custom">
-                        <i class="fas fa-user field-icon"></i>
-                        <input type="text" name="username" placeholder="请输入用户名"
+                        <i class="layui-icon layui-icon-username field-icon"></i>
+                        <input type="text" name="username" class="layui-input" placeholder="请输入用户名"
                                required autofocus autocomplete="username">
                     </div>
                 </div>
@@ -226,13 +236,13 @@
                 <div class="form-field">
                     <label>密码</label>
                     <div class="input-group-custom">
-                        <i class="fas fa-lock field-icon"></i>
-                        <input type="password" name="password" placeholder="请输入密码"
+                        <i class="layui-icon layui-icon-password field-icon"></i>
+                        <input type="password" name="password" class="layui-input" placeholder="请输入密码"
                                required autocomplete="current-password">
                     </div>
                 </div>
 
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="layui-btn btn-submit">
                     登 录
                 </button>
             </form>
@@ -254,8 +264,6 @@
         </div>
     </div>
 
-    <script src="~/lib/jquery/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script>
         function fillDemoAccount(username, password) {
             document.querySelector('input[name="username"]').value = username;

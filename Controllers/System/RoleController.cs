@@ -33,6 +33,12 @@ public class RoleController : BaseAuthController
         return View(result);
     }
 
+    // 列表页 AJAX 数据源（前端 layui 表格调用）
+    [HttpGet("list")]
+    [HasPermission("sys:role:list")]
+    public async Task<IActionResult> List(string? keyword, int page = 1, int size = 10)
+        => ApiOk(await _roleSvc.GetPagedAsync(keyword, page, size));
+
     [HttpGet("detail/{id}")]
     [HasPermission("sys:role:list")]
     public async Task<IActionResult> Detail(long id)
@@ -49,6 +55,36 @@ public class RoleController : BaseAuthController
     {
         var tree = await _menuSvc.GetTreeAsync();
         return ApiOk(tree);
+    }
+
+    // 新增 / 编辑表单（iframe 弹层）
+    [HttpGet("form")]
+    [HasPermission("sys:role:list")]
+    public async Task<IActionResult> Form(long? id)
+    {
+        RoleListDto? model = null;
+        if (id.HasValue)
+        {
+            model = await _roleSvc.GetByIdAsync(id.Value);
+            if (model == null) return NotFound();
+        }
+        return View(model);
+    }
+
+    // 分配权限（iframe 弹层）
+    [HttpGet("perm")]
+    [HasPermission("sys:role:perm")]
+    public async Task<IActionResult> Perm(long id)
+    {
+        var role = await _roleSvc.GetByIdAsync(id);
+        if (role == null) return NotFound();
+        var menuIds = await _roleSvc.GetRoleMenuIdsAsync(id);
+        ViewBag.RoleId = role.Id;
+        ViewBag.RoleName = role.RoleName;
+        ViewBag.MenuIds = menuIds;
+        // 菜单树预渲染（原前端 ems.get('/system/role/menutree') 打开时异步 → 改为服务端同步，避免弹窗偏下）
+        ViewBag.MenuTree = await _menuSvc.GetTreeAsync();
+        return View();
     }
 
     [HttpPost("create"), ValidateAntiForgeryToken]

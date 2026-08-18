@@ -16,21 +16,51 @@ public class KbController : BaseAuthController
 {
     private readonly IUnitOfWork    _uow;
     private readonly IKbService     _kbSvc;
+    private readonly IPermissionService _permSvc;
     public KbController(IUnitOfWork uow, IKbService kbSvc, IPermissionService permSvc)
         : base(permSvc)
-    { _uow = uow; _kbSvc = kbSvc; }
+    { _uow = uow; _kbSvc = kbSvc; _permSvc = permSvc; }
 
     // ── 文件浏览（所有登录用户）──────────────────────────────
     [HasPermission("kb:file:list")]
-    public async Task<IActionResult> Index(long? categoryId, string? keyword, int page = 1, int size = 20)
+    public async Task<IActionResult> Index()
     {
-        var categories = await _uow.KbCategories.Query()
+        ViewBag.Categories = await _uow.KbCategories.Query()
             .Where(c => c.Status == 1).OrderBy(c => c.Sort).ToListAsync();
+        return View();
+    }
 
-        var q = _uow.KbFiles.Query()
-            .Include(f => f.Category)
-            .Where(f => f.Status == 1);
+    // ── 管理页（需要权限）───────────────────────────────────
+    [HttpGet("manage")]
+    [HasPermission("kb:file:manage")]
+    public async Task<IActionResult> Manage()
+    {
+        var userId = User.GetUserId();
+        ViewBag.Categories = await _uow.KbCategories.Query()
+            .Where(c => c.Status == 1).OrderBy(c => c.Sort).ToListAsync();
+        ViewBag.CanUpload = await _permSvc.HasPermAsync(userId, "kb:file:upload");
+        ViewBag.CanDelete = await _permSvc.HasPermAsync(userId, "kb:file:delete");
+        ViewBag.CanManage = await _permSvc.HasPermAsync(userId, "kb:file:manage");
+        return View();
+    }
 
+    // ── AJAX 列表（公开浏览：仅启用文件）─────────────────────
+    [HttpGet("list")]
+    [HasPermission("kb:file:list")]
+    public async Task<IActionResult> List(long? categoryId, string? keyword, int page = 1, int size = 20)
+        => ApiOk(await QueryKbAsync(categoryId, keyword, page, size, false));
+
+    // ── AJAX 列表（后台管理：含禁用文件）─────────────────────
+    [HttpGet("admin-list")]
+    [HasPermission("kb:file:manage")]
+    public async Task<IActionResult> AdminList(long? categoryId, string? keyword, int page = 1, int size = 20)
+        => ApiOk(await QueryKbAsync(categoryId, keyword, page, size, true));
+
+    /// <summary>共享查询：投影为扁平结构，规避 KbCategory.Files 导航循环引用。</summary>
+    private async Task<PagedResult<object>> QueryKbAsync(long? categoryId, string? keyword, int page, int size, bool admin)
+    {
+        var q = _uow.KbFiles.Query().Include(f => f.Category).AsQueryable();
+        if (!admin) q = q.Where(f => f.Status == 1);
         if (categoryId.HasValue) q = q.Where(f => f.CategoryId == categoryId.Value);
         if (!string.IsNullOrWhiteSpace(keyword))
             q = q.Where(f => f.FileName.Contains(keyword) ||
@@ -39,45 +69,24 @@ public class KbController : BaseAuthController
         var total = await q.CountAsync();
         var list  = await q.OrderByDescending(f => f.IsPinned)
                            .ThenByDescending(f => f.CreatedAt)
-                           .Skip((page-1)*size).Take(size).ToListAsync();
+                           .Skip((page - 1) * size).Take(size).ToListAsync();
 
-        ViewBag.Categories  = categories;
-        ViewBag.CategoryId  = categoryId;
-        ViewBag.Keyword     = keyword;
-        ViewBag.Total       = total;
-        ViewBag.Page        = page;
-        ViewBag.Size        = size;
-        return View(list);
+        var items = list.Select(f => new
+        {
+            f.Id, f.FileName, f.OriginalName, f.Description,
+            CategoryName = f.Category != null ? f.Category.Name : "-",
+            f.FileSize, FileSizeText = FileSizeText(f.FileSize), f.FileExt,
+            f.Version, f.IsPinned, f.Status, f.DownloadCount, f.CreatedBy, f.CreatedAt,
+            CanPreview = new[] { "pdf", "jpg", "jpeg", "png" }.Contains((f.FileExt ?? "").ToLower())
+        }).Cast<object>().ToList();
+
+        return new PagedResult<object> { Items = items, Total = total, Page = page, PageSize = size };
     }
 
-    // ── 管理页（需要权限）───────────────────────────────────
-    [HttpGet("manage")]
-    [HasPermission("kb:file:manage")]
-    public async Task<IActionResult> Manage(long? categoryId, string? keyword, int page = 1, int size = 20)
-    {
-        var categories = await _uow.KbCategories.Query()
-            .Where(c => c.Status == 1).OrderBy(c => c.Sort).ToListAsync();
-
-        var q = _uow.KbFiles.Query()
-            .Include(f => f.Category)
-            .AsQueryable();
-
-        if (categoryId.HasValue) q = q.Where(f => f.CategoryId == categoryId.Value);
-        if (!string.IsNullOrWhiteSpace(keyword))
-            q = q.Where(f => f.FileName.Contains(keyword));
-
-        var total = await q.CountAsync();
-        var list  = await q.OrderByDescending(f => f.CreatedAt)
-                           .Skip((page-1)*size).Take(size).ToListAsync();
-
-        ViewBag.Categories = categories;
-        ViewBag.CategoryId = categoryId;
-        ViewBag.Keyword    = keyword;
-        ViewBag.Total      = total;
-        ViewBag.Page       = page;
-        ViewBag.Size       = size;
-        return View(list);
-    }
+    private static string FileSizeText(long size)
+        => size < 1024 ? $"{size}B"
+         : size < 1048576 ? $"{size / 1024d:N1}KB"
+         : $"{size / 1048576d:N1}MB";
 
     // ── 上传文件 ────────────────────────────────────────────
     [HttpPost("upload"), ValidateAntiForgeryToken]

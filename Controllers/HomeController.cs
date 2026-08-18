@@ -24,7 +24,12 @@ public class HomeController : BaseAuthController
         _db = db;
     }
 
-    public async Task<IActionResult> Index()
+    /// <summary>主框架页（layui 多标签外壳），本身不承载业务内容</summary>
+    public IActionResult Index() => View();
+
+    /// <summary>仪表盘内容页，作为主框架默认打开的第一个标签</summary>
+    [HttpGet("home/console")]
+    public async Task<IActionResult> Console()
     {
         ViewBag.Stats = await _projSvc.GetDashboardStatsAsync();
         return View();

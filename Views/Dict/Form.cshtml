@@ -1,0 +1,100 @@
+@using EnterpriseMS.Services.DTOs.System
+@model DictTypeDto
+@{
+    var isEdit = Model != null;
+    var isDialog = Context.Request.Query["_dialog"] == "1";
+    ViewData["Title"] = isEdit ? "编辑字典类型" : "新增字典类型";
+}
+
+<div class="ems-page @(isDialog ? "ems-dialog" : "")">
+@if (!isDialog)
+{
+<div class="ems-page-head">
+    <div class="ems-page-title">@(isEdit ? "编辑字典类型" : "新增字典类型")</div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>@(isEdit ? "编辑" : "新增")</cite></a>
+    </div>
+</div>
+}
+
+<form class="layui-form" lay-filter="dictForm">
+<div class="layui-card ems-card">
+    <div class="layui-card-body">
+        <input type="hidden" name="Id" value="@(Model?.Id)">
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">类型名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="DictName" value="@Model?.DictName" maxlength="50"
+                       lay-verify="required" placeholder="如：用户状态" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">类型编码</label>
+            <div class="layui-input-block">
+                <input type="text" name="DictType" value="@Model?.DictType" maxlength="50"
+                       lay-verify="required" placeholder="如：sys_user_status" autocomplete="off"
+                       class="layui-input" disabled="@isEdit">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">状态</label>
+            <div class="layui-input-block">
+                @{
+                    var statusVal = Model?.Status ?? 1;
+                }
+                <input type="radio" name="Status" value="1" title="正常" @(statusVal == 1 ? "checked" : "")>
+                <input type="radio" name="Status" value="0" title="停用" @(statusVal == 0 ? "checked" : "")>
+            </div>
+        </div>
+
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">备注</label>
+            <div class="layui-input-block">
+                <textarea name="Remark" placeholder="请输入备注" class="layui-textarea">@Model?.Remark</textarea>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="ems-form-foot">
+    <button class="layui-btn" lay-submit lay-filter="dictForm">
+        <i class="layui-icon layui-icon-ok"></i> 保存
+    </button>
+    <button type="button" class="layui-btn layui-btn-primary" id="btnCancel">
+        <i class="layui-icon layui-icon-close"></i> 取消
+    </button>
+</div>
+</form>
+</div>
+
+@section Scripts {
+<script>
+ems.ready(function () {
+    var isEdit = @(isEdit ? "true" : "false");
+
+    ems.bindSubmit('dictForm', function (field) {
+        field.Status = Number(field.Status);
+        if (isEdit) {
+            field.Id = Number(field.Id);
+            return {
+                url: '/system/dict/type/update',
+                data: field,
+                table: 'dictTable'
+            };
+        }
+        delete field.Id;
+        return {
+            url: '/system/dict/type/create',
+            data: field,
+            table: 'dictTable'
+        };
+    });
+
+    $('#btnCancel').on('click', function () { ems.closeSelf(); });
+});
+</script>
+}

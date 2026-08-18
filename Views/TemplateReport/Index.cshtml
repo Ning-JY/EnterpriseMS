@@ -1,730 +1,836 @@
-@model object
 @{
     ViewData["Title"] = "模板化报告生成";
-    Layout = "_Layout";
 }
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6">
-                <h1 class="m-0">模板化报告生成</h1>
-            </div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item">造价小工具</li>
-                    <li class="breadcrumb-item"><a href="/templatereport/manage">成果报告模板</a></li>
-                    <li class="breadcrumb-item active">模板化报告生成</li>
-                </ol>
-            </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-file-b"></i> 模板化报告生成
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">造价小工具</a>
+        <a href="javascript:ems.openTab('/templatereport/manage','成果报告模板')">成果报告模板</a>
+        <a><cite>模板化报告生成</cite></a>
+    </div>
+</div>
+
+<!-- 步骤条 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-body">
+        <div class="layui-btn-container" id="wizSteps">
+            <button type="button" class="layui-btn layui-btn-sm" data-step="1">1. 选择模板</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" data-step="2">2. 导入 Excel</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" data-step="3">3. 字段映射</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" data-step="4">4. 补充填写</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" data-step="5">5. 预览</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" data-step="6">6. 生成下载</button>
         </div>
     </div>
 </div>
 
-<section class="content">
-    <div class="container-fluid">
-
-        @* 向导步骤条 *@
-        <div class="card card-outline card-primary mb-3">
-            <div class="card-body py-3">
-                <div class="wizard-stepper">
-                    <div class="wizard-step active" id="wizStep1">
-                        <div class="step-circle">1</div>
-                        <div class="step-label">选择模板</div>
-                    </div>
-                    <div class="wizard-step" id="wizStep2">
-                        <div class="step-circle">2</div>
-                        <div class="step-label">导入Excel</div>
-                    </div>
-                    <div class="wizard-step" id="wizStep3">
-                        <div class="step-circle">3</div>
-                        <div class="step-label">字段映射</div>
-                    </div>
-                    <div class="wizard-step" id="wizStep4">
-                        <div class="step-circle">4</div>
-                        <div class="step-label">补充填写</div>
-                    </div>
-                    <div class="wizard-step" id="wizStep5">
-                        <div class="step-circle">5</div>
-                        <div class="step-label">预览</div>
-                    </div>
-                    <div class="wizard-step" id="wizStep6">
-                        <div class="step-circle">6</div>
-                        <div class="step-label">生成下载</div>
-                    </div>
-                </div>
-            </div>
+<!-- 步骤1：选择模板 -->
+<div class="layui-card ems-card" id="wizContent1">
+    <div class="layui-card-header">
+        <span><i class="layui-icon layui-icon-template-1"></i> 步骤 1：选择报告模板</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" id="btnGoConfig">
+                <i class="layui-icon layui-icon-set"></i> 配置新模板
+            </button>
         </div>
-
-        @* 步骤1: 选择模板 *@
-        <div id="wizContent1" class="card">
-            <div class="card-header bg-primary text-white">
-                <i class="fas fa-file-word mr-1"></i>步骤1: 选择报告模板
-            </div>
-            <div class="card-body">
-                <div class="row" id="templateList">
-                    <div class="col-12 text-center text-muted py-4">
-                        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
-                        <p>加载模板列表...</p>
-                    </div>
-                </div>
-                <div class="text-right mt-3">
-                    <button class="btn btn-primary" onclick="goWizardStep(2)" id="btnStep1Next" disabled>
-                        下一步<i class="fas fa-arrow-right ml-1"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        @* 步骤2: 导入Excel *@
-        <div id="wizContent2" class="card" style="display:none;">
-            <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <span><i class="fas fa-file-excel mr-1"></i>步骤2: 导入Excel数据</span>
-                <button class="btn btn-sm btn-light" onclick="goWizardStep(1)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
-            </div>
-            <div class="card-body">
-                <div class="mb-3">
-                    <input type="file" id="excelUpload" accept=".xlsx,.xls" style="display:none">
-                    <button class="btn btn-primary" onclick="document.getElementById('excelUpload').click()">
-                        <i class="fas fa-folder-open mr-1"></i>选择Excel文件
-                    </button>
-                    <span id="excelFileName" class="ml-2 text-muted"></span>
-                </div>
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="card">
-                            <div class="card-header bg-info text-white py-2">
-                                <i class="fas fa-folder-open mr-1"></i>项目结构
-                            </div>
-                            <div class="card-body p-2 tree-scroll" id="excelTree">
-                                <div class="text-muted small">请先导入Excel</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-9">
-                        <div class="alert alert-info small mb-0">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            导入Excel后，点击左侧项目名称查看数据预览
-                        </div>
-                        <div id="excelPreview" class="mt-3"></div>
-                    </div>
-                </div>
-                <div class="text-right mt-3">
-                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(1)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
-                    <button class="btn btn-primary" onclick="goWizardStep(3)" id="btnStep2Next" disabled>
-                        下一步<i class="fas fa-arrow-right ml-1"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        @* 步骤3: 字段映射 *@
-        <div id="wizContent3" class="card" style="display:none;">
-            <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <span><i class="fas fa-map mr-1"></i>步骤3: 字段映射</span>
-                <button class="btn btn-sm btn-light" onclick="goWizardStep(2)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info small">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    为Excel中的每一列选择对应的模板字段。带 <span class="text-danger">*</span> 的为必填字段。
-                </div>
-                <div class="mapping-scroll" id="mappingTable">
-                    <div class="text-muted text-center py-3">请先导入Excel并选择项目</div>
-                </div>
-                <div class="text-right mt-3">
-                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(2)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
-                    <button class="btn btn-success" onclick="confirmMappingAndNext()">
-                        <i class="fas fa-check mr-1"></i>确认映射并继续
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        @* 步骤4: 补充填写 *@
-        <div id="wizContent4" class="card" style="display:none;">
-            <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <span><i class="fas fa-edit mr-1"></i>步骤4: 补充填写信息</span>
-                <button class="btn btn-sm btn-light" onclick="goWizardStep(3)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info small">
-                    <i class="fas fa-info-circle mr-1"></i>
-                    以下字段需要手动填写（未从Excel映射的字段）。
-                </div>
-                <div class="row" id="supplementaryFields">
-                    <div class="col-12 text-muted text-center py-3">加载中...</div>
-                </div>
-
-                <!-- 高级字段：列表(循环)/图片 -->
-                <div class="mt-3">
-                    <button class="btn btn-sm btn-outline-info" type="button" data-toggle="collapse" data-target="#advFields">
-                        <i class="fas fa-plus mr-1"></i>列表/图片字段（循环表格、插入图片）
-                    </button>
-                    <div class="collapse mt-2" id="advFields">
-                        <div class="card card-outline card-info p-3">
-                            <div class="form-group">
-                                <label>列表字段（JSON）</label>
-                                <textarea id="listFieldsInput" class="form-control" rows="4" placeholder='{"业绩":[{"项目名":"A","金额":"100"},{"项目名":"B","金额":"200"}]}'></textarea>
-                                <small class="form-text text-muted">JSON 对象：键=字段名，值=行数组。模板中该字段所在表格行用 {{字段名.子字段}} 循环。</small>
-                            </div>
-                            <hr>
-                            <label>图片字段</label>
-                            <div id="imageFieldRows"></div>
-                            <button type="button" class="btn btn-sm btn-success" onclick="addImageRow()"><i class="fas fa-plus mr-1"></i>添加图片</button>
-                            <small class="form-text text-muted">模板中 {{字段名}} 处插入图片。</small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="text-right mt-3">
-                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(3)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
-                    <button class="btn btn-primary" onclick="goWizardStep(5)">
-                        下一步<i class="fas fa-arrow-right ml-1"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        @* 步骤5: 预览 *@
-        <div id="wizContent5" class="card" style="display:none;">
-            <div class="card-header bg-primary text-white d-flex justify-content-between">
-                <span><i class="fas fa-eye mr-1"></i>步骤5: 预览报告</span>
-                <button class="btn btn-sm btn-light" onclick="goWizardStep(4)"><i class="fas fa-arrow-left mr-1"></i>返回</button>
-            </div>
-            <div class="card-body">
-                <div id="previewContent" style="max-height:60vh;overflow-y:auto;">
-                    <div class="text-muted text-center py-4">
-                        <i class="fas fa-spinner fa-spin fa-2x mb-2"></i>
-                        <p>正在生成预览...</p>
-                    </div>
-                </div>
-                <div class="text-right mt-3">
-                    <button class="btn btn-secondary mr-2" onclick="goWizardStep(4)"><i class="fas fa-arrow-left mr-1"></i>上一步</button>
-                    <button class="btn btn-success" onclick="goWizardStep(6)">
-                        <i class="fas fa-download mr-1"></i>生成并下载
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        @* 步骤6: 生成下载 *@
-        <div id="wizContent6" class="card" style="display:none;">
-            <div class="card-header bg-success text-white">
-                <i class="fas fa-check-circle mr-1"></i>步骤6: 报告已生成
-            </div>
-            <div class="card-body text-center py-5">
-                <i class="fas fa-file-word fa-4x text-success mb-3"></i>
-                <h4>报告生成成功！</h4>
-                <p class="text-muted">文件已自动下载，如未下载请点击下方按钮</p>
-                <button class="btn btn-success btn-lg mt-3" onclick="downloadReport()">
-                    <i class="fas fa-download mr-1"></i>重新下载
-                </button>
-                <button class="btn btn-outline-primary mt-3 ml-2" onclick="resetWizard()">
-                    <i class="fas fa-redo mr-1"></i>重新开始
-                </button>
-            </div>
-        </div>
-
     </div>
-</section>
+    <div class="layui-card-body">
+        <div class="ems-alert teal">选择一个报告模板后进入下一步；如无可用模板，请先前往「配置新模板」。</div>
+        <table id="wizTplTable" lay-filter="wizTplTable"></table>
+        <div class="ems-form-foot">
+            <button type="button" class="layui-btn layui-btn-normal layui-btn-disabled" id="btnStep1Next" disabled>
+                下一步 <i class="layui-icon layui-icon-next"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 步骤2：导入 Excel -->
+<div class="layui-card ems-card layui-hide" id="wizContent2">
+    <div class="layui-card-header">
+        <span><i class="layui-icon layui-icon-table"></i> 步骤 2：导入 Excel 数据</span>
+    </div>
+    <div class="layui-card-body">
+        <div class="layui-form-item">
+            <input type="file" id="excelUpload" accept=".xlsx,.xls" class="layui-hide">
+            <button type="button" class="layui-btn layui-btn-normal" id="btnPickExcel">
+                <i class="layui-icon layui-icon-upload"></i> 选择 Excel 文件
+            </button>
+            <span id="excelFileName" class="layui-font-12"></span>
+        </div>
+
+        <div class="ems-card-row">
+            <div class="ems-info-card ems-col-side">
+                <div class="ems-info-card-title">项目结构</div>
+                <div id="excelTree" style="max-height:420px;overflow:auto">
+                    <div class="ems-empty">请先导入 Excel</div>
+                </div>
+            </div>
+            <div class="ems-info-card ems-col-main">
+                <div class="ems-info-card-title">数据预览</div>
+                <div class="ems-alert info">导入 Excel 后，点击左侧项目名称查看数据预览。</div>
+                <div id="excelPreview" style="max-height:420px;overflow:auto"></div>
+            </div>
+        </div>
+
+        <div class="ems-form-foot">
+            <button type="button" class="layui-btn layui-btn-primary" data-goto="1">
+                <i class="layui-icon layui-icon-prev"></i> 上一步
+            </button>
+            <button type="button" class="layui-btn layui-btn-normal layui-btn-disabled" id="btnStep2Next" disabled>
+                下一步 <i class="layui-icon layui-icon-next"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 步骤3：字段映射 -->
+<div class="layui-card ems-card layui-hide" id="wizContent3">
+    <div class="layui-card-header">
+        <span><i class="layui-icon layui-icon-transfer"></i> 步骤 3：字段映射</span>
+    </div>
+    <div class="layui-card-body">
+        <div class="ems-alert teal">
+            为 Excel 中的每一列选择对应的模板字段，带 <span class="layui-font-red">*</span> 的为必填字段。
+        </div>
+        <div id="mappingTable" style="max-height:460px;overflow:auto">
+            <div class="ems-empty">请先导入 Excel 并选择项目</div>
+        </div>
+        <div class="ems-form-foot">
+            <button type="button" class="layui-btn layui-btn-primary" data-goto="2">
+                <i class="layui-icon layui-icon-prev"></i> 上一步
+            </button>
+            <button type="button" class="layui-btn layui-btn-normal" id="btnConfirmMapping">
+                <i class="layui-icon layui-icon-ok"></i> 确认映射并继续
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 步骤4：补充填写 -->
+<div class="layui-card ems-card layui-hide" id="wizContent4">
+    <div class="layui-card-header">
+        <span><i class="layui-icon layui-icon-form"></i> 步骤 4：补充填写信息</span>
+    </div>
+    <div class="layui-card-body">
+        <div class="ems-alert teal">以下字段需要手动填写（未从 Excel 映射的字段）。</div>
+
+        <div class="layui-form-item" id="ctxSelectorWrap" style="display:none">
+            <label class="layui-form-label">数据实例</label>
+            <div class="layui-input-inline" style="width:340px">
+                <select id="ctxInstance" lay-search lay-filter="ctxInstance"></select>
+            </div>
+            <div class="layui-form-mid layui-font-12 layui-font-gray" id="ctxHint">选择后将自动带出绑定字段的真实值</div>
+        </div>
+
+        <div id="supplementaryFields">
+            <div class="ems-empty">加载中…</div>
+        </div>
+
+        <!-- 高级字段：列表(循环) / 图片 -->
+        <div class="layui-form-item">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-primary" id="btnToggleAdv">
+                <i class="layui-icon layui-icon-add-1"></i> 列表 / 图片字段（循环表格、插入图片）
+            </button>
+        </div>
+        <div id="advFields" class="layui-hide">
+            <div class="ems-info-card">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">列表字段</label>
+                    <div class="layui-input-block">
+                        <textarea id="listFieldsInput" class="layui-textarea" rows="4"
+                                  placeholder='{"业绩":[{"项目名":"A","金额":"100"},{"项目名":"B","金额":"200"}]}'></textarea>
+                        <div class="layui-font-12 layui-font-gray">
+                            JSON 对象：键 = 字段名，值 = 行数组。模板中该字段所在表格行用 {{字段名.子字段}} 循环。
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">图片字段</label>
+                    <div class="layui-input-block">
+                        <div id="imageFieldRows"></div>
+                        <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnAddImage">
+                            <i class="layui-icon layui-icon-add-1"></i> 添加图片
+                        </button>
+                        <div class="layui-font-12 layui-font-gray">模板中 {{字段名}} 处插入图片。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="ems-form-foot">
+            <button type="button" class="layui-btn layui-btn-primary" data-goto="3">
+                <i class="layui-icon layui-icon-prev"></i> 上一步
+            </button>
+            <button type="button" class="layui-btn layui-btn-normal" data-goto="5">
+                下一步 <i class="layui-icon layui-icon-next"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 步骤5：预览 -->
+<div class="layui-card ems-card layui-hide" id="wizContent5">
+    <div class="layui-card-header">
+        <span><i class="layui-icon layui-icon-eye"></i> 步骤 5：预览报告</span>
+    </div>
+    <div class="layui-card-body">
+        <div id="previewContent" style="max-height:60vh;overflow:auto">
+            <div class="ems-empty">正在生成预览…</div>
+        </div>
+        <div class="ems-form-foot">
+            <button type="button" class="layui-btn layui-btn-primary" data-goto="4">
+                <i class="layui-icon layui-icon-prev"></i> 上一步
+            </button>
+            <button type="button" class="layui-btn layui-btn-normal" id="btnGenerate">
+                <i class="layui-icon layui-icon-download-circle"></i> 生成并下载
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 步骤6：生成完成 -->
+<div class="layui-card ems-card layui-hide" id="wizContent6">
+    <div class="layui-card-header">
+        <span><i class="layui-icon layui-icon-ok-circle"></i> 步骤 6：报告已生成</span>
+    </div>
+    <div class="layui-card-body">
+        <div class="ems-alert teal">报告生成成功，文件已自动下载；如未下载请点击下方「重新下载」。</div>
+        <div class="ems-form-foot">
+            <button type="button" class="layui-btn layui-btn-normal" id="btnRedownload">
+                <i class="layui-icon layui-icon-download-circle"></i> 重新下载
+            </button>
+            <button type="button" class="layui-btn layui-btn-primary" id="btnResetWizard">
+                <i class="layui-icon layui-icon-refresh"></i> 重新开始
+            </button>
+        </div>
+    </div>
+</div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@@2.0.5/dist/FileSaver.min.js"></script>
 
-    <script>
-        // ============ 全局状态 ============
-        let currentWizardStep = 1;
-        let selectedTemplate = null;
-        let workbookSheets = [];
-        let currentMapping = {};
-        let isMapped = false;
-        let childNodes = [];
-        let parentNodes = [];
-        let nodeChecked = new Map();
-        let sheetsStore = [];
-        let currentChildNode = null;
-        let supplementaryFieldValues = {};
+<script>
+ems.ready(function () {
+    var $ = layui.jquery;
+    var antiForgery = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
 
-        // ============ 向导导航 ============
-        function goWizardStep(step) {
-            currentWizardStep = step;
+    // ============ 全局状态 ============
+    var currentWizardStep = 1;
+    var maxReachedStep = 1;
+    var selectedTemplate = null;
+    var workbookSheets = [];
+    var currentMapping = {};
+    var isMapped = false;
+    var childNodes = [];
+    var parentNodes = [];
+    var nodeChecked = {};
+    var sheetsStore = [];
+    var currentChildNode = null;
+    var supplementaryFieldValues = {};
+    var currentContextSource = '';
+    var currentInstanceId = '';
 
-            for (let i = 1; i <= 6; i++) {
-                document.getElementById('wizContent' + i).style.display = i === step ? '' : 'none';
+    // ============ 向导导航 ============
+    function goWizardStep(step) {
+        currentWizardStep = step;
+        if (step > maxReachedStep) maxReachedStep = step;
 
-                let stepEl = document.getElementById('wizStep' + i);
-                stepEl.className = 'wizard-step';
-                if (i < step) stepEl.className = 'wizard-step completed';
-                else if (i === step) stepEl.className = 'wizard-step active';
+        for (var i = 1; i <= 6; i++) {
+            $('#wizContent' + i).toggle(i === step);
 
-                let circle = stepEl.querySelector('.step-circle');
-                if (i < step) circle.innerHTML = '<i class="fas fa-check"></i>';
-                else circle.innerHTML = i;
+            var $btn = $('#wizSteps button[data-step="' + i + '"]');
+            $btn.removeClass('layui-btn-primary layui-btn-normal');
+            if (i < step) $btn.addClass('layui-btn-normal');       // 已完成
+            else if (i > step) $btn.addClass('layui-btn-primary'); // 未开始
+        }
+
+        if (step === 3) buildMappingTable();
+        if (step === 5) generatePreview();
+    }
+
+    $('#wizSteps').on('click', 'button', function () {
+        var step = parseInt($(this).data('step'), 10);
+        if (step <= maxReachedStep) goWizardStep(step);
+    });
+
+    $(document).on('click', '[data-goto]', function () {
+        goWizardStep(parseInt($(this).data('goto'), 10));
+    });
+
+    function setBtnEnabled(sel, enabled) {
+        $(sel).prop('disabled', !enabled).toggleClass('layui-btn-disabled', !enabled);
+    }
+
+    // ============ 步骤1：模板列表（单选） ============
+    var tplCols = [
+        { type: 'radio', width: 50 },
+        { field: 'Name', title: '模板名称', minWidth: 200,
+          templet: function (d) { return '<strong>' + ems.escapeHtml(d.Name) + '</strong>'; } },
+        { field: 'Description', title: '描述', minWidth: 200, templet: ems.tpl.text('Description') },
+        { field: 'FieldCount', title: '字段数', width: 100, align: 'center',
+          templet: function (d) { return '<span class="layui-badge layui-bg-blue">' + (d.FieldCount || 0) + '</span>'; } },
+        { field: 'CreatedAt', title: '创建日期', width: 160, templet: ems.tpl.text('CreatedAt') }
+    ];
+
+    ems.initTable({
+        elem: '#wizTplTable', id: 'wizTplTable', url: '/templatereport/list',
+        cols: [tplCols], pagesize: 10
+    });
+
+    layui.table.on('radio(wizTplTable)', function (obj) {
+        selectedTemplate = obj.data.Id;
+        setBtnEnabled('#btnStep1Next', true);
+        onTemplateSelected(obj.data.Id);
+    });
+
+    function onTemplateSelected(id) {
+        currentContextSource = ''; currentInstanceId = '';
+        $('#ctxSelectorWrap').hide();
+        $('#ctxInstance').html('<option value="">请选择</option>');
+        fetchTemplate(id, function (t) {
+            if (!t) return;
+            currentContextSource = t.contextSource || '';
+            if (currentContextSource) {
+                $('#ctxSelectorWrap').show();
+                loadContextInstances(currentContextSource);
             }
+        });
+    }
 
-            if (step === 3) goWizardStep3();
-            if (step === 5) generatePreview();
-        }
+    function loadContextInstances(sourceId) {
+        $.get('/templatereport/data-contexts/' + encodeURIComponent(sourceId), function (res) {
+            if (!res || res.code !== 200 || !res.data) return;
+            var html = '<option value="">请选择' + ems.escapeHtml(sourceId) + '实例</option>';
+            res.data.forEach(function (it) {
+                html += '<option value="' + ems.escapeHtml(it.id) + '">' + ems.escapeHtml(it.name || it.id) + '</option>';
+            });
+            $('#ctxInstance').html(html);
+            layui.form.render('select');
+        });
+    }
 
-        // ============ 步骤1: 加载模板列表 ============
-        async function loadTemplates() {
-            try {
-                let resp = await fetch('/templatereport/templates');
-                let result = await resp.json();
-                if (result.code === 200 && result.data) {
-                    renderTemplateList(result.data);
-                }
-            } catch (err) {
-                console.error('加载模板失败:', err);
-            }
-        }
+    layui.form.on('select(ctxInstance)', function (obj) {
+        currentInstanceId = obj.value || '';
+        $('#ctxHint').text(currentInstanceId ? '已选择实例，自动带出绑定字段值' : '选择后将自动带出绑定字段的真实值');
+        if (currentWizardStep === 4) buildSupplementaryFields();
+    });
 
-        function renderTemplateList(templates) {
-            let html = '';
-            for (let t of templates) {
-                html += `<div class="col-md-4 mb-3">
-                    <div class="card template-card" onclick="selectTemplate('${t.id}')" data-id="${t.id}">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-file-word text-primary mr-1"></i>${escapeHtml(t.name)}</h5>
-                            <p class="card-text text-muted small">${escapeHtml(t.description || '')}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="badge badge-info">${t.fields ? t.fields.length : 0} 个字段</span>
-                                <small class="text-muted">${escapeHtml(t.createdAt || '')}</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            }
-            if (!html) html = '<div class="col-12 text-center text-muted py-4"><p>暂无可用的模板</p><a href="/templatereport/templateconfig" class="btn btn-primary">前往配置模板</a></div>';
-            document.getElementById('templateList').innerHTML = html;
-        }
+    $('#btnStep1Next').on('click', function () {
+        if (!selectedTemplate) { ems.msg('请先选择模板', { icon: 2 }); return; }
+        goWizardStep(2);
+    });
 
-        function selectTemplate(id) {
-            document.querySelectorAll('.template-card').forEach(c => c.classList.remove('selected'));
-            let card = document.querySelector(`.template-card[data-id="${id}"]`);
-            if (card) card.classList.add('selected');
-            selectedTemplate = id;
-            document.getElementById('btnStep1Next').disabled = false;
-        }
+    $('#btnGoConfig').on('click', function () {
+        ems.openTab('/templatereport/templateconfig', '模板配置');
+    });
 
-        // ============ 步骤2: 导入Excel ============
-        document.getElementById('excelUpload').addEventListener('change', async (e) => {
-            let file = e.target.files[0];
-            if (!file) return;
+    // ============ 步骤2：导入 Excel ============
+    $('#btnPickExcel').on('click', function () { $('#excelUpload').click(); });
 
-            document.getElementById('excelFileName').textContent = file.name;
-            let buffer = await file.arrayBuffer();
-            let workbook = XLSX.read(buffer, { type: 'array' });
+    $('#excelUpload').on('change', function (e) {
+        var file = e.target.files[0];
+        if (!file) return;
+
+        $('#excelFileName').text(file.name);
+
+        var reader = new FileReader();
+        reader.onload = function (ev) {
+            var workbook = XLSX.read(ev.target.result, { type: 'array' });
 
             workbookSheets = [];
-            for (let name of workbook.SheetNames) {
-                let ws = workbook.Sheets[name];
-                let data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-                if (data.length >= 3) workbookSheets.push({ name, data });
-            }
+            workbook.SheetNames.forEach(function (name) {
+                var ws = workbook.Sheets[name];
+                var data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                if (data.length >= 3) workbookSheets.push({ name: name, data: data });
+            });
 
-            if (!workbookSheets.length) {
-                ems.msg('无有效工作表', { icon: 2 });
-                return;
-            }
+            if (!workbookSheets.length) { ems.msg('无有效工作表', { icon: 2 }); return; }
 
             isMapped = false;
             sheetsStore = [];
-            nodeChecked.clear();
+            nodeChecked = {};
             buildExcelTree();
-            document.getElementById('btnStep2Next').disabled = false;
-            e.target.value = "";
+            setBtnEnabled('#btnStep2Next', true);
+        };
+        reader.readAsArrayBuffer(file);
+        e.target.value = '';
+    });
+
+    $('#btnStep2Next').on('click', function () { goWizardStep(3); });
+
+    function parseParentChild(a2) {
+        if (!a2) return null;
+        var s = String(a2).trim();
+        if (s.indexOf('\\') > -1) {
+            var parts = s.split('\\');
+            return {
+                parent: parts[0].trim(),
+                child: parts.slice(1).join('\\').trim() || parts[parts.length - 1].trim()
+            };
+        }
+        return { parent: null, child: s };
+    }
+
+    function buildExcelTree() {
+        var parentMap = {};
+        var parentOrder = [];
+        childNodes = [];
+        var childId = 0;
+
+        for (var sIdx = 0; sIdx < workbookSheets.length; sIdx++) {
+            var sheet = workbookSheets[sIdx];
+            var a2Val = (sheet.data[1] && sheet.data[1][0]) || '';
+            var parsed = parseParentChild(a2Val);
+            if (!parsed) continue;
+
+            var cid = 'child_' + sIdx + '_' + (childId++);
+            childNodes.push({
+                id: cid, label: parsed.child || '未命名',
+                sheetIdx: sIdx, parentName: parsed.parent
+            });
+
+            var pKey = parsed.parent || '未分组';
+            if (!parentMap[pKey]) {
+                parentMap[pKey] = { id: 'parent_' + pKey, name: pKey, childrenIds: [] };
+                parentOrder.push(pKey);
+            }
+            parentMap[pKey].childrenIds.push(cid);
+        }
+
+        parentNodes = parentOrder.map(function (k) { return parentMap[k]; });
+
+        var treeData = parentNodes.map(function (p) {
+            return {
+                id: p.id, title: p.name, spread: true,
+                children: p.childrenIds.map(function (cid) {
+                    var ch = null;
+                    for (var i = 0; i < childNodes.length; i++) {
+                        if (childNodes[i].id === cid) { ch = childNodes[i]; break; }
+                    }
+                    return { id: cid, title: ch ? ch.label : cid };
+                })
+            };
         });
 
-        function buildExcelTree() {
-            let parentMap = new Map();
-            childNodes = [];
-            let childId = 0;
-
-            for (let sIdx = 0; sIdx < workbookSheets.length; sIdx++) {
-                let sheet = workbookSheets[sIdx];
-                let a2Val = sheet.data[1]?.[0] || "";
-                let parsed = parseParentChild(a2Val);
-                if (!parsed) continue;
-
-                let cid = `child_${sIdx}_${childId++}`;
-                childNodes.push({ id: cid, label: parsed.child || "未命名", sheetIdx: sIdx, parentName: parsed.parent });
-                let pKey = parsed.parent || "未分组";
-                if (!parentMap.has(pKey)) parentMap.set(pKey, { id: `parent_${pKey}`, name: pKey, childrenIds: [] });
-                parentMap.get(pKey).childrenIds.push(cid);
+        $('#excelTree').empty();
+        layui.tree.render({
+            elem: '#excelTree',
+            id: 'excelTreeIns',
+            data: treeData,
+            showCheckbox: true,
+            onlyIconControl: true,
+            click: function (obj) {
+                if (obj.data.children && obj.data.children.length) return; // 父节点仅展开
+                onExcelChildClick(obj.data.id);
+            },
+            oncheck: function (obj) {
+                // 与旧版一致：记录子节点勾选状态（父子联动由 layui.tree 内置处理）
+                nodeChecked = {};
+                var checked = layui.tree.getChecked('excelTreeIns') || [];
+                checked.forEach(function (p) {
+                    (p.children || []).forEach(function (c) { nodeChecked[c.id] = true; });
+                    if (!p.children || !p.children.length) nodeChecked[p.id] = true;
+                });
             }
+        });
+    }
 
-            parentNodes = Array.from(parentMap.values());
-            let html = '<ul class="tree-ul">';
-            for (let p of parentNodes) {
-                html += `<li class="parent-li">
-                    <div class="tree-label">
-                        <input type="checkbox" class="parent-check" data-id="${p.id}" onchange="onParentCheck('${p.id}', this)">
-                        <span style="font-weight:bold;"><i class="fas fa-folder text-warning mr-1"></i>${escapeHtml(p.name)}</span>
-                    </div>
-                    <ul class="child-ul">`;
-                for (let cid of p.childrenIds) {
-                    let ch = childNodes.find(c => c.id === cid);
-                    if (!ch) continue;
-                    html += `<li>
-                        <div class="tree-label">
-                            <input type="checkbox" class="child-check" data-id="${ch.id}" onchange="onChildCheck('${ch.id}', this)">
-                            <span onclick="onExcelChildClick('${ch.id}')"><i class="fas fa-file-alt text-info mr-1"></i>${escapeHtml(ch.label)}</span>
-                        </div>
-                    </li>`;
-                }
-                html += `</ul></li>`;
-            }
-            html += '</ul>';
-            document.getElementById('excelTree').innerHTML = html;
+    function onExcelChildClick(cid) {
+        var child = null;
+        for (var i = 0; i < childNodes.length; i++) {
+            if (childNodes[i].id === cid) { child = childNodes[i]; break; }
         }
+        if (!child) return;
+        currentChildNode = cid;
 
-        function parseParentChild(a2) {
-            if (!a2) return null;
-            let s = String(a2).trim();
-            if (s.includes('\\')) {
-                let parts = s.split('\\');
-                return { parent: parts[0].trim(), child: parts.slice(1).join('\\').trim() || parts[parts.length - 1].trim() };
-            }
-            return { parent: null, child: s };
-        }
+        var sheet = workbookSheets[child.sheetIdx];
+        if (sheet) renderExcelPreview(sheet.data[2] || [], sheet.data.slice(3, 8));
+    }
 
-        function onParentCheck(pid, chk) {
-            let parent = parentNodes.find(p => p.id === pid);
-            if (!parent) return;
-            for (let cid of parent.childrenIds) {
-                nodeChecked.set(cid, chk.checked);
-                let cChk = document.querySelector(`.child-check[data-id="${cid}"]`);
-                if (cChk) cChk.checked = chk.checked;
-            }
-        }
-
-        function onChildCheck(cid, chk) {
-            nodeChecked.set(cid, chk.checked);
-            let parent = parentNodes.find(p => p.childrenIds.includes(cid));
-            if (parent) {
-                let all = parent.childrenIds.every(id => nodeChecked.get(id));
-                let any = parent.childrenIds.some(id => nodeChecked.get(id));
-                let pChk = document.querySelector(`.parent-check[data-id="${parent.id}"]`);
-                if (pChk) {
-                    pChk.checked = all;
-                    pChk.indeterminate = any && !all;
-                }
-            }
-        }
-
-        function onExcelChildClick(cid) {
-            let child = childNodes.find(c => c.id === cid);
-            if (!child) return;
-            currentChildNode = cid;
-
-            let sheet = workbookSheets[child.sheetIdx];
-            if (sheet) {
-                let headerRow = sheet.data[2] || [];
-                renderExcelPreview(headerRow, sheet.data.slice(3, 8));
-            }
-        }
-
-        function renderExcelPreview(headers, rows) {
-            let html = '<table class="table table-sm table-bordered"><thead><tr>';
-            for (let h of headers) html += `<th style="font-size:12px;">${escapeHtml(String(h || ''))}</th>`;
-            html += '</tr></thead><tbody>';
-            for (let row of rows) {
-                html += '<tr>';
-                for (let cell of row) html += `<td style="font-size:12px;">${escapeHtml(String(cell || ''))}</td>`;
-                html += '</tr>';
-            }
-            html += '</tbody></table>';
-            document.getElementById('excelPreview').innerHTML = html;
-        }
-
-        // ============ 步骤3: 字段映射 ============
-        async function goWizardStep3() {
-            if (!selectedTemplate) {
-                ems.msg('请先选择模板', { icon: 2 });
-                return;
-            }
-            if (!workbookSheets.length) {
-                ems.msg('请先导入Excel', { icon: 2 });
-                return;
-            }
-
-            let template = await fetchTemplate(selectedTemplate);
-            if (!template || !template.fields) {
-                ems.msg('无法加载模板字段', { icon: 2 });
-                return;
-            }
-
-            let sheet = workbookSheets[0];
-            let headers = sheet.data[2] || [];
-
-            let html = '<table class="table table-sm"><thead><tr><th>Excel列</th><th>示例数据</th><th>映射到模板字段</th></tr></thead><tbody>';
-            for (let i = 0; i < headers.length; i++) {
-                let headerName = String(headers[i] || '');
-                let sampleData = sheet.data.slice(3, 4).map(r => r[i]).join(', ');
-                html += `<tr>
-                    <td style="font-weight:bold;">${escapeHtml(headerName)}</td>
-                    <td class="text-muted" style="font-size:12px;">${escapeHtml(sampleData.substring(0, 30))}</td>
-                    <td>
-                        <select class="form-control form-control-sm mapping-select" data-colidx="${i}">
-                            <option value="">不映射</option>`;
-                for (let f of template.fields) {
-                    if (f.source === 'excel') {
-                        html += `<option value="${escapeHtml(f.name)}">${escapeHtml(f.label)}${f.required ? ' *' : ''}</option>`;
-                    }
-                }
-                html += `</select></td></tr>`;
-            }
-            html += '</tbody></table>';
-            document.getElementById('mappingTable').innerHTML = html;
-        }
-
-        async function fetchTemplate(id) {
-            try {
-                let resp = await fetch(`/templatereport/template/${id}`);
-                let result = await resp.json();
-                return result.code === 200 ? result.data : null;
-            } catch { return null; }
-        }
-
-        async function confirmMappingAndNext() {
-            let selects = document.querySelectorAll('.mapping-select');
-            currentMapping = {};
-            let mappedCount = 0;
-
-            selects.forEach(sel => {
-                let col = parseInt(sel.dataset.colidx);
-                let field = sel.value;
-                if (field) {
-                    currentMapping[field] = col;
-                    mappedCount++;
-                }
+    function renderExcelPreview(headers, rows) {
+        var html = '<table class="layui-table" lay-size="sm"><thead><tr>';
+        headers.forEach(function (h) {
+            html += '<th>' + ems.escapeHtml(String(h || '')) + '</th>';
+        });
+        html += '</tr></thead><tbody>';
+        rows.forEach(function (row) {
+            html += '<tr>';
+            (row || []).forEach(function (cell) {
+                html += '<td>' + ems.escapeHtml(String(cell || '')) + '</td>';
             });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        $('#excelPreview').html(html);
+    }
 
-            if (mappedCount === 0) {
-                ems.msg('请至少映射一个字段', { icon: 2 });
-                return;
+    // ============ 步骤3：字段映射 ============
+    function fetchTemplate(id, cb) {
+        $.ajax({
+            url: '/templatereport/template/' + encodeURIComponent(id),
+            type: 'GET',
+            success: function (res) { cb(res && res.code === 200 ? res.data : null); },
+            error: function () { cb(null); }
+        });
+    }
+
+    function buildMappingTable() {
+        if (!selectedTemplate) { ems.msg('请先选择模板', { icon: 2 }); return; }
+        if (!workbookSheets.length) { ems.msg('请先导入 Excel', { icon: 2 }); return; }
+
+        fetchTemplate(selectedTemplate, function (template) {
+            if (!template || !template.fields) { ems.msg('无法加载模板字段', { icon: 2 }); return; }
+
+            var sheet = workbookSheets[0];
+            var headers = sheet.data[2] || [];
+
+            var html = '<table class="layui-table" lay-size="sm">' +
+                       '<thead><tr><th>Excel 列</th><th>示例数据</th><th>映射到模板字段</th></tr></thead><tbody>';
+            for (var i = 0; i < headers.length; i++) {
+                var headerName = String(headers[i] || '');
+                var sampleData = sheet.data.slice(3, 4).map(function (r) { return r[i]; }).join(', ');
+                html += '<tr>' +
+                        '<td><strong>' + ems.escapeHtml(headerName) + '</strong></td>' +
+                        '<td class="layui-font-12 layui-font-gray">' +
+                        ems.escapeHtml(String(sampleData).substring(0, 30)) + '</td>' +
+                        '<td><select class="layui-input mapping-select" data-colidx="' + i + '">' +
+                        '<option value="">不映射</option>';
+                template.fields.forEach(function (f) {
+                    if (f.source !== 'excel') return;
+                    html += '<option value="' + ems.escapeHtml(f.name) + '">' +
+                            ems.escapeHtml(f.label) + (f.required ? ' *' : '') + '</option>';
+                });
+                html += '</select></td></tr>';
             }
+            html += '</tbody></table>';
+            $('#mappingTable').html(html);
+        });
+    }
 
-            sheetsStore = [];
-            for (let sIdx = 0; sIdx < workbookSheets.length; sIdx++) {
-                let sheet = workbookSheets[sIdx];
-                let dataRows = sheet.data.slice(5);
-                let parsed = [];
-                for (let row of dataRows) {
-                    if (!row.length || (row.length === 1 && !row[0])) continue;
-                    let item = {};
-                    for (let [field, col] of Object.entries(currentMapping)) {
-                        item[field] = row[col] !== undefined ? String(row[col]) : '';
-                    }
-                    if (item['项目名称'] || item['项目编码']) parsed.push(item);
+    $('#btnConfirmMapping').on('click', function () {
+        currentMapping = {};
+        var mappedCount = 0;
+
+        $('#mappingTable .mapping-select').each(function () {
+            var col = parseInt($(this).data('colidx'), 10);
+            var field = $(this).val();
+            if (field) { currentMapping[field] = col; mappedCount++; }
+        });
+
+        if (mappedCount === 0) { ems.msg('请至少映射一个字段', { icon: 2 }); return; }
+
+        sheetsStore = [];
+        for (var sIdx = 0; sIdx < workbookSheets.length; sIdx++) {
+            var sheet = workbookSheets[sIdx];
+            var dataRows = sheet.data.slice(5);
+            var parsed = [];
+            dataRows.forEach(function (row) {
+                if (!row || !row.length || (row.length === 1 && !row[0])) return;
+                var item = {};
+                for (var field in currentMapping) {
+                    if (!currentMapping.hasOwnProperty(field)) continue;
+                    var col = currentMapping[field];
+                    item[field] = row[col] !== undefined ? String(row[col]) : '';
                 }
-                sheetsStore.push({ sheetIdx: sIdx, sheetName: sheet.name, parsedRows: parsed });
-            }
-
-            isMapped = true;
-            goWizardStep(4);
-            buildSupplementaryFields();
+                if (item['项目名称'] || item['项目编码']) parsed.push(item);
+            });
+            sheetsStore.push({ sheetIdx: sIdx, sheetName: sheet.name, parsedRows: parsed });
         }
 
-        // ============ 步骤4: 补充填写 ============
-        async function buildSupplementaryFields() {
-            let template = await fetchTemplate(selectedTemplate);
+        isMapped = true;
+        goWizardStep(4);
+        buildSupplementaryFields();
+    });
+
+    // ============ 步骤4：补充填写 ============
+    function buildSupplementaryFields() {
+        fetchTemplate(selectedTemplate, function (template) {
             if (!template || !template.fields) return;
 
-            let html = '<div class="col-md-8">';
-            for (let f of template.fields) {
-                if (f.source === 'excel') continue;
-                html += `<div class="field-form-group">
-                    <label>${escapeHtml(f.label)}${f.required ? ' <span class="required">*</span>' : ''}</label>`;
-                if (f.type === 'date') {
-                    html += `<input type="date" class="form-control" data-field="${escapeHtml(f.name)}" value="${escapeHtml(f.defaultValue || '')}">`;
-                } else if (f.type === 'select' && f.options) {
-                    html += `<select class="form-control" data-field="${escapeHtml(f.name)}">
-                        <option value="">请选择</option>`;
-                    for (let opt of f.options) {
-                        html += `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>`;
+            function renderFields(resolved) {
+                var html = '';
+                template.fields.forEach(function (f) {
+                    if (f.source === 'excel') return;
+                    var name = ems.escapeHtml(f.name);
+
+                    // 绑定字段（project/employee/projcontract/employeecontract/config）：显示真实解析值
+                    if (f.source !== 'manual') {
+                        var val = resolved ? (resolved[f.name] || '') : '';
+                        var srcText = f.source === 'config'
+                            ? '系统配置：' + ems.escapeHtml(f.configKey || '')
+                            : ems.escapeHtml(currentContextSource) + '·' + ems.escapeHtml(f.binding || '');
+                        html += '<div class="layui-form-item">' +
+                                '<label class="layui-form-label">' + ems.escapeHtml(f.label) + '</label>' +
+                                '<div class="layui-input-block">' +
+                                '<div class="layui-form-mid"><span class="layui-badge layui-bg-blue">' + srcText + '</span></div>' +
+                                (currentInstanceId
+                                    ? '<div class="layui-form-mid" style="color:#0d6b64;font-weight:600">' + ems.escapeHtml(val || '（空）') + '</div>'
+                                    : '<div class="layui-form-mid layui-font-gray">（请先在上方选择数据实例）</div>') +
+                                '</div></div>';
+                        return;
                     }
-                    html += '</select>';
-                } else {
-                    html += `<input type="text" class="form-control" data-field="${escapeHtml(f.name)}" placeholder="请输入${escapeHtml(f.label)}" value="${escapeHtml(f.defaultValue || '')}">`;
-                }
-                if (f.helpText) html += `<small class="form-text text-muted">${escapeHtml(f.helpText)}</small>`;
-                html += '</div>';
-            }
-            html += '</div>';
-            document.getElementById('supplementaryFields').innerHTML = html;
 
-            document.querySelectorAll('#supplementaryFields [data-field]').forEach(el => {
-                el.addEventListener('change', () => {
-                    supplementaryFieldValues[el.dataset.field] = el.value;
+                    html += '<div class="layui-form-item">' +
+                            '<label class="layui-form-label">' + ems.escapeHtml(f.label) +
+                            (f.required ? ' <span class="layui-font-red">*</span>' : '') + '</label>' +
+                            '<div class="layui-input-block">';
+                    if (f.type === 'date') {
+                        html += '<input type="date" class="layui-input" data-field="' + name +
+                                '" value="' + ems.escapeHtml(f.defaultValue || '') + '">';
+                    } else if (f.type === 'select' && f.options) {
+                        html += '<select class="layui-input" data-field="' + name + '"><option value="">请选择</option>';
+                        f.options.forEach(function (opt) {
+                            html += '<option value="' + ems.escapeHtml(opt.value) + '">' + ems.escapeHtml(opt.label) + '</option>';
+                        });
+                        html += '</select>';
+                    } else {
+                        html += '<input type="text" class="layui-input" data-field="' + name +
+                                '" placeholder="请输入' + ems.escapeHtml(f.label) + '" value="' +
+                                ems.escapeHtml(f.defaultValue || '') + '">';
+                    }
+                    if (f.helpText) {
+                        html += '<div class="layui-font-12 layui-font-gray">' + ems.escapeHtml(f.helpText) + '</div>';
+                    }
+                    html += '</div></div>';
                 });
-                el.addEventListener('input', () => {
-                    supplementaryFieldValues[el.dataset.field] = el.value;
+
+                if (!html) html = '<div class="ems-empty">无需补充填写的字段</div>';
+                $('#supplementaryFields').html(html);
+            }
+
+            if (currentContextSource && currentInstanceId) {
+                $.get('/templatereport/preview-fields?templateId=' + encodeURIComponent(selectedTemplate) +
+                    '&sourceId=' + encodeURIComponent(currentContextSource) +
+                    '&instanceId=' + encodeURIComponent(currentInstanceId), function (res) {
+                    var resolved = {};
+                    if (res && res.code === 200 && res.data && res.data.autoFields) {
+                        res.data.autoFields.forEach(function (a) { resolved[a.name] = a.value; });
+                    }
+                    renderFields(resolved);
                 });
+            } else {
+                renderFields(null);
+            }
+        });
+    }
+
+    $('#supplementaryFields').on('change input', '[data-field]', function () {
+        supplementaryFieldValues[$(this).data('field')] = $(this).val();
+    });
+
+    // ── 高级字段：列表(循环) / 图片 ──
+    $('#btnToggleAdv').on('click', function () { $('#advFields').toggle(); });
+
+    $('#btnAddImage').on('click', function () {
+        var row = '<div class="layui-form-item ems-img-row">' +
+                  '<div class="layui-inline" style="width:180px">' +
+                  '<input type="text" class="layui-input img-name" placeholder="字段名(如 签章)"></div>' +
+                  '<div class="layui-inline" style="width:240px">' +
+                  '<input type="file" class="layui-input img-file" accept="image/*"></div>' +
+                  '<div class="layui-inline">' +
+                  '<a class="ems-icon-btn danger img-del" title="移除"><i class="layui-icon layui-icon-close"></i></a>' +
+                  '</div></div>';
+        $('#imageFieldRows').append(row);
+    });
+
+    $('#imageFieldRows').on('click', '.img-del', function () {
+        $(this).closest('.ems-img-row').remove();
+    });
+
+    function collectListFields() {
+        var v = ($('#listFieldsInput').val() || '').trim();
+        if (!v) return {};
+        try { return JSON.parse(v); }
+        catch (e) { ems.warn('列表字段 JSON 解析失败：' + e.message); return {}; }
+    }
+
+    function collectImageFields(cb) {
+        var obj = {};
+        var $rows = $('#imageFieldRows .ems-img-row');
+        var pending = 0;
+        var finished = false;
+
+        function done() { if (finished) return; finished = true; cb(obj); }
+
+        $rows.each(function () {
+            var name = ($(this).find('.img-name').val() || '').trim();
+            var fileInput = $(this).find('.img-file')[0];
+            if (!name || !fileInput || !fileInput.files || !fileInput.files[0]) return;
+
+            pending++;
+            var reader = new FileReader();
+            reader.onload = function () {
+                var b64 = String(reader.result || '').split(',')[1] || '';
+                if (b64) obj[name] = { base64: b64, width: 200, height: 200 };
+                if (--pending === 0) done();
+            };
+            reader.onerror = function () { if (--pending === 0) done(); };
+            reader.readAsDataURL(fileInput.files[0]);
+        });
+
+        if (pending === 0) done();
+    }
+
+    // ============ 步骤5：预览 ============
+    function buildRequest(excelRows, listFields, imageFields) {
+        var excelColumns = [];
+        for (var field in currentMapping) {
+            if (!currentMapping.hasOwnProperty(field)) continue;
+            excelColumns.push({
+                fieldName: field, columnName: field, columnIndex: currentMapping[field]
             });
         }
+        return {
+            templateId: selectedTemplate,
+            contextSource: currentContextSource,
+            instanceId: currentInstanceId,
+            supplementaryFields: supplementaryFieldValues,
+            excelColumns: excelColumns,
+            excelRows: excelRows,
+            listFields: listFields,
+            imageFields: imageFields
+        };
+    }
 
-        // ============ 高级字段：列表(循环)/图片 ============
-        function addImageRow() {
-            let row = document.createElement('div');
-            row.className = 'd-flex align-items-center mb-2';
-            row.innerHTML = '<input type="text" class="form-control form-control-sm mr-2" placeholder="字段名(如 签章)" style="max-width:180px">'
-                + '<input type="file" class="form-control form-control-sm mr-2" accept="image/*">'
-                + '<button type="button" class="btn btn-sm btn-outline-danger" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>';
-            document.getElementById('imageFieldRows').appendChild(row);
+    function currentExcelRows() {
+        if (!sheetsStore.length) return [];
+        if (currentChildNode) {
+            for (var i = 0; i < childNodes.length; i++) {
+                if (childNodes[i].id !== currentChildNode) continue;
+                var store = sheetsStore[childNodes[i].sheetIdx];
+                return (store && store.parsedRows) || (sheetsStore[0] && sheetsStore[0].parsedRows) || [];
+            }
         }
+        return (sheetsStore[0] && sheetsStore[0].parsedRows) || [];
+    }
 
-        function collectListFields() {
-            let el = document.getElementById('listFieldsInput');
-            let v = (el && el.value || '').trim();
-            if (!v) return {};
-            try { return JSON.parse(v); }
-            catch (e) { ems.warn('列表字段 JSON 解析失败：' + e.message); return {}; }
-        }
+    function generatePreview() {
+        $('#previewContent').html('<div class="ems-empty">正在准备预览…</div>');
 
-        async function collectImageFields() {
-            let obj = {};
-            let rows = document.querySelectorAll('#imageFieldRows > div');
-            let tasks = [];
-            rows.forEach(row => {
-                let nameInput = row.querySelector('input[type=text]');
-                let fileInput = row.querySelector('input[type=file]');
-                let name = (nameInput && nameInput.value || '').trim();
-                if (name && fileInput && fileInput.files && fileInput.files[0]) {
-                    tasks.push(new Promise(res => {
-                        let reader = new FileReader();
-                        reader.onload = () => {
-                            let b64 = String(reader.result || '').split(',')[1] || '';
-                            if (b64) obj[name] = { base64: b64, width: 200, height: 200 };
-                            res();
-                        };
-                        reader.onerror = () => res();
-                        reader.readAsDataURL(fileInput.files[0]);
-                    }));
+        collectImageFields(function (imageFields) {
+            var request = buildRequest(currentExcelRows().slice(0, 10), collectListFields(), imageFields);
+
+            $.ajax({
+                url: '/templatereport/preview',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(request),
+                success: function (res) {
+                    var ok = res && res.code === 200;
+                    var infoHtml = ok
+                        ? '<div class="ems-alert teal">报告可正常生成，确认下方数据无误后点击「生成并下载」。</div>'
+                        : '<div class="ems-alert warn">' + ems.escapeHtml((res && res.message) || '预览生成失败') + '</div>';
+                    renderPreviewValues(infoHtml);
+                },
+                error: function () {
+                    renderPreviewValues('<div class="ems-alert warn">预览失败，请稍后重试</div>');
                 }
             });
-            await Promise.all(tasks);
-            return obj;
-        }
+        });
+    }
 
-        // ============ 步骤5: 预览 ============
-        async function generatePreview() {
-            document.getElementById('previewContent').innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x mb-2"></i><p>正在生成预览...</p></div>';
-
-            let excelRows = [];
-            if (sheetsStore.length > 0 && currentChildNode) {
-                let child = childNodes.find(c => c.id === currentChildNode);
-                if (child && sheetsStore[child.sheetIdx]) {
-                    excelRows = sheetsStore[child.childIdx || child.sheetIdx]?.parsedRows || sheetsStore[0]?.parsedRows || [];
-                } else {
-                    excelRows = sheetsStore[0]?.parsedRows || [];
+    function renderPreviewValues(infoHtml) {
+        var html = infoHtml || '';
+        if (currentContextSource && currentInstanceId) {
+            $.get('/templatereport/preview-fields?templateId=' + encodeURIComponent(selectedTemplate) +
+                '&sourceId=' + encodeURIComponent(currentContextSource) +
+                '&instanceId=' + encodeURIComponent(currentInstanceId), function (res) {
+                if (res && res.code === 200 && res.data) {
+                    html += '<table class="layui-table" lay-size="sm"><thead><tr><th>字段</th><th>来源</th><th>解析值</th></tr></thead><tbody>';
+                    (res.data.autoFields || []).forEach(function (a) {
+                        html += '<tr><td>' + ems.escapeHtml(a.label) + '</td><td><span class="layui-badge layui-bg-blue">' +
+                            ems.escapeHtml(a.source) + '</span></td><td>' + ems.escapeHtml(a.value || '（空）') + '</td></tr>';
+                    });
+                    (res.data.manualFields || []).forEach(function (m) {
+                        var v = supplementaryFieldValues[m.name] || m.defaultValue || '';
+                        html += '<tr><td>' + ems.escapeHtml(m.label) + '</td><td><span class="layui-badge">手动</span></td><td>' +
+                            ems.escapeHtml(v || '（未填）') + '</td></tr>';
+                    });
+                    html += '</tbody></table>';
                 }
-            }
-
-            let request = {
-                templateId: selectedTemplate,
-                supplementaryFields: supplementaryFieldValues,
-                excelColumns: Object.entries(currentMapping).map(([field, col]) => ({
-                    fieldName: field,
-                    columnName: field,
-                    columnIndex: col
-                })),
-                excelRows: excelRows.slice(0, 10),
-                listFields: collectListFields(),
-                imageFields: await collectImageFields()
-            };
-
-            try {
-                let resp = await fetch('/templatereport/preview', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(request)
-                });
-                let result = await resp.json();
-                if (result.code === 200 && result.data) {
-                    document.getElementById('previewContent').innerHTML = '<div class="alert alert-success"><i class="fas fa-check-circle mr-1"></i>预览已生成，请确认数据无误后点击"生成并下载"</div>';
-                } else {
-                    document.getElementById('previewContent').innerHTML = `<div class="alert alert-warning">${escapeHtml(result.message || '预览生成失败')}</div>`;
-                }
-            } catch (err) {
-                document.getElementById('previewContent').innerHTML = `<div class="alert alert-danger">预览失败: ${escapeHtml(err.message)}</div>`;
-            }
+                $('#previewContent').html(html);
+            });
+        } else {
+            $('#previewContent').html(html + '<div class="ems-empty">该模板无数据上下文，手动填写的字段将在生成时取填写值。</div>');
         }
+    }
 
-        // ============ 步骤6: 生成下载 ============
-        async function downloadReport() {
-            let excelRows = [];
-            if (sheetsStore.length > 0) {
-                excelRows = sheetsStore[0]?.parsedRows || [];
-            }
+    // ============ 步骤6：生成下载 ============
+    function downloadReport() {
+        collectImageFields(function (imageFields) {
+            var request = buildRequest(currentExcelRows(), collectListFields(), imageFields);
+            var load = ems.loading();
 
-            let request = {
-                templateId: selectedTemplate,
-                supplementaryFields: supplementaryFieldValues,
-                excelColumns: Object.entries(currentMapping).map(([field, col]) => ({
-                    fieldName: field,
-                    columnName: field,
-                    columnIndex: col
-                })),
-                excelRows: excelRows,
-                listFields: collectListFields(),
-                imageFields: await collectImageFields()
-            };
-
-            try {
-                var load = ems.loading(1);
-                let resp = await fetch('/templatereport/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(request)
-                });
-                ems.close(load);
-
-                if (resp.ok) {
-                    let blob = await resp.blob();
-                    let fileName = resp.headers.get('content-disposition')?.split('filename=')[1] || '报告.docx';
-                    saveAs(blob, fileName);
+            fetch('/templatereport/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': antiForgery
+                },
+                body: JSON.stringify(request)
+            }).then(function (resp) {
+                if (!resp.ok) {
+                    return resp.json().then(function (r) {
+                        ems.close(load);
+                        ems.msg((r && r.message) || '生成失败', { icon: 2 });
+                    });
+                }
+                var disposition = resp.headers.get('content-disposition') || '';
+                var fileName = disposition.split('filename=')[1] || '报告.docx';
+                fileName = decodeURIComponent(fileName.replace(/["';]/g, '').replace(/^UTF-8/i, '').trim());
+                return resp.blob().then(function (blob) {
+                    ems.close(load);
+                    saveAs(blob, fileName || '报告.docx');
                     goWizardStep(6);
-                } else {
-                    let result = await resp.json();
-                    ems.msg(result.message || '生成失败', { icon: 2 });
-                }
-            } catch (err) {
-                ems.closeAll();
+                });
+            }).catch(function (err) {
+                ems.close(load);
                 ems.msg('生成失败: ' + err.message, { icon: 2 });
-            }
-        }
+            });
+        });
+    }
 
-        function resetWizard() {
-            currentWizardStep = 1;
-            selectedTemplate = null;
-            workbookSheets = [];
-            currentMapping = {};
-            isMapped = false;
-            childNodes = [];
-            parentNodes = [];
-            nodeChecked.clear();
-            sheetsStore = [];
-            currentChildNode = null;
-            supplementaryFieldValues = {};
+    $('#btnGenerate').on('click', downloadReport);
+    $('#btnRedownload').on('click', downloadReport);
 
-            document.getElementById('btnStep1Next').disabled = true;
-            document.getElementById('btnStep2Next').disabled = true;
-            goWizardStep(1);
-            loadTemplates();
-        }
+    $('#btnResetWizard').on('click', function () {
+        currentWizardStep = 1;
+        maxReachedStep = 1;
+        selectedTemplate = null;
+        workbookSheets = [];
+        currentMapping = {};
+        isMapped = false;
+        childNodes = [];
+        parentNodes = [];
+        nodeChecked = {};
+        sheetsStore = [];
+        currentChildNode = null;
+        supplementaryFieldValues = {};
+        currentContextSource = '';
+        currentInstanceId = '';
+        $('#ctxSelectorWrap').hide();
 
-        function escapeHtml(str) {
-            return String(str).replace(/[&<>"']/g, m => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-            })[m]);
-        }
+        $('#excelFileName').text('');
+        $('#excelTree').html('<div class="ems-empty">请先导入 Excel</div>');
+        $('#excelPreview').empty();
+        $('#mappingTable').html('<div class="ems-empty">请先导入 Excel 并选择项目</div>');
+        $('#supplementaryFields').html('<div class="ems-empty">加载中…</div>');
+        $('#imageFieldRows').empty();
+        $('#listFieldsInput').val('');
+        $('#advFields').hide();
 
-        // ============ 初始化 ============
-        loadTemplates();
-    </script>
+        setBtnEnabled('#btnStep1Next', false);
+        setBtnEnabled('#btnStep2Next', false);
+        goWizardStep(1);
+        ems.reloadTable('wizTplTable');
+    });
+});
+</script>
 }

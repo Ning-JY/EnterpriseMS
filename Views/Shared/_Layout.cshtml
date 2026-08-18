@@ -1,161 +1,41 @@
-@using EnterpriseMS.Common.Extensions
-@using EnterpriseMS.Services.DTOs.System
-@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@*
+    内页布局（iframe 内容页）
+    ------------------------------------------------------------------
+    整站采用 layuiAdmin 风格：Home/Index.cshtml 是外层主框架（菜单 + 单页 iframe），
+    所有业务页面都跑在 iframe 里，统一使用本布局。
+    _ViewStart 已把 Layout 默认指到这里，业务视图无需再声明。
+
+    约定：
+      · 只引 layui 原生资源，不引 Bootstrap / AdminLTE / FontAwesome
+      · 自定义样式统一收敛到 css/ems.css（全站唯一样式入口）
+      · 公共交互全部走 js/ems.js，页面里只写业务差异部分（尽量不带 style / 脚本）
+*@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@(ViewData["Title"] ?? "企业管理系统") - 企业管理系统</title>
-    <link rel="stylesheet" href="~/lib/adminlte/css/adminlte.min.css">
-    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css">
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true">
-    <link rel="stylesheet" href="~/css/ems-widgets.css" asp-append-version="true">
+    <title>@(ViewData["Title"] ?? "企业管理系统")</title>
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css">
+    <link rel="stylesheet" href="~/css/ems.css" asp-append-version="true">
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body class="hold-transition sidebar-mini layout-fixed">
-<div class="wrapper">
-    @Html.AntiForgeryToken()
+<body class="ems-page @(Context.Request.Query["_dialog"] == "1" ? "ems-dialog" : "")">
+@Html.AntiForgeryToken()
 
-    <!-- Navbar -->
-    <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-        <ul class="navbar-nav">
-            <li class="nav-item">
-                <a class="nav-link" data-widget="pushmenu" href="#"><i class="fas fa-bars"></i></a>
-            </li>
-            <li class="nav-item d-none d-sm-inline-block">
-                <a href="/" class="nav-link">首页</a>
-            </li>
-        </ul>
-        <ul class="navbar-nav ml-auto">
-            <li class="nav-item">
-                <a class="nav-link" href="/my-stats" title="个人产值统计">
-                    <i class="fas fa-chart-line"></i>
-                </a>
-            </li>
-            @await Component.InvokeAsync("NotificationBell")
-            <li class="nav-item dropdown">
-                <a class="nav-link" data-toggle="dropdown" href="#">
-                    <i class="far fa-user"></i> @User.GetRealName()
-                </a>
-                <div class="dropdown-menu dropdown-menu-right">
-                    <a href="/profile" class="dropdown-item">
-                        <i class="fas fa-user-circle mr-2"></i>个人资料
-                    </a>
-                    <a href="/my-stats" class="dropdown-item">
-                        <i class="fas fa-chart-bar mr-2"></i>我的产值
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <form asp-action="Logout" asp-controller="Account" method="post" style="display:inline">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="dropdown-item">
-                            <i class="fas fa-sign-out-alt mr-2"></i>退出登录
-                        </button>
-                    </form>
-                </div>
-            </li>
-        </ul>
-    </nav>
+@RenderBody()
 
-    <!-- Sidebar -->
-    <aside class="main-sidebar sidebar-dark-primary elevation-4">
-        <a href="/" class="brand-link">
-            <span class="brand-text font-weight-light"><strong>企业</strong>管理系统</span>
-        </a>
-        <div class="sidebar">
-            <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-                <div class="image"><i class="fas fa-user-circle fa-2x text-white"></i></div>
-                <div class="info">
-                    <a href="#" class="d-block text-white">@User.GetRealName()</a>
-                </div>
-            </div>
-            <nav class="mt-2">
-                <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview"
-                    role="menu" data-accordion="false">
-
-                    @{
-                        var menuTree = ViewBag.MenuTree as List<MenuTreeDto>
-                            ?? new List<MenuTreeDto>();
-                        var currentPath = Context.Request.Path.Value ?? "";
-                    }
-
-                    @foreach (var menu in menuTree)
-                    {
-                        if (menu.MenuType == "M" && menu.Children.Any())
-                        {
-                            <li class="nav-item has-treeview @(currentPath.StartsWith(menu.Path ?? "§") ? "menu-open" : "")">
-                                <a href="#" class="nav-link @(currentPath.StartsWith(menu.Path ?? "§") ? "active" : "")">
-                                    <i class="nav-icon fas @(menu.Icon ?? "fa-circle")"></i>
-                                    <p>@menu.MenuName<i class="right fas fa-angle-left"></i></p>
-                                </a>
-                                <ul class="nav nav-treeview">
-                                    @foreach (var child in menu.Children.Where(c => c.MenuType == "C"))
-                                    {
-                                        <li class="nav-item">
-                                            <a href="@child.Path" class="nav-link pl-4 @(child.Path != null && currentPath.StartsWith(child.Path) ? "active" : "")">
-                                                <i class="far fa-circle nav-icon"></i>
-                                                <p>@child.MenuName</p>
-                                            </a>
-                                        </li>
-                                    }
-                                </ul>
-                            </li>
-                        }
-                        else if (menu.MenuType == "C")
-                        {
-                            <li class="nav-item">
-                                <a href="@menu.Path" class="nav-link @(menu.Path != null && currentPath.StartsWith(menu.Path) ? "active" : "")">
-                                    <i class="nav-icon fas @(menu.Icon ?? "fa-circle")"></i>
-                                    <p>@menu.MenuName</p>
-                                </a>
-                            </li>
-                        }
-                    }
-                </ul>
-            </nav>
-        </div>
-    </aside>
-
-    <!-- Content Wrapper -->
-    <div class="content-wrapper">
-        <!-- 公告走马灯（navbar 下方细条；无公告时自动隐藏） -->
-        <div class="ems-marquee d-none d-md-flex" id="emsMarquee">
-            <span class="ems-marquee-label"><i class="fas fa-bullhorn mr-1"></i>公告</span>
-            <div class="ems-marquee-viewport">
-                <div class="ems-marquee-track" id="emsMarqueeTrack"></div>
-            </div>
-        </div>
-        @RenderBody()
-    </div>
-
-    <!-- Footer -->
-    <footer class="main-footer">
-        <strong>企业管理系统 v2.0</strong>
-        <div class="float-right d-none d-sm-inline-block">
-            <b>Version</b> 2.0.0
-        </div>
-    </footer>
-</div>
-
-<script src="~/lib/jquery/jquery.min.js"></script>
-<script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="~/lib/adminlte/js/adminlte.min.js"></script>
-<script src="~/lib/layer/layer.js"></script>
-<script src="~/js/ems-alert.js" asp-append-version="true"></script>
-<script src="~/js/ems-multiselect.js" asp-append-version="true"></script>
-<script src="~/js/site.js" asp-append-version="true"></script>
+<script src="~/lib/layui/layui.js"></script>
+<script src="~/js/ems.js" asp-append-version="true"></script>
 <script>
-// layer未加载时降级为原生弹窗，避免页面无任何反馈
-if (typeof layer === 'undefined') {
-    window.layer = {
-        msg: function(m, o, cb)    { setTimeout(function(){ if(cb) cb(); }, 1500); alert(m); },
-        confirm: function(m, o, yes, no) { if(confirm(m)){ if(yes) yes(0); } else { if(no) no(0); } },
-        open:  function(o)  { return 0; },
-        close: function(i)  { },
-        load:  function(t)  { return 0; },
-        prompt: function(o, cb) { var v=prompt(o.title||'请输入'); if(v!==null && cb) cb(v,0); }
-    };
-}
+// 直接在地址栏访问内页时（不在主框架 iframe 内），跳回主框架并自动打开对应标签，
+// 避免出现一张没有菜单的裸页面。弹层表单页带 _dialog=1，不参与跳转。
+(function () {
+    var isDialog = location.search.indexOf('_dialog=1') > -1;
+    if (!isDialog && window.top === window.self) {
+        location.replace('/?redirect=' + encodeURIComponent(location.pathname + location.search));
+    }
+})();
 </script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

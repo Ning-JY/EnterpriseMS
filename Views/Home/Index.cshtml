@@ -1,104 +1,171 @@
+@*
+    主框架页（layuiAdmin 风格外壳）
+    ------------------------------------------------------------------
+    整站唯一的外壳：左侧菜单 + 顶部导航 + 单页 iframe 内容区。
+    点击菜单直接替换当前内容区（不保留多标签），本页自身不承载业务内容。
+    默认内容在 /home/console。
+*@
+@using EnterpriseMS.Web
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Services.DTOs.System
 @{
-    ViewData["Title"] = "仪表盘";
-    Layout = "_Layout";
-    dynamic stats = ViewBag.Stats ?? new { total = 0, executing = 0, completed = 0, overdue = 0 };
+    ViewData["Title"] = "企业管理系统";
+    Layout = null;
+    var menuTree = ViewBag.MenuTree as List<MenuTreeDto> ?? new List<MenuTreeDto>();
 }
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>企业管理系统</title>
+    <link rel="stylesheet" href="~/lib/layui/css/layui.css">
+    <link rel="stylesheet" href="~/css/ems.css" asp-append-version="true">
+</head>
+<body class="layui-layout-body">
+@Html.AntiForgeryToken()
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0">仪表盘</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item active">首页</li>
-                </ol>
-            </div>
+<div class="layui-layout layui-layout-admin">
+
+    <!-- 顶部导航 -->
+    <div class="layui-header">
+        <div class="layui-logo">企业管理系统</div>
+        <ul class="layui-nav layui-layout-left">
+            <li class="layui-nav-item">
+                <a href="javascript:;" id="emsSideToggle" title="收起/展开菜单">
+                    <i class="layui-icon layui-icon-shrink-right"></i>
+                </a>
+            </li>
+            <li class="layui-nav-item">
+                <a href="javascript:;" data-url="/home/console" data-title="首页">
+                    <i class="layui-icon layui-icon-home"></i> 首页
+                </a>
+            </li>
+        </ul>
+
+        <ul class="layui-nav layui-layout-right" lay-filter="emsHeader">
+            <li class="layui-nav-item">
+                <a href="javascript:;" data-url="/my-stats" data-title="我的产值" title="个人产值统计">
+                    <i class="layui-icon layui-icon-chart"></i>
+                </a>
+            </li>
+            @await Component.InvokeAsync("NotificationBell")
+            <li class="layui-nav-item">
+                <a href="javascript:;">
+                    <i class="layui-icon layui-icon-username"></i> @User.GetRealName()
+                </a>
+                <dl class="layui-nav-child">
+                    <dd><a href="javascript:;" data-url="/profile" data-title="个人资料">个人资料</a></dd>
+                    <dd><a href="javascript:;" data-url="/my-stats" data-title="我的产值">我的产值</a></dd>
+                    <hr>
+                    <dd><a href="javascript:;" id="emsLogout">退出登录</a></dd>
+                </dl>
+            </li>
+        </ul>
+    </div>
+
+    <!-- 左侧菜单 -->
+    <div class="layui-side layui-bg-black">
+        <div class="layui-side-scroll">
+            <ul class="layui-nav layui-nav-tree" lay-filter="emsSide" id="emsSide" lay-accordion>
+                @foreach (var menu in menuTree)
+                {
+                    if (menu.MenuType == "M" && menu.Children.Any(c => c.MenuType == "C"))
+                    {
+                        <li class="layui-nav-item">
+                            <a href="javascript:;">
+                                <i class="layui-icon @LayuiIcon.From(menu.Icon)"></i>
+                                <span>@menu.MenuName</span>
+                            </a>
+                            <dl class="layui-nav-child">
+                                @foreach (var child in menu.Children.Where(c => c.MenuType == "C"))
+                                {
+                                    <dd>
+                                        <a href="javascript:;" data-url="@child.Path" data-title="@child.MenuName">
+                                            <i class="layui-icon @LayuiIcon.From(child.Icon)"></i>
+                                            @child.MenuName
+                                        </a>
+                                    </dd>
+                                }
+                            </dl>
+                        </li>
+                    }
+                    else if (menu.MenuType == "C")
+                    {
+                        <li class="layui-nav-item">
+                            <a href="javascript:;" data-url="@menu.Path" data-title="@menu.MenuName">
+                                <i class="layui-icon @LayuiIcon.From(menu.Icon)"></i>
+                                <span>@menu.MenuName</span>
+                            </a>
+                        </li>
+                    }
+                }
+            </ul>
         </div>
+    </div>
+
+    <!-- 内容区：单页切换（点击菜单直接替换，不保留标签） -->
+    <div class="layui-body">
+        <div class="ems-content">
+            <iframe id="emsFrame" src="/home/console" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <div class="layui-footer">
+        企业管理系统 v2.0
     </div>
 </div>
 
-<section class="content">
-<div class="container-fluid">
+<script src="~/lib/layui/layui.js"></script>
+<script>
+layui.use(['element', 'layer', 'util'], function () {
+    var element = layui.element,
+        layer   = layui.layer,
+        $       = layui.$;
 
-    <!-- 统计卡片 -->
-    <div class="row">
-        <div class="col-lg-3 col-6">
-            <div class="small-box bg-info">
-                <div class="inner">
-                    <h3>@stats.total</h3>
-                    <p>项目总数</p>
-                </div>
-                <div class="icon"><i class="fas fa-project-diagram"></i></div>
-                <a href="/project" class="small-box-footer">查看详情 <i class="fas fa-arrow-circle-right"></i></a>
-            </div>
-        </div>
-        <div class="col-lg-3 col-6">
-            <div class="small-box bg-success">
-                <div class="inner">
-                    <h3>@stats.executing</h3>
-                    <p>执行中项目</p>
-                </div>
-                <div class="icon"><i class="fas fa-tasks"></i></div>
-                <a href="/project?ProgressStatus=6" class="small-box-footer">查看详情 <i class="fas fa-arrow-circle-right"></i></a>
-            </div>
-        </div>
-        <div class="col-lg-3 col-6">
-            <div class="small-box bg-warning">
-                <div class="inner">
-                    <h3>@stats.overdue</h3>
-                    <p>里程碑逾期</p>
-                </div>
-                <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
-                <a href="/project" class="small-box-footer">查看详情 <i class="fas fa-arrow-circle-right"></i></a>
-            </div>
-        </div>
-        <div class="col-lg-3 col-6">
-            <div class="small-box bg-secondary">
-                <div class="inner">
-                    <h3>@stats.completed</h3>
-                    <p>已完成项目</p>
-                </div>
-                <div class="icon"><i class="fas fa-check-circle"></i></div>
-                <a href="/project?ProgressStatus=8" class="small-box-footer">查看详情 <i class="fas fa-arrow-circle-right"></i></a>
-            </div>
-        </div>
-    </div>
+    // ── 打开/切换内容页（单页：直接替换当前 iframe，不保留标签） ──
+    function openTab(url, title) {
+        if (!url) return;
+        $('#emsFrame').attr('src', url);
+    }
+    // 暴露给 iframe 子页调用：parent.emsOpenTab('/project/detail/1', '项目详情')
+    window.emsOpenTab = openTab;
 
-    <!-- 快捷入口 -->
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header"><h3 class="card-title">快捷入口</h3></div>
-                <div class="card-body">
-                    <a href="/project/create" class="btn btn-outline-primary m-1">
-                        <i class="fas fa-plus"></i> 新建项目
-                    </a>
-                    <a href="/hr/employee" class="btn btn-outline-info m-1">
-                        <i class="fas fa-users"></i> 员工管理
-                    </a>
-                    <a href="/system/user" class="btn btn-outline-secondary m-1">
-                        <i class="fas fa-user-cog"></i> 用户管理
-                    </a>
-                    <a href="/budget" class="btn btn-outline-success m-1">
-                        <i class="fas fa-file-invoice-dollar"></i> 概预算结算
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header"><h3 class="card-title">系统信息</h3></div>
-                <div class="card-body">
-                    <table class="table table-sm table-borderless">
-                        <tr><td class="text-muted">系统名称</td><td>企业管理系统 v2.0</td></tr>
-                        <tr><td class="text-muted">框架版本</td><td>.NET 9.0 + EF Core 9</td></tr>
-                        <tr><td class="text-muted">当前用户</td><td>@User.Identity?.Name</td></tr>
-                        <tr><td class="text-muted">服务器时间</td><td>@DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")</td></tr>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
+    // ── 菜单 / 顶部导航点击 ──────────────────────────────────
+    $(document).on('click', 'a[data-url]', function () {
+        openTab($(this).data('url'), $(this).data('title'));
+    });
 
-</div>
-</section>
+    // ── 侧边栏收起 / 展开 ────────────────────────────────────
+    $('#emsSideToggle').on('click', function () {
+        $('body').toggleClass('ems-side-hide');
+        var icon = $(this).find('i');
+        icon.toggleClass('layui-icon-shrink-right layui-icon-spread-left');
+    });
+
+    // ── 退出登录 ────────────────────────────────────────────
+    $('#emsLogout').on('click', function () {
+        layer.confirm('确定退出登录？', { icon: 3, title: '提示' }, function () {
+            var token = $('input[name="__RequestVerificationToken"]').val();
+            var f = $('<form method="post" action="/Account/Logout"></form>')
+                .append($('<input type="hidden" name="__RequestVerificationToken">').val(token));
+            $('body').append(f);
+            f.submit();
+        });
+    });
+
+    // ── 直达链接：/?redirect=/system/user 自动打开对应标签 ───
+    (function () {
+        var m = location.search.match(/[?&]redirect=([^&]+)/);
+        if (!m) return;
+        var url = decodeURIComponent(m[1]);
+        var path = url.split('?')[0];
+        // 从菜单里反查标题，查不到就用路径兜底
+        var $menu = $('a[data-url="' + path + '"]').first();
+        openTab(url, $menu.length ? $menu.data('title') : path);
+        history.replaceState(null, '', '/');
+    })();
+});
+</script>
+</body>
+</html>

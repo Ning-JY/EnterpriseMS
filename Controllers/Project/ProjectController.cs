@@ -35,16 +35,31 @@ public class ProjectController : BaseAuthController
     {
         _projSvc = projSvc; _deptSvc = deptSvc; _dictSvc = dictSvc;
         _empQrySvc = empQrySvc; _logSvc = logSvc; _uow = uow; _reportSvc = reportSvc;
-    }  [HasPermission("proj:project:list")]
-    public async Task<IActionResult> Index(ProjectQueryDto query)
+    }      [HasPermission("proj:project:list")]
+    public async Task<IActionResult> Index()
     {
-        var result  = await _projSvc.GetPagedAsync(query, User.GetUserId());
-        var depts   = await _deptSvc.GetTreeAsync();
-        var members = await _empQrySvc.GetAllOnJobAsync();
-        ViewBag.Depts   = depts;
-        ViewBag.Members = members;
-        ViewBag.Query   = query;
-        return View(result);
+        // 列表数据由 /project/list (AJAX) 提供，本页仅做容器。
+        ViewBag.BizTypes = await _dictSvc.GetDataByTypeAsync(DictType.BizType);
+        return View();
+    }
+
+    // ── AJAX 列表数据（新标准 layui 表格）──
+    [HttpGet("list")]
+    [HasPermission("proj:project:list")]
+    public async Task<IActionResult> List(string? keyword, long? deptId,
+        int? progressStatus, string? bizType, int page = 1, int size = 15)
+    {
+        var query = new ProjectQueryDto
+        {
+            Keyword        = keyword,
+            DeptId         = deptId,
+            ProgressStatus = progressStatus,
+            BizType        = bizType,
+            Page           = page,
+            Size           = size
+        };
+        var paged = await _projSvc.GetPagedAsync(query, User.GetUserId());
+        return ApiOk(paged);
     }
 
     [HttpGet("{id}")]
@@ -101,7 +116,7 @@ public class ProjectController : BaseAuthController
         var defaults = tpl.Fields
             .Where(f => f.Source == "manual")
             .ToDictionary(f => f.Name, f => f.DefaultValue ?? "");
-        var all = await _projSvc.BuildReportFieldValuesAsync(proj, tpl, defaults);
+        var all = await _projSvc.BuildReportFieldValuesAsync("project", proj.Id.ToString(), tpl, defaults);
 
         var autoFields = tpl.Fields
             .Where(f => f.Source != "manual")
@@ -138,7 +153,7 @@ public class ProjectController : BaseAuthController
 
         try
         {
-            var fieldsStr = await _projSvc.BuildReportFieldValuesAsync(proj, tpl, req.Fields);
+            var fieldsStr = await _projSvc.BuildReportFieldValuesAsync("project", proj.Id.ToString(), tpl, req.Fields);
             var fields    = fieldsStr.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
             var bytes = _reportSvc.GenerateDocument(tpl.Id, fields);
             var fileName = $"{proj.ProjName}_{tpl.Name}.docx";
@@ -190,9 +205,7 @@ public class ProjectController : BaseAuthController
         // 业务类型改为字典驱动（biz_type 已种子化，可在字典管理中动态维护）
         ViewBag.BizTypes = await _dictSvc.GetDataByTypeAsync(DictType.BizType);
         ViewBag.GeneratedNo    = suffix;
-        // 模态框（项目台账页 AJAX 打开）只返回表单分部；直接访问 /project/create 仍渲染完整页
-        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest" || Request.Query["modal"] == "1")
-            return PartialView("_CreateModalContent");
+        // 直接访问 /project/create 或经 iframe 弹窗均渲染完整表单页（新 layui 标准）。
         return View();
     }
 
@@ -511,7 +524,8 @@ public class ProjectController : BaseAuthController
             : (inv.PaymentFile, inv.PaymentFileName);
         if (string.IsNullOrEmpty(fp) || !global::System.IO.File.Exists(fp))
             return NotFound("文件不存在");
-        return FileServingHelper.ServePhysicalFile(fp, fn ?? "附件", global::System.IO.Path.GetExtension(fp));
+        var inline = Request.Query["inline"] == "1";
+        return FileServingHelper.ServePhysicalFile(fp, fn ?? "附件", global::System.IO.Path.GetExtension(fp), inline);
     }
 
     [HttpPost("contracts/file/delete/{contractId}")]
@@ -534,8 +548,9 @@ public class ProjectController : BaseAuthController
         if (contract == null || string.IsNullOrEmpty(contract.FilePath)
             || !global::System.IO.File.Exists(contract.FilePath))
             return NotFound("文件不存在");
+        var inline = Request.Query["inline"] == "1";
         return FileServingHelper.ServePhysicalFile(contract.FilePath, contract.FileName ?? "合同附件",
-            global::System.IO.Path.GetExtension(contract.FilePath));
+            global::System.IO.Path.GetExtension(contract.FilePath), inline);
     }
 
     // 合同附件上传（项目合同）
@@ -586,7 +601,8 @@ public class ProjectController : BaseAuthController
         var f     = files.FirstOrDefault();
         if (f == null || !global::System.IO.File.Exists(f.FilePath))
             return NotFound("文件不存在");
-        return FileServingHelper.ServePhysicalFile(f.FilePath, f.FileName, f.FileExt);
+        var inline = Request.Query["inline"] == "1";
+        return FileServingHelper.ServePhysicalFile(f.FilePath, f.FileName, f.FileExt, inline);
     }
 
     [HttpPost("files/delete/{fileId}")]

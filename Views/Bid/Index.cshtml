@@ -1,370 +1,143 @@
-@using EnterpriseMS.Common
-@using EnterpriseMS.Domain.Enums
-@model PagedResult<EnterpriseMS.Services.DTOs.Bid.BidProjectDto>
 @{
     ViewData["Title"] = "投标台账";
     Layout = "_Layout";
-    var query = ViewBag.Query as EnterpriseMS.Services.DTOs.Bid.BidListQuery ?? new EnterpriseMS.Services.DTOs.Bid.BidListQuery();
+    string[] statusText = { "草稿", "解析中", "生成中", "审查中", "就绪", "已提交", "已中标", "未中标" };
 }
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-gavel mr-2"></i>投标台账</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item active">投标管理</li>
-                </ol>
-            </div>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-read"></i> 投标台账
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">投标管理</a>
+        <a><cite>投标台账</cite></a>
     </div>
 </div>
 
-<section class="content">
-<div class="container-fluid">
-
-    <!-- 搜索 -->
-    <div class="card card-default">
-        <div class="card-body">
-            <form id="searchForm" method="get" action="/Bid">
-                <div class="row">
-                    <div class="col-md-3">
-                        <input type="text" name="Keyword" class="form-control form-control-sm"
-                               placeholder="项目名称" value="@query.Keyword">
-                    </div>
-                    <div class="col-md-2">
-                        <select name="Status" class="form-control form-control-sm">
-                            <option value="">全部状态</option>
-                            @foreach (BidProjectStatus status in Enum.GetValues<BidProjectStatus>())
-                            {
-                                <option value="@((int)status)" selected="@(query.Status == (int)status)">@status</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary btn-sm mr-1">
-                            <i class="fas fa-search"></i> 搜索
-                        </button>
-                        <a href="/Bid" class="btn btn-default btn-sm">
-                            <i class="fas fa-redo"></i> 重置
-                        </a>
-                    </div>
-                    <div class="col-md-3"></div>
-                    <div class="col-md-2 text-right">
-                        <button type="button" class="btn btn-success btn-sm" onclick="openBidModal()">
-                            <i class="fas fa-plus"></i> 新建投标
-                        </button>
-                    </div>
-                </div>
-                <input type="hidden" name="Page" id="pageInput" value="1">
-            </form>
-        </div>
-    </div>
-
-    <!-- 列表 -->
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">共 @Model.Total 个投标项目</h3>
-        </div>
-        <div class="card-body table-responsive p-0">
-            <table class="table table-hover table-sm">
-                <thead class="thead-light">
-                    <tr>
-                        <th>项目编号</th>
-                        <th>项目名称</th>
-                        <th>招标人</th>
-                        <th>预算金额</th>
-                        <th>截止日期</th>
-                        <th>状态</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model.Items)
-                    {
-                        <tr>
-                            <td>
-                                <small class="text-muted font-monospace">@item.ProjectCode</small>
-                            </td>
-                            <td>
-                                <a href="/Bid/Detail/@item.Id" class="text-dark font-weight-bold">
-                                    @item.ProjectName
-                                </a>
-                            </td>
-                            <td>@(item.Tenderer ?? "-")</td>
-                            <td class="font-weight-bold text-primary">
-                                @if (item.Budget.HasValue)
-                                {
-                                    @($"¥ {item.Budget.Value:N2} 万")
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td>
-                                @if (item.Deadline.HasValue)
-                                {
-                                    var daysLeft = (item.Deadline.Value - DateTime.Now).Days;
-                                    <span class="@(daysLeft < 7 ? "text-danger" : daysLeft < 30 ? "text-warning" : "")">
-                                        @item.Deadline.Value.ToString("yyyy-MM-dd")
-                                    </span>
-                                    @if (daysLeft >= 0)
-                                    {
-                                        <br><small class="text-muted">剩余 @daysLeft 天</small>
-                                    }
-                                    else
-                                    {
-                                        <br><small class="text-danger">已过期</small>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="text-muted">-</span>
-                                }
-                            </td>
-                            <td>
-                                <span class="badge @GetStatusBadge(item.Status)">@GetStatusName(item.Status)</span>
-                            </td>
-                            <td>
-                                <a href="/Bid/Detail/@item.Id" class="btn btn-xs btn-info" title="详情">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <button type="button" class="btn btn-xs btn-warning" title="编辑" onclick="openBidModal(@item.Id)">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                    @if (!Model.Items.Any())
-                    {
-                        <tr><td colspan="7" class="text-center text-muted py-4">暂无数据</td></tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-        <partial name="_Pagination" model="Model" />
-    </div>
-
-</div>
-</section>
-
-<!-- 新建投标模态框 -->
-<div class="modal fade" id="bidModal" tabindex="-1">
-    <div class="modal-dialog modal-lg"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title"><i class="fas fa-gavel mr-2"></i><span id="bidModalTitle">新建投标</span></h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        </div>
-        <form id="bidForm">
-            @Html.AntiForgeryToken()
-            <input type="hidden" id="bidId" value="0">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label>关联项目</label>
-                    <div class="input-group">
-                        <select id="bidProjectId" name="ProjectId" class="form-control">
-                            <option value="">— 不关联（可选）—</option>
-                        </select>
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-primary" id="btnQuickProject" title="按名称快速建项并关联">
-                                <i class="fas fa-magic mr-1"></i>一键转项目
-                            </button>
-                        </div>
-                    </div>
-                    <small class="form-text text-muted">可留空；或选择已有项目，亦可一键建项并关联。</small>
-                </div>
-                <div class="form-group">
-                    <label>招标人</label>
-                    <input type="text" id="bidTenderer" name="Tenderer" class="form-control" placeholder="如：XX市建设局">
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>预算金额（万元）</label>
-                            <input type="number" step="0.01" id="bidBudget" name="Budget" class="form-control" placeholder="0.00">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>投标截止日期</label>
-                            <input type="date" id="bidDeadline" name="Deadline" class="form-control">
-                        </div>
-                    </div>
-                </div>
-                <div class="row" id="bidStatusRow" style="display:none;">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label>状态</label>
-                            <select id="bidStatus" name="Status" class="form-control">
-                                <option value="0">草稿</option>
-                                <option value="1">解析中</option>
-                                <option value="2">生成中</option>
-                                <option value="3">审查中</option>
-                                <option value="4">就绪</option>
-                                <option value="5">已提交</option>
-                                <option value="6">已中标</option>
-                                <option value="7">未中标</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>备注</label>
-                    <textarea id="bidRemark" name="Remark" class="form-control" rows="3" placeholder="项目描述、特殊要求等"></textarea>
-                </div>
+<!-- 搜索卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="bidSearch">
+            <div class="layui-inline">
+                <input type="text" name="keyword" placeholder="项目名称 / 招标人 / 编号"
+                       autocomplete="off" class="layui-input">
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="saveBid()">
-                    <i class="fas fa-save mr-1"></i><span id="bidSaveBtnText">创建</span>
+            <div class="layui-inline">
+                <select name="status">
+                    <option value="">全部状态</option>
+                    @for (int i = 0; i < statusText.Length; i++)
+                    {
+                        <option value="@i">@statusText[i]</option>
+                    }
+                </select>
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="bidSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+            </div>
+            <div class="layui-inline ems-search-actions">
+                <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                    <i class="layui-icon layui-icon-add-1"></i> 新建投标
                 </button>
             </div>
         </form>
-    </div></div>
+    </div>
 </div>
+
+<!-- 列表卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>投标项目列表</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
+                <i class="layui-icon layui-icon-cols"></i> 筛选列
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnExport">
+                <i class="layui-icon layui-icon-export"></i> 导出
+            </button>
+        </div>
+    </div>
+    <div class="layui-card-body">
+        <table id="bidTable" lay-filter="bidTable"></table>
+    </div>
+</div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="bidBar">
+    <a class="ems-icon-btn primary" title="投标详情" lay-event="detail"><i class="layui-icon layui-icon-about"></i></a>
+    <a class="ems-icon-btn edit" title="编辑" lay-event="edit"><i class="layui-icon layui-icon-edit"></i></a>
+</script>
 
 @section Scripts {
 <script>
-function openBidModal(id) {
-    id = id || 0;
-    document.getElementById('bidForm').reset();
-    $('#bidId').val(id);
-    $('#bidStatusRow').hide();
-    $('#bidProjectId').prop('disabled', false);
-    $('#btnQuickProject').prop('disabled', false);
-    if (id > 0) {
-        $('#bidModalTitle').text('编辑投标');
-        $('#bidSaveBtnText').text('保存');
-        var load = ems.loading();
-        $.get('/Bid/Get?id=' + id, function (r) {
-            ems.close(load);
-            if (r && r.success && r.data) {
-                var d = r.data;
-                $('#bidTenderer').val(d.tenderer || '');
-                $('#bidBudget').val(d.budget != null ? d.budget : '');
-                $('#bidDeadline').val(d.deadline ? d.deadline.substring(0, 10) : '');
-                $('#bidRemark').val(d.remark || '');
-                $('#bidStatus').val(d.status);
-                $('#bidStatusRow').show();
-                // 编辑模式：项目不可改（UpdateDto 无 ProjectId），禁用选择与一键转项目
-                $('#bidProjectId').prop('disabled', true);
-                $('#btnQuickProject').prop('disabled', true);
-                if (d.projectId) loadProjectOptions(d.projectId);
-            } else {
-                ems.msg((r && r.message) || '加载失败', { icon: 2 });
-            }
-        }).fail(function () { ems.close(load); ems.msg('加载失败', { icon: 2 }); });
-    } else {
-        $('#bidModalTitle').text('新建投标');
-        $('#bidSaveBtnText').text('创建');
-        loadProjectOptions();
-    }
-    $('#bidModal').modal('show');
-}
+ems.ready(function () {
 
-function loadProjectOptions(selectId) {
-    $.get('/project/simple-list', function (res) {
-        if (res && res.success && res.data) {
-            var html = '<option value="">— 不关联（可选）—</option>';
-            (res.data || []).forEach(function (p) {
-                var label = (p.projNo ? p.projNo + ' · ' : '') + p.projName;
-                html += '<option value="' + p.id + '">' + escapeHtml(label) + '</option>';
-            });
-            $('#bidProjectId').html(html);
-            if (selectId) $('#bidProjectId').val(selectId);
+    var STATUS_MAP = {
+        0: ['草稿',   'gray'],   1: ['解析中', 'blue'],
+        2: ['生成中', 'orange'], 3: ['审查中', 'orange'],
+        4: ['就绪',   'cyan'],   5: ['已提交', 'blue'],
+        6: ['已中标', 'green'],  7: ['未中标', 'gray']
+    };
+
+    var colsConfig = [
+        { field: 'ProjectCode', title: '项目编号', width: 150,
+          templet: function (d) {
+              return '<span class="layui-font-12">' + ems.escapeHtml(d.ProjectCode || '-') + '</span>';
+          } },
+        { field: 'ProjectName', title: '项目名称', minWidth: 240,
+          templet: function (d) {
+              return '<a class="layui-link" lay-event="detail">' + ems.escapeHtml(d.ProjectName || '(未关联项目)') + '</a>';
+          } },
+        { field: 'Tenderer', title: '招标人', width: 180, templet: ems.tpl.text('Tenderer') },
+        { field: 'Budget', title: '预算金额(万)', width: 140, align: 'right',
+          templet: function (d) {
+              if (d.Budget === null || d.Budget === undefined) return '<span class="layui-font-gray">-</span>';
+              return '<span class="layui-font-teal ">¥' + Number(d.Budget).toFixed(2) + '</span>';
+          } },
+        { field: 'Deadline', title: '投标截止', width: 150,
+          templet: function (d) {
+              if (!d.Deadline) return '<span class="layui-font-gray">-</span>';
+              var txt  = ems.fmtDate(d.Deadline);
+              var end  = new Date(String(d.Deadline).substring(0, 10) + 'T00:00:00');
+              var now  = new Date(); now.setHours(0, 0, 0, 0);
+              var days = Math.round((end - now) / 86400000);
+              var cls, tip;
+              if (isNaN(days))    { return txt; }
+              if (days < 0)       { cls = 'layui-font-red';    tip = '已截止'; }
+              else if (days < 7)  { cls = 'layui-font-red';    tip = '剩 ' + days + ' 天'; }
+              else if (days < 30) { cls = 'layui-font-orange'; tip = '剩 ' + days + ' 天'; }
+              else                { cls = 'layui-font-gray'; tip = '剩 ' + days + ' 天'; }
+              return txt + '<br><span class="layui-font-12 ' + cls + '">' + tip + '</span>';
+          } },
+        { field: 'Status', title: '状态', width: 100, align: 'center',
+          templet: ems.tpl.badge('Status', STATUS_MAP) },
+        { field: 'CreatedAt', title: '创建时间', width: 150, templet: ems.tpl.date('CreatedAt') },
+        { title: '操作', width: 110, align: 'center', toolbar: '#bidBar' }
+    ];
+
+    ems.initTable({
+        elem: '#bidTable',
+        id:   'bidTable',
+        url:  '/bid/list',
+        cols: [colsConfig],
+
+        tool: {
+            detail: function (d) { ems.openTab('/bid/detail/' + d.Id, '投标详情 - ' + (d.ProjectName || d.Id)); },
+            edit:   function (d) { ems.openEdit({ title: '编辑投标 - ' + (d.ProjectName || d.Id), url: '/bid/edit/' + d.Id, area: ['860px', '92%'] }); }
         }
-    }).fail(function () { console.warn('项目列表加载失败'); });
-}
-
-function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, function (m) {
-        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m];
     });
-}
 
-$('#btnQuickProject').on('click', function () {
-    ems.prompt({
-        title: '一键转项目',
-        formType: 0,
-        btn: ['创建并关联', '取消']
-    }, function (name, index) {
-        name = (name || '').trim();
-        if (!name) { ems.msg('请输入项目名称', { icon: 2 }); return; }
-        ems.close(index);
-        var load = ems.loading();
-        $.ajax({
-            url: '/project/quick-create',
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ ProjName: name }),
-            success: function (r) {
-                ems.close(load);
-                if (r && r.success && r.data) {
-                    loadProjectOptions(r.data.id);
-                    ems.msg('已创建项目并关联：' + name, { icon: 1 });
-                } else {
-                    ems.msg((r && r.message) || '创建失败', { icon: 2 });
-                }
-            },
-            error: function () { ems.close(load); ems.msg('请求失败', { icon: 2 }); }
-        });
+    $('#btnAdd').on('click', function () {
+        ems.openAdd({ title: '新建投标', url: '/bid/create', area: ['900px', '92%'] });
     });
+
+    $('#btnFilter').on('click', function () { ems.colFilter('bidTable', colsConfig); });
+    $('#btnExport').on('click', function () { ems.exportMenu('bidTable', '投标台账'); });
+
+    ems.bindSearch('bidSearch', 'bidTable');
 });
-
-function saveBid() {
-    var id = parseInt($('#bidId').val()) || 0;
-    var fd = new FormData(document.getElementById('bidForm'));
-    // 编辑模式项目选择被禁用，不会进入 FormData，符合 UpdateDto 无 ProjectId 的设定
-    var url = id > 0 ? ('/Bid/Edit/' + id) : '/Bid/Create';
-    var load = ems.loading();
-    $.ajax({
-        url: url, type: 'POST', data: fd,
-        processData: false, contentType: false,
-        success: function (r) {
-            ems.close(load);
-            if (r && r.success) {
-                ems.msg(id > 0 ? '保存成功' : '创建成功', { icon: 1 });
-                $('#bidModal').modal('hide');
-                var newId = r.data && r.data.id ? r.data.id : id;
-                setTimeout(function () {
-                    location.href = newId ? '/Bid/Detail/' + newId : '/Bid';
-                }, 600);
-            } else {
-                ems.msg((r && r.message) || '操作失败，请检查必填项', { icon: 2 });
-            }
-        },
-        error: function () { ems.close(load); ems.msg('请求失败', { icon: 2 }); }
-    });
-}
 </script>
-}
-
-@functions {
-    string GetStatusBadge(int status) => status switch
-    {
-        0 => "badge-secondary",
-        1 => "badge-info",
-        2 => "badge-primary",
-        3 => "badge-warning",
-        4 => "badge-success",
-        5 => "badge-info",
-        6 => "badge-success",
-        7 => "badge-danger",
-        _ => "badge-secondary"
-    };
-
-    string GetStatusName(int status) => status switch
-    {
-        0 => "草稿",
-        1 => "解析中",
-        2 => "生成中",
-        3 => "审查中",
-        4 => "就绪",
-        5 => "已提交",
-        6 => "已中标",
-        7 => "未中标",
-        _ => "未知"
-    };
 }

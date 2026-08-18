@@ -35,26 +35,25 @@ public class AutoMapperProfile : Profile
 
         // Menu
         CreateMap<SysMenu, MenuTreeDto>();
+        CreateMap<SysMenu, MenuListDto>();
         CreateMap<CreateMenuDto, SysMenu>();
 
         // Dept
         CreateMap<SysDept, DeptTreeDto>();
+        CreateMap<SysDept, DeptListDto>();
         CreateMap<CreateDeptDto, SysDept>();
 
         // Project
         CreateMap<Project, ProjectListDto>()
-            .ForMember(d => d.DeptName,       o => o.MapFrom(s => s.Dept != null ? s.Dept.DeptName : null))
-            .ForMember(d => d.TechLeaderName, o => o.MapFrom(s => s.TechLeader != null ? WebUtility.HtmlDecode(s.TechLeader.RealName) : null))
-            .ForMember(d => d.BizLeaderName,  o => o.MapFrom(s => s.BizLeader  != null ? WebUtility.HtmlDecode(s.BizLeader.RealName)  : null))
-            .ForMember(d => d.ActualAmount,   o => o.MapFrom(s => s.ActualContractAmount))
-            .ForMember(d => d.MilestoneDone,  o => o.MapFrom(s => s.Milestones.Count(m => m.Status == 2)))
-            .ForMember(d => d.MilestoneTotal, o => o.MapFrom(s => s.Milestones.Count))
-            .ForMember(d => d.OwnerContact,   o => o.MapFrom(s => s.OwnerContact));
+            .ForMember(d => d.DeptName,          o => o.MapFrom(s => s.Dept != null ? s.Dept.DeptName : null))
+            .ForMember(d => d.ProjectLeaderName, o => o.MapFrom(s => s.ProjectLeader != null ? WebUtility.HtmlDecode(s.ProjectLeader.RealName) : null))
+            .ForMember(d => d.ActualAmount,      o => o.MapFrom(s => s.ActualContractAmount))
+            .ForMember(d => d.MilestoneDone,     o => o.MapFrom(s => s.Milestones.Count(m => m.Status == 2)))
+            .ForMember(d => d.MilestoneTotal,    o => o.MapFrom(s => s.Milestones.Count))
+            .ForMember(d => d.OwnerContact,      o => o.MapFrom(s => s.OwnerContact));
         CreateMap<Project, ProjectDetailDto>()
             .IncludeBase<Project, ProjectListDto>()
             .ForMember(d => d.DeptId,       o => o.MapFrom(s => s.DeptId))
-            .ForMember(d => d.TechLeaderId, o => o.MapFrom(s => s.TechLeaderId))
-            .ForMember(d => d.BizLeaderId,  o => o.MapFrom(s => s.BizLeaderId))
             .ForMember(d => d.LimitPrice,   o => o.MapFrom(s => s.LimitPrice))
             .ForMember(d => d.BuildingScale,o => o.MapFrom(s => s.BuildingScale))
             .ForMember(d => d.OwnerContact, o => o.MapFrom(s => s.OwnerContact));
@@ -71,9 +70,7 @@ public class AutoMapperProfile : Profile
             .ForMember(d => d.Milestones,     o => o.Ignore())
             .ForMember(d => d.Acceptances,    o => o.Ignore())
             .ForMember(d => d.OperLogs,       o => o.Ignore())
-            .ForMember(d => d.Dept,           o => o.Ignore())
-            .ForMember(d => d.TechLeader,     o => o.Ignore())
-            .ForMember(d => d.BizLeader,      o => o.Ignore());
+            .ForMember(d => d.Dept,           o => o.Ignore());
 
         // ProjectMember
         CreateMap<ProjectMember, ProjectMemberDto>()

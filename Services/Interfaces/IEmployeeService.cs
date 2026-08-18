@@ -16,6 +16,10 @@ public interface IEmployeeService
     Task<List<Employee>>        GetOnJobAsync();
     Task<long>                  CreateAsync(CreateEmployeeDto dto, string operBy);
     Task                        UpdateAsync(UpdateEmployeeDto dto, string operBy);
+    Task                        UpdateBasicAsync(UpdateBasicDto dto, string operBy);
+    Task                        UpdateJobAsync(UpdateJobDto dto, string operBy);
+    Task                        UpdateEducationAsync(UpdateEducationDto dto, string operBy);
+    Task                        UpdateProfilePhotoAsync(long id, string? photoPath, string operBy);
     Task                        FormalAsync(long id, DateTime formalDate, string operBy);
     Task                        LeaveAsync(long id, DateTime leaveDate, string? reason, string operBy);
 }

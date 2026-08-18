@@ -1,310 +1,196 @@
-@using EnterpriseMS.Services.DTOs.System
-@model List<MenuTreeDto>
-@{ ViewData["Title"] = "菜单管理"; }
+@using EnterpriseMS.Common.Extensions
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "菜单管理";
+    var userId  = User.GetUserId();
+    bool canAdd  = await PermSvc.HasPermAsync(userId, "sys:menu:add");
+    bool canEdit = await PermSvc.HasPermAsync(userId, "sys:menu:edit");
+    bool canDel  = await PermSvc.HasPermAsync(userId, "sys:menu:delete");
+}
 
-<div class="content-header">
-    <div class="container-fluid">
-        <div class="row mb-2">
-            <div class="col-sm-6"><h1 class="m-0"><i class="fas fa-list-ul mr-2"></i>菜单管理</h1></div>
-            <div class="col-sm-6">
-                <ol class="breadcrumb float-sm-right">
-                    <li class="breadcrumb-item"><a href="/">首页</a></li>
-                    <li class="breadcrumb-item"><a href="/system">系统管理</a></li>
-                    <li class="breadcrumb-item"><a href="/system">系统管理</a></li>
-                    <li class="breadcrumb-item active">菜单管理</li>
-                </ol>
-            </div>
-        </div>
+<!-- 标题栏 + 面包屑 -->
+<div class="ems-page-head">
+    <div class="ems-page-title">
+        <i class="layui-icon layui-icon-list"></i> 菜单管理
+    </div>
+    <div class="layui-breadcrumb" lay-separator="/">
+        <a href="javascript:;">首页</a>
+        <a href="javascript:;">系统管理</a>
+        <a><cite>菜单管理</cite></a>
     </div>
 </div>
 
-<section class="content"><div class="container-fluid">
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">菜单树</h3>
-        <div class="card-tools">
-            <button class="btn btn-sm btn-success" onclick="openAddMenu(0)">
-                <i class="fas fa-plus"></i> 新增顶级菜单
-            </button>
-            <span class="badge badge-info ml-2">M=目录</span>
-            <span class="badge badge-primary ml-2">C=页面</span>
-            <span class="badge badge-secondary ml-2">F=按钮</span>
-        </div>
-    </div>
-    <div class="card-body p-0">
-        <table class="table table-sm table-hover">
-            <thead class="thead-light">
-                <tr>
-                    <th width="260">菜单名称</th>
-                    <th width="60">类型</th>
-                    <th>路由/权限标识</th>
-                    <th width="50">排序</th>
-                    <th width="60">图标</th>
-                    <th width="60">状态</th>
-                    <th width="100">操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                @{
-                    string[] typeBadge = { "badge-info", "badge-primary", "badge-secondary" };
-                    string[] typeText  = { "M", "C", "F" };
-                    void RenderRow(MenuTreeDto menu, int depth)
-                    {
-                        var typeIdx  = menu.MenuType == "M" ? 0 : menu.MenuType == "C" ? 1 : 2;
-                        var padding  = depth * 20;
-                        <tr>
-                            <td style="padding-left:@(padding + 12)px">
-                                @if (menu.MenuType == "M")
-                                { <i class="fas fa-folder text-warning mr-1"></i> }
-                                else if (menu.MenuType == "C")
-                                { <i class="fas fa-file-alt text-primary mr-1"></i> }
-                                else
-                                { <i class="fas fa-dot-circle text-muted mr-1"></i> }
-                                <strong>@menu.MenuName</strong>
-                            </td>
-                            <td>
-                                <span class="badge @typeBadge[typeIdx]">@typeText[typeIdx]</span>
-                            </td>
-                            <td class="small text-muted">
-                                @if (!string.IsNullOrEmpty(menu.Path))
-                                { <code>@menu.Path</code> }
-                                @if (!string.IsNullOrEmpty(menu.Perms))
-                                { <span class="badge badge-light ml-1">@menu.Perms</span> }
-                            </td>
-                            <td class="text-center">@menu.Sort</td>
-                            <td class="small">
-                                @if (!string.IsNullOrEmpty(menu.Icon))
-                                { <i class="fas @menu.Icon mr-1"></i><code class="small">@menu.Icon</code> }
-                            </td>
-                            <td>
-                                @if (menu.Status == 1)
-                                { <span class="badge badge-success">正常</span> }
-                                else
-                                { <span class="badge badge-danger">禁用</span> }
-                            </td>
-                            <td>
-                                <div class="btn-group">
-                                    @if (menu.MenuType != "F")
-                                    {
-                                        <button class="btn btn-xs btn-outline-success" onclick="openAddMenu(@menu.Id)" title="新增子菜单">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    }
-                                    <button class="btn btn-xs btn-outline-warning" onclick="openEditMenu(@menu.Id)" title="编辑">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn btn-xs btn-outline-danger" onclick="deleteMenu(@menu.Id,'@EncodeHelper.SafeEncode(menu.MenuName)')" title="删除">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        @foreach (var child in menu.Children)
-                        {
-                            RenderRow(child, depth + 1);
-                        }
-                    }
-
-                    foreach (var menu in Model)
-                    {
-                        RenderRow(menu, 0);
-                    }
+<!-- 搜索卡片 -->
+<div class="layui-card ems-card ems-search">
+    <div class="layui-card-body">
+        <form class="layui-form" lay-filter="menuSearch">
+            <div class="layui-inline">
+                <input type="text" name="Keyword" placeholder="菜单名称 / 权限标识"
+                       autocomplete="off" class="layui-input">
+            </div>
+            <div class="layui-inline">
+                <button class="layui-btn" lay-submit lay-filter="menuSearch">
+                    <i class="layui-icon layui-icon-search"></i> 搜索
+                </button>
+            </div>
+            <div class="layui-inline ems-search-actions">
+                @if (canAdd)
+                {
+                    <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                        <i class="layui-icon layui-icon-add-1"></i> 新增顶级菜单
+                    </button>
                 }
-            </tbody>
-        </table>
+            </div>
+        </form>
     </div>
 </div>
-</div></section>
 
-<!-- 新增/编辑菜单弹窗 -->
-<div class="modal fade" id="menuModal" tabindex="-1">
-    <div class="modal-dialog modal-lg"><div class="modal-content">
-        <div class="modal-header">
-            <h5 class="modal-title" id="menuModalTitle">新增菜单</h5>
-            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+<!-- 列表卡片 -->
+<div class="layui-card ems-card">
+    <div class="layui-card-header">
+        <span>菜单列表</span>
+        <div class="ems-card-tools">
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
+                <i class="layui-icon layui-icon-cols"></i> 筛选列
+            </button>
+            <button type="button" class="layui-btn layui-btn-sm" id="btnExport">
+                <i class="layui-icon layui-icon-export"></i> 导出
+            </button>
         </div>
-        <div class="modal-body">
-            <input type="hidden" id="menuId">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>上级菜单</label>
-                        <select id="menuParentId" class="form-control">
-                            <option value="0">顶级菜单</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>菜单类型</label>
-                        <select id="menuType" class="form-control">
-                            <option value="M">M - 目录</option>
-                            <option value="C" selected>C - 页面菜单</option>
-                            <option value="F">F - 按钮权限</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>菜单名称 <span class="text-danger">*</span></label>
-                        <input type="text" id="menuName" class="form-control">
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>路由地址</label>
-                        <input type="text" id="menuPath" class="form-control" placeholder="如：/system/user">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>权限标识</label>
-                        <input type="text" id="menuPerms" class="form-control" placeholder="如：sys:user:list">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>图标</label>
-                        <input type="text" id="menuIcon" class="form-control" placeholder="如：fa-user">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>排序</label>
-                        <input type="number" id="menuSort" class="form-control" value="0">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>排序</label>
-                        <input type="number" id="menuSort" class="form-control" value="0">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>状态</label>
-                        <select id="menuStatus" class="form-control">
-                            <option value="1">正常</option>
-                            <option value="0">停用</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>是否可见</label>
-                        <select id="menuVisible" class="form-control">
-                            <option value="1">可见</option>
-                            <option value="0">隐藏</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
-            <button type="button" class="btn btn-primary" onclick="saveMenu()">保存</button>
-        </div>
-    </div></div>
+    </div>
+    <div class="layui-card-body">
+        <table id="menuTable" lay-filter="menuTable"></table>
+    </div>
 </div>
+
+<!-- 行操作列 -->
+<script type="text/html" id="menuBar">
+    @if (canAdd)
+    {
+        <text>
+        {{# if (d.MenuType !== 'F') { }}
+        <a class="ems-icon-btn add" title="新增子菜单" lay-event="add"><i class="layui-icon layui-icon-add-circle"></i></a>
+        {{# } }}
+        </text>
+    }
+    @if (canEdit)
+    {
+        <text>
+        <a class="ems-icon-btn edit" title="编辑" lay-event="edit"><i class="layui-icon layui-icon-edit"></i></a>
+        </text>
+    }
+    @if (canDel)
+    {
+        <text>
+        {{# if (!d.HasChildren) { }}
+        <a class="ems-icon-btn danger" title="删除" lay-event="del"><i class="layui-icon layui-icon-delete"></i></a>
+        {{# } }}
+        </text>
+    }
+</script>
 
 @section Scripts {
 <script>
-var af = '@Html.AntiForgeryToken()'.match(/value="([^"]+)"/)[1];
-var allMenus = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-    Model.Select(m => new { id = m.Id, name = m.MenuName, type = m.MenuType })));
+ems.ready(function () {
 
-function buildParentOptions() {
-    var html = '<option value="0">顶级菜单</option>';
-    allMenus.forEach(function(m) {
-        if (m.type !== 'F') {
-            html += '<option value="' + m.id + '">' + escapeHtml(m.name) + '</option>';
+    // 树形折叠状态：id -> true 表示已折叠
+    var collapsed = {};
+    var lastRows = [];
+    var byId = {};
+
+    function buildIndex() {
+        byId = {};
+        lastRows.forEach(function (n) { byId[n.Id] = n; });
+    }
+
+    // 仅根据折叠状态隐藏/显示行（缩进与图标已由 templet 渲染）
+    function applyCollapse() {
+        var $view = $('.layui-table-view').filter(function () {
+            return $(this).find('table[lay-id="menuTable"]').length > 0;
+        });
+        var $body = $view.find('.layui-table-body tbody');
+        $body.find('tr').each(function (i) {
+            var n = lastRows[i];
+            if (!n) return;
+            var hidden = false, p = n.ParentId || 0;
+            while (p && p !== 0) {
+                if (collapsed[p]) { hidden = true; break; }
+                p = byId[p] ? byId[p].ParentId : 0;
+            }
+            $(this).toggle(!hidden);
+        });
+    }
+
+    // 展开 / 折叠
+    $(document).on('click', '.ems-tree-arrow', function () {
+        var id = $(this).data('id');
+        if (collapsed[id]) delete collapsed[id]; else collapsed[id] = true;
+        applyCollapse();
+    });
+
+    var colsConfig = [
+        { field: 'MenuName',   title: '菜单名称', templet: function (d) {
+            var depth = d.Depth || 0;
+            var indent = 8 + depth * 20;
+            var arrow = d.HasChildren
+                ? '<i class="layui-icon layui-icon-triangle-d ems-tree-arrow" data-id="' + d.Id + '" style="cursor:pointer;margin-right:6px"></i>'
+                : '<span style="display:inline-block;width:14px;margin-right:6px"></span>';
+            var icon = d.Icon ? '<i class="layui-icon ' + ems.escapeHtml(d.Icon) + ' ems-menu-icon"></i> ' : '';
+            return '<span class="ems-tree-cell" style="padding-left:' + indent + 'px">' + arrow + icon +
+                   '<span class="ems-tree-name">' + ems.escapeHtml(d.MenuName) + '</span></span>';
+        } },
+        { field: 'MenuTypeText', title: '类型', width: 90, align: 'center',
+          templet: function (d) {
+              var m = { '目录': 'layui-bg-blue', '菜单': 'layui-bg-green', '按钮': 'layui-bg-gray' };
+              return '<span class="layui-badge ' + (m[d.MenuTypeText] || 'layui-bg-gray') + '">' + d.MenuTypeText + '</span>';
+          } },
+        { field: 'Path', title: '路由 / 权限', templet: function (d) {
+              var s = '';
+              if (d.Path)  s += '<code>' + d.Path + '</code>';
+              if (d.Perms) s += ' <span class="layui-badge layui-bg-gray">' + d.Perms + '</span>';
+              return s || '-';
+          } },
+        { field: 'Sort',    title: '排序', width: 80, align: 'center' },
+        { field: 'Status',  title: '状态', width: 90, align: 'center',
+          templet: ems.tpl.badge('Status', { 1: ['正常', 'green'], 0: ['停用', 'red'] }) },
+        { title: '操作', width: 170, align: 'center', toolbar: '#menuBar' }
+    ];
+
+    ems.initTable({
+        elem: '#menuTable',
+        id:   'menuTable',
+        url:  '/system/menu/list',
+        page: false,
+        cols: [colsConfig],
+
+        done: function (res) { lastRows = (res && res.data) || []; buildIndex(); applyCollapse(); },
+
+        tool: {
+            add: function (d) {
+                ems.openAdd({ title: '新增子菜单 - ' + d.MenuName, url: '/system/menu/form?parentId=' + d.Id });
+            },
+            edit: function (d) {
+                ems.openEdit({ title: '编辑菜单 - ' + d.MenuName, url: '/system/menu/form?id=' + d.Id });
+            },
+            del: function (d) {
+                ems.del({ url: '/system/menu/delete/' + d.Id, name: d.MenuName, table: 'menuTable' });
+            }
         }
     });
-    $('#menuParentId').html(html);
-}
 
-function openAddMenu(parentId) {
-    $('#menuModalTitle').text('新增菜单');
-    $('#menuId').val(0);
-    buildParentOptions();
-    $('#menuParentId').val(parentId);
-    $('#menuType').val(parentId === 0 ? 'M' : 'C');
-    $('#menuName, #menuPath, #menuPerms, #menuIcon').val('');
-    $('#menuSort').val(0);
-    $('#menuStatus, #menuVisible').val(1);
-    $('#menuModal').modal('show');
-}
-
-function openEditMenu(id) {
-    $('#menuModalTitle').text('编辑菜单');
-    $('#menuId').val(id);
-    buildParentOptions();
-
-    var load = ems.loading(1);
-    $.get('/system/menu/detail/' + id, function(r) {
-        ems.close(load);
-        if (!r.success) { ems.msg(r.message || '加载失败', {icon: 2}); return; }
-        var m = r.data.menu;
-        $('#menuParentId').val(m.ParentId || 0);
-        $('#menuType').val(m.MenuType || 'C');
-        $('#menuName').val(m.MenuName || '');
-        $('#menuPath').val(m.Path || '');
-        $('#menuPerms').val(m.Perms || '');
-        $('#menuIcon').val(m.Icon || '');
-        $('#menuSort').val(m.Sort || 0);
-        $('#menuStatus').val(m.Status != null ? m.Status : 1);
-        $('#menuVisible').val(m.Visible != null ? m.Visible : 1);
-        $('#menuModal').modal('show');
-    }).fail(function() {
-        ems.close(load);
-        ems.msg('加载菜单信息失败', {icon: 2});
+    $('#btnAdd').on('click', function () {
+        ems.openAdd({ title: '新增顶级菜单', url: '/system/menu/form' });
     });
-}
 
-function saveMenu() {
-    var name = $('#menuName').val().trim();
-    if (!name) { ems.msg('请填写菜单名称', {icon:2}); return; }
-    var id = parseInt($('#menuId').val()) || 0;
-    var data = {
-        MenuName: name,
-        ParentId: parseInt($('#menuParentId').val()) || 0,
-        MenuType: $('#menuType').val(),
-        Path: $('#menuPath').val() || null,
-        Perms: $('#menuPerms').val() || null,
-        Icon: $('#menuIcon').val() || null,
-        Sort: parseInt($('#menuSort').val()) || 0,
-        Visible: parseInt($('#menuVisible').val()),
-        Status: parseInt($('#menuStatus').val())
-    };
-    var url;
-    if (id > 0) {
-        data.Id = id;
-        url = '/system/menu/update';
-    } else {
-        url = '/system/menu/create';
-    }
-    ajaxPost(url, data, function(r) {
-        ems.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
-            if (r.success) location.reload();
-        });
+    $('#btnFilter').on('click', function () {
+        ems.colFilter('menuTable', colsConfig);
     });
-}
 
-function deleteMenu(id, name) {
-    ems.confirm('确认删除菜单「' + name + '」？子菜单也将被删除。', {icon:3}, function(i) {
-        ems.close(i);
-        $.post('/system/menu/delete/' + id, {__RequestVerificationToken: af}, function(r) {
-            ems.msg(r.message, {icon: r.success ? 1 : 2, time: 1500}, function() {
-                if (r.success) location.reload();
-            });
-        });
+    $('#btnExport').on('click', function () {
+        ems.exportMenu('menuTable', '菜单列表');
     });
-}
+
+    ems.bindSearch('menuSearch', 'menuTable');
+});
 </script>
 }

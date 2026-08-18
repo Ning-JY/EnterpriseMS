@@ -122,6 +122,49 @@ public class UpdateEmployeeDto : CreateEmployeeDto
     public long Id { get; set; }
 }
 
+// ── 分卡片部分更新 DTO（详情页卡片内编辑用，避免整表更新覆盖其它字段）──
+public class UpdateBasicDto
+{
+    public long      Id              { get; set; }
+    [Required, MaxLength(50)] public string RealName        { get; set; } = "";
+    public int       Gender          { get; set; } = 1;
+    [MaxLength(20)]  public string?  Phone          { get; set; }
+    [MaxLength(100)] public string?  Email          { get; set; }
+    [MaxLength(18)]  public string?  IdCard         { get; set; }
+    [MaxLength(30)]  public string?  Nationality    { get; set; }
+    public DateTime? BirthDate       { get; set; }
+    [MaxLength(30)]  public string?  PoliticalStatus { get; set; }
+    [MaxLength(100)] public string?  NativePlace     { get; set; }
+    [MaxLength(200)] public string?  Address         { get; set; }
+    [MaxLength(50)]  public string?  EmergencyContact{ get; set; }
+    [MaxLength(20)]  public string?  EmergencyPhone  { get; set; }
+}
+
+public class UpdateJobDto
+{
+    public long      Id               { get; set; }
+    public long?     DeptId           { get; set; }
+    public long?     PostId           { get; set; }
+    public DateTime? EntryDate        { get; set; }
+    public DateTime? ProbationEndDate { get; set; }
+    public DateTime? FormalDate       { get; set; }
+    public DateTime? WorkStartDate    { get; set; }
+    [MaxLength(50)]  public string?  SocialInsuranceNo { get; set; }
+    [MaxLength(30)]  public string?  BankAccount      { get; set; }
+    [MaxLength(100)] public string?  BankName         { get; set; }
+}
+
+public class UpdateEducationDto
+{
+    public long      Id            { get; set; }
+    [MaxLength(20)]  public string? Education       { get; set; }
+    [MaxLength(50)]  public string? HighestDegree   { get; set; }
+    [MaxLength(100)] public string? GraduateSchool  { get; set; }
+    [MaxLength(50)]  public string? Major           { get; set; }
+    [MaxLength(50)]  public string? TechnicalTitle  { get; set; }
+    [MaxLength(50)]  public string? TechnicalLevel  { get; set; }
+}
+
 // ── 查询条件 ───────────────────────────────────────────────
 public class EmployeeQueryDto
 {
@@ -196,6 +239,19 @@ public class CertUpdateDto
     [MaxLength(100)] public string? CertNo     { get; set; }
     public DateTime? ExpireDate { get; set; }
     public int       Status     { get; set; }
+}
+
+// ── 合同更新 DTO（行内编辑用）──
+public class ContractUpdateDto
+{
+    public long      Id          { get; set; }
+    public string    ContractNo  { get; set; } = "";
+    public string    ContractType{ get; set; } = "";
+    public DateTime  StartDate   { get; set; }
+    public DateTime  EndDate     { get; set; }
+    public DateTime? SignDate    { get; set; }
+    public int       Status      { get; set; }
+    public string?   Remark      { get; set; }
 }
 
 // ── 教育经历 DTOs ──

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 using EnterpriseMS.Domain.Base;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Interfaces;
@@ -43,10 +44,11 @@ public class Employee : BaseEntity
     [Column("profile_photo")]      public string?  ProfilePhoto     { get; set; }
     public SysDept? Dept { get; set; }
     public SysPost? Post { get; set; }
-    public ICollection<EmployeeContract>    Contracts      { get; set; } = new List<EmployeeContract>();
-    public ICollection<EmployeeCertificate> Certificates   { get; set; } = new List<EmployeeCertificate>();
-    public ICollection<EmployeeEducation>   EducationList  { get; set; } = new List<EmployeeEducation>();
-    public ICollection<EmployeeWorkExp>     WorkExperiences{ get; set; } = new List<EmployeeWorkExp>();
+    [JsonIgnore] public ICollection<EmployeeContract>    Contracts      { get; set; } = new List<EmployeeContract>();
+    [JsonIgnore] public ICollection<EmployeeCertificate> Certificates   { get; set; } = new List<EmployeeCertificate>();
+    [JsonIgnore] public ICollection<EmployeeEducation>   EducationList  { get; set; } = new List<EmployeeEducation>();
+    [JsonIgnore] public ICollection<EmployeeWorkExp>     WorkExperiences{ get; set; } = new List<EmployeeWorkExp>();
+    [JsonIgnore] public ICollection<EmployeeAttachment>  Attachments   { get; set; } = new List<EmployeeAttachment>();
 }
 
 [Table("hr_education")]
@@ -105,5 +107,17 @@ public class EmployeeCertificate : BaseEntity, IFileEntity
     [Column("file_name")]    public string?  FileName    { get; set; }
     [Column("status")]       public int      Status      { get; set; } = 0;
     [Column("remark")]       public string?  Remark      { get; set; }
+    public Employee? Employee { get; set; }
+}
+
+[Table("hr_attachment")]
+public class EmployeeAttachment : BaseEntity, IFileEntity
+{
+    [Column("employee_id")] public long     EmployeeId { get; set; }
+    [Column("file_name")]   public string?  FileName   { get; set; }
+    [Column("file_path")]   public string?  FilePath   { get; set; }
+    [Column("file_size")]   public long     FileSize   { get; set; }
+    [Column("file_type")]   public string?  FileType   { get; set; }
+    [Column("remark")]      public string?  Remark     { get; set; }
     public Employee? Employee { get; set; }
 }

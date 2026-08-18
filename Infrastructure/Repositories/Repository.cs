@@ -7,7 +7,6 @@ using EnterpriseMS.Infrastructure.Data;
 using EnterpriseMS.Domain.Entities.System;
 using EnterpriseMS.Domain.Entities.Hr;
 using EnterpriseMS.Domain.Entities.Project;
-using EnterpriseMS.Domain.Entities.Budget;
 using EnterpriseMS.Domain.Entities.Info;
 
 namespace EnterpriseMS.Infrastructure.Repositories;
@@ -71,6 +70,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<EmployeeCertificate>? _certs;
     private IRepository<EmployeeEducation>?   _educations;
     private IRepository<EmployeeWorkExp>?     _workExps;
+    private IRepository<EmployeeAttachment>?   _attachments;
     private IRepository<Project>?             _projects;
     private IRepository<ProjectMember>?       _projMembers;
     private IRepository<ProjectMilestone>?    _milestones;
@@ -79,9 +79,6 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<ProjectContract>?     _projContracts;
     private IRepository<ProjectInvoice>?      _projInvoices;
     private IRepository<ProjectFile>?         _projFiles;
-    private IRepository<BudgetTask>?          _budgetTasks;
-    private IRepository<BudgetSection>?       _budgetSections;
-    private IRepository<ReviewOpinion>?       _reviewOpinions;
     private IRepository<InfoArticle>?         _infoArticles;
     private IRepository<InfoCategory>?        _infoCategories;
     private IRepository<KbFile>?              _kbFiles;
@@ -108,6 +105,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<EmployeeCertificate> Certificates   => _certs          ??= new Repository<EmployeeCertificate>(_db);
     public IRepository<EmployeeEducation>   Educations     => _educations     ??= new Repository<EmployeeEducation>(_db);
     public IRepository<EmployeeWorkExp>     WorkExperiences=> _workExps       ??= new Repository<EmployeeWorkExp>(_db);
+    public IRepository<EmployeeAttachment>  Attachments   => _attachments    ??= new Repository<EmployeeAttachment>(_db);
     public IRepository<Project>             Projects       => _projects       ??= new Repository<Project>(_db);
     public IRepository<ProjectMember>       ProjMembers    => _projMembers    ??= new Repository<ProjectMember>(_db);
     public IRepository<ProjectMilestone>    Milestones     => _milestones     ??= new Repository<ProjectMilestone>(_db);
@@ -116,9 +114,6 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<ProjectContract>     ProjContracts  => _projContracts  ??= new Repository<ProjectContract>(_db);
     public IRepository<ProjectInvoice>      ProjInvoices   => _projInvoices   ??= new Repository<ProjectInvoice>(_db);
     public IRepository<ProjectFile>         ProjFiles      => _projFiles      ??= new Repository<ProjectFile>(_db);
-    public IRepository<BudgetTask>          BudgetTasks    => _budgetTasks    ??= new Repository<BudgetTask>(_db);
-    public IRepository<BudgetSection>       BudgetSections => _budgetSections ??= new Repository<BudgetSection>(_db);
-    public IRepository<ReviewOpinion>       ReviewOpinions => _reviewOpinions ??= new Repository<ReviewOpinion>(_db);
     public IRepository<InfoArticle>         InfoArticles   => _infoArticles   ??= new Repository<InfoArticle>(_db);
     public IRepository<InfoCategory>        InfoCategories => _infoCategories ??= new Repository<InfoCategory>(_db);
     public IRepository<KbFile>              KbFiles        => _kbFiles        ??= new Repository<KbFile>(_db);
