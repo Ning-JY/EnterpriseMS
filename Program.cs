@@ -41,10 +41,38 @@ try
 
     var connStr = builder.Configuration.GetConnectionString("Default")
                   ?? throw new InvalidOperationException("缺少数据库连接字符串 Default");
-    // 环境变量覆盖配置文件中的占位符密码
-    var dbPwd = Environment.GetEnvironmentVariable("DB_PASSWORD");
-    if (!string.IsNullOrEmpty(dbPwd))
-        connStr = connStr.Replace("${DB_PASSWORD}", dbPwd);
+
+    // 数据库连接字符串各组件可由环境变量覆盖（未设置时沿用配置文件默认值）：
+    //   DB_HOST      → Server  （地址）
+    //   DB_PORT      → Port
+    //   DB_NAME      → Database（库名）
+    //   DB_USER      → Uid      （用户名）
+    //   DB_PASSWORD  → Pwd      （密码）
+    var dbEnvOverrides = new (string Key, string Env)[]
+    {
+        ("Server",   "DB_HOST"),
+        ("Port",     "DB_PORT"),
+        ("Database", "DB_NAME"),
+        ("Uid",      "DB_USER"),
+        ("Pwd",      "DB_PASSWORD"),
+    };
+    if (dbEnvOverrides.Any(o => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(o.Env))))
+    {
+        var dict = connStr.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                          .Select(s => s.Split('=', 2))
+                          .ToDictionary(a => a[0].Trim(), a => a.Length > 1 ? a[1] : "",
+                                        StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, env) in dbEnvOverrides)
+        {
+            var val = Environment.GetEnvironmentVariable(env);
+            if (!string.IsNullOrEmpty(val)) dict[key] = val;
+        }
+        connStr = string.Join(";", dict.Select(p => $"{p.Key}={p.Value}")) + ";";
+        Log.Information("数据库连接字符串已由环境变量覆盖：{Keys}",
+            string.Join(",", dbEnvOverrides
+                .Where(o => !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(o.Env)))
+                .Select(o => o.Env)));
+    }
 
     // ── 数据库 ────────────────────────────────────────────────
     builder.Services.AddDbContext<AppDbContext>(opt =>
