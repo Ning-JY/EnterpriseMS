@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EnterpriseMS.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260725095001_MakeBidProjectIdNullable")]
-    partial class MakeBidProjectIdNullable
+    [Migration("20260818132812_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -449,179 +449,64 @@ namespace EnterpriseMS.Migrations
 
                     b.HasIndex("DeptId");
 
-                    b.ToTable("hr_employee");
+                    b.HasIndex("PostId");
 
-                    b.HasData(
-                        new
-                        {
-                            Id = 101L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 2L,
-                            Email = "zhangsan@company.com",
-                            EmpNo = "EMP20230001",
-                            EntryDate = new DateTime(2020, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FormalDate = new DateTime(2020, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 1,
-                            IsDeleted = false,
-                            Phone = "13800000001",
-                            PostId = 3L,
-                            RealName = "甯金元",
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 102L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 2L,
-                            Email = "lisi@company.com",
-                            EmpNo = "EMP20230002",
-                            EntryDate = new DateTime(2019, 7, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FormalDate = new DateTime(2019, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 2,
-                            IsDeleted = false,
-                            Phone = "13800000002",
-                            PostId = 4L,
-                            RealName = "曹丽君",
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 103L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 3L,
-                            Email = "wangwu@company.com",
-                            EmpNo = "EMP20230003",
-                            EntryDate = new DateTime(2021, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FormalDate = new DateTime(2021, 4, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 1,
-                            IsDeleted = false,
-                            Phone = "13800000003",
-                            PostId = 3L,
-                            RealName = "刘润泽",
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 104L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 4L,
-                            Email = "zhaoliu@company.com",
-                            EmpNo = "EMP20230004",
-                            EntryDate = new DateTime(2018, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FormalDate = new DateTime(2018, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 1,
-                            IsDeleted = false,
-                            Phone = "13800000004",
-                            PostId = 6L,
-                            RealName = "王帅伟",
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 105L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 2L,
-                            Email = "sunqi@company.com",
-                            EmpNo = "EMP20230005",
-                            EntryDate = new DateTime(2022, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FormalDate = new DateTime(2022, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 1,
-                            IsDeleted = false,
-                            Phone = "13800000005",
-                            PostId = 7L,
-                            RealName = "杨通",
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 106L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 3L,
-                            Email = "zhouba@company.com",
-                            EmpNo = "EMP20230006",
-                            EntryDate = new DateTime(2021, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FormalDate = new DateTime(2021, 12, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 1,
-                            IsDeleted = false,
-                            Phone = "13800000006",
-                            PostId = 7L,
-                            RealName = "郭家松",
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 107L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 5L,
-                            Email = "wujiu@company.com",
-                            EmpNo = "EMP20230007",
-                            EntryDate = new DateTime(2020, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FormalDate = new DateTime(2020, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 1,
-                            IsDeleted = false,
-                            Phone = "13800000007",
-                            PostId = 4L,
-                            RealName = "陈俊童",
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 108L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 4L,
-                            Email = "zhengshi@company.com",
-                            EmpNo = "EMP20230008",
-                            EntryDate = new DateTime(2017, 4, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FormalDate = new DateTime(2017, 7, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 2,
-                            IsDeleted = false,
-                            Phone = "13800000008",
-                            PostId = 3L,
-                            RealName = "舒影",
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 109L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 2L,
-                            Email = "chenxm@company.com",
-                            EmpNo = "EMP20230009",
-                            EntryDate = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 2,
-                            IsDeleted = false,
-                            Phone = "13800000009",
-                            PostId = 8L,
-                            ProbationEndDate = new DateTime(2026, 4, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RealName = "肖玲",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 110L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 6L,
-                            Email = "linxy@company.com",
-                            EmpNo = "EMP20230010",
-                            EntryDate = new DateTime(2023, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FormalDate = new DateTime(2023, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Gender = 2,
-                            IsDeleted = false,
-                            Phone = "13800000010",
-                            PostId = 9L,
-                            RealName = "魏利",
-                            Status = 1
-                        });
+                    b.ToTable("hr_employee");
+                });
+
+            modelBuilder.Entity("EnterpriseMS.Domain.Entities.Hr.EmployeeAttachment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<long>("EmployeeId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("employee_id");
+
+                    b.Property<string>("FileName")
+                        .HasColumnType("longtext")
+                        .HasColumnName("file_name");
+
+                    b.Property<string>("FilePath")
+                        .HasColumnType("longtext")
+                        .HasColumnName("file_path");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint")
+                        .HasColumnName("file_size");
+
+                    b.Property<string>("FileType")
+                        .HasColumnType("longtext")
+                        .HasColumnName("file_type");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Remark")
+                        .HasColumnType("longtext")
+                        .HasColumnName("remark");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("hr_attachment");
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Hr.EmployeeCertificate", b =>
@@ -699,126 +584,6 @@ namespace EnterpriseMS.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("hr_certificate");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 2001L,
-                            CertName = "注册城乡规划师",
-                            CertNo = "2019ABCD0001",
-                            CertType = "注册规划师",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 101L,
-                            ExpireDate = new DateTime(2025, 10, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            IssueDate = new DateTime(2019, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IssueOrg = "住建部",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 2002L,
-                            CertName = "一级造价工程师",
-                            CertNo = "2018ABCD0002",
-                            CertType = "造价工程师",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 102L,
-                            ExpireDate = new DateTime(2026, 5, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            IssueDate = new DateTime(2018, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IssueOrg = "住建部",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 2003L,
-                            CertName = "注册城乡规划师",
-                            CertNo = "2021ABCD0003",
-                            CertType = "注册规划师",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 103L,
-                            ExpireDate = new DateTime(2025, 10, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            IssueDate = new DateTime(2021, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IssueOrg = "住建部",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 2004L,
-                            CertName = "二级建造师",
-                            CertNo = "2016ABCD0004",
-                            CertType = "建造师",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 104L,
-                            IsDeleted = false,
-                            IssueDate = new DateTime(2016, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IssueOrg = "四川省住建厅",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 2005L,
-                            CertName = "注册建筑师",
-                            CertNo = "2020ABCD0005",
-                            CertType = "注册建筑师",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 104L,
-                            ExpireDate = new DateTime(2026, 2, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            IssueDate = new DateTime(2020, 3, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IssueOrg = "住建部",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 2006L,
-                            CertName = "助理工程师职称",
-                            CertNo = "2022ABCD0006",
-                            CertType = "职称证书",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 105L,
-                            IsDeleted = false,
-                            IssueDate = new DateTime(2022, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IssueOrg = "四川省人社厅",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 2007L,
-                            CertName = "一级造价工程师",
-                            CertNo = "2019ABCD0007",
-                            CertType = "造价工程师",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 107L,
-                            ExpireDate = new DateTime(2026, 2, 28, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            IssueDate = new DateTime(2019, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IssueOrg = "住建部",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 2008L,
-                            CertName = "注册城乡规划师",
-                            CertNo = "2016ABCD0008",
-                            CertType = "注册规划师",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 108L,
-                            ExpireDate = new DateTime(2026, 5, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            IssueDate = new DateTime(2016, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IssueOrg = "住建部",
-                            Status = 0
-                        });
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Hr.EmployeeContract", b =>
@@ -892,148 +657,6 @@ namespace EnterpriseMS.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("hr_contract");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1001L,
-                            ContractNo = "HT2020-001",
-                            ContractType = "固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 101L,
-                            EndDate = new DateTime(2023, 5, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2020, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2020, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 1002L,
-                            ContractNo = "HT2023-001",
-                            ContractType = "固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 101L,
-                            EndDate = new DateTime(2026, 5, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2023, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2023, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 1003L,
-                            ContractNo = "HT2019-001",
-                            ContractType = "固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 102L,
-                            EndDate = new DateTime(2022, 9, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2019, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2019, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 1004L,
-                            ContractNo = "HT2022-001",
-                            ContractType = "无固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 102L,
-                            EndDate = new DateTime(2099, 12, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2022, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2022, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 1005L,
-                            ContractNo = "HT2021-001",
-                            ContractType = "固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 103L,
-                            EndDate = new DateTime(2024, 3, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2021, 4, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2021, 4, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 1006L,
-                            ContractNo = "HT2024-001",
-                            ContractType = "固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 103L,
-                            EndDate = new DateTime(2027, 3, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2024, 4, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2024, 4, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 1007L,
-                            ContractNo = "HT2018-001",
-                            ContractType = "无固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 104L,
-                            EndDate = new DateTime(2099, 12, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2018, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2018, 8, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 1008L,
-                            ContractNo = "HT2022-002",
-                            ContractType = "固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 105L,
-                            EndDate = new DateTime(2025, 5, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2022, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2022, 6, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 1009L,
-                            ContractNo = "HT2021-002",
-                            ContractType = "固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 106L,
-                            EndDate = new DateTime(2024, 11, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2021, 12, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2021, 12, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 1010L,
-                            ContractNo = "HT2024-002",
-                            ContractType = "固定期限",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            EmployeeId = 106L,
-                            EndDate = new DateTime(2027, 11, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            IsDeleted = false,
-                            SignDate = new DateTime(2024, 12, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StartDate = new DateTime(2024, 12, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Status = 0
-                        });
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Hr.EmployeeEducation", b =>
@@ -1326,80 +949,6 @@ namespace EnterpriseMS.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("kb_category");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            Description = "常用工作模板，合同模板、报告模板等",
-                            Icon = "fa-file-word",
-                            IsDeleted = false,
-                            Name = "模板文件",
-                            Sort = 1,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 2L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            Description = "公司内部通知、公告",
-                            Icon = "fa-bullhorn",
-                            IsDeleted = false,
-                            Name = "公司通知",
-                            Sort = 2,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 3L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            Description = "工程咨询、规划、造价等行业标准规范",
-                            Icon = "fa-book",
-                            IsDeleted = false,
-                            Name = "行业规范",
-                            Sort = 3,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 4L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            Description = "公司规章制度、管理办法",
-                            Icon = "fa-gavel",
-                            IsDeleted = false,
-                            Name = "规章制度",
-                            Sort = 4,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 5L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            Description = "内部培训讲义、学习材料",
-                            Icon = "fa-graduation-cap",
-                            IsDeleted = false,
-                            Name = "培训资料",
-                            Sort = 5,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 6L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            Description = "其他共享文件",
-                            Icon = "fa-folder-open",
-                            IsDeleted = false,
-                            Name = "其他",
-                            Sort = 6,
-                            Status = 1
-                        });
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Info.KbFile", b =>
@@ -1492,13 +1041,13 @@ namespace EnterpriseMS.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("actual_end_date");
 
+                    b.Property<DateTime?>("ActualStartDate")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("actual_start_date");
+
                     b.Property<DateTime?>("BidDeadline")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("bid_deadline");
-
-                    b.Property<long?>("BizLeaderId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("biz_leader_id");
 
                     b.Property<string>("BizType")
                         .IsRequired()
@@ -1524,6 +1073,10 @@ namespace EnterpriseMS.Migrations
                     b.Property<DateTime?>("ContractSignedDate")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("contract_signed_date");
+
+                    b.Property<string>("CooperationUnit")
+                        .HasColumnType("longtext")
+                        .HasColumnName("cooperation_unit");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -1610,10 +1163,6 @@ namespace EnterpriseMS.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("status_updated_at");
 
-                    b.Property<long?>("TechLeaderId")
-                        .HasColumnType("bigint")
-                        .HasColumnName("tech_leader_id");
-
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime(6)");
 
@@ -1622,139 +1171,11 @@ namespace EnterpriseMS.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BizLeaderId");
-
                     b.HasIndex("DeptId");
 
                     b.HasIndex("ProjectLeaderId");
 
-                    b.HasIndex("TechLeaderId");
-
                     b.ToTable("proj_project");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1001L,
-                            BizLeaderId = 103L,
-                            BizType = "控制性详细规划",
-                            ContractAmount = 98m,
-                            ContractSigned = false,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 4L,
-                            IsDeleted = false,
-                            IsJointVenture = false,
-                            OwnerContact = "王处长",
-                            OwnerName = "成都市规划和自然资源局",
-                            OwnerPhone = "028-12345678",
-                            PlanEndDate = new DateTime(2024, 12, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProcurementType = "竞争性磋商",
-                            ProgressStatus = 6,
-                            ProjName = "成都市某片区控制性详细规划",
-                            ProjNo = "PRJ-2024-001",
-                            Remark = "重点项目，需配合规委会评审",
-                            SignDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TechLeaderId = 108L
-                        },
-                        new
-                        {
-                            Id = 1002L,
-                            BizLeaderId = 101L,
-                            BizType = "结算评审",
-                            ContractAmount = 45m,
-                            ContractSigned = false,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 2L,
-                            IsDeleted = false,
-                            IsJointVenture = false,
-                            OwnerContact = "张总",
-                            OwnerName = "成都市某国有投资公司",
-                            OwnerPhone = "13900000001",
-                            PlanEndDate = new DateTime(2024, 8, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProcurementType = "询价",
-                            ProgressStatus = 7,
-                            ProjName = "某住宅小区结算审核",
-                            ProjNo = "PRJ-2024-002",
-                            Remark = "送审金额约3200万元",
-                            SignDate = new DateTime(2024, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TechLeaderId = 102L
-                        },
-                        new
-                        {
-                            Id = 1003L,
-                            BizLeaderId = 107L,
-                            BizType = "可行性研究报告",
-                            ContractAmount = 160m,
-                            ContractSigned = false,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 3L,
-                            IsDeleted = false,
-                            IsJointVenture = true,
-                            OurRatio = 60m,
-                            OwnerContact = "李科长",
-                            OwnerName = "成都市交通运输局",
-                            OwnerPhone = "028-87654321",
-                            PlanEndDate = new DateTime(2024, 10, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProcurementType = "公开招标",
-                            ProgressStatus = 6,
-                            ProjName = "某市政道路工程可行性研究报告",
-                            ProjNo = "PRJ-2024-003",
-                            Remark = "联合体项目，牵头方，我方占比60%",
-                            SignDate = new DateTime(2024, 1, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TechLeaderId = 103L
-                        },
-                        new
-                        {
-                            Id = 1004L,
-                            ActualEndDate = new DateTime(2024, 4, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            BizLeaderId = 104L,
-                            BizType = "战略咨询",
-                            ContractAmount = 32m,
-                            ContractSigned = false,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 5L,
-                            IsDeleted = false,
-                            IsJointVenture = false,
-                            OwnerContact = "陈主任",
-                            OwnerName = "成都高新区管委会",
-                            OwnerPhone = "13800000099",
-                            PlanEndDate = new DateTime(2024, 3, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProcurementType = "单一来源",
-                            ProgressStatus = 8,
-                            ProjName = "某工业园区概念规划设计",
-                            ProjNo = "PRJ-2023-018",
-                            Remark = "已完成，已全额回款",
-                            SignDate = new DateTime(2023, 9, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TechLeaderId = 107L
-                        },
-                        new
-                        {
-                            Id = 1005L,
-                            BizLeaderId = 101L,
-                            BizType = "节能评估报告",
-                            ContractAmount = 28m,
-                            ContractSigned = false,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DeptId = 2L,
-                            IsDeleted = false,
-                            IsJointVenture = false,
-                            OwnerContact = "刘工",
-                            OwnerName = "成都天府新区建设局",
-                            OwnerPhone = "13700000001",
-                            PlanEndDate = new DateTime(2024, 9, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProcurementType = "竞争性磋商",
-                            ProgressStatus = 3,
-                            ProjName = "某新城片区节能评估报告",
-                            ProjNo = "PRJ-2024-004",
-                            Remark = "投标截止2024-06-10",
-                            SignDate = new DateTime(2024, 6, 10, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            TechLeaderId = 105L
-                        });
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Project.ProjectAcceptance", b =>
@@ -1811,47 +1232,6 @@ namespace EnterpriseMS.Migrations
                     b.HasIndex("ProjectId");
 
                     b.ToTable("proj_acceptance");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 5001L,
-                            AcceptAmount = 9.6m,
-                            AcceptBatch = "第一批（预付款）",
-                            AcceptDate = new DateTime(2023, 10, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            InvoiceNo = "INV2023100001",
-                            IsDeleted = false,
-                            ProjectId = 1004L,
-                            Remark = "预付款30%"
-                        },
-                        new
-                        {
-                            Id = 5002L,
-                            AcceptAmount = 16m,
-                            AcceptBatch = "第二批（中期款）",
-                            AcceptDate = new DateTime(2024, 1, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            InvoiceNo = "INV2024010001",
-                            IsDeleted = false,
-                            ProjectId = 1004L,
-                            Remark = "完成中期成果50%"
-                        },
-                        new
-                        {
-                            Id = 5003L,
-                            AcceptAmount = 6.4m,
-                            AcceptBatch = "第三批（尾款）",
-                            AcceptDate = new DateTime(2024, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            InvoiceNo = "INV2024050001",
-                            IsDeleted = false,
-                            ProjectId = 1004L,
-                            Remark = "成果交付完成"
-                        });
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Project.ProjectContract", b =>
@@ -2028,6 +1408,10 @@ namespace EnterpriseMS.Migrations
                         .HasColumnType("decimal(65,30)")
                         .HasColumnName("amount");
 
+                    b.Property<long?>("ContractId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("contract_id");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
@@ -2173,148 +1557,6 @@ namespace EnterpriseMS.Migrations
                     b.HasIndex("ProjectId");
 
                     b.ToTable("proj_member");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 3001L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "总体技术把控，规划方案设计",
-                            EmployeeId = 108L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1001L,
-                            Ratio = 40m,
-                            Role = "项目负责人",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 3002L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "用地分析与指标测算",
-                            EmployeeId = 104L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1001L,
-                            Ratio = 30m,
-                            Role = "参与人员",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 3003L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "现状调研与CAD制图",
-                            EmployeeId = 106L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1001L,
-                            Ratio = 20m,
-                            Role = "参与人员",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 3004L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "合同对接、开票及回款跟进",
-                            EmployeeId = 103L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 3, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1001L,
-                            Ratio = 10m,
-                            Role = "商务负责人",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 3005L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "结算审核技术负责",
-                            EmployeeId = 102L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1002L,
-                            Ratio = 50m,
-                            Role = "项目负责人",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 3006L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "工程量核算",
-                            EmployeeId = 105L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1002L,
-                            Ratio = 30m,
-                            Role = "参与人员",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 3007L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "商务对接",
-                            EmployeeId = 101L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1002L,
-                            Ratio = 20m,
-                            Role = "商务负责人",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 3008L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "可研报告编制",
-                            EmployeeId = 103L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 1, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1003L,
-                            Ratio = 45m,
-                            Role = "项目负责人",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 3009L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "联合体协调及商务",
-                            EmployeeId = 107L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 1, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1003L,
-                            Ratio = 35m,
-                            Role = "商务负责人",
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 3010L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DutyDesc = "交通量调查与分析",
-                            EmployeeId = 106L,
-                            IsDeleted = false,
-                            JoinDate = new DateTime(2024, 1, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1003L,
-                            Ratio = 20m,
-                            Role = "参与人员",
-                            Status = 0
-                        });
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Project.ProjectMilestone", b =>
@@ -2393,119 +1635,6 @@ namespace EnterpriseMS.Migrations
                     b.HasIndex("ProjectId");
 
                     b.ToTable("proj_milestone");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 4001L,
-                            ActualDate = new DateTime(2024, 4, 25, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            IsDeleted = false,
-                            IsOverdue = false,
-                            MilestoneName = "现状调研与基础资料收集",
-                            MilestoneType = "现状调研",
-                            OwnerId = 108L,
-                            PlanDate = new DateTime(2024, 4, 30, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1001L,
-                            Sort = 1,
-                            Status = 2
-                        },
-                        new
-                        {
-                            Id = 4002L,
-                            ActualDate = new DateTime(2024, 8, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            IsDeleted = false,
-                            IsOverdue = true,
-                            MilestoneName = "规划方案初稿",
-                            MilestoneType = "方案设计",
-                            OwnerId = 108L,
-                            PlanDate = new DateTime(2024, 7, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1001L,
-                            Sort = 2,
-                            Status = 2
-                        },
-                        new
-                        {
-                            Id = 4003L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            IsDeleted = false,
-                            IsOverdue = false,
-                            MilestoneName = "专家评审会",
-                            MilestoneType = "专家评审",
-                            OwnerId = 108L,
-                            PlanDate = new DateTime(2024, 10, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1001L,
-                            Sort = 3,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 4004L,
-                            AcceptAmount = 98m,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            IsDeleted = false,
-                            IsOverdue = false,
-                            MilestoneName = "成果正式交付",
-                            MilestoneType = "成果交付",
-                            OwnerId = 103L,
-                            PlanDate = new DateTime(2024, 12, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1001L,
-                            Sort = 4,
-                            Status = 0
-                        },
-                        new
-                        {
-                            Id = 4005L,
-                            ActualDate = new DateTime(2024, 5, 18, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            IsDeleted = false,
-                            IsOverdue = false,
-                            MilestoneName = "资料收集与初步核查",
-                            MilestoneType = "资料收集",
-                            OwnerId = 102L,
-                            PlanDate = new DateTime(2024, 5, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1002L,
-                            Sort = 1,
-                            Status = 2
-                        },
-                        new
-                        {
-                            Id = 4006L,
-                            ActualDate = new DateTime(2024, 7, 20, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            IsDeleted = false,
-                            IsOverdue = true,
-                            MilestoneName = "结算审核报告初稿",
-                            MilestoneType = "方案设计",
-                            OwnerId = 102L,
-                            PlanDate = new DateTime(2024, 7, 15, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1002L,
-                            Sort = 2,
-                            Status = 2
-                        },
-                        new
-                        {
-                            Id = 4007L,
-                            AcceptAmount = 45m,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            IsDeleted = false,
-                            IsOverdue = false,
-                            MilestoneName = "审核报告正式提交",
-                            MilestoneType = "成果交付",
-                            OwnerId = 101L,
-                            PlanDate = new DateTime(2024, 8, 31, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            ProjectId = 1002L,
-                            Sort = 3,
-                            Status = 1
-                        });
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Project.ProjectOperLog", b =>
@@ -2563,6 +1692,93 @@ namespace EnterpriseMS.Migrations
                     b.HasIndex("ProjectId");
 
                     b.ToTable("proj_oper_log");
+                });
+
+            modelBuilder.Entity("EnterpriseMS.Domain.Entities.Report.TemplateDefinition", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ContextSource")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("CreatedAt")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TemplateDefinitions");
+                });
+
+            modelBuilder.Entity("EnterpriseMS.Domain.Entities.Report.TemplateField", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Binding")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("ConfigKey")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("DefaultValue")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("HelpText")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("Required")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("Sort")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("TemplateId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TemplateId");
+
+                    b.ToTable("TemplateFields");
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.System.SysConfig", b =>
@@ -3351,11 +2567,11 @@ namespace EnterpriseMS.Migrations
                         },
                         new
                         {
-                            Id = 601L,
+                            Id = 1301L,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
-                            DictLabel = "概算编制",
-                            DictType = "budget_task_type",
+                            DictLabel = "试用期",
+                            DictType = "employee_status",
                             DictValue = "0",
                             IsDefault = 0,
                             IsDeleted = false,
@@ -3364,11 +2580,11 @@ namespace EnterpriseMS.Migrations
                         },
                         new
                         {
-                            Id = 602L,
+                            Id = 1302L,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
-                            DictLabel = "预算编制",
-                            DictType = "budget_task_type",
+                            DictLabel = "在职",
+                            DictType = "employee_status",
                             DictValue = "1",
                             IsDefault = 0,
                             IsDeleted = false,
@@ -3377,11 +2593,11 @@ namespace EnterpriseMS.Migrations
                         },
                         new
                         {
-                            Id = 603L,
+                            Id = 1303L,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
-                            DictLabel = "结算编制",
-                            DictType = "budget_task_type",
+                            DictLabel = "离职",
+                            DictType = "employee_status",
                             DictValue = "2",
                             IsDefault = 0,
                             IsDeleted = false,
@@ -3390,50 +2606,11 @@ namespace EnterpriseMS.Migrations
                         },
                         new
                         {
-                            Id = 604L,
+                            Id = 1401L,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
-                            DictLabel = "概算评审",
-                            DictType = "budget_task_type",
-                            DictValue = "3",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 4,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 605L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "预算评审",
-                            DictType = "budget_task_type",
-                            DictValue = "4",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 5,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 606L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "结算评审",
-                            DictType = "budget_task_type",
-                            DictValue = "5",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 6,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 701L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "前期商务",
-                            DictType = "proj_status",
+                            DictLabel = "生效中",
+                            DictType = "contract_status",
                             DictValue = "0",
                             IsDefault = 0,
                             IsDeleted = false,
@@ -3442,119 +2619,28 @@ namespace EnterpriseMS.Migrations
                         },
                         new
                         {
-                            Id = 702L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "预计启动",
-                            DictType = "proj_status",
-                            DictValue = "1",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 2,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 703L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "标书制作中",
-                            DictType = "proj_status",
-                            DictValue = "2",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 3,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 704L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "投标/磋商中",
-                            DictType = "proj_status",
-                            DictValue = "3",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 4,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 705L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "已中标·签订合同中",
-                            DictType = "proj_status",
-                            DictValue = "4",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 5,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 706L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "已签回合同",
-                            DictType = "proj_status",
-                            DictValue = "5",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 6,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 707L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "执行中",
-                            DictType = "proj_status",
-                            DictValue = "6",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 7,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 708L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "成果提交",
-                            DictType = "proj_status",
-                            DictValue = "7",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 8,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 709L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictLabel = "已完成",
-                            DictType = "proj_status",
-                            DictValue = "8",
-                            IsDefault = 0,
-                            IsDeleted = false,
-                            Sort = 9,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 710L,
+                            Id = 1402L,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
                             DictLabel = "已终止",
-                            DictType = "proj_status",
-                            DictValue = "9",
+                            DictType = "contract_status",
+                            DictValue = "1",
                             IsDefault = 0,
                             IsDeleted = false,
-                            Sort = 10,
+                            Sort = 2,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 1403L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictLabel = "已到期",
+                            DictType = "contract_status",
+                            DictValue = "2",
+                            IsDefault = 0,
+                            IsDeleted = false,
+                            Sort = 3,
                             Status = 1
                         },
                         new
@@ -3933,6 +3019,97 @@ namespace EnterpriseMS.Migrations
                             IsDeleted = false,
                             Sort = 4,
                             Status = 1
+                        },
+                        new
+                        {
+                            Id = 1501L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictLabel = "造价",
+                            DictType = "proj_no_prefix",
+                            DictValue = "造价",
+                            IsDefault = 1,
+                            IsDeleted = false,
+                            Sort = 1,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 1502L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictLabel = "设计",
+                            DictType = "proj_no_prefix",
+                            DictValue = "设计",
+                            IsDefault = 0,
+                            IsDeleted = false,
+                            Sort = 2,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 1503L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictLabel = "勘察",
+                            DictType = "proj_no_prefix",
+                            DictValue = "勘察",
+                            IsDefault = 0,
+                            IsDeleted = false,
+                            Sort = 3,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 1504L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictLabel = "监理",
+                            DictType = "proj_no_prefix",
+                            DictValue = "监理",
+                            IsDefault = 0,
+                            IsDeleted = false,
+                            Sort = 4,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 1505L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictLabel = "咨询",
+                            DictType = "proj_no_prefix",
+                            DictValue = "咨询",
+                            IsDefault = 0,
+                            IsDeleted = false,
+                            Sort = 5,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 1506L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictLabel = "全过程",
+                            DictType = "proj_no_prefix",
+                            DictValue = "全过程",
+                            IsDefault = 0,
+                            IsDeleted = false,
+                            Sort = 6,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 1507L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictLabel = "其他",
+                            DictType = "proj_no_prefix",
+                            DictValue = "其他",
+                            IsDefault = 0,
+                            IsDeleted = false,
+                            Sort = 7,
+                            Status = 1
                         });
                 });
 
@@ -4035,26 +3212,6 @@ namespace EnterpriseMS.Migrations
                         },
                         new
                         {
-                            Id = 6L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictName = "概预算任务类型",
-                            DictType = "budget_task_type",
-                            IsDeleted = false,
-                            Status = 1
-                        },
-                        new
-                        {
-                            Id = 7L,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CreatedBy = "system",
-                            DictName = "项目进度状态",
-                            DictType = "proj_status",
-                            IsDeleted = false,
-                            Status = 1
-                        },
-                        new
-                        {
                             Id = 8L,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
@@ -4100,6 +3257,36 @@ namespace EnterpriseMS.Migrations
                             CreatedBy = "system",
                             DictName = "技术等级",
                             DictType = "technical_level",
+                            IsDeleted = false,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 13L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictName = "员工状态",
+                            DictType = "employee_status",
+                            IsDeleted = false,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 14L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictName = "合同状态",
+                            DictType = "contract_status",
+                            IsDeleted = false,
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = 15L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            DictName = "项目编号前缀",
+                            DictType = "proj_no_prefix",
                             IsDeleted = false,
                             Status = 1
                         });
@@ -5183,6 +4370,78 @@ namespace EnterpriseMS.Migrations
                             ParentId = 31L,
                             Perms = "proj:project:import",
                             Sort = 10,
+                            Status = 1,
+                            Visible = 0
+                        },
+                        new
+                        {
+                            Id = 32L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            Icon = "fa-hand-holding-usd",
+                            IsDeleted = false,
+                            MenuName = "回款管理",
+                            MenuType = "C",
+                            ParentId = 3L,
+                            Path = "/project/receipt",
+                            Perms = "proj:project:list",
+                            Sort = 2,
+                            Status = 1,
+                            Visible = 1
+                        },
+                        new
+                        {
+                            Id = 321L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            IsDeleted = false,
+                            MenuName = "新增回款",
+                            MenuType = "F",
+                            ParentId = 32L,
+                            Perms = "proj:project:list",
+                            Sort = 1,
+                            Status = 1,
+                            Visible = 0
+                        },
+                        new
+                        {
+                            Id = 322L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            IsDeleted = false,
+                            MenuName = "编辑回款",
+                            MenuType = "F",
+                            ParentId = 32L,
+                            Perms = "proj:project:list",
+                            Sort = 2,
+                            Status = 1,
+                            Visible = 0
+                        },
+                        new
+                        {
+                            Id = 323L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            IsDeleted = false,
+                            MenuName = "删除回款",
+                            MenuType = "F",
+                            ParentId = 32L,
+                            Perms = "proj:project:list",
+                            Sort = 3,
+                            Status = 1,
+                            Visible = 0
+                        },
+                        new
+                        {
+                            Id = 324L,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedBy = "system",
+                            IsDeleted = false,
+                            MenuName = "确认收款",
+                            MenuType = "F",
+                            ParentId = 32L,
+                            Perms = "proj:project:list",
+                            Sort = 4,
                             Status = 1,
                             Visible = 0
                         },
@@ -6582,7 +5841,7 @@ namespace EnterpriseMS.Migrations
                             CreatedBy = "system",
                             DeptId = 1L,
                             IsDeleted = false,
-                            PasswordHash = "$2a$12$IAm7x3yIqg4YkckXWcQofe8AeYPZEEd9R2DYTaYfFNsQTsiL5Yv6u",
+                            PasswordHash = "$2a$12$xy1BRL3w/E0ZAYePiCTyRObwxHMEaFBFXcwcYydBukWtPVZfRAAri",
                             PostId = 1L,
                             RealName = "超级管理员",
                             Status = 1,
@@ -6594,9 +5853,8 @@ namespace EnterpriseMS.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
                             DeptId = 2L,
-                            EmployeeId = 101L,
                             IsDeleted = false,
-                            PasswordHash = "$2a$12$dH5qEaxJ1PzJSrck9tlUqO5WivM54Ac6XLO.RYm/Dp9efGsufktGu",
+                            PasswordHash = "$2a$12$scGded5ZuUqRtk24ccG0ZevPFYEYjowUdoDzHvz2IUkROj2ew1q/S",
                             PostId = 3L,
                             RealName = "甯金元",
                             Status = 1,
@@ -6608,9 +5866,8 @@ namespace EnterpriseMS.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
                             DeptId = 2L,
-                            EmployeeId = 102L,
                             IsDeleted = false,
-                            PasswordHash = "$2a$12$n1rWBUZ56DL.qG.fUsSyROcWpSYP4w7kuvhoM8RbpeiQo6FRBbUXK",
+                            PasswordHash = "$2a$12$NANYIo5swCcPieQ7RKZ7LOBut58zIMRHdHYnp/v.JDRKpGXFNIlEq",
                             PostId = 4L,
                             RealName = "曹丽君",
                             Status = 1,
@@ -6622,9 +5879,8 @@ namespace EnterpriseMS.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
                             DeptId = 3L,
-                            EmployeeId = 103L,
                             IsDeleted = false,
-                            PasswordHash = "$2a$12$Y601L/fZF6w44/Df7LyME.7z4yy6gCoQ2tC4RC3GsM6Hp5V8EetR6",
+                            PasswordHash = "$2a$12$omAZhnmnnObYna/YV8rTvOFGibSkpYVt0JM6hzVlPO495ME9U6rw.",
                             PostId = 3L,
                             RealName = "刘润泽",
                             Status = 1,
@@ -6636,9 +5892,8 @@ namespace EnterpriseMS.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
                             DeptId = 4L,
-                            EmployeeId = 104L,
                             IsDeleted = false,
-                            PasswordHash = "$2a$12$jvPx6kyOQcDBJLj0L20W0u/lj0BDJVGB.4q3hedOz3kFF5R9/m2AO",
+                            PasswordHash = "$2a$12$AmqGSBd/6c.6arjhcrd6gelrUsy.iGFwX.Ht0S3f3tfru86t16oFS",
                             PostId = 6L,
                             RealName = "王帅伟",
                             Status = 1,
@@ -6650,9 +5905,8 @@ namespace EnterpriseMS.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CreatedBy = "system",
                             DeptId = 2L,
-                            EmployeeId = 105L,
                             IsDeleted = false,
-                            PasswordHash = "$2a$12$2/cHZqIvHFY3ICiR1.6xsuVeMgiezdwxWPhj5zaCD.40pD1rgYBP2",
+                            PasswordHash = "$2a$12$TCsm6lrtEpk06VxI8/R5f.W1b6IQB/TyGv3WneFPJiIHPHaDlLx3W",
                             PostId = 7L,
                             RealName = "杨通",
                             Status = 1,
@@ -6747,7 +6001,24 @@ namespace EnterpriseMS.Migrations
                         .WithMany()
                         .HasForeignKey("DeptId");
 
+                    b.HasOne("EnterpriseMS.Domain.Entities.System.SysPost", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId");
+
                     b.Navigation("Dept");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("EnterpriseMS.Domain.Entities.Hr.EmployeeAttachment", b =>
+                {
+                    b.HasOne("EnterpriseMS.Domain.Entities.Hr.Employee", "Employee")
+                        .WithMany("Attachments")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Hr.EmployeeCertificate", b =>
@@ -6818,10 +6089,6 @@ namespace EnterpriseMS.Migrations
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Project.Project", b =>
                 {
-                    b.HasOne("EnterpriseMS.Domain.Entities.Hr.Employee", "BizLeader")
-                        .WithMany()
-                        .HasForeignKey("BizLeaderId");
-
                     b.HasOne("EnterpriseMS.Domain.Entities.System.SysDept", "Dept")
                         .WithMany()
                         .HasForeignKey("DeptId");
@@ -6830,17 +6097,9 @@ namespace EnterpriseMS.Migrations
                         .WithMany()
                         .HasForeignKey("ProjectLeaderId");
 
-                    b.HasOne("EnterpriseMS.Domain.Entities.Hr.Employee", "TechLeader")
-                        .WithMany()
-                        .HasForeignKey("TechLeaderId");
-
-                    b.Navigation("BizLeader");
-
                     b.Navigation("Dept");
 
                     b.Navigation("ProjectLeader");
-
-                    b.Navigation("TechLeader");
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Project.ProjectAcceptance", b =>
@@ -6934,6 +6193,15 @@ namespace EnterpriseMS.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("EnterpriseMS.Domain.Entities.Report.TemplateField", b =>
+                {
+                    b.HasOne("EnterpriseMS.Domain.Entities.Report.TemplateDefinition", null)
+                        .WithMany("Fields")
+                        .HasForeignKey("TemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.System.SysDictData", b =>
                 {
                     b.HasOne("EnterpriseMS.Domain.Entities.System.SysDictType", null)
@@ -6998,6 +6266,8 @@ namespace EnterpriseMS.Migrations
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.Hr.Employee", b =>
                 {
+                    b.Navigation("Attachments");
+
                     b.Navigation("Certificates");
 
                     b.Navigation("Contracts");
@@ -7032,6 +6302,11 @@ namespace EnterpriseMS.Migrations
                     b.Navigation("Milestones");
 
                     b.Navigation("OperLogs");
+                });
+
+            modelBuilder.Entity("EnterpriseMS.Domain.Entities.Report.TemplateDefinition", b =>
+                {
+                    b.Navigation("Fields");
                 });
 
             modelBuilder.Entity("EnterpriseMS.Domain.Entities.System.SysDept", b =>

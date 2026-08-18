@@ -191,16 +191,13 @@ public class AppDbContext : DbContext
         SystemSeeds.Seed(mb);
         MenuSeeds.Seed(mb);
         DictSeeds.Seed(mb);
-        HrSeeds.Seed(mb);
-        ProjectSeeds.Seed(mb);
-        InfoSeeds.Seed(mb);
     }
 
     /* ── 原 SeedData 已拆分到 Seeds/ 目录下的独立种子类 ──
-     * SystemSeeds  → 部门/岗位/角色/用户/字典/角色菜单
-     * HrSeeds      → 员工/合同/证书
-     * ProjectSeeds → 项目/成员/里程碑/验收
-     * InfoSeeds    → 知识库分类/菜单
+     * SystemSeeds  → 部门/岗位/角色/用户/角色菜单（保留：用户与权限管理）
+     * MenuSeeds    → 菜单（保留）
+     * DictSeeds    → 业务字典下拉项（保留）
+     * 已删除：HrSeeds（演示员工）/ProjectSeeds（演示项目）/InfoSeeds（知识库演示）— 生产库不需要演示数据
      */
     /// <summary>供 DebugController 调用的公共包装</summary>
     public async Task SeedTablePublicAsync<T>() where T : class => await SeedTableAsync<T>();

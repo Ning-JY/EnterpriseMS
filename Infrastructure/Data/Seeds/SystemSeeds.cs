@@ -45,11 +45,11 @@ public static class SystemSeeds
         // ── 用户 ──────────────────────────────────────────────
         mb.Entity<SysUser>().HasData(
             new SysUser { Id = 1, Username = "admin", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "超级管理员", DeptId = 1, PostId = 1, Status = 1, EmployeeId = null, CreatedAt = dt, CreatedBy = "system" },
-            new SysUser { Id = 2, Username = "ningjinyuan", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "甯金元", DeptId = 2, PostId = 3, Status = 1, EmployeeId = 101, CreatedAt = dt, CreatedBy = "system" },
-            new SysUser { Id = 3, Username = "caolijun", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "曹丽君", DeptId = 2, PostId = 4, Status = 1, EmployeeId = 102, CreatedAt = dt, CreatedBy = "system" },
-            new SysUser { Id = 4, Username = "liurunze", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "刘润泽", DeptId = 3, PostId = 3, Status = 1, EmployeeId = 103, CreatedAt = dt, CreatedBy = "system" },
-            new SysUser { Id = 5, Username = "wangshuaiwei", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "王帅伟", DeptId = 4, PostId = 6, Status = 1, EmployeeId = 104, CreatedAt = dt, CreatedBy = "system" },
-            new SysUser { Id = 6, Username = "yangtong", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "杨通", DeptId = 2, PostId = 7, Status = 1, EmployeeId = 105, CreatedAt = dt, CreatedBy = "system" }
+            new SysUser { Id = 2, Username = "ningjinyuan", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "甯金元", DeptId = 2, PostId = 3, Status = 1, EmployeeId = null, CreatedAt = dt, CreatedBy = "system" },
+            new SysUser { Id = 3, Username = "caolijun", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "曹丽君", DeptId = 2, PostId = 4, Status = 1, EmployeeId = null, CreatedAt = dt, CreatedBy = "system" },
+            new SysUser { Id = 4, Username = "liurunze", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "刘润泽", DeptId = 3, PostId = 3, Status = 1, EmployeeId = null, CreatedAt = dt, CreatedBy = "system" },
+            new SysUser { Id = 5, Username = "wangshuaiwei", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "王帅伟", DeptId = 4, PostId = 6, Status = 1, EmployeeId = null, CreatedAt = dt, CreatedBy = "system" },
+            new SysUser { Id = 6, Username = "yangtong", PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456", 12), RealName = "杨通", DeptId = 2, PostId = 7, Status = 1, EmployeeId = null, CreatedAt = dt, CreatedBy = "system" }
         );
 
         // ── 用户角色 ──────────────────────────────────────────
