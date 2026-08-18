@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using EnterpriseMS.Common;
@@ -145,6 +146,17 @@ public class GlobalExceptionFilter : IAsyncExceptionFilter
     {
         var ex = ctx.Exception;
         _logger.LogError(ex, "未处理异常: {Message}", ex.Message);
+
+        // 防止错误页自身再次被重定向回错误页，形成浏览器侧 302 自引用死循环。
+        // 已是错误页时直接返回 500，不再 RedirectToAction("Error")。
+        var path = ctx.HttpContext.Request.Path.Value ?? "";
+        if (path.Equals("/Home/Error", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("/Home/Error/", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Result = new StatusCodeResult(StatusCodes.Status500InternalServerError);
+            ctx.ExceptionHandled = true;
+            return Task.CompletedTask;
+        }
 
         var isAjax = ctx.HttpContext.Request.Headers["X-Requested-With"] == "XMLHttpRequest"
                   || ctx.HttpContext.Request.ContentType?.Contains("application/json") == true;

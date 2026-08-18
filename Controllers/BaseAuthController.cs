@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Logging;
 using EnterpriseMS.Common;
 using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Services.Interfaces;
@@ -25,8 +26,20 @@ public abstract class BaseAuthController : Controller
     {
         // userId == 0 表示匿名用户，GetUserMenuTreeAsync 内部会返回公开菜单
         var userId = User.GetUserId();
-        var menuTree = await _permSvc.GetUserMenuTreeAsync(userId);
-        ViewBag.MenuTree = menuTree;
+        try
+        {
+            ViewBag.MenuTree = await _permSvc.GetUserMenuTreeAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            // 菜单加载失败不得拖垮整页或错误页：否则错误页本身会再次抛异常，被
+            // GlobalExceptionFilter 重定向回错误页，形成浏览器侧 302 自引用死循环
+            // （ERR_TOO_MANY_REDIRECTS）。降级为空菜单，保证页面/侧边栏至少能渲染。
+            ViewBag.MenuTree = null;
+            var logger = context.HttpContext.RequestServices
+                .GetRequiredService<ILogger<BaseAuthController>>();
+            logger.LogError(ex, "加载用户菜单树失败 userId={UserId}", userId);
+        }
 
         await next();
     }
