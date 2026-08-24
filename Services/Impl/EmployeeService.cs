@@ -134,21 +134,6 @@ public class EmployeeService : IEmployeeService
         emp.ProfilePhoto     = dto.ProfilePhoto;
         emp.UpdatedBy        = operBy;
         _uow.Employees.Update(emp);
-
-        // 反向同步：若该员工已绑定登录账号，同步更新账号基本信息保持一致
-        var boundUser = await _uow.Users.Query(false)
-            .FirstOrDefaultAsync(u => u.EmployeeId == emp.Id);
-        if (boundUser != null)
-        {
-            boundUser.RealName  = emp.RealName;
-            boundUser.Phone     = emp.Phone;
-            boundUser.Email     = emp.Email;
-            boundUser.DeptId    = emp.DeptId;
-            boundUser.PostId    = emp.PostId;
-            boundUser.UpdatedBy = operBy;
-            _uow.Users.Update(boundUser);
-        }
-
         await _uow.SaveChangesAsync();
     }
 
@@ -171,7 +156,6 @@ public class EmployeeService : IEmployeeService
         emp.EmergencyPhone   = dto.EmergencyPhone;
         emp.UpdatedBy        = operBy;
         _uow.Employees.Update(emp);
-        await SyncBoundUserAsync(emp);
         await _uow.SaveChangesAsync();
     }
 
@@ -191,7 +175,6 @@ public class EmployeeService : IEmployeeService
         emp.BankName         = dto.BankName;
         emp.UpdatedBy        = operBy;
         _uow.Employees.Update(emp);
-        await SyncBoundUserAsync(emp);
         await _uow.SaveChangesAsync();
     }
 
@@ -219,23 +202,6 @@ public class EmployeeService : IEmployeeService
         emp.UpdatedBy    = operBy;
         _uow.Employees.Update(emp);
         await _uow.SaveChangesAsync();
-    }
-
-    /// <summary>员工已绑定登录账号时，同步其基本/任职信息保持一致</summary>
-    private async Task SyncBoundUserAsync(Employee emp)
-    {
-        var boundUser = await _uow.Users.Query(false)
-            .FirstOrDefaultAsync(u => u.EmployeeId == emp.Id);
-        if (boundUser != null)
-        {
-            boundUser.RealName  = emp.RealName;
-            boundUser.Phone     = emp.Phone;
-            boundUser.Email     = emp.Email;
-            boundUser.DeptId    = emp.DeptId;
-            boundUser.PostId    = emp.PostId;
-            boundUser.UpdatedBy = emp.UpdatedBy;
-            _uow.Users.Update(boundUser);
-        }
     }
 
     public async Task FormalAsync(long id, DateTime formalDate, string operBy)

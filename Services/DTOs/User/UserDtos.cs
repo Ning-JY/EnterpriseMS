@@ -49,11 +49,7 @@ public class CreateUserDto
     [Phone(ErrorMessage = "手机号格式不正确")]
     public string? Phone     { get; set; }
 
-    [EmailAddress(ErrorMessage = "邮箱格式不正确")]
-    public string? Email     { get; set; }
-
     public long?        DeptId     { get; set; }
-    public long?        PostId     { get; set; }
     public List<long>   RoleIds    { get; set; } = new();
     public string?      Remark     { get; set; }
     /// <summary>绑定员工档案ID，null 表示解除绑定</summary>
@@ -71,11 +67,7 @@ public class UpdateUserDto
     [Phone(ErrorMessage = "手机号格式不正确")]
     public string? Phone     { get; set; }
 
-    [EmailAddress(ErrorMessage = "邮箱格式不正确")]
-    public string? Email     { get; set; }
-
     public long?        DeptId     { get; set; }
-    public long?        PostId     { get; set; }
     public List<long>   RoleIds    { get; set; } = new();
     public string?      Remark     { get; set; }
     /// <summary>绑定员工档案ID，null 表示解除绑定</summary>

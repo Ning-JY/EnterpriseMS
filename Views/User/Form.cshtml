@@ -69,28 +69,6 @@
 
     <div class="layui-form-item">
         <div class="layui-inline">
-            <label class="layui-form-label">邮箱</label>
-            <div class="layui-input-inline">
-                <input type="text" name="Email" value="@Model?.Email" placeholder="电子邮箱"
-                       autocomplete="off" class="layui-input" lay-verify="email">
-            </div>
-        </div>
-        <div class="layui-inline">
-            <label class="layui-form-label">岗位</label>
-            <div class="layui-input-inline">
-                <select name="PostId">
-                    <option value="">请选择岗位</option>
-                    @foreach (var p in posts)
-                    {
-                        <option value="@p.Id" selected="@(Model?.PostId == p.Id)">@p.PostName</option>
-                    }
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <div class="layui-form-item">
-        <div class="layui-inline">
             <label class="layui-form-label">所属部门</label>
             <div class="layui-input-inline">
                 @await Component.InvokeAsync("DeptSelect", new {
@@ -144,10 +122,10 @@
         </div>
     </div>
 
-    <div class="layui-form-item ems-sync-tip" id="empSyncTip">
+    <div class="layui-form-item ems-sync-tip" id="empSyncTip" style="display:none">
         <div class="layui-input-block">
             <div class="layui-form-mid layui-word-aux">
-                已绑定员工档案，姓名 / 手机 / 邮箱 / 部门以员工档案为准，请到员工详情中修改。
+                已关联员工档案，可在「员工管理」中交叉查看；本账号的姓名 / 手机 / 部门在此独立维护，不会随档案自动变更。
             </div>
         </div>
     </div>
@@ -170,36 +148,26 @@
 ems.ready(function () {
     var isEdit = @(isEdit ? "true" : "false");
     var currentEmpId = '@(Model?.EmployeeId)';
-    var initEmp = @Html.Raw(ViewBag.EmployeeDetail == null ? "null" : JsonSerializer.Serialize(ViewBag.EmployeeDetail));
 
-    // 初始化：已绑定员工则用预渲染的档案直接填充（不再打开时 AJAX 拉详情撑高）
-    if (initEmp && currentEmpId) {
-        fillFromEmployee(initEmp);
-    }
+    // 编辑且已关联员工：仅提示，不覆盖用户自身填写的姓名/手机/部门（User 与员工档案解耦）
+    if (currentEmpId) $('#empSyncTip').show();
 
-    // 选中员工后，从员工档案同步基础信息并锁定（交互异步，不影响打开时居中）
+    // 选中/切换员工：带入员工档案默认值（可编辑，不锁定）
     layui.form.on('select(EmployeeId)', function () { syncEmployee(); });
 
     function fillFromEmployee(e) {
-        $('input[name=RealName]').val(e.RealName).prop('readonly', true);
-        $('input[name=Phone]').val(e.Phone || '').prop('readonly', true);
-        $('input[name=Email]').val(e.Email || '').prop('readonly', true);
+        if (e.RealName) $('input[name=RealName]').val(e.RealName);
+        if (e.Phone) $('input[name=Phone]').val(e.Phone);
         if (e.DeptId) $('select[name=DeptId]').val(e.DeptId);
         ems.renderForm('userForm');
-        $('#empSyncTip').show();
     }
 
     function syncEmployee() {
         var empId = $('#EmployeeId').val();
-        var $lock = $('input[name=RealName], input[name=Phone], input[name=Email]');
-
-        if (!empId) {
-            $lock.prop('readonly', false);
-            $('#empSyncTip').hide();
-            return;
-        }
+        if (!empId) { $('#empSyncTip').hide(); return; }
         ems.get('/hr/employee/json/' + empId, function (e) {
             fillFromEmployee(e);
+            $('#empSyncTip').show();
         });
     }
 
@@ -207,7 +175,7 @@ ems.ready(function () {
     ems.bindSubmit('userForm', function (field) {
         field.RoleIds = ems.checkboxValues('role');
         delete field.role;
-        ems.nums(field, ['DeptId', 'PostId', 'EmployeeId']);
+        ems.nums(field, ['DeptId', 'EmployeeId']);
 
         if (isEdit) {
             field.Id = Number(field.Id);

@@ -13,8 +13,6 @@ public class CreateUserDtoValidator : AbstractValidator<CreateUserDto>
         RuleFor(x => x.Phone).MaximumLength(20)
             .Matches(@"^1[3-9]\d{9}$").When(x => !string.IsNullOrWhiteSpace(x.Phone))
             .WithMessage("手机号格式不正确");
-        RuleFor(x => x.Email).MaximumLength(100)
-            .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email));
     }
 }
 
@@ -27,8 +25,6 @@ public class UpdateUserDtoValidator : AbstractValidator<UpdateUserDto>
         RuleFor(x => x.Phone).MaximumLength(20)
             .Matches(@"^1[3-9]\d{9}$").When(x => !string.IsNullOrWhiteSpace(x.Phone))
             .WithMessage("手机号格式不正确");
-        RuleFor(x => x.Email).MaximumLength(100)
-            .EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email));
     }
 }
 

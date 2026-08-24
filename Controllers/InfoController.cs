@@ -153,7 +153,7 @@ public class InfoController : BaseAuthController
             a.IsTop      = isTop   ? 1 : 0;
             a.IsPublic   = isPublic ? 1 : 0;
             a.Status     = status;
-            a.UpdatedAt  = DateTime.Now;
+            a.UpdatedAt  = DateTime.UtcNow;
             a.UpdatedBy  = oper;
             _uow.InfoArticles.Update(a);
         }
@@ -167,9 +167,9 @@ public class InfoController : BaseAuthController
                 IsTop      = isTop   ? 1 : 0,
                 IsPublic   = isPublic ? 1 : 0,
                 Status     = status,
-                PublishTime = status == 1 ? DateTime.Now : null,
+                PublishTime = status == 1 ? DateTime.UtcNow : null,
                 ViewCount  = 0,
-                CreatedAt  = DateTime.Now,
+                CreatedAt  = DateTime.UtcNow,
                 CreatedBy  = oper,
             };
             await _uow.InfoArticles.AddAsync(a);
@@ -248,7 +248,7 @@ public class InfoController : BaseAuthController
             c.Sort         = sort;
             c.Status       = status;
             c.IsPublic     = isPublic ? 1 : 0;
-            c.UpdatedAt    = DateTime.Now;
+            c.UpdatedAt    = DateTime.UtcNow;
             c.UpdatedBy    = oper;
             _uow.InfoCategories.Update(c);
         }
@@ -261,7 +261,7 @@ public class InfoController : BaseAuthController
                 Sort         = sort,
                 Status       = status,
                 IsPublic     = isPublic ? 1 : 0,
-                CreatedAt    = DateTime.Now,
+                CreatedAt    = DateTime.UtcNow,
                 CreatedBy    = oper,
             });
         }

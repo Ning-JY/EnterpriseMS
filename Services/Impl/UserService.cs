@@ -78,6 +78,8 @@ public class UserService : IUserService
         if (user == null) return null;
         var dto = _mapper.Map<UserDetailDto>(user);
         dto.EmployeeId = user.EmployeeId;
+        dto.DeptId     = user.DeptId;   // 修复：编辑表单需回填部门（AutoMapper 仅映射 DeptName 而非原始 Id）
+        dto.Remark     = user.Remark;   // 修复：编辑表单需回填备注
         // 如果绑定了员工，查出姓名供前端显示
         if (user.EmployeeId.HasValue)
         {
@@ -95,6 +97,10 @@ public class UserService : IUserService
     {
         if (await _uow.Users.AnyAsync(u => u.Username == dto.Username))
             throw new BusinessException("用户名已存在");
+        // 同一员工不能被两个账号绑定
+        if (dto.EmployeeId.HasValue &&
+            await _uow.Users.AnyAsync(u => u.EmployeeId == dto.EmployeeId))
+            throw new BusinessException("该员工已绑定其他账号，请先解绑");
 
         var user = new SysUser
         {
@@ -102,10 +108,9 @@ public class UserService : IUserService
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password, 12),
             RealName     = dto.RealName,
             Phone        = dto.Phone,
-            Email        = dto.Email,
             DeptId       = dto.DeptId,
-            PostId       = dto.PostId,
             Remark       = dto.Remark,
+            EmployeeId   = dto.EmployeeId,   // 仅作交叉引用指针，不自动同步档案
             CreatedBy    = operBy,
         };
         await _uow.Users.AddAsync(user);
@@ -130,34 +135,17 @@ public class UserService : IUserService
                 throw new BusinessException("该员工已绑定其他账号，请先解绑");
         }
 
-        user.EmployeeId = dto.EmployeeId;  // 允许 null（解绑）
+        user.RealName   = dto.RealName;
+        user.Phone      = dto.Phone;
+        user.DeptId     = dto.DeptId;
         user.Remark     = dto.Remark;
+        user.EmployeeId = dto.EmployeeId;   // 允许 null（解绑）
         user.UpdatedBy  = operBy;
 
-        if (dto.EmployeeId.HasValue)
-        {
-            // 绑定了员工档案：从员工档案同步基本信息，确保一致性
-            var emp = await _uow.Employees.GetByIdAsync(dto.EmployeeId.Value);
-            if (emp != null)
-            {
-                user.RealName = emp.RealName;
-                user.Phone    = emp.Phone;
-                user.Email    = emp.Email;
-                user.DeptId   = emp.DeptId;
-                user.PostId   = emp.PostId;
-            }
-        }
-        else
-        {
-            // 未绑定员工：允许手动维护
-            user.RealName = dto.RealName;
-            user.Phone    = dto.Phone;
-            user.Email    = dto.Email;
-            user.DeptId   = dto.DeptId;
-            user.PostId   = dto.PostId;
-        }
         _uow.Users.Update(user);
-        await AssignRolesAsync(dto.Id, dto.RoleIds);
+        // 仅当选择了角色时才覆盖；空列表表示“保留原角色”，不清空
+        if (dto.RoleIds.Any())
+            await AssignRolesAsync(dto.Id, dto.RoleIds);
         await _uow.SaveChangesAsync();
         await _permCache.RemoveUserPermsAsync(dto.Id);
     }
@@ -168,7 +156,8 @@ public class UserService : IUserService
             ?? throw new NotFoundException("用户不存在");
         if (user.Username == "admin")
             throw new BusinessException("超级管理员不可删除");
-        user.UpdatedBy = operBy;
+        user.EmployeeId = null;   // 释放员工唯一索引，允许该员工被其他账号重新绑定
+        user.UpdatedBy  = operBy;
         _uow.Users.SoftDelete(user);
         await _uow.SaveChangesAsync();
         await _permCache.RemoveUserPermsAsync(id);

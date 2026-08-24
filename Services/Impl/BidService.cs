@@ -93,6 +93,9 @@ public class BidService : IBidService
 
     public async Task<long> CreateAsync(BidProjectCreateDto dto, string operBy)
     {
+        if (dto.ProjectId == null || dto.ProjectId <= 0)
+            throw new BusinessException("请先选择关联项目");
+
         var entity = new BidProject
         {
             ProjectId = dto.ProjectId,
