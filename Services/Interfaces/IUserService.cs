@@ -17,7 +17,7 @@ public interface IUserService
     Task                          ResetPasswordAsync(long id, string newPwd, string operBy);
     Task                          ChangePasswordAsync(long id, string oldPwd, string newPwd);
     Task                          AssignRolesAsync(long userId, List<long> roleIds);
-    Task                          UpdateLastLoginAsync(long id);
+    Task                          UpdateLastLoginAsync(long id, string? ip = null);
     Task<bool>                    ValidatePasswordAsync(string username, string password);
     Task<List<UserListDto>>       GetAllActiveAsync();
 }

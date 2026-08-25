@@ -217,11 +217,12 @@ public class UserService : IUserService
         await _permCache.RemoveUserMenuIdsAsync(userId);
     }
 
-    public async Task UpdateLastLoginAsync(long id)
+    public async Task UpdateLastLoginAsync(long id, string? ip = null)
     {
         var user = await _uow.Users.GetByIdAsync(id);
         if (user == null) return;
         user.LastLoginTime = DateTime.UtcNow;
+        user.LastLoginIp   = ip;
         _uow.Users.Update(user);
         await _uow.SaveChangesAsync();
     }

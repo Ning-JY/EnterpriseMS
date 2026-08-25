@@ -16,6 +16,7 @@ public class SysUser : BaseEntity
     [Column("post_id")]        public long?    PostId        { get; set; }
     [Column("status")]         public int      Status        { get; set; } = 1;
     [Column("last_login_time")]public DateTime? LastLoginTime { get; set; }
+    [Column("last_login_ip")]  public string?  LastLoginIp   { get; set; }
     [Column("remark")]         public string?  Remark        { get; set; }
     /// <summary>关联员工档案（一对一）</summary>
     [Column("employee_id")]    public long?    EmployeeId    { get; set; }

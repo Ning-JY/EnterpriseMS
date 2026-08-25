@@ -14,6 +14,8 @@ public class UserListDto
     public int      Status        { get; set; }
     public string   StatusText    => Status == 1 ? "正常" : "禁用";
     public DateTime? LastLoginTime { get; set; }
+    /// <summary>最后登录IP（登录时按真实客户端IP记录，可为空表示从未登录）</summary>
+    public string?  LastLoginIp   { get; set; }
     public DateTime  CreatedAt    { get; set; }
     public List<string> RoleNames { get; set; } = new();
     /// <summary>绑定的员工姓名（可空）</summary>

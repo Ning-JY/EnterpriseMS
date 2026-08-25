@@ -118,8 +118,14 @@ ems.ready(function () {
             return '<div class="ems-role-tags">' + ems.tpl.tags('RoleNames')(d) + '</div>';
         } },
         { field: 'EmployeeName', title: '绑定员工', templet: ems.tpl.tag('EmployeeName') },
-        { field: 'LastLoginTime', title: '最后登录', hide: true,
-          templet: function (d) { return d.LastLoginTime ? ems.fmtDateTime(d.LastLoginTime) : '从未登录'; } },
+        { field: 'LastLoginTime', title: '最后登录 / IP',
+          templet: function (d) {
+            if (!d.LastLoginTime) return '<span class="ems-muted">从未登录</span>';
+            var html = ems.fmtDateTime(d.LastLoginTime);
+            if (d.LastLoginIp)
+              html += '<div style="color:#8a94a6;font-size:12px;margin-top:2px;">' + ems.escapeHtml(d.LastLoginIp) + '</div>';
+            return html;
+          } },
         { title: '操作', width: 150, align: 'center', toolbar: '#userBar' }
     ];
 
@@ -174,7 +180,8 @@ ems.ready(function () {
                 '<div class="ems-import-body">' +
                 '  <input type="file" id="importUserFile" class="layui-input">' +
                 '  <div class="ems-import-tip">' +
-                '    支持 Excel / CSV 文件，请先下载导入模板填写后上传。<br>导入将覆盖同名用户的关键信息。' +
+                '    支持 Excel / CSV 文件，请先下载导入模板填写后上传。<br>' +
+                '    已存在用户名将更新其关键信息；新用户默认密码为 <b>123456</b>，登录后请尽快修改。' +
                 '  </div>' +
                 '</div>',
             btn: ['开始导入', '下载模板'],

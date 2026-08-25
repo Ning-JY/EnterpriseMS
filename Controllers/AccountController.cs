@@ -77,7 +77,8 @@ public class AccountController : Controller
             return View();
         }
 
-        await _userSvc.UpdateLastLoginAsync(user.Id);
+        await _userSvc.UpdateLastLoginAsync(user.Id,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
 
         if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             return Redirect(returnUrl);
