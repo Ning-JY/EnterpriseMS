@@ -48,7 +48,6 @@ public class CreateUserDto
     [MaxLength(50)]
     public string  RealName  { get; set; } = "";
 
-    [Phone(ErrorMessage = "手机号格式不正确")]
     public string? Phone     { get; set; }
 
     public long?        DeptId     { get; set; }
@@ -66,7 +65,6 @@ public class UpdateUserDto
     [MaxLength(50)]
     public string  RealName  { get; set; } = "";
 
-    [Phone(ErrorMessage = "手机号格式不正确")]
     public string? Phone     { get; set; }
 
     public long?        DeptId     { get; set; }

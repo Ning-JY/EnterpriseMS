@@ -10,8 +10,11 @@ public class CreateUserDtoValidator : AbstractValidator<CreateUserDto>
         RuleFor(x => x.Username).NotEmpty().MaximumLength(50);
         RuleFor(x => x.Password).NotEmpty().MinimumLength(6).MaximumLength(100);
         RuleFor(x => x.RealName).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.Phone).MaximumLength(20)
-            .Matches(@"^1[3-9]\d{9}$").When(x => !string.IsNullOrWhiteSpace(x.Phone))
+        RuleFor(x => x.Phone)
+            .MaximumLength(20).WithMessage("手机号长度不能超过20个字符");
+        RuleFor(x => x.Phone)
+            .Matches(@"^1[3-9]\d{9}$")
+            .When(x => !string.IsNullOrWhiteSpace(x.Phone))
             .WithMessage("手机号格式不正确");
     }
 }
@@ -22,8 +25,11 @@ public class UpdateUserDtoValidator : AbstractValidator<UpdateUserDto>
     {
         RuleFor(x => x.Id).GreaterThan(0).WithMessage("用户ID不合法");
         RuleFor(x => x.RealName).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.Phone).MaximumLength(20)
-            .Matches(@"^1[3-9]\d{9}$").When(x => !string.IsNullOrWhiteSpace(x.Phone))
+        RuleFor(x => x.Phone)
+            .MaximumLength(20).WithMessage("手机号长度不能超过20个字符");
+        RuleFor(x => x.Phone)
+            .Matches(@"^1[3-9]\d{9}$")
+            .When(x => !string.IsNullOrWhiteSpace(x.Phone))
             .WithMessage("手机号格式不正确");
     }
 }
