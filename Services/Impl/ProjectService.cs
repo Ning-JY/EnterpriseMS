@@ -20,13 +20,8 @@ public class ProjectService : IProjectService
     private readonly ILogger<ProjectService> _logger;
     private readonly IEnumerable<ITemplateDataSource> _sources;
 
-    // 允许上传的文件扩展名白名单
-    private static readonly HashSet<string> AllowedFileExts = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "pdf","doc","docx","xls","xlsx","ppt","pptx",
-        "jpg","jpeg","png","gif","bmp","tiff",
-        "zip","rar","7z","txt","csv","dwg","dxf"
-    };
+    // 扩展名校验已统一收敛到 FileUploadHelper（全站单一来源，非危险黑名单即放行），
+    // 此处不再维护第二份白名单副本，避免两处规则漂移。
 
     public ProjectService(IUnitOfWork uow, IMapper mapper,
         IPermissionService permSvc, ILogger<ProjectService> logger,
@@ -797,12 +792,9 @@ public class ProjectService : IProjectService
         return new { total, executing, completed, overdue };
     }
 
-    // #7 新增：文件扩展名白名单校验
+    // #7 文件扩展名校验：委托 FileUploadHelper（危险扩展名黑名单，其余全放行）
     public static bool IsFileExtensionAllowed(string fileName)
-    {
-        var ext = Path.GetExtension(fileName)?.TrimStart('.').ToLower() ?? "";
-        return AllowedFileExts.Contains(ext);
-    }
+        => FileUploadHelper.IsAllowed(fileName);
 
     // #6 新增：fileType 参数白名单校验
     public static bool IsValidFileType(string fileType)

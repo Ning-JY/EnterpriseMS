@@ -29,7 +29,7 @@ public class KbService : IKbService
     {
         var saved = await FileUploadHelper.SaveUploadFile(dto.File, $"kb/{dto.CategoryId}");
         if (!saved.HasValue)
-            throw new BusinessException("不支持的文件类型");
+            throw new BusinessException(FileUploadHelper.RejectExtMessage);
 
         var category = await _uow.KbCategories.GetByIdAsync(dto.CategoryId ?? 0);
         if (category == null) throw new BusinessException("分类不存在");

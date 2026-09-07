@@ -23,7 +23,7 @@ public class EmployeeAttachmentService : IEmployeeAttachmentService
     {
         if (employeeId == 0) throw new BusinessException("请先指定员工");
         var saved = await FileUploadHelper.SaveUploadFile(file, "hr/attachments");
-        if (saved == null) throw new BusinessException("文件上传失败（格式或大小不合规）");
+        if (saved == null) throw new BusinessException(FileUploadHelper.RejectExtMessage);
 
         var attach = new EmployeeAttachment
         {

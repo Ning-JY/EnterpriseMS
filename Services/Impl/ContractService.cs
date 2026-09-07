@@ -86,7 +86,7 @@ public class ContractService : IContractService
         if (contract == null) throw new NotFoundException("合同不存在");
 
         var result = await FileUploadHelper.SaveUploadFile(file, "hr/contracts");
-        if (result == null) throw new BusinessException("文件上传失败");
+        if (result == null) throw new BusinessException(FileUploadHelper.RejectExtMessage);
 
         contract.FilePath = result.Value.path;
         contract.FileName = result.Value.name;

@@ -178,7 +178,7 @@ public class EmployeeController : BaseAuthController
             var emp = await _empSvc.GetByIdAsync(id);
             if (emp == null) return ApiFail("员工不存在");
             var saved = await FileUploadHelper.SaveUploadFile(file, "hr/avatars");
-            if (saved == null) return ApiFail("文件上传失败（格式或大小不合规）");
+            if (saved == null) return ApiFail(FileUploadHelper.RejectExtMessage);
             await _empSvc.UpdateProfilePhotoAsync(id, saved.Value.path, User.GetRealName());
             return ApiOk(new { path = saved.Value.path }, "头像已更新");
         }

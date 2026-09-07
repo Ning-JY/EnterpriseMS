@@ -81,8 +81,8 @@
     <div class="layui-form-item">
         <label class="layui-form-label">选择文件 <span class="layui-font-red">*</span></label>
         <div class="layui-input-block">
-            <input type="file" id="uploadFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.zip,.rar" class="layui-input">
-            <div class="layui-font-12 layui-font-gray" id="uploadFileTip" style="margin-top:4px">支持 PDF、Word、Excel、PPT、图片、压缩包，最大 50MB</div>
+            <input type="file" id="uploadFile" class="layui-input">
+            <div class="layui-font-12 layui-font-gray" id="uploadFileTip" style="margin-top:4px">支持任意格式（可执行文件、脚本、网页类除外），单个文件最大 500MB</div>
         </div>
     </div>
     <div class="layui-form-item">
@@ -191,7 +191,7 @@ ems.ready(function () {
     {
         <text>
         $('#btnUpload').on('click', function () {
-            $('#uploadFile').val(''); $('#uploadFileTip').text('支持 PDF、Word、Excel、PPT、图片、压缩包，最大 50MB');
+            $('#uploadFile').val(''); $('#uploadFileTip').text('支持任意格式（可执行文件、脚本、网页类除外），单个文件最大 500MB');
             $('#displayName').val(''); $('#uploadCategory').val('');
             $('#uploadVersion').val(''); $('#uploadDesc').val('');
             $('#isPinned').prop('checked', false); layui.form.render();
@@ -200,7 +200,7 @@ ems.ready(function () {
         });
 
         $('#uploadFile').on('change', function () {
-            $('#uploadFileTip').text(this.files[0] ? this.files[0].name : '支持 PDF、Word、Excel、PPT、图片、压缩包，最大 50MB');
+            $('#uploadFileTip').text(this.files[0] ? this.files[0].name : '支持任意格式（可执行文件、脚本、网页类除外），单个文件最大 500MB');
         });
 
         $('#uploadBtn').on('click', function () {

@@ -87,7 +87,7 @@ public class CertificateService : ICertificateService
         if (cert == null) throw new NotFoundException("证书不存在");
 
         var result = await FileUploadHelper.SaveUploadFile(file, "hr/certs");
-        if (result == null) throw new BusinessException("文件上传失败");
+        if (result == null) throw new BusinessException(FileUploadHelper.RejectExtMessage);
 
         cert.FilePath = result.Value.path;
         cert.FileName = result.Value.name;

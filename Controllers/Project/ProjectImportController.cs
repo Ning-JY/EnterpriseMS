@@ -97,8 +97,9 @@ public class ProjectImportController : BaseAuthController
     // ── 执行导入 ─────────────────────────────────────────────
     [HttpPost("import/execute"), ValidateAntiForgeryToken]
     [HasPermission("proj:project:import")]
-    [RequestSizeLimit(20 * 1024 * 1024)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 20 * 1024 * 1024)]
+    // 大小上限与全站保持一致（原先 20MB 过小，大批量 Excel 会被 413 拒掉）
+    [RequestSizeLimit(UploadLimits.MaxUploadBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = UploadLimits.MaxUploadBytes)]
     public async Task<IActionResult> Execute(IFormFile file)
     {
         if (file == null || file.Length == 0)

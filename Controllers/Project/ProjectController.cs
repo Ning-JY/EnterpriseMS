@@ -70,6 +70,8 @@ public class ProjectController : BaseAuthController
         if (proj == null) return NotFound();
         ViewBag.AllMembers        = await _empQrySvc.GetAllOnJobAsync();
         ViewBag.DictMilestoneType = await _dictSvc.GetDataByTypeAsync(DictType.MilestoneType);
+        // 项目合同类型：改为字典驱动（proj_contract_type），管理员可在「系统管理 → 字典管理」自定义
+        ViewBag.ProjContractTypes = await _dictSvc.GetDataByTypeAsync(DictType.ProjContractType);
         return View(proj);
     }
 
@@ -506,7 +508,7 @@ public class ProjectController : BaseAuthController
         if (file == null || file.Length == 0) return ApiFail("请选择文件");
         var saved = await FileUploadHelper.SaveUploadFile(file, "project/invoices");
         if (!saved.HasValue)
-            return ApiFail("文件类型不被允许");
+            return ApiFail(FileUploadHelper.RejectExtMessage);
         // 经统一上传辅助 + 服务方法持久化，收敛 Controller 手写文件流
         await _projSvc.UploadInvoiceFileAsync(invoiceId, fileType, saved.Value.name,
             saved.Value.path, User.GetRealName());
@@ -561,7 +563,7 @@ public class ProjectController : BaseAuthController
         if (file == null || file.Length == 0) return ApiFail("请选择文件");
         var saved = await FileUploadHelper.SaveUploadFile(file, "project/contracts");
         if (!saved.HasValue)
-            return ApiFail("文件类型不被允许");
+            return ApiFail(FileUploadHelper.RejectExtMessage);
         // 经统一上传辅助 + 服务方法持久化，收敛 Controller 手写文件流
         await _projSvc.UploadContractFileAsync(contractId, saved.Value.name,
             saved.Value.path, User.GetRealName());
@@ -581,7 +583,7 @@ public class ProjectController : BaseAuthController
         // 文件落非 Web 根目录，从根上消除存储型 XSS 与手写文件流。
         var saved = await FileUploadHelper.SaveUploadFile(file, $"project/{projectId}");
         if (!saved.HasValue)
-            return ApiFail("文件类型不被允许");
+            return ApiFail(FileUploadHelper.RejectExtMessage);
 
         var fileId = await _projSvc.AddFileAsync(projectId, category,
             saved.Value.name, saved.Value.path, file.Length,

@@ -16,6 +16,19 @@
     string[] statusText = {"前期商务","预计启动","标书制作中","投标/磋商中","已中标·签合同中","已签回合同","执行中","成果提交","已完成","已终止"};
     string[] statusTag  = {"gray","blue","orange","orange","teal","teal","green","green","green","red"};
     var dicts = ViewBag.DictMilestoneType as List<DictDataDto> ?? new();
+    // 合同类型：字典驱动（字典类型 proj_contract_type），管理员在「系统管理 → 字典管理」中自定义。
+    // 字典尚未写入时（例如未执行种子写入）兜底为内置三项，保证下拉不为空。
+    var contractTypes = ViewBag.ProjContractTypes as List<DictDataDto> ?? new();
+    if (!contractTypes.Any())
+        contractTypes = new List<DictDataDto>
+        {
+            new DictDataDto { DictLabel = "主合同",   DictValue = "主合同",   Sort = 1, IsDefault = 1 },
+            new DictDataDto { DictLabel = "补充合同", DictValue = "补充合同", Sort = 2 },
+            new DictDataDto { DictLabel = "变更合同", DictValue = "变更合同", Sort = 3 },
+        };
+    // 默认项排到最前 —— 不显式输出 selected，由浏览器默认选中第一项，
+    // 规避 Razor 条件属性在 false 时仍渲染 selected 导致"最后一项被选中"的坑。
+    contractTypes = contractTypes.OrderByDescending(t => t.IsDefault).ThenBy(t => t.Sort).ToList();
 }
 
 <!-- 标题栏 + 面包屑 -->
@@ -340,6 +353,7 @@
                 @if (canEdit)
                 {
                     <div class="ems-alert gray" style="margin-bottom:10px">
+                        <div class="layui-font-12 layui-font-gray" style="margin-bottom:4px">支持任意格式（可执行文件、脚本、网页类除外），单个文件最大 500MB</div>
                         <div class="layui-form" style="margin-top:6px">
                             <div class="layui-form-item">
                                 <div class="layui-inline"><label class="layui-form-label" style="width:auto">文件类别</label>
@@ -571,7 +585,7 @@
 <div class="ems-modal-box" id="addContractModal">
     <div class="layui-form-item">
         <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">编号 <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:55%"><input type="text" id="ctNo" class="layui-input"></div></div>
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">类型</label><div class="layui-input-inline" style="width:55%"><select id="ctType" class="layui-input"><option>主合同</option><option>补充协议</option><option>变更合同</option></select></div></div>
+        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">类型</label><div class="layui-input-inline" style="width:55%"><select id="ctType" class="layui-input">@foreach (var t in contractTypes) { <option value="@t.DictValue" selected="@(t.IsDefault == 1)">@t.DictLabel</option> }</select></div></div>
         <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">金额(万) <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:55%"><input type="number" id="ctAmount" class="layui-input" step="0.01"></div></div>
     </div>
     <div class="layui-form-item">
@@ -589,7 +603,7 @@
     </div>
     <div class="layui-form-item">
         <label class="layui-form-label">合同附件</label>
-        <div class="layui-input-block"><input type="file" id="ctFile" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip,.rar" class="layui-input"></div>
+        <div class="layui-input-block"><input type="file" id="ctFile" class="layui-input"></div>
     </div>
     <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('addContractModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="saveContract()">保存</button></div>
 </div>
@@ -623,7 +637,7 @@
         <div class="layui-input-block"><textarea id="rcpRemark" class="layui-textarea" rows="2"></textarea></div>
     </div>
     <div class="layui-form-item">
-        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">发票附件</label><div class="layui-input-inline" style="width:60%"><input type="file" id="rcpInvoiceFile" accept=".pdf,.jpg,.jpeg,.png" class="layui-input"></div></div>
+        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">发票附件</label><div class="layui-input-inline" style="width:60%"><input type="file" id="rcpInvoiceFile" class="layui-input"></div></div>
         <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">付款申请</label><div class="layui-input-inline" style="width:60%"><input type="file" id="rcpPaymentFile" class="layui-input"></div></div>
     </div>
     <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('addReceiptModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" id="rcpSaveBtn" onclick="saveReceipt()">保存</button></div>

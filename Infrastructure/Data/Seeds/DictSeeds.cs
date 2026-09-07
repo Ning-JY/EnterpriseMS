@@ -31,7 +31,9 @@ public static class DictSeeds
             // 状态类改为字典驱动：员工状态 / 合同状态（见下）
             new SysDictType { Id = 13, DictName = "员工状态",         DictType = "employee_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 14, DictName = "合同状态",         DictType = "contract_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictType { Id = 15, DictName = "项目编号前缀",     DictType = "proj_no_prefix",   Status = 1, CreatedAt = dt, CreatedBy = "system" }
+            new SysDictType { Id = 15, DictName = "项目编号前缀",     DictType = "proj_no_prefix",   Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            // 项目合同类型（项目台账-项目详情的合同类型下拉；与 HR 的 contract_type 相互独立）
+            new SysDictType { Id = 16, DictName = "项目合同类型",     DictType = "proj_contract_type", Status = 1, CreatedAt = dt, CreatedBy = "system" }
         );
 
         // ── 字典数据 ──────────────────────────────────────────
@@ -132,7 +134,12 @@ public static class DictSeeds
             new SysDictData { Id = 1504, DictType = "proj_no_prefix", DictLabel = "监理",   DictValue = "监理",   Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 1505, DictType = "proj_no_prefix", DictLabel = "咨询",   DictValue = "咨询",   Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 1506, DictType = "proj_no_prefix", DictLabel = "全过程", DictValue = "全过程", Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 1507, DictType = "proj_no_prefix", DictLabel = "其他",   DictValue = "其他",   Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" }
+            new SysDictData { Id = 1507, DictType = "proj_no_prefix", DictLabel = "其他",   DictValue = "其他",   Sort = 7, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            // 项目合同类型（字典驱动：管理员可在字典管理中增删；历史数据里存在的"补充协议"一并保留，避免旧合同改单时类型丢失）
+            new SysDictData { Id = 1601, DictType = "proj_contract_type", DictLabel = "主合同",   DictValue = "主合同",   Sort = 1, IsDefault = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1602, DictType = "proj_contract_type", DictLabel = "补充合同", DictValue = "补充合同", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1603, DictType = "proj_contract_type", DictLabel = "变更合同", DictValue = "变更合同", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1604, DictType = "proj_contract_type", DictLabel = "补充协议", DictValue = "补充协议", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" }
         );
     }
 }

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using EnterpriseMS.Filters;
+using EnterpriseMS.Common;
 using EnterpriseMS.Infrastructure.Cache;
 using EnterpriseMS.Infrastructure.Data;
 using EnterpriseMS.Infrastructure.Repositories;
@@ -219,8 +220,10 @@ try
         });
 
     // ── 请求体大小限制（统一 500MB，单一来源）─────────────────
-    // 大小上限只在「此处」设定；各 Controller 不再单独限制（避免 Kestrel 缓冲期 DoS）。
-    const long MaxUploadBytes = 500L * 1024 * 1024; // 500MB
+    // 上限定义在 Common/UploadLimits.cs；各 Controller 若需显式标注，一律引用同一常量。
+    // 反向代理（Nginx / 1Panel OpenResty）的 client_max_body_size 必须 ≥ 此值，
+    // 否则超限请求会被反代直接 413，根本进不了应用（详见 UploadLimits 注释）。
+    const long MaxUploadBytes = UploadLimits.MaxUploadBytes; // 500MB
     builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(opt =>
     {
         opt.MultipartBodyLengthLimit = MaxUploadBytes;
