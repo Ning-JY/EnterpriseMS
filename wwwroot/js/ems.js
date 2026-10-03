@@ -688,9 +688,33 @@
             success: function (layero, index) {
                 var ifr = layero.find('iframe')[0];
 
+                // 每个弹层独立的状态。end 回调拿不到 index，改用 DOM 存活性做存活判断 + 懒清理。
+                var state = { lastFitAt: 0, mo: null, rafId: 0, fitTimer: 0 };
+                ems._dialogs = ems._dialogs || {};
+                ems._dialogs[index] = state;
+
+                var alive = function () { return !!document.getElementById('layui-layer' + index); };
+                var cleanup = function () {
+                    var st = (ems._dialogs || {})[index];
+                    if (st) {
+                        if (st.mo) { try { st.mo.disconnect(); } catch (e) {} st.mo = null; }
+                        if (st.rafId) cancelAnimationFrame(st.rafId);
+                        if (st.fitTimer) clearTimeout(st.fitTimer);
+                        delete ems._dialogs[index];
+                    }
+                };
+
                 // iframe 内容（含 layui 组件渲染）加载完成后再量高，避免打开瞬间内容未就绪导致偏下。
                 var fit = function () {
-                    // 1) 量真实高（layui 只改高，不重算 top）
+                    if (!alive()) { cleanup(); return; }
+                    state.lastFitAt = Date.now();
+
+                    // 1) 高度：先解除上次的限高，让 iframeAuto 量到真实内容高度
+                    //    （iframeAuto 量的是 iframe 内 document 的高度，不受当前元素高度影响）
+                    if (ifr._emsCapped) {
+                        ifr._emsCapped = false;
+                        try { ifr.contentDocument.body.style.overflow = ''; } catch (e) {}
+                    }
                     layer.iframeAuto(index);
                     var titleH = layero.find('.layui-layer-title').outerHeight() || 0;
                     var curH = layero.outerHeight();
@@ -701,7 +725,8 @@
                         var ifrH = maxH - titleH;
                         layer.style(index, { height: maxH + 'px' });
                         ifr.style.height = ifrH + 'px';
-                        if (ifr.contentDocument) ifr.contentDocument.body.style.overflow = 'auto';
+                        try { ifr.contentDocument.body.style.overflow = 'auto'; } catch (e) {}
+                        ifr._emsCapped = true;
                     }
                     // 2) 居中模式（非 pinTop）：量内容自然宽 → 收窄弹窗 → 重算水平+垂直居中
                     if (!pinned) {
@@ -733,13 +758,46 @@
                         layero.css('top', Math.max(0, (vpH - layero.outerHeight()) / 2) + 'px');
                     }
                 };
+                state.fit = fit;
+
+                // 自动：监听 iframe 内容 DOM 变化（同源），内容撑高/收缩后防抖重算。
+                // 不监听 characterData：输入框打字不改变布局，无需重算。
+                var autoFit = function () {
+                    if (!alive()) { cleanup(); return; }
+                    if (ifr._emsCapped) return;   // 已限高走内滚动，不跟内容涨
+                    var need = 0, cur = 0;
+                    try {
+                        var doc = ifr.contentDocument;
+                        if (!doc || !doc.documentElement) return;
+                        need = doc.documentElement.scrollHeight || doc.body.scrollHeight || 0;
+                        cur = ifr.clientHeight || 0;
+                    } catch (e) { return; }      // 跨域静默跳过
+                    if (Math.abs(need - cur) > 10) {
+                        // trailing 防抖：连续变化时只执行最后一次，避免与 fit 互触发
+                        var wait = Math.max(0, 200 - (Date.now() - state.lastFitAt));
+                        if (state.fitTimer) clearTimeout(state.fitTimer);
+                        state.fitTimer = setTimeout(fit, wait);
+                    }
+                };
+                var observe = function () {
+                    if (state.mo) return;
+                    try {
+                        var doc = ifr.contentDocument;
+                        if (!doc || !doc.body) return;
+                        state.mo = new MutationObserver(function () {
+                            cancelAnimationFrame(state.rafId);
+                            state.rafId = requestAnimationFrame(autoFit);
+                        });
+                        state.mo.observe(doc.body, { childList: true, subtree: true, attributes: true });
+                    } catch (e) {}
+                };
 
                 var doc0 = ifr.contentDocument;
                 if (doc0 && doc0.readyState === 'complete') {
-                    fit();
+                    fit(); observe();
                 } else {
-                    ifr.onload = fit;
-                    setTimeout(fit, 3000); // 兜底：onload 未触发时 3s 后强制量一次
+                    ifr.onload = function () { fit(); observe(); };
+                    setTimeout(function () { fit(); observe(); }, 3000); // 兜底：onload 未触发时 3s 后强制量一次
                 }
 
                 if (opt.success) opt.success(layero, index);
@@ -751,7 +809,13 @@
         };
 
         // 固定顶模式：钉死顶部（距顶 80px）、水平居中；高度随内容向下生长。
-        if (pinned) conf.offset = ['80px', 'center'];
+        // 注意：offset 数组第二项不能写 'center' —— layer 源码里数组模式是
+        //   e.offsetLeft = t.offset[1] || e.offsetLeft
+        // 直接把字符串 'center' 赋给 left，而 'center' 不是合法的 CSS left 值，
+        // 浏览器会忽略，导致弹窗初始出现在左侧，要等 iframe 加载完 fit() 手动
+        // 重算 left 后才跳到中间（"先偏左、后居中"抖动）。
+        // 只传 ['80px'] 时 offset[1] 为 undefined，layer 自动回退到已算好的居中值。
+        if (pinned) conf.offset = ['80px'];
 
         return layer.open(conf);
     };
@@ -769,6 +833,24 @@
     /** 只读详情弹层 */
     ems.openDetail = function (opt) {
         return ems.open($.extend({ title: '详情', maxmin: true }, opt));
+    };
+
+    /**
+     * 手动触发弹层重算高度/居中。内容页在异步渲染完成后调用：
+     *     parent.ems.refitDialog();
+     * 不传 index 时重算所有 ems 弹层（通常同时只开一个）。
+     * 大多数场景 MutationObserver 已自动处理，此接口留给极端情况兜底。
+     */
+    ems.refitDialog = function (index) {
+        var dialogs = ems._dialogs || {};
+        if (index != null) {
+            var one = dialogs[index];
+            if (one && one.fit) one.fit();
+        } else {
+            for (var k in dialogs) {
+                if (dialogs[k] && dialogs[k].fit) dialogs[k].fit();
+            }
+        }
     };
 
     /** 在主框架中打开一个内容页（单页模式：直接替换当前内容区，不保留标签） */
