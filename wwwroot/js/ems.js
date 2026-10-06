@@ -53,6 +53,14 @@
         bindGlobalAjax();
         autoRenderDate();
 
+        // 面包屑「首页」死链修复：全站统一跳控制台（各页面的 javascript:; 占位）
+        $(document).on('click', '.layui-breadcrumb a', function () {
+            var $a = $(this);
+            if ($a.text().trim() === '首页' && (!$a.attr('href') || $a.attr('href') === 'javascript:;')) {
+                ems.openTab('/home/console', '首页');
+            }
+        });
+
         // 窗口缩放时，重新测量并适配所有「列宽自适应」表格（防抖，避免频繁重排）
         $(window).off('resize.emsAutoFit').on('resize.emsAutoFit', function () {
             if (_autoFitTimer) clearTimeout(_autoFitTimer);
@@ -95,6 +103,10 @@
 
         $(document).ajaxError(function (evt, xhr) {
             if (xhr.status === 401) {
+                // 已在登录页时不再重复跳转，避免循环
+                try {
+                    if (/\/Account\/Login/i.test((window.top || window).location.pathname)) return;
+                } catch (e) { /* ignore */ }
                 ems.msg('登录已过期，即将跳转登录页', { icon: 2, time: 1800 }, function () {
                     (window.top || window).location.href = '/Account/Login';
                 });
@@ -120,7 +132,7 @@
     }
     ems.handle = handle;
 
-    /** GET 请求 */
+    /** GET 请求（带失败提示，不再静默吞错） */
     ems.get = function (url, data, cb) {
         if (typeof data === 'function') { cb = data; data = null; }
         return $.get(url, data, function (res) {
@@ -129,12 +141,25 @@
             } else {
                 ems.error((res && res.message) || '加载失败');
             }
+        }).fail(function (xhr, textStatus) {
+            ems.error(ems._httpErrorMsg(xhr, '加载失败', textStatus));
         });
     };
 
     /**
+     * 按 HTTP 状态 / 错误类型生成友好提示（替代千篇一律的"网络请求失败"）
+     */
+    ems._httpErrorMsg = function (xhr, fallback, textStatus) {
+        if (textStatus === 'timeout') return '请求超时，请稍后重试';
+        if (!xhr || xhr.status === 0) return '网络连接失败，请检查网络后重试';
+        if (xhr.status === 413) return '提交的数据量过大，请求被拒绝';
+        if (xhr.status >= 500) return '服务器开小差了（' + xhr.status + '），请稍后重试';
+        return fallback || '请求失败，请重试';
+    };
+
+    /**
      * POST 请求
-     * @param {object} opt { url, data, json:是否以 JSON 提交, loading, okMsg, done, fail }
+     * @param {object} opt { url, data, json:是否以 JSON 提交, loading, okMsg, done, fail, timeout(ms,默认30000) }
      */
     ems.post = function (opt) {
         var load = opt.loading === false ? null : ems.loading();
@@ -143,6 +168,7 @@
         return $.ajax({
             url: opt.url,
             type: 'POST',
+            timeout: opt.timeout || 30000,
             contentType: isJson ? 'application/json' : 'application/x-www-form-urlencoded',
             data: isJson ? JSON.stringify(opt.data || {}) : (opt.data || {}),
             headers: { 'RequestVerificationToken': token() },
@@ -153,13 +179,13 @@
                     handle(res, opt.done, opt.okMsg);
                 } else {
                     ems.error((res && res.message) || '操作失败');
-                    if (opt.fail) opt.fail(res);
+                    if (opt.fail) opt.fail(res, 200);
                 }
             },
-            error: function () {
+            error: function (xhr, textStatus) {
                 ems.close(load);
-                ems.error('网络请求失败');
-                if (opt.fail) opt.fail();
+                ems.error(ems._httpErrorMsg(xhr, '操作失败', textStatus));
+                if (opt.fail) opt.fail(null, xhr ? xhr.status : 0, textStatus);
             }
         });
     };
@@ -439,7 +465,8 @@
 
             var titleW = measure($th.find('.layui-table-cell').html()) + PAD;
             var maxBody = 0;
-            $rows.each(function () {
+            // 性能：只测量前 30 行做宽度估算，避免 100 条/页时全量 DOM 读写卡顿
+            $rows.slice(0, 30).each(function () {
                 var $td = $(this).children('td').eq(idx);
                 if (!$td.length) return;
                 var w = measure($td.find('.layui-table-cell').html()) + PAD;
@@ -549,10 +576,10 @@
     };
 
     /** 列筛选：下拉面板内勾选，实时隐藏/显示列（列名可见，左对齐到按钮） */
-    ems.colFilter = function (id, cols, align) {
+    ems.colFilter = function (id, cols, align, btnSel) {
         id = id || ems._lastTableId;
         if (!id || !cols || !cols.length) return;
-        var $btn = $('#btnFilter');
+        var $btn = $(btnSel || '#btnFilter');
         if (!$btn.length) return;
         var html = '';
         cols.forEach(function (c) {
@@ -573,10 +600,10 @@
     };
 
     /** 导出：下拉二次选择（范围 × 格式），右对齐到按钮 */
-    ems.exportMenu = function (id, filename, align) {
+    ems.exportMenu = function (id, filename, align, btnSel) {
         id = id || ems._lastTableId;
         if (!id) return;
-        var $btn = $('#btnExport');
+        var $btn = $(btnSel || '#btnExport');
         if (!$btn.length) return;
         var html =
             '<div class="ems-dropdown-item" data-act="page" data-type="xls">导出当前页 (Excel)</div>' +
@@ -705,7 +732,12 @@
 
         var pinned = !!opt.pinTop;
         var area = opt.area ? opt.area.slice() : (pinned ? ['860px', 'auto'] : ['860px', '620px']);
-        if (pinned && Array.isArray(area)) area[1] = 'auto';   // 固定顶：高度随内容向下生长
+        // 固定顶：高度随内容向下生长；调用方若传了高度（如 '92%'），解释为最大高度约束，不再静默丢弃
+        var pinMaxH = null;
+        if (pinned && Array.isArray(area)) {
+            if (area[1] && area[1] !== 'auto') pinMaxH = area[1];
+            area[1] = 'auto';
+        }
         // 小屏自动铺满，避免表单被裁切
         if ($(window).width() < 768) area = ['100%', '100%'];
 
@@ -753,6 +785,12 @@
                     var vpH = $(window).height();
                     var topGap = pinned ? 100 : 20;            // 固定顶：上 80 + 下 20
                     var maxH = Math.max(vpH - topGap, 200);
+                    if (pinMaxH) {                             // 调用方显式约束优先
+                        var pm = String(pinMaxH).indexOf('%') > -1
+                            ? vpH * parseFloat(pinMaxH) / 100
+                            : parseFloat(pinMaxH);
+                        if (pm > 200) maxH = Math.min(maxH, pm);
+                    }
                     if (curH > maxH) {                         // 超高：限高 + iframe 内滚动
                         var ifrH = maxH - titleH;
                         layer.style(index, { height: maxH + 'px' });
@@ -852,12 +890,12 @@
         return layer.open(conf);
     };
 
-    /** 新增弹层（固定顶模式：pinTop） */
+    /** 新增弹层（固定顶模式：pinTop；area 高度会被解释为最大高度约束） */
     ems.openAdd = function (opt) {
         return ems.open($.extend({ title: '新增', pinTop: true }, opt));
     };
 
-    /** 编辑弹层（固定顶模式：pinTop） */
+    /** 编辑弹层（固定顶模式：pinTop；area 高度会被解释为最大高度约束） */
     ems.openEdit = function (opt) {
         return ems.open($.extend({ title: '编辑', pinTop: true }, opt));
     };
@@ -962,22 +1000,39 @@
     };
 
     /**
-     * 提交表单
+     * 提交表单（含防重复提交：同一 URL 请求未完成时忽略后续点击，
+     *  并禁用提交按钮；bindSubmit 会自动传入触发按钮）
      * @param {object} opt {
      *   url, data, json, okMsg,
+     *   btn:   提交按钮选择器/DOM（提交期间禁用）,
      *   closeSelf: 成功后关闭弹层（默认 true）
      *   table:     成功后刷新的父页表格 id
      *   done:      自定义成功回调（传了就不走默认关闭逻辑）
      * }
      */
+    ems._savingLocks = {};
     ems.save = function (opt) {
+        opt = opt || {};
+        var lockKey = 'saving:' + opt.url;
+        if (ems._savingLocks[lockKey]) return null;
+        ems._savingLocks[lockKey] = true;
+        var $btn = opt.btn ? $(opt.btn) : $();
+        if ($btn.length) $btn.prop('disabled', true).addClass('layui-btn-disabled');
+        var unlock = function () {
+            ems._savingLocks[lockKey] = false;
+            if ($btn.length) $btn.prop('disabled', false).removeClass('layui-btn-disabled');
+        };
         return ems.post({
             url: opt.url,
             data: opt.data,
             json: opt.json,
             okMsg: opt.okMsg,
-            fail: opt.fail,
+            fail: function (res, status, textStatus) {
+                unlock();
+                if (opt.fail) opt.fail(res, status, textStatus);
+            },
             done: function (res) {
+                unlock();
                 if (opt.done) { opt.done(res); return; }
                 if (opt.closeSelf === false) {
                     if (opt.table) ems.reloadTable(opt.table);
@@ -996,6 +1051,8 @@
     ems.bindSubmit = function (filter, builder) {
         form.on('submit(' + filter + ')', function (data) {
             var conf = builder(data.field, data);
+            // 自动传入触发按钮，ems.save 会在提交期间禁用它（防重复提交）
+            if (conf && !conf.btn) conf.btn = data.elem;
             if (conf) ems.save(conf);
             return false;
         });
@@ -1031,8 +1088,8 @@
        ====================================================================== */
 
     /**
-     * 删除单条
-     * @param {object} opt { url, name:用于提示的名称, table, json, done, msg }
+     * 删除单条（默认 JSON 提交，与 ems.batchDel / ems.post 保持一致）
+     * @param {object} opt { url, name:用于提示的名称, table, json(默认 true), done, msg }
      */
     ems.del = function (opt) {
         var msg = opt.msg ||
@@ -1043,7 +1100,7 @@
             ems.post({
                 url: opt.url,
                 data: opt.data || {},
-                json: opt.json === true,
+                json: opt.json !== false,
                 okMsg: opt.okMsg,
                 done: function (res) {
                     if (opt.done) opt.done(res);

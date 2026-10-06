@@ -59,6 +59,9 @@
                 <button class="layui-btn" lay-submit lay-filter="projSearch">
                     <i class="layui-icon layui-icon-search"></i> 搜索
                 </button>
+                <button type="reset" class="layui-btn layui-btn-primary ems-reset">
+                    <i class="layui-icon layui-icon-refresh"></i> 重置
+                </button>
             </div>
             <div class="layui-inline ems-search-actions">
                 @if (canAdd)
@@ -113,7 +116,7 @@
         <a class="ems-icon-btn success" title="生成报告" lay-event="report"><i class="layui-icon layui-icon-file"></i></a>
         </text>
     }
-    <a class="ems-icon-btn warn" title="用章申请" lay-event="seal"><i class="layui-icon layui-icon-auz"></i></a>
+    <a class="ems-icon-btn layui-btn-disabled" title="用章申请（即将上线）" style="cursor:not-allowed;opacity:.45"><i class="layui-icon layui-icon-auz"></i></a>
 </script>
 
 @section Scripts {
@@ -167,8 +170,7 @@ ems.ready(function () {
         tool: {
             detail: function (d) { ems.openTab('/project/' + d.Id, '项目详情 - ' + d.ProjName); },
             edit:   function (d) { ems.openEdit({ title: '编辑项目 - ' + d.ProjName, url: '/project/edit/' + d.Id, area: ['860px', '92%'] }); },
-            report: function (d) { ems.openTab('/project/' + d.Id + '?report=1', '项目报告 - ' + d.ProjName); },
-            seal:   function () { ems.msg('用章申请功能开发中', { icon: 0 }); }
+            report: function (d) { ems.openTab('/project/' + d.Id + '?report=1', '项目报告 - ' + d.ProjName); }
         }
     });
 

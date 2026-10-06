@@ -294,6 +294,16 @@ public class ProjectService : IProjectService
         return $"{(maxSeq + 1):D3}";
     }
 
+    /// <summary>项目编号是否已存在（新建/编辑表单失焦即时校验用）</summary>
+    public async Task<bool> ExistsByNoAsync(string projNo, long? excludeId)
+    {
+        if (string.IsNullOrWhiteSpace(projNo)) return false;
+        var no = projNo.Trim();
+        return await _uow.Projects.Query()
+            .AnyAsync(p => !p.IsDeleted && p.ProjNo == no &&
+                           (!excludeId.HasValue || p.Id != excludeId.Value));
+    }
+
     // ── 批量导入：由 Controller 解析 Excel 行得到实体集合，统一在此持久化 ──
     public async Task ImportProjectsAsync(List<Project> projects)
     {

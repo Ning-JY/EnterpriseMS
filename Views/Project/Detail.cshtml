@@ -63,16 +63,16 @@
     </div>
     <div class="ems-detail-actions">
         <a class="layui-btn layui-btn-sm layui-btn-normal" onclick="openReportModal()"><i class="layui-icon layui-icon-file"></i> 生成报告</a>
-        <a class="layui-btn layui-btn-sm" onclick="ems.msg('生成合同功能开发中',{icon:0})"><i class="layui-icon layui-icon-template"></i> 生成合同</a>
-        <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="ems.msg('用章申请功能开发中',{icon:0})"><i class="layui-icon layui-icon-auz"></i> 用章申请</a>
+        <a class="layui-btn layui-btn-sm layui-btn-disabled" title="即将上线" onclick="return false;"><i class="layui-icon layui-icon-template"></i> 生成合同</a>
+        <a class="layui-btn layui-btn-sm layui-btn-disabled" title="即将上线" onclick="return false;"><i class="layui-icon layui-icon-auz"></i> 用章申请</a>
         @if (canStatus && Model.ProgressStatus < 9) {
             <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="openModal('statusModal','变更项目状态')"><i class="layui-icon layui-icon-next"></i> 变更状态</a>
         }
     </div>
 </div>
 
-<!-- 四张统计卡片 -->
-<div class="ems-stat-cards four-cols">
+<!-- 四张统计卡片 + 风险卡片 -->
+<div class="ems-stat-cards six-cols">
     <div class="ems-stat-card">
         <div class="label"><i class="layui-icon layui-icon-rmb"></i> 合同金额</div>
         <div class="value layui-font-teal">¥@Model.ContractAmount.ToString("N2")<span class="layui-font-12">万</span></div>
@@ -84,10 +84,24 @@
         @{ var recvRate = Model.ActualAmount > 0 ? Model.TotalReceived / Model.ActualAmount * 100 : 0; }
         <div class="label">收款率 @recvRate.ToString("N1")%</div>
     </div>
+    @{
+        var pendingRecv = Model.ActualAmount - Model.TotalReceived;
+        var overdueMs = Model.Milestones.Count(m => m.IsOverdue && m.Status != 2);
+    }
+    <div class="ems-stat-card">
+        <div class="label"><i class="layui-icon layui-icon-tips"></i> 待收款</div>
+        <div class="value @(pendingRecv > 0 ? "layui-font-orange" : "layui-font-green")">¥@pendingRecv.ToString("N2")<span class="layui-font-12">万</span></div>
+        <div class="label">按我方折算口径</div>
+    </div>
     <div class="ems-stat-card">
         <div class="label"><i class="layui-icon layui-icon-flag"></i> 里程碑</div>
         <div class="value">@Model.MilestoneDone <span class="layui-font-12">/ @Model.MilestoneTotal</span></div>
         <div class="label">已完成 / 共计</div>
+    </div>
+    <div class="ems-stat-card">
+        <div class="label"><i class="layui-icon layui-icon-time"></i> 逾期节点</div>
+        <div class="value @(overdueMs > 0 ? "layui-font-red" : "")">@overdueMs<span class="layui-font-12">个</span></div>
+        <div class="label">@(overdueMs > 0 ? "需要跟进" : "暂无逾期")</div>
     </div>
     <div class="ems-stat-card">
         <div class="label"><i class="layui-icon layui-icon-user"></i> 服务团队</div>
@@ -165,7 +179,7 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="3"><strong>合计</strong></td>
+                    <td colspan="3"><strong>合计（我方折算）</strong></td>
                     <td class="layui-font-teal"><strong>¥@Model.ActualAmount.ToString("N2")万</strong></td>
                     <td class="layui-font-green"><strong>¥@Model.TotalReceived.ToString("N2")万</strong></td>
                     <td></td>
@@ -194,6 +208,15 @@
                 <div class="flex-between"><strong>合同与回款</strong>
                     @if (canEdit) { <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="openModal('addContractModal','新增合同',['760px'])"><i class="layui-icon layui-icon-add-1"></i> 新增合同</button> }
                 </div>
+                @{
+                    var unlinkedTop = Model.Invoices.Where(i => !i.ContractId.HasValue).ToList();
+                }
+                @if (unlinkedTop.Any())
+                {
+                    <div class="ems-alert red" style="margin:10px 0;cursor:pointer" onclick="document.getElementById('unlinkedReceipts').scrollIntoView({behavior:'smooth',block:'center'})">
+                        <i class="layui-icon layui-icon-tips"></i> 有 @unlinkedTop.Count 笔回款未关联合同，点击定位查看
+                    </div>
+                }
                 @if (Model.Contracts.Any())
                 {
                     foreach (var ct in Model.Contracts)
@@ -210,7 +233,12 @@
                                 <span style="margin-left:auto">
                                     @if (canEdit) {
                                         <a class="ems-icon-btn success" onclick="openAddReceipt(@ct.Id)" title="新增回款"><i class="layui-icon layui-icon-add-1"></i></a>
-                                        <a class="ems-icon-btn warn" data-id="@ct.Id" data-no="@ct.ContractNo" onclick="delContract(this)" title="删除合同"><i class="layui-icon layui-icon-delete"></i></a>
+                                        <span style="position:relative;display:inline-block">
+                                            <a class="ems-icon-btn" title="更多操作" onclick="toggleCtMore(event,@ct.Id)"><i class="layui-icon layui-icon-more"></i></a>
+                                            <span class="ems-more-menu" id="ctMore_@ct.Id" data-id="@ct.Id" data-no="@ct.ContractNo" data-count="@ctInvoices.Count" style="display:none">
+                                                <a href="javascript:;" onclick="delContractFromMenu(this)"><i class="layui-icon layui-icon-delete"></i> 删除合同</a>
+                                            </span>
+                                        </span>
                                     }
                                 </span>
                             </div>
@@ -232,7 +260,7 @@
                                     <table class="layui-table" lay-skin="line">
                                         <thead><tr><th>回款批次</th><th>发票号</th><th>类型</th><th>金额(万)</th><th>税率</th><th>开票日期</th><th>付款方</th><th>状态</th><th>发票附件</th><th>付款申请</th><th>操作</th></tr></thead>
                                         <tbody>
-                                            @foreach (var inv in ctInvoices.OrderByDescending(i => i.CreatedAt))
+                                            @foreach (var inv in ctInvoices.OrderBy(i => i.CreatedAt))
                                             {
                                                 <tr class="@(inv.IsReceived ? "layui-bg-green" : "")">
                                                     <td><strong>@inv.ReceiptName</strong></td>
@@ -273,19 +301,19 @@
                         </div>
                     }
                 }
-                else { <div class="ems-empty">暂无合同记录</div> }
+                else { <div class="ems-empty">暂无合同记录<br>@if (canEdit) { <button class="layui-btn layui-btn-sm layui-btn-normal" style="margin-top:10px" onclick="openModal('addContractModal','新增合同',['760px'])"><i class="layui-icon layui-icon-add-1"></i> 新增第一份合同</button> }</div> }
 
                 @{
                     var unlinked = Model.Invoices.Where(i => !i.ContractId.HasValue).ToList();
                 }
                 @if (unlinked.Any())
                 {
-                    <div class="ems-alert gray" style="margin-top:10px">
+                    <div class="ems-alert gray" id="unlinkedReceipts" style="margin-top:10px">
                         <strong>未关联合同的回款（@unlinked.Count 笔）</strong>
                         <table class="layui-table" lay-skin="line" style="margin-top:8px">
                             <thead><tr><th>回款批次</th><th>发票号</th><th>类型</th><th>金额(万)</th><th>税率</th><th>开票日期</th><th>付款方</th><th>状态</th><th>操作</th></tr></thead>
                             <tbody>
-                                @foreach (var inv in unlinked.OrderByDescending(i => i.CreatedAt))
+                                @foreach (var inv in unlinked.OrderBy(i => i.CreatedAt))
                                 {
                                     <tr class="@(inv.IsReceived ? "layui-bg-green" : "")">
                                         <td><strong>@inv.ReceiptName</strong></td>
@@ -312,8 +340,32 @@
             <!-- 工作节点 -->
             <div class="layui-tab-item">
                 <div class="flex-between"><strong>工作节点</strong>
-                    @if (canMSAdd) { <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="openModal('addMsModal','新增工作节点',['520px'])"><i class="layui-icon layui-icon-add-1"></i> 新增节点</button> }
+                    <div>
+                        @if (canAccept) { <button class="layui-btn layui-btn-sm" onclick="openModal('addAcceptModal','新增验收批次',['560px'])"><i class="layui-icon layui-icon-ok-circle"></i> 新增验收</button> }
+                        @if (canMSAdd) { <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="openModal('addMsModal','新增工作节点',['520px'])"><i class="layui-icon layui-icon-add-1"></i> 新增节点</button> }
+                    </div>
                 </div>
+                @if (Model.Acceptances.Any())
+                {
+                    <div class="ems-accept-list" style="margin-bottom:14px">
+                        <div class="layui-font-12 layui-font-gray" style="margin:10px 0 6px">验收批次（@Model.Acceptances.Count 笔，累计 ¥@Model.Acceptances.Sum(a => a.AcceptAmount).ToString("N2")万）</div>
+                        <table class="layui-table" lay-skin="line">
+                            <thead><tr><th>批次</th><th>验收日期</th><th>金额(万)</th><th>发票号</th><th>备注</th></tr></thead>
+                            <tbody>
+                                @foreach (var a in Model.Acceptances.OrderByDescending(x => x.AcceptDate))
+                                {
+                                    <tr>
+                                        <td><strong>@a.AcceptBatch</strong></td>
+                                        <td class="layui-font-12">@a.AcceptDate.ToString("yyyy-MM-dd")</td>
+                                        <td class="layui-font-teal"><strong>¥@a.AcceptAmount.ToString("N2")</strong></td>
+                                        <td class="layui-font-12">@(a.InvoiceNo ?? "-")</td>
+                                        <td class="layui-font-12">@(a.Remark ?? "-")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
                 @if (Model.Milestones.Any())
                 {
                     <div class="ems-timeline">
@@ -345,7 +397,7 @@
                         }
                     </div>
                 }
-                else { <div class="ems-empty">暂无工作节点</div> }
+                else { <div class="ems-empty">暂无工作节点<br>@if (canMSAdd) { <button class="layui-btn layui-btn-sm layui-btn-normal" style="margin-top:10px" onclick="openModal('addMsModal','新增工作节点',['520px'])"><i class="layui-icon layui-icon-add-1"></i> 新增第一个节点</button> }</div> }
             </div>
 
             <!-- 项目文件 -->
@@ -419,10 +471,14 @@
                 @if (!Model.Files.Any()) { <div class="ems-empty">暂无文件</div> }
             </div>
 
-            <!-- 操作日志 -->
+            <!-- 操作日志：默认只显示最近 20 条 -->
             <div class="layui-tab-item">
                 <div class="ems-timeline">
-                    @foreach (var log in Model.Logs.OrderByDescending(l => l.OperAt))
+                    @{
+                        var logList = Model.Logs.OrderByDescending(l => l.OperAt).ToList();
+                        var showLogs = logList.Take(20).ToList();
+                    }
+                    @foreach (var log in showLogs)
                     {
                         <div class="ems-timeline-item">
                             <span class="dot pending"></span>
@@ -431,6 +487,25 @@
                                 <div class="title">@log.Title</div>
                                 @if (!string.IsNullOrEmpty(log.Content)) { <div class="desc">@log.Content</div> }
                             </div>
+                        </div>
+                    }
+                    @if (logList.Count > 20)
+                    {
+                        <div class="ems-log-more" style="text-align:center;padding:6px 0 14px">
+                            <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="$(this).closest('.ems-log-more').hide().next('.ems-log-extra').show();">展开全部 @logList.Count 条</a>
+                        </div>
+                        <div class="ems-log-extra" style="display:none">
+                            @foreach (var log in logList.Skip(20))
+                            {
+                                <div class="ems-timeline-item">
+                                    <span class="dot pending"></span>
+                                    <div class="content">
+                                        <div class="desc"><span class="layui-font-12"><i class="layui-icon layui-icon-time"></i> @log.OperAt.ToString("yyyy-MM-dd HH:mm") @log.OperBy</span></div>
+                                        <div class="title">@log.Title</div>
+                                        @if (!string.IsNullOrEmpty(log.Content)) { <div class="desc">@log.Content</div> }
+                                    </div>
+                                </div>
+                            }
                         </div>
                     }
                     @if (!Model.Logs.Any()) { <div class="ems-empty">暂无操作日志</div> }
@@ -456,7 +531,7 @@
     </div>
     <div class="layui-form-item">
         <label class="layui-form-label">变更日期</label>
-        <div class="layui-input-block"><input type="date" id="statusDate" class="layui-input" value="@DateTime.Today.ToString("yyyy-MM-dd")"></div>
+        <div class="layui-input-block"><input type="text" id="statusDate" class="layui-input" readonly placeholder="请选择日期" data-date value="@DateTime.Today.ToString("yyyy-MM-dd")"></div>
     </div>
     <div class="layui-form-item layui-form-text">
         <label class="layui-form-label">备注</label>
@@ -469,8 +544,8 @@
     <div class="layui-form-item">
         <label class="layui-form-label">选择员工 <span class="layui-font-red">*</span></label>
         <div class="layui-input-block">
-            <select id="addEmpId" class="layui-input">
-                <option value="">请选择</option>
+            <select id="addEmpId" class="layui-input" lay-search>
+                <option value="">请选择（可搜索）</option>
                 @foreach (var m in members) { <option value="@m.Id">@m.Display</option> }
             </select>
         </div>
@@ -495,7 +570,7 @@
     </div>
     <div class="layui-form-item">
         <label class="layui-form-label">加入日期</label>
-        <div class="layui-input-block"><input type="date" id="addJoinDate" class="layui-input" value="@DateTime.Today.ToString("yyyy-MM-dd")"></div>
+        <div class="layui-input-block"><input type="text" id="addJoinDate" class="layui-input" readonly placeholder="请选择日期" data-date value="@DateTime.Today.ToString("yyyy-MM-dd")"></div>
     </div>
     <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('addMemberModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="saveMember()">添加</button></div>
 </div>
@@ -536,7 +611,7 @@
         </div>
         <div class="layui-inline" style="width:48%">
             <label class="layui-form-label" style="width:auto">计划日期 <span class="layui-font-red">*</span></label>
-            <div class="layui-input-inline" style="width:60%"><input type="date" id="msPlanDate" class="layui-input"></div>
+            <div class="layui-input-inline" style="width:60%"><input type="text" id="msPlanDate" class="layui-input" readonly placeholder="请选择日期" data-date></div>
         </div>
     </div>
     <div class="layui-form-item">
@@ -564,7 +639,7 @@
     <div class="layui-form-item">
         <div class="layui-inline" style="width:48%">
             <label class="layui-form-label" style="width:auto">验收日期 <span class="layui-font-red">*</span></label>
-            <div class="layui-input-inline" style="width:60%"><input type="date" id="accDate" class="layui-input" value="@DateTime.Today.ToString("yyyy-MM-dd")"></div>
+            <div class="layui-input-inline" style="width:60%"><input type="text" id="accDate" class="layui-input" readonly placeholder="请选择日期" data-date value="@DateTime.Today.ToString("yyyy-MM-dd")"></div>
         </div>
         <div class="layui-inline" style="width:48%">
             <label class="layui-form-label" style="width:auto">金额(万) <span class="layui-font-red">*</span></label>
@@ -593,9 +668,9 @@
         <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">乙方</label><div class="layui-input-inline" style="width:60%"><input type="text" id="ctPartyB" class="layui-input" value="我方公司"></div></div>
     </div>
     <div class="layui-form-item">
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">签约</label><div class="layui-input-inline" style="width:55%"><input type="date" id="ctSignDate" class="layui-input"></div></div>
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">开始</label><div class="layui-input-inline" style="width:55%"><input type="date" id="ctStartDate" class="layui-input"></div></div>
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">结束</label><div class="layui-input-inline" style="width:55%"><input type="date" id="ctEndDate" class="layui-input"></div></div>
+        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">签约</label><div class="layui-input-inline" style="width:55%"><input type="text" id="ctSignDate" class="layui-input" readonly placeholder="请选择日期" data-date></div></div>
+        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">开始</label><div class="layui-input-inline" style="width:55%"><input type="text" id="ctStartDate" class="layui-input" readonly placeholder="请选择日期" data-date></div></div>
+        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">结束</label><div class="layui-input-inline" style="width:55%"><input type="text" id="ctEndDate" class="layui-input" readonly placeholder="请选择日期" data-date></div></div>
     </div>
     <div class="layui-form-item layui-form-text">
         <label class="layui-form-label">备注</label>
@@ -609,6 +684,7 @@
 </div>
 
 <div class="ems-modal-box" id="addReceiptModal">
+    <div class="ems-form-group-title">回款信息</div>
     <div class="layui-form-item">
         <label class="layui-form-label">关联合同</label>
         <div class="layui-input-block">
@@ -623,22 +699,27 @@
         <div class="layui-input-block"><input type="text" id="rcpName" class="layui-input" placeholder="如：第一笔预付款"></div>
     </div>
     <div class="layui-form-item">
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">金额(万) <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:55%"><input type="number" id="rcpAmount" class="layui-input" step="0.01" min="0"></div></div>
+        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">金额(万) <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:60%"><input type="number" id="rcpAmount" class="layui-input" step="0.01" min="0"></div></div>
+        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">付款方</label><div class="layui-input-inline" style="width:60%"><input type="text" id="rcpPayer" class="layui-input" value="@Model.OwnerName"></div></div>
+    </div>
+    <div class="ems-form-group-title">发票信息</div>
+    <div class="layui-form-item">
         <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">类型</label><div class="layui-input-inline" style="width:55%"><select id="rcpType" class="layui-input"><option>增值税专用发票</option><option>增值税普通发票</option><option>收据</option><option>无票</option></select></div></div>
         <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">税率(%)</label><div class="layui-input-inline" style="width:55%"><input type="number" id="rcpTaxRate" class="layui-input" step="0.1" placeholder="6"></div></div>
+        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">发票号</label><div class="layui-input-inline" style="width:55%"><input type="text" id="rcpInvNo" class="layui-input"></div></div>
     </div>
     <div class="layui-form-item">
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">发票号</label><div class="layui-input-inline" style="width:55%"><input type="text" id="rcpInvNo" class="layui-input"></div></div>
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">开票日期</label><div class="layui-input-inline" style="width:55%"><input type="date" id="rcpDate" class="layui-input"></div></div>
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">付款方</label><div class="layui-input-inline" style="width:55%"><input type="text" id="rcpPayer" class="layui-input" value="@Model.OwnerName"></div></div>
+        <label class="layui-form-label">开票日期</label>
+        <div class="layui-input-block"><input type="text" id="rcpDate" class="layui-input" readonly placeholder="请选择日期" data-date></div>
+    </div>
+    <div class="ems-form-group-title">附件</div>
+    <div class="layui-form-item">
+        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">发票附件</label><div class="layui-input-inline" style="width:60%"><input type="file" id="rcpInvoiceFile" class="layui-input"></div></div>
+        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">付款申请</label><div class="layui-input-inline" style="width:60%"><input type="file" id="rcpPaymentFile" class="layui-input"></div></div>
     </div>
     <div class="layui-form-item layui-form-text">
         <label class="layui-form-label">备注</label>
         <div class="layui-input-block"><textarea id="rcpRemark" class="layui-textarea" rows="2"></textarea></div>
-    </div>
-    <div class="layui-form-item">
-        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">发票附件</label><div class="layui-input-inline" style="width:60%"><input type="file" id="rcpInvoiceFile" class="layui-input"></div></div>
-        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">付款申请</label><div class="layui-input-inline" style="width:60%"><input type="file" id="rcpPaymentFile" class="layui-input"></div></div>
     </div>
     <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('addReceiptModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" id="rcpSaveBtn" onclick="saveReceipt()">保存</button></div>
 </div>
@@ -859,10 +940,33 @@ window.openModal = function (id, title, area) {
     };
     window.delContract = function (el) {
         var id = $(el).data('id'), no = $(el).data('no');
-        ems.confirm('确认删除合同 ' + ems.escapeHtml(no || '') + '？', { icon: 3 }, function (i) {
+        delContractById(id, no, 0);
+    };
+    // 更多菜单里的删除入口：data-count 为该合同下回款笔数，确认框中明示级联影响
+    window.delContractFromMenu = function (el) {
+        var $m = $(el).closest('.ems-more-menu');
+        delContractById($m.data('id'), $m.data('no'), parseInt($m.data('count'), 10) || 0);
+    };
+    window.delContractById = function (id, no, receiptCount) {
+        var tip = '确认删除合同 ' + ems.escapeHtml(no || '') + '？';
+        if (receiptCount > 0) tip += '<br><span class="layui-font-red">该合同下 ' + receiptCount + ' 笔回款记录将一并删除！</span>';
+        ems.confirm(tip, { icon: 3, btn: ['确认删除', '取消'] }, function (i) {
             ems.close(i);
             $.ajax({ url: '/project/' + projId + '/contracts/delete/' + id, type: 'POST', data: { __RequestVerificationToken: antiForgery }, success: function (r) { if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, reloadPage); } else ems.msg(r.message, { icon: 2 }); } });
         });
+    };
+    // 合同行「更多操作」小菜单：点外关闭
+    window.toggleCtMore = function (ev, id) {
+        if (ev) ev.stopPropagation();
+        var $menu = $('#ctMore_' + id);
+        var show = $menu.is(':hidden');
+        $('.ems-more-menu').hide();
+        if (show) {
+            $menu.show();
+            setTimeout(function () {
+                $(document).one('click', function () { $('.ems-more-menu').hide(); });
+            }, 0);
+        }
     };
     window.delContractFile = function (el) {
         var id = $(el).data('id');

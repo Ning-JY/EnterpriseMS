@@ -1,0 +1,237 @@
+@* 项目新建 / 编辑共享表单（字段只维护一份）。调用方：
+   <partial name="_ProjectForm" model="new ProjectDetailDto()" view-data='@new ViewDataDictionary(ViewData) { { "IsEdit", false } }' />
+   新建传空 DTO，编辑传 ProjectDetailDto。 *@
+@using EnterpriseMS.Services.DTOs.System
+@model EnterpriseMS.Services.DTOs.Project.ProjectDetailDto
+@{
+    bool isEdit = (bool)(ViewData["IsEdit"] ?? false);
+    var bizTypes = ViewBag.BizTypes as List<DictDataDto> ?? new();
+    string[] procTypes = { "竞争性磋商", "询价", "公开招标", "邀请招标", "公开招选", "框架协议采购", "单一来源" };
+    string[] buildTypes = { "建筑", "安装", "水利", "交通", "市政", "环保", "电力", "通信", "其他" };
+    var m = Model ?? new EnterpriseMS.Services.DTOs.Project.ProjectDetailDto();
+    string projNoDefault = isEdit ? m.ProjNo : ((ViewBag.ProjNoPrefix ?? "") + (ViewBag.GeneratedNo ?? ""));
+}
+
+<form class="layui-form proj-create-form" lay-filter="projForm" id="projForm">
+    @if (isEdit)
+    {
+        <input type="hidden" id="ProjId" value="@m.Id">
+        <input type="hidden" id="ProgressStatus" value="@m.ProgressStatus">
+    }
+    <div class="layui-row">
+        <div class="layui-col-md6">
+            <div class="layui-card ems-card">
+                <div class="layui-card-header">基本信息</div>
+                <div class="layui-card-body">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">项目编号</label>
+                        <div class="layui-input-block"><input type="text" id="ProjNo" class="layui-input" value="@projNoDefault" placeholder="自动生成" @(isEdit ? "disabled" : "")></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">项目名称 <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block"><input type="text" id="ProjName" class="layui-input" value="@(m.ProjName ?? "")" maxlength="200" placeholder="请输入项目名称"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">业务类型</label>
+                        <div class="layui-input-block">
+                            <select id="BizType">
+                                <option value="">请选择</option>
+                                @foreach (var bt in bizTypes)
+                                {
+                                    <option value="@bt.DictValue" selected="@(m.BizType == bt.DictValue ? "selected" : null)">@bt.DictLabel</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">承接部门</label>
+                        <div class="layui-input-block">
+                            @await Component.InvokeAsync("DeptSelect", new {
+                                id = "DeptId", name = "DeptId",
+                                selectedId = (long)(m.DeptId ?? 0),
+                                emptyText = "请选择", cssClass = ""
+                            })
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">采购方式</label>
+                        <div class="layui-input-block">
+                            <select id="ProcurementType">
+                                <option value="">请选择</option>
+                                @foreach (var t in procTypes)
+                                {
+                                    <option value="@t" selected="@(m.ProcurementType == t ? "selected" : null)">@t</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md6">
+            <div class="layui-card ems-card">
+                <div class="layui-card-header">业主方信息</div>
+                <div class="layui-card-body">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">项目业主 <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block"><input type="text" id="OwnerName" class="layui-input" value="@(m.OwnerName ?? "")" maxlength="100"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">业主联系人</label>
+                        <div class="layui-input-block"><input type="text" id="OwnerContact" class="layui-input" value="@(m.OwnerContact ?? "")" placeholder="联系人姓名"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">联系人手机</label>
+                        <div class="layui-input-block"><input type="text" id="OwnerPhone" class="layui-input" value="@(m.OwnerPhone ?? "")"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">建设类型</label>
+                        <div class="layui-input-block">
+                            <select id="ProjectCategory">
+                                <option value="">请选择</option>
+                                @foreach (var b in buildTypes)
+                                {
+                                    <option value="@b" selected="@(m.ProjectCategory == b ? "selected" : null)">@b</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">项目负责人</label>
+                        <div class="layui-input-block">
+                            @await Component.InvokeAsync("PersonSelect", new {
+                                id = "ProjectLeaderId", name = "ProjectLeaderId",
+                                selectedId = (long)(m.ProjectLeaderId ?? 0),
+                                emptyText = "请选择", cssClass = ""
+                            })
+                        </div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">协作单位</label>
+                        <div class="layui-input-block"><input type="text" id="CooperationUnit" class="layui-input" value="@(m.CooperationUnit ?? "")" maxlength="100" placeholder="合作编制单位"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md6">
+            <div class="layui-card ems-card">
+                <div class="layui-card-header">合同与金额</div>
+                <div class="layui-card-body">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">预估造价(万)</label>
+                        <div class="layui-input-block"><input type="number" id="LimitPrice" class="layui-input" step="0.01" placeholder="0.00" value="@(m.LimitPrice?.ToString("N2") ?? "")"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">合同金额(万) <span class="layui-font-red">*</span></label>
+                        <div class="layui-input-block"><input type="number" id="ContractAmount" class="layui-input" step="0.01" placeholder="0.00" value="@(m.ContractAmount == 0 ? "" : m.ContractAmount.ToString("N2"))"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">签约日期</label>
+                        <div class="layui-input-block"><input type="text" id="SignDate" class="layui-input" placeholder="请选择日期" readonly data-date value="@(m.SignDate?.ToString("yyyy-MM-dd") ?? "")"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">计划完成</label>
+                        <div class="layui-input-block"><input type="text" id="PlanEndDate" class="layui-input" placeholder="请选择日期" readonly data-date value="@(m.PlanEndDate?.ToString("yyyy-MM-dd") ?? "")"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">实际开始</label>
+                        <div class="layui-input-block"><input type="text" id="ActualStartDate" class="layui-input" placeholder="请选择日期" readonly data-date value="@(m.ActualStartDate?.ToString("yyyy-MM-dd") ?? "")"></div>
+                    </div>
+                    <div class="layui-form-item">
+                        <input type="checkbox" id="IsJointVenture" lay-filter="jointSwitch" lay-skin="primary" title="协作单位（联合体项目）" @(m.IsJointVenture ? "checked" : "")>
+                    </div>
+                    <div id="jointBlock" style="@(m.IsJointVenture ? "" : "display:none")">
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">我方占比(%) <span class="layui-font-red">*</span></label>
+                            <div class="layui-input-block">
+                                <input type="number" id="OurRatio" class="layui-input" min="1" max="99" step="0.5" placeholder="1-99" value="@(m.OurRatio?.ToString("N2") ?? "")">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md6">
+            <div class="layui-card ems-card">
+                <div class="layui-card-header">项目概况</div>
+                <div class="layui-card-body">
+                    <div class="layui-form-item layui-form-text">
+                        <div class="layui-input-block" style="margin-left:0">
+                            <textarea id="ProjectOverview" class="layui-textarea" rows="5" placeholder="项目背景、范围、主要工作内容等">@(m.ProjectOverview ?? "")</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+(function () {
+    var $ = (window.layui && layui.$) || window.jQuery;
+    // 收集表单（新建 / 编辑共用）
+    window.collectProjectForm = function () {
+        var idEl = document.getElementById('ProjId');
+        var stEl = document.getElementById('ProgressStatus');
+        return {
+            Id:              idEl ? parseInt(idEl.value, 10) : 0,
+            ProjNo:          (document.getElementById('ProjNo').value || '').trim(),
+            ProjName:        (document.getElementById('ProjName').value || '').trim(),
+            DeptId:          ems.toNum(document.getElementById('DeptId').value),
+            BizType:         document.getElementById('BizType').value || null,
+            OwnerName:       (document.getElementById('OwnerName').value || '').trim(),
+            OwnerContact:    document.getElementById('OwnerContact').value || null,
+            OwnerPhone:      document.getElementById('OwnerPhone').value || null,
+            ProcurementType: document.getElementById('ProcurementType').value || null,
+            LimitPrice:      parseFloat(document.getElementById('LimitPrice').value) || null,
+            ContractAmount:  parseFloat(document.getElementById('ContractAmount').value),
+            IsJointVenture:  document.getElementById('IsJointVenture').checked,
+            OurRatio:        parseFloat(document.getElementById('OurRatio').value) || null,
+            ProjectLeaderId: ems.toNum(document.getElementById('ProjectLeaderId').value),
+            ProjectCategory: document.getElementById('ProjectCategory').value || null,
+            CooperationUnit: document.getElementById('CooperationUnit').value || null,
+            ProjectOverview: document.getElementById('ProjectOverview').value || null,
+            SignDate:        document.getElementById('SignDate').value || null,
+            PlanEndDate:     document.getElementById('PlanEndDate').value || null,
+            ActualStartDate: document.getElementById('ActualStartDate').value || null,
+            ProgressStatus:  stEl ? (parseInt(stEl.value, 10) || 0) : 0,
+            Members:         [],
+            Milestones:      []
+        };
+    };
+    window.validateProjectForm = function (data) {
+        if (!data.ProjName)       { ems.error('请填写项目名称'); return false; }
+        if (!data.OwnerName)      { ems.error('请填写项目业主'); return false; }
+        if (!data.ContractAmount) { ems.error('请填写合同金额'); return false; }
+        if (data.IsJointVenture && !data.OurRatio) { ems.error('联合体项目请填写我方占比'); return false; }
+        return true;
+    };
+
+    ems.ready(function () {
+        layui.form.render();
+        layui.form.on('checkbox(jointSwitch)', function (data) {
+            document.getElementById('jointBlock').style.display = data.elem.checked ? '' : 'none';
+            if (window.parent && window.parent.ems && window.parent.ems.refitDialog) window.parent.ems.refitDialog();
+        });
+        @if (!isEdit)
+        {
+            <text>
+            // 新建：编号失焦即时查重
+            document.getElementById('ProjNo').addEventListener('blur', function () {
+                var no = (this.value || '').trim();
+                if (!no) return;
+                $.get('/project/check-no', { no: no }, function (r) {
+                    if (r && r.code === 200 && r.data && r.data.exists) ems.warn('该项目编号已存在，请换一个');
+                });
+            });
+            </text>
+        }
+        else
+        {
+            <text>
+            // 编辑：编号不可改，仅在改其他字段时无需查重（编号 disabled 不会提交）
+            </text>
+        }
+    });
+})();
+</script>

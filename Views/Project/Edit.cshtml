@@ -4,9 +4,6 @@
 @model ProjectDetailDto
 @{
     ViewData["Title"] = "编辑项目 - " + Model.ProjName;
-    var bizTypes = ViewBag.BizTypes as List<DictDataDto> ?? new();
-    string[] procTypes = { "竞争性磋商", "询价", "公开招标", "邀请招标", "公开招选", "框架协议采购", "单一来源" };
-    string[] buildTypes = { "建筑", "安装", "水利", "交通", "市政", "环保", "电力", "通信", "其他" };
 }
 
 <!-- 标题栏 + 面包屑 -->
@@ -21,204 +18,23 @@
     </div>
 </div>
 
-<form class="layui-form proj-create-form" lay-filter="projForm" id="projForm">
-    <input type="hidden" id="ProjId" value="@Model.Id">
-    <input type="hidden" id="ProgressStatus" value="@Model.ProgressStatus">
+<partial name="_ProjectForm" model="Model" view-data='@new ViewDataDictionary(ViewData) { { "IsEdit", true } }' />
 
-    <div class="layui-row">
-            <div class="layui-col-md6">
-<div class="layui-card ems-card">
-            <div class="layui-card-header">基本信息</div>
-            <div class="layui-card-body">
-                <div class="layui-form-item">
-                    <label class="layui-form-label">项目编号</label>
-                    <div class="layui-input-block"><input type="text" class="layui-input" value="@Model.ProjNo" disabled></div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">项目名称 <span class="layui-font-red">*</span></label>
-                    <div class="layui-input-block"><input type="text" id="ProjName" class="layui-input" value="@Model.ProjName" maxlength="200" placeholder="请输入项目名称"></div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">业务类型</label>
-                    <div class="layui-input-block">
-                        <select id="BizType">
-                            <option value="">请选择</option>
-                            @foreach (var bt in bizTypes)
-                            {
-                                <option value="@bt.DictValue" selected="@(Model.BizType == bt.DictValue)">@bt.DictLabel</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">承接部门</label>
-                    <div class="layui-input-block">
-                        @await Component.InvokeAsync("DeptSelect", new {
-                            id = "DeptId", name = "DeptId",
-                            selectedId = (long)(Model.DeptId ?? 0),
-                            emptyText = "请选择", cssClass = ""
-                        })
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">采购方式</label>
-                    <div class="layui-input-block">
-                        <select id="ProcurementType">
-                            <option value="">请选择</option>
-                            @foreach (var t in procTypes)
-                            {
-                                <option value="@t" selected="@(Model.ProcurementType == t)">@t</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-            </div>
-            <div class="layui-col-md6">
-<div class="layui-card ems-card">
-            <div class="layui-card-header">业主方信息</div>
-            <div class="layui-card-body">
-                <div class="layui-form-item">
-                    <label class="layui-form-label">项目业主 <span class="layui-font-red">*</span></label>
-                    <div class="layui-input-block"><input type="text" id="OwnerName" class="layui-input" value="@Model.OwnerName" maxlength="100"></div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">业主联系人</label>
-                    <div class="layui-input-block"><input type="text" id="OwnerContact" class="layui-input" value="@(Model.OwnerContact ?? "")"></div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">联系人手机</label>
-                    <div class="layui-input-block"><input type="text" id="OwnerPhone" class="layui-input" value="@(Model.OwnerPhone ?? "")"></div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">建设类型</label>
-                    <div class="layui-input-block">
-                        <select id="ProjectCategory">
-                            <option value="">请选择</option>
-                            @foreach (var b in buildTypes)
-                            {
-                                <option value="@b" selected="@(Model.ProjectCategory == b)">@b</option>
-                            }
-                        </select>
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">项目负责人</label>
-                    <div class="layui-input-block">
-                        @await Component.InvokeAsync("PersonSelect", new {
-                            id = "ProjectLeaderId", name = "ProjectLeaderId",
-                            selectedId = (long)(Model.ProjectLeaderId ?? 0),
-                            emptyText = "请选择", cssClass = ""
-                        })
-                    </div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">协作单位</label>
-                    <div class="layui-input-block"><input type="text" id="CooperationUnit" class="layui-input" value="@(Model.CooperationUnit ?? "")" maxlength="100" placeholder="合作编制单位"></div>
-                </div>
-            </div>
-        </div>
-            </div>
-            <div class="layui-col-md6">
-<div class="layui-card ems-card">
-            <div class="layui-card-header">合同与金额</div>
-            <div class="layui-card-body">
-                <div class="layui-form-item">
-                    <label class="layui-form-label">预估造价(万)</label>
-                    <div class="layui-input-block"><input type="number" id="LimitPrice" class="layui-input" step="0.01" value="@(Model.LimitPrice?.ToString("N4") ?? "")"></div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">合同金额(万) <span class="layui-font-red">*</span></label>
-                    <div class="layui-input-block"><input type="number" id="ContractAmount" class="layui-input" step="0.01" value="@Model.ContractAmount.ToString("N4")"></div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">签约日期</label>
-                    <div class="layui-input-block"><input type="date" id="SignDate" class="layui-input" value="@(Model.SignDate?.ToString("yyyy-MM-dd") ?? "")"></div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">计划完成</label>
-                    <div class="layui-input-block"><input type="date" id="PlanEndDate" class="layui-input" value="@(Model.PlanEndDate?.ToString("yyyy-MM-dd") ?? "")"></div>
-                </div>
-                <div class="layui-form-item">
-                    <label class="layui-form-label">实际开始</label>
-                    <div class="layui-input-block"><input type="date" id="ActualStartDate" class="layui-input" value="@(Model.ActualStartDate?.ToString("yyyy-MM-dd") ?? "")"></div>
-                </div>
-                <div class="layui-form-item">
-                    <input type="checkbox" id="IsJointVenture" lay-filter="jointSwitch" lay-skin="primary" title="协作单位（联合体项目）" @(Model.IsJointVenture ? "checked" : "")>
-                </div>
-                <div id="jointBlock" style="@(Model.IsJointVenture ? "" : "display:none")">
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">我方占比(%) <span class="layui-font-red">*</span></label>
-                        <div class="layui-input-block">
-                            <input type="number" id="OurRatio" class="layui-input" min="1" max="99" step="0.5" value="@(Model.OurRatio?.ToString("N2") ?? "")">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-            </div>
-            <div class="layui-col-md6">
-<div class="layui-card ems-card">
-            <div class="layui-card-header">项目概况</div>
-            <div class="layui-card-body">
-                <div class="layui-form-item layui-form-text">
-                    <div class="layui-input-block" style="margin-left:0">
-                        <textarea id="ProjectOverview" class="layui-textarea" rows="5" placeholder="项目背景、范围、主要工作内容等">@(Model.ProjectOverview ?? "")</textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-            </div>
-        </div>
-
-    <div class="ems-form-foot">
-        <button type="button" class="layui-btn layui-btn-normal" id="btnSave">保存修改</button>
-        <button type="button" class="layui-btn layui-btn-primary" onclick="ems.closeSelf('projTable')">取消</button>
-    </div>
-</form>
+<div class="ems-form-foot">
+    <button type="button" class="layui-btn layui-btn-normal" id="btnSave">保存修改</button>
+    <button type="button" class="layui-btn layui-btn-primary" onclick="ems.closeSelf('projTable')">取消</button>
+</div>
 
 @section Scripts {
 <script>
 ems.ready(function () {
     var $ = layui.jquery;
-    layui.form.render();
-
-    layui.form.on('checkbox(jointSwitch)', function (data) {
-        $('#jointBlock').toggle(data.elem.checked);
-    });
 
     $('#btnSave').on('click', function () {
-        var data = {
-            Id:              parseInt($('#ProjId').val()),
-            ProjNo:          '@Model.ProjNo',
-            ProjName:        $('#ProjName').val(),
-            DeptId:          parseInt($('#DeptId').val()) || null,
-            BizType:         $('#BizType').val(),
-            OwnerName:       $('#OwnerName').val(),
-            OwnerContact:    $('#OwnerContact').val() || null,
-            OwnerPhone:      $('#OwnerPhone').val() || null,
-            ProcurementType: $('#ProcurementType').val() || null,
-            LimitPrice:      parseFloat($('#LimitPrice').val()) || null,
-            ContractAmount:  parseFloat($('#ContractAmount').val()),
-            IsJointVenture:  $('#IsJointVenture').is(':checked'),
-            OurRatio:        parseFloat($('#OurRatio').val()) || null,
-            ProjectLeaderId: parseInt($('#ProjectLeaderId').val()) || null,
-            ProjectCategory: $('#ProjectCategory').val() || null,
-            CooperationUnit: $('#CooperationUnit').val() || null,
-            ProjectOverview: $('#ProjectOverview').val() || null,
-            SignDate:        $('#SignDate').val() || null,
-            PlanEndDate:     $('#PlanEndDate').val() || null,
-            ActualStartDate: $('#ActualStartDate').val() || null,
-            ProgressStatus:  parseInt($('#ProgressStatus').val()) || 0,
-            Members:         [],
-            Milestones:      []
-        };
-        if (!data.ProjName)  { ems.error('请填写项目名称'); return; }
-        if (!data.OwnerName) { ems.error('请填写项目业主'); return; }
-        if (!data.ContractAmount) { ems.error('请填写合同金额'); return; }
+        var data = window.collectProjectForm();
+        if (!window.validateProjectForm(data)) return;
 
-        var load = ems.loading(1);
+        var load = ems.loading();
         $.ajax({
             url: '/project/update', type: 'POST', contentType: 'application/json',
             data: JSON.stringify(data),
@@ -227,7 +43,7 @@ ems.ready(function () {
                 if (r.success) ems.msg(r.message, { icon: 1, time: 1200 }, function () { ems.closeSelf('projTable'); });
                 else ems.error(r.message);
             },
-            error: function () { ems.close(load); ems.error('请求失败'); }
+            error: function (xhr, textStatus) { ems.close(load); ems.error(ems._httpErrorMsg(xhr, '保存失败', textStatus)); }
         });
     });
 });

@@ -230,6 +230,15 @@ public class ProjectController : BaseAuthController
         }
     }
 
+    // ── 项目编号即时查重（新建/编辑表单失焦校验） ──
+    [HttpGet("check-no")]
+    [HasPermission("proj:project:list")]
+    public async Task<IActionResult> CheckNo([FromQuery] string no, [FromQuery] long? excludeId)
+    {
+        var exists = await _projSvc.ExistsByNoAsync(no ?? "", excludeId);
+        return ApiOk(new { exists });
+    }
+
     // ── 投标建项：精简列表 + 一键转项目 ──────────────────────
     [HttpGet("simple-list")]
     [HasPermission("proj:project:list")]

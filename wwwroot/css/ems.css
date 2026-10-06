@@ -293,6 +293,24 @@
     font-size: 11px; color: #c9cfd6; border: 1px solid #e3e7eb;
     border-radius: 4px; padding: 1px 6px; white-space: nowrap;
 }
+/* 合同行「更多操作」小菜单 */
+.ems-more-menu {
+    position: absolute; right: 0; top: 110%; z-index: 50;
+    background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+    padding: 6px 0; min-width: 130px; white-space: nowrap;
+}
+.ems-more-menu a {
+    display: block; padding: 8px 16px; font-size: 13px; color: #e74c3c;
+}
+.ems-more-menu a:hover { background: #fdf0ef; }
+.ems-more-menu a .layui-icon { margin-right: 6px; }
+/* 弹窗内分组小标题（回款/合同等长表单分组） */
+.ems-form-group-title {
+    font-size: 13px; font-weight: 700; color: #0d6b64;
+    padding: 4px 0 8px; margin: 6px 0 2px;
+    border-bottom: 1px dashed #e3e7eb;
+}
+.ems-form-group-title:first-child { margin-top: 0; }
 .ems-dropdown-panel .ems-col-item {
     display: flex; align-items: center;
     padding: 6px 14px;
@@ -489,12 +507,21 @@ body .layui-layer.ems-layer.ems-layer-prompt2 .layui-layer-content {
 .ems-detail-header {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 16px;
     background: #fff;
     border-radius: 10px;
     box-shadow: 0 1px 3px rgba(0,0,0,.05);
     padding: 18px 20px;
     margin-bottom: 14px;
+}
+@media (max-width: 768px) {
+    .ems-detail-header { gap: 10px; padding: 14px; }
+    .ems-detail-header .ems-detail-actions { width: 100%; }
+    /* 小屏：详情区宽表格横向滚动，不再破版 */
+    .ems-detail-tabs, .ems-info-card { overflow-x: auto; }
+    .ems-stat-card .value { font-size: 20px; }
+    .ems-info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 .ems-detail-header .ems-detail-avatar {
     width: 64px; height: 64px; border-radius: 50%;
@@ -567,6 +594,10 @@ body .layui-layer.ems-layer.ems-layer-prompt2 .layui-layer-content {
 /* 详情页：固定四列铺满整行（防止窄屏折行或留白） */
 .ems-stat-cards.four-cols { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 @media (max-width: 768px) { .ems-stat-cards.four-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* 详情页：六张卡片（4 基础 + 待收款/逾期风险） */
+.ems-stat-cards.six-cols { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1200px) { .ems-stat-cards.six-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 768px) { .ems-stat-cards.six-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .ems-stat-card { background:#fff; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,.05); padding:14px 18px; transition: box-shadow .3s ease; }
 .ems-stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
 .ems-stat-card .label { font-size:13px; color:#8a94a6; display:flex; align-items:center; gap:6px; }
@@ -622,6 +653,7 @@ body .layui-layer.ems-layer.ems-layer-prompt2 .layui-layer-content {
 .ems-alert.gray { background: #f5f6f8; color: #8a94a6; }
 .ems-alert.warn { background: #fff3e0; color: #e09000; }
 .ems-alert.info { background: #eaf3ff; color: #2b6cb0; }
+.ems-alert.red { background: #fdeeee; color: #c0392b; }
 
 
 /* layui 原生命名工具类（颜色，引号内 !important 与 layui 原生保持一致） */
