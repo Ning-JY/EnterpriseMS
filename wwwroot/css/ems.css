@@ -284,6 +284,15 @@
     white-space: nowrap;
 }
 .ems-dropdown-panel .ems-dropdown-item:hover { background: #f5f7fa; }
+.ems-dropdown-panel .ems-dropdown-item.ems-dropdown-disabled {
+    color: #b6bcc4; cursor: not-allowed; background: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.ems-dropdown-panel .ems-dropdown-item.ems-dropdown-disabled:hover { background: none; }
+.ems-dropdown-panel .ems-dropdown-hint {
+    font-size: 11px; color: #c9cfd6; border: 1px solid #e3e7eb;
+    border-radius: 4px; padding: 1px 6px; white-space: nowrap;
+}
 .ems-dropdown-panel .ems-col-item {
     display: flex; align-items: center;
     padding: 6px 14px;

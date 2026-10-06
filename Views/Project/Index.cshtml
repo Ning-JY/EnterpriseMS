@@ -161,6 +161,8 @@ ems.ready(function () {
         id:   'projTable',
         url:  '/project/list',
         cols: [colsConfig],
+        saveState: true,          // 记住查询条件与页码：进详情再返回不丢失
+        searchFilter: 'projSearch',
 
         tool: {
             detail: function (d) { ems.openTab('/project/' + d.Id, '项目详情 - ' + d.ProjName); },

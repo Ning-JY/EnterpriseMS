@@ -289,6 +289,10 @@
         var barEvents  = opt.toolbar || {};
         var hasToolbar = !!(opt.toolbarTpl || Object.keys(barEvents).length > 0 || opt.defaultToolbar);
 
+        // 状态保持：恢复上次离开时的查询条件与页码（列表→详情→返回不丢失）
+        var _saved = (opt.saveState && id) ? ems._loadTblState(id) : null;
+        if (opt.saveState && id) ems._tblSaveStateReg[id] = true;
+
         var conf = $.extend(true, {
             elem: opt.elem,
             id: id,
@@ -311,6 +315,12 @@
         if (opt.height) conf.height = opt.height;
         // 默认不强制高度：卡片高度随内容自适应，配合「去掉水平滚动条」要求
 
+        // 应用恢复的状态：查询条件 + 页码
+        if (_saved) {
+            if (_saved.where) conf.where = $.extend({}, _saved.where, conf.where || {});
+            if (_saved.page && conf.page) conf.page = { curr: _saved.page, limit: conf.limit };
+        }
+
         if (hasToolbar) {
             conf.toolbar = opt.toolbarTpl || (opt.defaultToolbar ? '#emsToolbar' : null);
             conf.defaultToolbar = opt.defaultToolbar || ['filter', 'print', 'exports'];
@@ -331,6 +341,7 @@
                 var $card = $(opt.elem).closest('.ems-card');
                 $card.find('[data-list-count]').text(count || 0);
             } catch (e) { /* ignore */ }
+            if (opt.saveState && id) ems._saveTblState(id, { page: curr });
             if (opt.autoFit !== false) {
                 ems.autoFitColumns(id, opt.maxColWidth, opt.minColWidth);
             }
@@ -338,6 +349,14 @@
         };
 
         var ins = table.render(conf);
+
+        // 状态保持：把恢复的查询条件回填到搜索表单
+        if (_saved && _saved.where && opt.searchFilter) {
+            try {
+                form.val(opt.searchFilter, _saved.where);
+                form.render(null, opt.searchFilter);
+            } catch (e) { /* ignore */ }
+        }
 
         // 行工具条
         table.on('tool(' + id + ')', function (obj) {
@@ -562,18 +581,11 @@
         var html =
             '<div class="ems-dropdown-item" data-act="page" data-type="xls">导出当前页 (Excel)</div>' +
             '<div class="ems-dropdown-item" data-act="page" data-type="csv">导出当前页 (CSV)</div>' +
-            '<div class="ems-dropdown-item" data-act="all"  data-type="xls">导出全部 (Excel)</div>' +
-            '<div class="ems-dropdown-item" data-act="all"  data-type="csv">导出全部 (CSV)</div>';
+            '<div class="ems-dropdown-item ems-dropdown-disabled" title="全量导出接口待接入">导出全部 (Excel)<span class="ems-dropdown-hint">待接入</span></div>' +
+            '<div class="ems-dropdown-item ems-dropdown-disabled" title="全量导出接口待接入">导出全部 (CSV)<span class="ems-dropdown-hint">待接入</span></div>';
         ems._dropdown($btn, html, function ($panel) {
-            $panel.find('[data-act]').on('click', function () {
-                var act  = $(this).data('act');
+            $panel.find('[data-act]:not(.ems-dropdown-disabled)').on('click', function () {
                 var type = $(this).data('type');
-                if (act === 'all') {
-                    var count = table.getOptions ? (table.getOptions(id) || {}).count : 0;
-                    if (count && count > (table.cache[id] || []).length) {
-                        ems.msg('全量导出接口待接入，已导出当前页');
-                    }
-                }
                 ems.exportTable(id, filename, type);
                 $panel.remove();
             });
@@ -585,9 +597,28 @@
         id = id || ems._lastTableId;
         if (!id) return;
         var o = {};
-        if (where) o.where = where;
-        if (resetPage !== false) o.page = { curr: 1 };
+        if (where) { o.where = where; ems._saveTblState(id, { where: where }); }
+        if (resetPage !== false) { o.page = { curr: 1 }; ems._saveTblState(id, { page: 1 }); }
         table.reloadData(id, o);
+    };
+
+    /* ── 表格状态保持（sessionStorage，列表→详情→返回不丢条件与页码） ── */
+    ems._tblSaveStateReg = {};
+    ems._tblStateKey = function (id) { return 'ems:tblstate:' + id; };
+    ems._saveTblState = function (id, patch) {
+        if (!id || !ems._tblSaveStateReg[id]) return;
+        try {
+            var key = ems._tblStateKey(id), cur = {};
+            try { cur = JSON.parse(sessionStorage.getItem(key) || '{}'); } catch (e) {}
+            sessionStorage.setItem(key, JSON.stringify($.extend({}, cur, patch || {})));
+        } catch (e) { /* ignore */ }
+    };
+    ems._loadTblState = function (id) {
+        try { return JSON.parse(sessionStorage.getItem(ems._tblStateKey(id)) || 'null'); }
+        catch (e) { return null; }
+    };
+    ems._clearTblState = function (id) {
+        try { sessionStorage.removeItem(ems._tblStateKey(id)); } catch (e) { /* ignore */ }
     };
 
     /** 供 iframe 子页调用：刷新父框架里的表格 */
@@ -623,6 +654,7 @@
             $f.find('input[type=hidden]').not('[name="__RequestVerificationToken"]').val('');
             form.render(null, opt.form);
         }
+        ems._clearTblState(opt.table);
         ems.reloadTable(opt.table, {});
     };
 
@@ -1143,6 +1175,102 @@
                 if (opt.error) opt.error();
             }
         });
+    };
+
+    /**
+     * 带进度条的大文件上传（原生 XHR，可实时显示上传进度；适合合同/发票/项目文件）。
+     * @param {object} opt {
+     *   url:     上传接口,
+     *   file:    File 对象（必填）,
+     *   data:    附加字段 {k:v},
+     *   headers: 附加请求头,
+     *   field:   文件字段名（默认 file）,
+     *   title:   弹窗标题（默认“文件上传”）,
+     *   done:    成功回调 (res),
+     *   fail:    失败回调 (msg, status)
+     * }
+     * @returns XMLHttpRequest（可 abort 取消）
+     */
+    ems.uploadFile = function (opt) {
+        opt = opt || {};
+        var file = opt.file;
+        if (!opt.url || !file) { ems.error('请选择文件'); return null; }
+
+        var sizeText = file.size < 1048576 ? (file.size / 1024).toFixed(1) + ' KB'
+            : file.size < 1073741824 ? (file.size / 1048576).toFixed(1) + ' MB'
+            : (file.size / 1073741824).toFixed(2) + ' GB';
+        var fid = 'ems_up_' + Date.now();
+        var html =
+            '<div style="padding:22px 26px 18px;">' +
+              '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+                '<div style="width:44px;height:44px;flex:0 0 auto;border-radius:12px;background:#e8f4f2;color:#0d6b64;display:flex;align-items:center;justify-content:center;font-size:22px;"><i class="layui-icon layui-icon-file"></i></div>' +
+                '<div style="flex:1;min-width:0;">' +
+                  '<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + ems.escapeHtml(file.name) + '</div>' +
+                  '<div class="layui-font-12 layui-font-gray" style="margin-top:3px;">' + sizeText + '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="layui-progress layui-progress-big" lay-filter="' + fid + '">' +
+                '<div class="layui-progress-bar" lay-percent="0%"></div>' +
+              '</div>' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">' +
+                '<span class="layui-font-12 layui-font-gray" id="' + fid + '_tip">正在上传…</span>' +
+                '<span style="font-size:15px;font-weight:700;color:#0d6b64;" id="' + fid + '_pct">0%</span>' +
+              '</div>' +
+            '</div>';
+
+        var xhr = new XMLHttpRequest();
+        var cancelled = false;
+        var idx = layer.open({
+            type: 1, title: opt.title || '文件上传', skin: 'ems-layer',
+            area: ['430px', 'auto'], shadeClose: false, closeBtn: 1,
+            content: html,
+            cancel: function () { cancelled = true; try { xhr.abort(); } catch (e) {} },
+            success: function () {
+                xhr.upload.onprogress = function (e) {
+                    if (!e.lengthComputable) return;
+                    var pct = Math.min(99, Math.floor(e.loaded / e.total * 100));
+                    try {
+                        element.progress(fid, pct + '%');
+                        var p = document.getElementById(fid + '_pct');
+                        if (p) p.textContent = pct + '%';
+                    } catch (err) { /* ignore */ }
+                };
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState !== 4 || cancelled) return;
+                    layer.close(idx);
+                    var res = null;
+                    try { res = JSON.parse(xhr.responseText); } catch (e) { /* ignore */ }
+                    if (xhr.status >= 200 && xhr.status < 300 && res && res.code === 200) {
+                        try {
+                            element.progress(fid, '100%');
+                            var tip = document.getElementById(fid + '_tip');
+                            if (tip) tip.textContent = '上传完成';
+                        } catch (err) { /* ignore */ }
+                        if (opt.done) opt.done(res);
+                    } else {
+                        var msg = (res && res.message) || ('上传失败（HTTP ' + xhr.status + '）');
+                        if (xhr.status === 413) msg = '文件超出大小限制（500MB），请压缩后重试';
+                        if (opt.fail) opt.fail(msg, xhr.status); else ems.error(msg);
+                    }
+                };
+                xhr.onerror = function () {
+                    if (cancelled) return;
+                    layer.close(idx);
+                    var msg = '网络请求失败，请检查网络后重试';
+                    if (opt.fail) opt.fail(msg, 0); else ems.error(msg);
+                };
+                var fd = new FormData();
+                fd.append(opt.field || 'file', file);
+                var extra = opt.data || {};
+                for (var k in extra) { if (extra[k] !== undefined && extra[k] !== null) fd.append(k, extra[k]); }
+                xhr.open('POST', opt.url, true);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                var headers = opt.headers || {};
+                for (var h in headers) xhr.setRequestHeader(h, headers[h]);
+                xhr.send(fd);
+            }
+        });
+        return xhr;
     };
 
     /** 下载（走表单提交，避免 window.open 被拦截） */

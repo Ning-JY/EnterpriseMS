@@ -99,6 +99,7 @@ ems.ready(function () {
 
     ems.initTable({
         elem: '#contractTable', id: 'contractTable', url: '/project/receipt/contract-list', cols: [colsConfig],
+        saveState: true, searchFilter: 'rcpSearch',
         tool: {
             project: function (d) { ems.openTab('/project/' + d.ProjectId, '项目详情 - ' + d.ProjectName); },
             detail:  function (d) { ems.openTab('/project/receipt/detail/' + d.ContractId, '合同回款 - ' + d.ContractName); },

@@ -180,7 +180,7 @@
 
 <!-- Tabs -->
 <div class="ems-detail-tabs">
-    <div class="layui-tab layui-tab-brief">
+    <div class="layui-tab layui-tab-brief" lay-filter="projDetailTab">
         <ul class="layui-tab-title">
             <li class="layui-this">合同与回款</li>
             <li>工作节点</li>
@@ -685,7 +685,15 @@ window.openModal = function (id, title, area) {
     });
 };
     window.closeModal = function (id) { if (_layerIdx[id]) { layer.close(_layerIdx[id]); _layerIdx[id] = null; } };
-    window.reloadPage = function () { location.reload(); };
+    // 刷新前记住当前 tab 与滚动位置，加载后恢复（避免每次操作都跳回首 tab）
+    window.reloadPage = function () {
+        try {
+            var tabIdx = $('.ems-detail-tabs .layui-tab-title li.layui-this').index();
+            sessionStorage.setItem('ems:projDetail:tab', String(tabIdx < 0 ? 0 : tabIdx));
+            sessionStorage.setItem('ems:projDetail:scroll', String(window.scrollY || document.documentElement.scrollTop || 0));
+        } catch (e) { /* ignore */ }
+        location.reload();
+    };
 
     // ── 状态变更 ──
     window.saveStatus = function () {
@@ -865,18 +873,62 @@ window.openModal = function (id, title, area) {
     };
     window.uploadContractFile = function (contractId, input) {
         if (!input.files[0]) return;
-        var fd = new FormData(); fd.append('file', input.files[0]);
-        var load = ems.loading();
-        $.ajax({ url: '/project/contracts/upload/' + contractId, type: 'POST', data: fd, processData: false, contentType: false, headers: { 'RequestVerificationToken': antiForgery }, success: function (r) { ems.close(load); if (r.success) { ems.msg('上传成功', { icon: 1, time: 1200 }, reloadPage); } else ems.msg(r.message, { icon: 2 }); } });
+        ems.uploadFile({
+            url: '/project/contracts/upload/' + contractId,
+            file: input.files[0], title: '上传合同附件',
+            headers: { 'RequestVerificationToken': antiForgery },
+            done: function () {
+                input.value = '';
+                ems.msg('上传成功', { icon: 1, time: 1200 }, reloadPage);
+            }
+        });
     };
 
     // ── 发票 / 回款 ──
     window.confirmReceived = function (invoiceId) {
-        var today = new Date().toISOString().split('T')[0];
-        ems.prompt({ title: '请输入收款日期', formType: 2, value: today }, function (val, i) {
-            ems.close(i);
-            if (!val) return;
-            $.ajax({ url: '/project/invoices/received/' + invoiceId, type: 'POST', data: { receivedDate: val, __RequestVerificationToken: antiForgery }, success: function (r) { if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, reloadPage); } else ems.msg(r.message, { icon: 2 }); } });
+        var d = new Date();
+        var today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        var uid = 'recvDate_' + Date.now();
+        var html =
+            '<div style="padding:22px 26px 8px;">' +
+              '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+                '<div style="width:44px;height:44px;flex:0 0 auto;border-radius:12px;background:#e7f6ef;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:22px;"><i class="layui-icon layui-icon-rmb"></i></div>' +
+                '<div><div style="font-size:15px;font-weight:600;">确认收到这笔回款？</div>' +
+                '<div class="layui-font-12 layui-font-gray" style="margin-top:3px;">确认后将计入项目已收款统计</div></div>' +
+              '</div>' +
+              '<div class="layui-form-item" style="margin-bottom:6px;">' +
+                '<label class="layui-form-label">收款日期</label>' +
+                '<div class="layui-input-block"><input type="text" id="' + uid + '" class="layui-input" readonly placeholder="请选择收款日期"></div>' +
+              '</div>' +
+            '</div>';
+        layer.open({
+            type: 1, title: '确认收款', skin: 'ems-layer', area: ['400px', 'auto'],
+            shadeClose: false, content: html,
+            btn: ['确认收款', '取消'], btnAlign: 'c',
+            success: function () {
+                layui.use('laydate', function () {
+                    layui.laydate.render({
+                        elem: '#' + uid, value: today, max: today,
+                        theme: '#0d6b64', trigger: 'click', showBottom: false
+                    });
+                });
+            },
+            yes: function (idx) {
+                var val = $('#' + uid).val();
+                if (!val) { ems.error('请选择收款日期'); return; }
+                layer.close(idx);
+                var load = ems.loading();
+                $.ajax({
+                    url: '/project/invoices/received/' + invoiceId, type: 'POST',
+                    data: { receivedDate: val, __RequestVerificationToken: antiForgery },
+                    success: function (r) {
+                        ems.close(load);
+                        if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, reloadPage); }
+                        else ems.msg(r.message, { icon: 2 });
+                    },
+                    error: function () { ems.close(load); ems.error('网络请求失败，请重试'); }
+                });
+            }
         });
     };
     window.delReceipt = function (el) {
@@ -888,9 +940,15 @@ window.openModal = function (id, title, area) {
     };
     window.uploadInvoiceFile = function (invId, fileType, input) {
         if (!input.files[0]) return;
-        var fd = new FormData(); fd.append('file', input.files[0]);
-        var load = ems.loading();
-        $.ajax({ url: '/project/invoices/file/' + invId + '/' + fileType, type: 'POST', data: fd, processData: false, contentType: false, headers: { 'RequestVerificationToken': antiForgery }, success: function (r) { ems.close(load); if (r.success) { ems.msg('上传成功', { icon: 1, time: 1200 }, reloadPage); } else ems.msg(r.message, { icon: 2 }); } });
+        ems.uploadFile({
+            url: '/project/invoices/file/' + invId + '/' + fileType,
+            file: input.files[0], title: fileType === 'payment' ? '上传付款申请' : '上传发票附件',
+            headers: { 'RequestVerificationToken': antiForgery },
+            done: function () {
+                input.value = '';
+                ems.msg('上传成功', { icon: 1, time: 1200 }, reloadPage);
+            }
+        });
     };
 
     // ── 文件上传 ──
@@ -915,20 +973,19 @@ window.openModal = function (id, title, area) {
     window.confirmUpload = function () {
         var input = document.getElementById('fileInput');
         if (!input.files[0]) { ems.msg('请先选择文件', { icon: 2 }); return; }
-        var fd = new FormData();
-        fd.append('file', input.files[0]);
-        fd.append('category', $('#uploadCategory').val());
-        fd.append('description', $('#uploadDesc').val());
-        var load = ems.loading();
-        $.ajax({
-            url: '/project/' + projId + '/files', type: 'POST', data: fd, processData: false, contentType: false,
-            headers: { 'RequestVerificationToken': antiForgery },
-            success: function (r) {
-                ems.close(load);
-                if (r.success) { ems.msg('上传成功', { icon: 1, time: 1200 }, reloadPage); }
-                else ems.msg(r.message || '上传失败', { icon: 2 });
+        ems.uploadFile({
+            url: '/project/' + projId + '/files',
+            file: input.files[0], title: '上传项目文件',
+            data: {
+                category: $('#uploadCategory').val(),
+                description: $('#uploadDesc').val(),
+                version: $('#uploadVersion').val()
             },
-            error: function () { ems.close(load); ems.msg('网络请求失败，请重试', { icon: 2 }); }
+            headers: { 'RequestVerificationToken': antiForgery },
+            done: function () {
+                ems.msg('上传成功', { icon: 1, time: 1200 }, reloadPage);
+            },
+            fail: function (msg) { ems.msg(msg || '上传失败', { icon: 2 }); }
         });
     };
     window.deleteFile = function (el) {
@@ -1017,6 +1074,20 @@ window.openModal = function (id, title, area) {
 
 ems.ready(function () {
     if (layui.element) layui.element.render();
+
+    // 恢复刷新前的 tab 与滚动位置（reloadPage 写入，用后即清）
+    try {
+        var savedTab = sessionStorage.getItem('ems:projDetail:tab');
+        var savedScroll = sessionStorage.getItem('ems:projDetail:scroll');
+        sessionStorage.removeItem('ems:projDetail:tab');
+        sessionStorage.removeItem('ems:projDetail:scroll');
+        if (savedTab !== null && layui.element) {
+            layui.element.tabChange('projDetailTab', parseInt(savedTab, 10) || 0);
+        }
+        if (savedScroll !== null) {
+            setTimeout(function () { window.scrollTo(0, parseInt(savedScroll, 10) || 0); }, 50);
+        }
+    } catch (e) { /* ignore */ }
 
     // ── 服务团队与产值：改用事件委托，避免内联 onclick 依赖全局函数 ──
     $(document).on('click', '[data-act="member-add"]', function () {

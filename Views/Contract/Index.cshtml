@@ -187,6 +187,7 @@ ems.ready(function () {
 
     ems.initTable({
         elem: '#ctTable', id: 'ctTable', url: '/hr/contract/list', cols: [colsConfig],
+        saveState: true, searchFilter: 'ctSearch',
         tool: {
             download: function (d) { window.location.href = '/hr/contract/download/' + d.Id; },
             upload:   function (d) { curUploadId = d.Id; $('#ctFileInput').click(); },

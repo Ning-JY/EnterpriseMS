@@ -123,6 +123,7 @@ ems.ready(function () {
         id:   'empTable',
         url:  '/hr/employee/list',
         cols: [colsConfig],
+        saveState: true, searchFilter: 'empSearch',
 
         tool: {
             detail: function (d) { ems.openTab('/hr/employee/detail/' + d.Id, '员工详情 - ' + d.RealName); },
