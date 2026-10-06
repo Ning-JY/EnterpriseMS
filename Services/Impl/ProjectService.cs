@@ -113,7 +113,10 @@ public class ProjectService : IProjectService
 
         var proj = _mapper.Map<Project>(dto);
         proj.ProjNo = string.IsNullOrWhiteSpace(dto.ProjNo)
-                         ? await GenerateProjNoAsync() : dto.ProjNo;
+                         ? await GenerateProjNoAsync() : dto.ProjNo.Trim();
+        // 后端兜底：编号唯一（前端失焦已预警，此处防绕过）
+        if (await ExistsByNoAsync(proj.ProjNo, null))
+            throw new BusinessException($"项目编号 {proj.ProjNo} 已存在，请更换");
         proj.CreatedBy = operBy;
 
         await _uow.Projects.AddAsync(proj);
