@@ -56,6 +56,15 @@
                 </select>
             </div>
             <div class="layui-inline">
+                <input type="text" name="StartDateFrom" placeholder="起始时间起" readonly
+                       autocomplete="off" class="layui-input" data-date style="width:130px">
+            </div>
+            <div class="layui-inline" style="margin-left:-4px;margin-right:-4px;color:#999">—</div>
+            <div class="layui-inline">
+                <input type="text" name="StartDateTo" placeholder="起始时间止" readonly
+                       autocomplete="off" class="layui-input" data-date style="width:130px">
+            </div>
+            <div class="layui-inline">
                 <button class="layui-btn" lay-submit lay-filter="projSearch">
                     <i class="layui-icon layui-icon-search"></i> 搜索
                 </button>
@@ -142,6 +151,9 @@ ems.ready(function () {
         { field: 'ContractAmount', title: '合同金额(万)', width: 150,
           templet: function (d) {
               var html = '<span class="layui-font-teal ">¥' + (d.ContractAmount || 0).toFixed(2) + '</span>';
+              html += d.HasContract
+                  ? ' <span class="layui-badge layui-bg-green">已关联</span>'
+                  : ' <span class="layui-badge">未关联</span>';
               if (d.IsJointVenture && d.OurRatio) html += '<br><span class="layui-font-12 layui-font-gray">我方 ' + (d.OurRatio * 100).toFixed(1) + '%</span>';
               return html;
           } },

@@ -24,6 +24,7 @@ public class ProjectListDto
     public int      MilestoneDone   { get; set; }
     public int      MilestoneTotal  { get; set; }
     public DateTime? StatusUpdatedAt { get; set; }
+    public bool     HasContract     { get; set; }   // 是否已关联合同
 }
 
 /// <summary>投标建项时用于按名称选择关联项目的精简条目。</summary>
@@ -168,6 +169,8 @@ public class ProjectQueryDto
     public long?   DeptId         { get; set; }
     public int?    ProgressStatus { get; set; }
     public string? BizType        { get; set; }
+    public DateTime? StartDateFrom { get; set; }   // 项目起始时间（实际开始）起
+    public DateTime? StartDateTo   { get; set; }   // 项目起始时间（实际开始）止
     public int     Page           { get; set; } = 1;
     public int     Size           { get; set; } = 15;
 }

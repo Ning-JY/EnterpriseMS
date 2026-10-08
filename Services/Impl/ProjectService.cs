@@ -47,14 +47,31 @@ public class ProjectService : IProjectService
             q = q.Where(p => p.ProgressStatus == query.ProgressStatus);
         if (!string.IsNullOrWhiteSpace(query.BizType))
             q = q.Where(p => p.BizType == query.BizType);
+        if (query.StartDateFrom.HasValue)
+            q = q.Where(p => p.ActualStartDate >= query.StartDateFrom.Value);
+        if (query.StartDateTo.HasValue)
+            q = q.Where(p => p.ActualStartDate <= query.StartDateTo.Value);
 
         var paged = await q.OrderByDescending(p => p.CreatedAt)
                            .ToPagedAsync(query.Page, query.Size);
         var list  = paged.Items;
 
+        // 是否关联合同：一次查询本页所有项目的合同归属，避免 N+1
+        var pageIds = list.Select(p => p.Id).ToList();
+        var contractedIds = pageIds.Count > 0
+            ? await _uow.ProjContracts.Query()
+                      .Where(c => !c.IsDeleted && pageIds.Contains(c.ProjectId))
+                      .Select(c => c.ProjectId)
+                      .Distinct()
+                      .ToListAsync()
+            : new List<long>();
+
         var items = _mapper.Map<List<ProjectListDto>>(list);
         foreach (var item in items)
+        {
             item.ProgressText = Common.ProjectProgress.GetProgressText(item.ProgressStatus);
+            item.HasContract = contractedIds.Contains(item.Id);
+        }
 
         return new PagedResult<ProjectListDto>
         {

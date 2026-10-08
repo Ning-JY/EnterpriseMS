@@ -1,10 +1,11 @@
 @* 项目新建 / 编辑共享表单（字段只维护一份）。调用方：
-   <partial name="_ProjectForm" model="new ProjectDetailDto()" view-data='@new ViewDataDictionary(ViewData) { { "IsEdit", false } }' />
-   新建传空 DTO，编辑传 ProjectDetailDto。 *@
+   Create: <partial name="_ProjectForm" model="new ProjectDetailDto()" />（Controller 设 ViewBag.IsEdit = false）
+   Edit:   <partial name="_ProjectForm" model="Model" />（Controller 设 ViewBag.IsEdit = true）
+   partial 默认继承父页面 ViewData，无需 view-data 透传。 *@
 @using EnterpriseMS.Services.DTOs.System
 @model EnterpriseMS.Services.DTOs.Project.ProjectDetailDto
 @{
-    bool isEdit = (bool)(ViewData["IsEdit"] ?? false);
+    bool isEdit = ViewBag.IsEdit == true;
     var bizTypes = ViewBag.BizTypes as List<DictDataDto> ?? new();
     string[] procTypes = { "竞争性磋商", "询价", "公开招标", "邀请招标", "公开招选", "框架协议采购", "单一来源" };
     string[] buildTypes = { "建筑", "安装", "水利", "交通", "市政", "环保", "电力", "通信", "其他" };

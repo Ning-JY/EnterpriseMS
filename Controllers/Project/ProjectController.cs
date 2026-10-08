@@ -207,6 +207,7 @@ public class ProjectController : BaseAuthController
         // 业务类型改为字典驱动（biz_type 已种子化，可在字典管理中动态维护）
         ViewBag.BizTypes = await _dictSvc.GetDataByTypeAsync(DictType.BizType);
         ViewBag.GeneratedNo    = suffix;
+        ViewBag.IsEdit = false;   // _ProjectForm partial 据此区分新建/编辑（ViewData 透传）
         // 直接访问 /project/create 或经 iframe 弹窗均渲染完整表单页（新 layui 标准）。
         return View();
     }
