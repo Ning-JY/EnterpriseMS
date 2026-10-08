@@ -53,10 +53,13 @@
     white-space: normal; line-height: 1.5;
     padding-top: 8px; padding-bottom: 8px;
 }
-/* 通知铃铛的气泡徽标：避免与展开图标重合 */
+/* 通知铃铛的气泡徽标：圆形数字 */
 .ems-notif-bell .layui-badge {
     position: absolute; top: 8px; right: 6px;
-    margin: 0;
+    margin: 0; padding: 0;
+    min-width: 18px; height: 18px; line-height: 18px;
+    border-radius: 50%; text-align: center;
+    font-size: 11px;
 }
 .layui-layout-admin .layui-side { top: 0; display: flex; flex-direction: column; }
 .layui-layout-admin .layui-side .layui-logo {
@@ -335,17 +338,6 @@
     font-size: 11px; color: #c9cfd6; border: 1px solid #e3e7eb;
     border-radius: 4px; padding: 1px 6px; white-space: nowrap;
 }
-/* 合同行「更多操作」小菜单 */
-.ems-more-menu {
-    position: absolute; right: 0; top: 110%; z-index: 50;
-    background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
-    padding: 6px 0; min-width: 130px; white-space: nowrap;
-}
-.ems-more-menu a {
-    display: block; padding: 8px 16px; font-size: 13px; color: #e74c3c;
-}
-.ems-more-menu a:hover { background: #fdf0ef; }
-.ems-more-menu a .layui-icon { margin-right: 6px; }
 /* 弹窗内分组小标题（回款/合同等长表单分组） */
 .ems-form-group-title {
     font-size: 13px; font-weight: 700; color: #0d6b64;
@@ -673,7 +665,7 @@ body .layui-layer.ems-layer.ems-layer-prompt2 .layui-layer-content {
 
 /* ── 合同分组（项目详情：合同 + 关联发票） ──────────────── */
 .ems-contract-group { border: 1px solid #f0f0f0; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; }
-.ems-contract-group .ems-contract-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color:#555; }
+.ems-contract-group .ems-contract-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; font-size: 13px; color:#555; }
 .ems-contract-group .ems-contract-name { font-weight: 600; color:#1f2d3d; }
 .ems-contract-group .ems-invoice-rows { margin-top: 8px; }
 /* 合同行附件名过长时截断 */

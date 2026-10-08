@@ -47,10 +47,6 @@
 <div style="display:none">@Html.AntiForgeryToken()</div>
 
 <div class="ems-detail-header">
-    <a href="javascript:;" title="返回项目台账" onclick="ems.openTab('/project','项目台账')"
-       style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;background:#eef3f2;color:#0d6b64;font-size:20px;cursor:pointer;flex:0 0 auto;">
-        <i class="layui-icon layui-icon-left"></i>
-    </a>
     <div class="ems-detail-avatar"><i class="layui-icon layui-icon-console"></i></div>
     <div class="ems-detail-info" style="display:flex;align-items:center;">
         <div>
@@ -242,15 +238,10 @@
                                 } else if (canEdit) {
                                     <label class="ems-icon-btn" title="上传合同"><i class="layui-icon layui-icon-upload"></i><input type="file" class="layui-hide" onchange="uploadContractFile(@ct.Id,this)"></label>
                                 }
-                                <span style="margin-left:auto">
+                                <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">
                                     @if (canEdit) {
-                                        <a class="ems-icon-btn success" onclick="openAddReceipt(@ct.Id)" title="新增回款"><i class="layui-icon layui-icon-add-1"></i></a>
-                                        <span style="position:relative;display:inline-block">
-                                            <a class="ems-icon-btn" title="更多操作" onclick="toggleCtMore(event,@ct.Id)"><i class="layui-icon layui-icon-more"></i></a>
-                                            <span class="ems-more-menu" id="ctMore_@ct.Id" data-id="@ct.Id" data-no="@ct.ContractNo" data-count="@ctInvoices.Count" style="display:none">
-                                                <a href="javascript:;" onclick="delContractFromMenu(this)"><i class="layui-icon layui-icon-delete"></i> 删除合同</a>
-                                            </span>
-                                        </span>
+                                        <a class="layui-btn layui-btn-xs layui-btn-normal" onclick="openAddReceipt(@ct.Id)" title="新增回款"><i class="layui-icon layui-icon-add-1"></i> 新增回款</a>
+                                        <a class="ems-icon-btn warn" title="删除合同" onclick="delContractById(@ct.Id,'@ct.ContractNo',@ctInvoices.Count)"><i class="layui-icon layui-icon-delete"></i></a>
                                     }
                                 </span>
                             </div>
@@ -464,7 +455,7 @@
                                     <td class="layui-font-12">@f.CreatedAt.ToString("MM-dd HH:mm")</td>
                                     <td>
                                         <a class="ems-icon-btn" title="预览" onclick="ems.preview('/project/files/download/@f.Id?inline=1')"><i class="layui-icon layui-icon-search"></i></a>
-                                        <a class="ems-icon-btn" href="/project/files/download/@f.Id" title="下载"><i class="layui-icon layui-icon-download"></i></a>
+                                        <a class="ems-icon-btn" href="/project/files/download/@f.Id" title="下载"><i class="layui-icon layui-icon-download-circle"></i></a>
                                         @if (canEdit) { <a class="ems-icon-btn warn" data-id="@f.Id" onclick="deleteFile(this)" title="删除"><i class="layui-icon layui-icon-delete"></i></a> }
                                     </td>
                                 </tr>
@@ -545,6 +536,7 @@
 </div>
 
 <div class="ems-modal-box" id="addMemberModal">
+    <div class="ems-form-group-title"><i class="layui-icon layui-icon-user"></i> 成员信息</div>
     <div class="layui-form-item">
         <label class="layui-form-label">选择员工 <span class="layui-font-red">*</span></label>
         <div class="layui-input-block">
@@ -555,22 +547,20 @@
         </div>
     </div>
     <div class="layui-form-item">
-        <div class="layui-inline" style="width:48%">
-            <label class="layui-form-label" style="width:auto">角色</label>
-            <div class="layui-input-inline" style="width:60%">
-                <select id="addRole" class="layui-input">
-                    <option>项目负责人</option><option selected>参与人员</option>
-                </select>
-            </div>
+        <label class="layui-form-label">角色</label>
+        <div class="layui-input-block">
+            <select id="addRole" class="layui-input">
+                <option>项目负责人</option><option selected>参与人员</option>
+            </select>
         </div>
-        <div class="layui-inline" style="width:48%">
-            <label class="layui-form-label" style="width:auto">占比(%)</label>
-            <div class="layui-input-inline" style="width:60%"><input type="number" id="addRatio" class="layui-input" min="0" max="100" step="0.5" placeholder="0=不参与产值分摊"></div>
-        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">占比(%)</label>
+        <div class="layui-input-block"><input type="number" id="addRatio" class="layui-input" min="0" max="100" step="0.5" placeholder="0=不参与产值分摊"></div>
     </div>
     <div class="layui-form-item layui-form-text">
         <label class="layui-form-label">职责</label>
-        <div class="layui-input-block"><textarea id="addDuty" class="layui-textarea" rows="2"></textarea></div>
+        <div class="layui-input-block"><textarea id="addDuty" class="layui-textarea" rows="2" placeholder="该成员在项目中的具体职责"></textarea></div>
     </div>
     <div class="layui-form-item">
         <label class="layui-form-label">加入日期</label>
@@ -952,11 +942,6 @@ window.openModal = function (id, title, area) {
         var id = $(el).data('id'), no = $(el).data('no');
         delContractById(id, no, 0);
     };
-    // 更多菜单里的删除入口：data-count 为该合同下回款笔数，确认框中明示级联影响
-    window.delContractFromMenu = function (el) {
-        var $m = $(el).closest('.ems-more-menu');
-        delContractById($m.data('id'), $m.data('no'), parseInt($m.data('count'), 10) || 0);
-    };
     window.delContractById = function (id, no, receiptCount) {
         var tip = '确认删除合同 ' + ems.escapeHtml(no || '') + '？';
         if (receiptCount > 0) tip += '<br><span class="layui-font-red">该合同下 ' + receiptCount + ' 笔回款记录将一并删除！</span>';
@@ -964,19 +949,6 @@ window.openModal = function (id, title, area) {
             ems.close(i);
             $.ajax({ url: '/project/' + projId + '/contracts/delete/' + id, type: 'POST', data: { __RequestVerificationToken: antiForgery }, success: function (r) { if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, reloadPage); } else ems.msg(r.message, { icon: 2 }); } });
         });
-    };
-    // 合同行「更多操作」小菜单：点外关闭
-    window.toggleCtMore = function (ev, id) {
-        if (ev) ev.stopPropagation();
-        var $menu = $('#ctMore_' + id);
-        var show = $menu.is(':hidden');
-        $('.ems-more-menu').hide();
-        if (show) {
-            $menu.show();
-            setTimeout(function () {
-                $(document).one('click', function () { $('.ems-more-menu').hide(); });
-            }, 0);
-        }
     };
     window.delContractFile = function (el) {
         var id = $(el).data('id');
