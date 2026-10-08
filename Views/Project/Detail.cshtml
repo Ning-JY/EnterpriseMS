@@ -410,7 +410,7 @@
                             <div class="layui-form-item">
                                 <div class="layui-inline"><label class="layui-form-label" style="width:auto">文件类别</label>
                                     <div class="layui-input-inline">
-                                        <select id="uploadCategory" class="layui-input">
+                                        <select id="uploadCategory" class="layui-input" lay-filter="uploadCategory">
                                             <option value="资料收集">资料收集</option>
                                             <option value="过程文件">过程文件</option>
                                             <option value="成果文件">成果文件</option>
@@ -1066,10 +1066,10 @@ window.openModal = function (id, title, area) {
     };
 
     // ── 文件上传 ──
-    // 成果文件才显示建安费输入框
-    $('#uploadCategory').on('change', function () {
-        $('#costWrap').toggle($(this).val() === '成果文件');
-    });
+    // 成果文件才显示建安费输入框（layui select 用 form.on 监听，原生 change 做兜底）
+    function toggleCostWrap(val) { $('#costWrap').toggle(val === '成果文件'); }
+    $('#uploadCategory').on('change', function () { toggleCostWrap($(this).val()); });
+    if (window.layui && layui.form) { layui.form.on('select(uploadCategory)', function (data) { toggleCostWrap(data.value); }); }
     window.onFileSelected = function (input) {
         if (!input.files[0]) return;
         var file = input.files[0];
