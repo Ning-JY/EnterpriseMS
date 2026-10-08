@@ -389,6 +389,9 @@ try
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         try
         {
+            // 临时诊断：打印 EF 发现的迁移与待执行迁移
+            var pending = await db.Database.GetPendingMigrationsAsync();
+            Log.Information("【诊断】待执行迁移: {Migrations}", string.Join(",", pending));
             await db.Database.MigrateAsync();
             Log.Information("数据库迁移检查完成（无待执行迁移则直接跳过）");
 

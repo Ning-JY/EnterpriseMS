@@ -1338,7 +1338,7 @@ namespace EnterpriseMS.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<decimal?>("ConstructionCost")
-                        .HasColumnType("decimal(18,2)")
+                        .HasColumnType("decimal(65,30)")
                         .HasColumnName("construction_cost");
 
                     b.Property<string>("Description")

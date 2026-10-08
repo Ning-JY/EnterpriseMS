@@ -14,7 +14,7 @@ namespace EnterpriseMS.Migrations
             migrationBuilder.AddColumn<decimal>(
                 name: "construction_cost",
                 table: "proj_file",
-                type: "decimal(18,2)",
+                type: "decimal(65,30)",
                 nullable: true);
         }
 
