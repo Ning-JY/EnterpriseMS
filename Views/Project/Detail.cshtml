@@ -1066,10 +1066,6 @@ window.openModal = function (id, title, area) {
     };
 
     // ── 文件上传 ──
-    // 成果文件才显示建安费输入框（layui select 用 form.on 监听，原生 change 做兜底）
-    function toggleCostWrap(val) { $('#costWrap').toggle(val === '成果文件'); }
-    $('#uploadCategory').on('change', function () { toggleCostWrap($(this).val()); });
-    if (window.layui && layui.form) { layui.form.on('select(uploadCategory)', function (data) { toggleCostWrap(data.value); }); }
     window.onFileSelected = function (input) {
         if (!input.files[0]) return;
         var file = input.files[0];
@@ -1210,6 +1206,11 @@ ems.ready(function () {
     } catch (e) { /* ignore */ }
 
     // ── 服务团队与产值：成员操作改用内联 onclick（事件委托在部分环境不触发） ──
+
+    // ── 成果文件才显示建安费输入框（layui select 用 form.on 监听，原生 change 做兜底） ──
+    function toggleCostWrap(val) { $('#costWrap').toggle(val === '成果文件'); }
+    $('#uploadCategory').on('change', function () { toggleCostWrap($(this).val()); });
+    if (layui.form) { layui.form.on('select(uploadCategory)', function (data) { toggleCostWrap(data.value); }); }
 
     // 从列表「生成报告」入口直达报告弹窗
     if (new URLSearchParams(location.search).get('report') === '1') {
