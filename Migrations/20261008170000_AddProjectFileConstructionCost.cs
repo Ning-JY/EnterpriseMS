@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EnterpriseMS.Migrations
 {
     /// <inheritdoc />
+    [Migration("20261008170000_AddProjectFileConstructionCost")]
     public partial class AddProjectFileConstructionCost : Migration
     {
         /// <inheritdoc />
