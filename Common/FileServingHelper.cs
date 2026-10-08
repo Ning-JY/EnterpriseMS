@@ -17,6 +17,15 @@ namespace EnterpriseMS.Common;
 public static class FileServingHelper
 {
     /// <summary>
+    /// 是否请求内联预览。兼容 ?inline=1 在 URL 中重复出现的情况
+    ///（视图里写了 ?inline=1，ems.preview 又会追加一次；StringValues 多值时 == "1" 恒为 false）。
+    /// </summary>
+    public static bool IsInlineRequested(Microsoft.AspNetCore.Http.HttpRequest request)
+    {
+        return request.Query.TryGetValue("inline", out var v) && v.Any(x => x == "1");
+    }
+
+    /// <summary>
     /// 从物理路径流式返回文件。
     /// </summary>
     /// <param name="physicalPath">磁盘绝对路径</param>

@@ -108,7 +108,7 @@ public class EmployeeArchiveController : BaseAuthController
     {
         var info = await _contractSvc.GetDownloadInfoAsync(id);
         if (info == null || !global::System.IO.File.Exists(info.Value.Path)) return NotFound();
-        var inline = Request.Query["inline"] == "1";
+        var inline = FileServingHelper.IsInlineRequested(Request);
         return FileServingHelper.ServePhysicalFile(info.Value.Path, info.Value.FileName,
             global::System.IO.Path.GetExtension(info.Value.Path), inline);
     }
@@ -190,7 +190,7 @@ public class EmployeeArchiveController : BaseAuthController
     {
         var info = await _certSvc.GetDownloadInfoAsync(id);
         if (info == null || !global::System.IO.File.Exists(info.Value.Path)) return NotFound();
-        var inline = Request.Query["inline"] == "1";
+        var inline = FileServingHelper.IsInlineRequested(Request);
         return FileServingHelper.ServePhysicalFile(info.Value.Path, info.Value.FileName,
             global::System.IO.Path.GetExtension(info.Value.Path), inline);
     }
@@ -329,7 +329,7 @@ public class EmployeeArchiveController : BaseAuthController
     {
         var info = await _attachSvc.GetDownloadInfoAsync(id);
         if (info == null || !global::System.IO.File.Exists(info.Value.Path)) return NotFound();
-        var inline = Request.Query["inline"] == "1";
+        var inline = FileServingHelper.IsInlineRequested(Request);
         return FileServingHelper.ServePhysicalFile(info.Value.Path, info.Value.FileName,
             global::System.IO.Path.GetExtension(info.Value.Path), inline);
     }

@@ -1346,8 +1346,8 @@
      */
     ems.preview = function (url, title) {
         if (!url) return;
-        var sep = url.indexOf('?') >= 0 ? '&' : '?';
-        var previewUrl = url + sep + 'inline=1';
+        // 避免重复追加：调用方可能已在 URL 里带了 inline=1
+        var previewUrl = /[?&]inline=/.test(url) ? url : url + (url.indexOf('?') >= 0 ? '&' : '?') + 'inline=1';
         var ext = (url.split('?')[0].split('.').pop() || '').toLowerCase();
         var noInline = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z'];
         if (noInline.indexOf(ext) >= 0) {

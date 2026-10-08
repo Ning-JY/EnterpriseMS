@@ -536,7 +536,7 @@ public class ProjectController : BaseAuthController
             : (inv.PaymentFile, inv.PaymentFileName);
         if (string.IsNullOrEmpty(fp) || !global::System.IO.File.Exists(fp))
             return NotFound("文件不存在");
-        var inline = Request.Query["inline"] == "1";
+        var inline = FileServingHelper.IsInlineRequested(Request);
         return FileServingHelper.ServePhysicalFile(fp, fn ?? "附件", global::System.IO.Path.GetExtension(fp), inline);
     }
 
@@ -560,7 +560,7 @@ public class ProjectController : BaseAuthController
         if (contract == null || string.IsNullOrEmpty(contract.FilePath)
             || !global::System.IO.File.Exists(contract.FilePath))
             return NotFound("文件不存在");
-        var inline = Request.Query["inline"] == "1";
+        var inline = FileServingHelper.IsInlineRequested(Request);
         return FileServingHelper.ServePhysicalFile(contract.FilePath, contract.FileName ?? "合同附件",
             global::System.IO.Path.GetExtension(contract.FilePath), inline);
     }
@@ -613,7 +613,7 @@ public class ProjectController : BaseAuthController
         var f     = files.FirstOrDefault();
         if (f == null || !global::System.IO.File.Exists(f.FilePath))
             return NotFound("文件不存在");
-        var inline = Request.Query["inline"] == "1";
+        var inline = FileServingHelper.IsInlineRequested(Request);
         return FileServingHelper.ServePhysicalFile(f.FilePath, f.FileName, f.FileExt, inline);
     }
 
