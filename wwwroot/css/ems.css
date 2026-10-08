@@ -41,10 +41,12 @@
 /* 顶栏已从侧边栏右侧开始，内部左侧导航不再需要 200px 偏移 */
 .layui-layout-admin .layui-header .layui-layout-left { left: 0; }
 /* ── 顶部通知下拉框：居中对齐 + 限高滚动 ─────────────── */
+/* 注：不用 transform 居中——layui 的 layui-anim-upbit 入场动画（fill-mode:both）
+   会覆盖 transform；改用 margin-left 负值实现居中 */
 .ems-notif-dropdown {
     width: 300px !important;
     left: 50% !important; right: auto !important;
-    transform: translateX(-50%);
+    margin-left: -150px;
     max-height: 420px; overflow-y: auto;
 }
 .ems-notif-dropdown dd a {
