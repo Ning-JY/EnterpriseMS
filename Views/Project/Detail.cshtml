@@ -169,8 +169,8 @@
                         <td>
                             @if (canMember && m.Status == 0)
                             {
-                                <a class="ems-icon-btn edit" data-act="member-edit" data-id="@m.Id" data-role="@m.Role" data-duty="@(m.DutyDesc ?? "")" data-ratio="@m.Ratio" title="编辑"><i class="layui-icon layui-icon-edit"></i></a>
-                                <a class="ems-icon-btn warn" data-act="member-remove" data-id="@m.Id" data-name="@m.EmployeeName" title="移除"><i class="layui-icon layui-icon-delete"></i></a>
+                                <a class="ems-icon-btn edit" onclick="openEditMember(this)" data-id="@m.Id" data-role="@m.Role" data-duty="@(m.DutyDesc ?? "")" data-ratio="@m.Ratio" title="编辑"><i class="layui-icon layui-icon-edit"></i></a>
+                                <a class="ems-icon-btn warn" onclick="removeMember(this)" data-id="@m.Id" data-name="@m.EmployeeName" title="移除"><i class="layui-icon layui-icon-delete"></i></a>
                             }
                         </td>
                     </tr>
@@ -187,7 +187,7 @@
             </tfoot>
         </table>
         @if (canMember) {
-            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" style="margin-top:8px" data-act="member-add"><i class="layui-icon layui-icon-add-1"></i> 添加成员</button>
+            <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" style="margin-top:8px" onclick="openModal('addMemberModal','添加项目成员',['460px'])"><i class="layui-icon layui-icon-add-1"></i> 添加成员</button>
         }
     </div>
 </div>
@@ -1209,16 +1209,7 @@ ems.ready(function () {
         }
     } catch (e) { /* ignore */ }
 
-    // ── 服务团队与产值：改用事件委托，避免内联 onclick 依赖全局函数 ──
-    $(document).on('click', '[data-act="member-add"]', function () {
-        openModal('addMemberModal', '添加项目成员', ['460px']);
-    });
-    $(document).on('click', '[data-act="member-edit"]', function () {
-        openEditMember(this);
-    });
-    $(document).on('click', '[data-act="member-remove"]', function () {
-        removeMember(this);
-    });
+    // ── 服务团队与产值：成员操作改用内联 onclick（事件委托在部分环境不触发） ──
 
     // 从列表「生成报告」入口直达报告弹窗
     if (new URLSearchParams(location.search).get('report') === '1') {
