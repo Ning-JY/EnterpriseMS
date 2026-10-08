@@ -1337,6 +1337,10 @@ namespace EnterpriseMS.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<decimal?>("ConstructionCost")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("construction_cost");
+
                     b.Property<string>("Description")
                         .HasColumnType("longtext")
                         .HasColumnName("description");

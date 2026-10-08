@@ -143,11 +143,12 @@ ems.ready(function () {
             disable: function (d) { toggleStatus(d, 0); },
             resetPwd: function (d) {
                 ems.promptDialog({
-                    title: '重置密码',
-                    icon: 'layui-icon-key',
-                    msg: '为 <b>' + ems.escapeHtml(d.RealName) + '</b> 设置新密码',
+                    title: '警告',
+                    danger: true,
+                    msg: '确定将用户 <b>' + ems.escapeHtml(d.RealName) + '</b> 的密码重置为下方输入的新密码？',
                     formType: 1,
                     minLength: 6,
+                    placeholder: '请输入新密码（至少6位）',
                     btn: ['确认重置', '取消']
                 }, function (val) {
                     ems.post({

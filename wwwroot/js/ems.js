@@ -244,10 +244,16 @@
      *                        btn:['确定','取消'] }
      * @param {function} cb 点击「确定」回调，参数为输入值
      */
+    /**
+     * 带输入框的确认弹窗。
+     * @param {object} opt { title, icon, msg, formType:0=文本 1=密码 2=多行, minLength, placeholder, value, btn, area,
+     *                       danger:true → 警告风格（橙色警告图标+红色确认按钮，与删除/禁用统一） }
+     */
     ems.promptDialog = function (opt, cb) {
         if (typeof opt === 'string') opt = { title: opt };
         opt = opt || {};
         var min = opt.minLength || 0;
+        var danger = !!opt.danger;
         var uid = 'ems_pd_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
         var inputHtml;
         if (opt.formType === 2) {
@@ -258,15 +264,16 @@
             inputHtml = '<input type="' + type + '" id="' + uid + '" class="layui-input" placeholder="' +
                 ems.escapeHtml(opt.placeholder || '') + '" value="' + ems.escapeHtml(opt.value || '') + '">';
         }
-        var iconHtml = opt.icon ? '<div class="ems-prompt-icon"><i class="layui-icon ' + opt.icon + '"></i></div>' : '';
+        var iconCls = opt.icon || (danger ? 'layui-icon-tips' : '');
+        var iconHtml = iconCls ? '<div class="ems-prompt-icon"><i class="layui-icon ' + iconCls + '"></i></div>' : '';
         var msgHtml = opt.msg ? '<div class="ems-prompt-msg">' + opt.msg + '</div>' : '';
-        var headHtml = (opt.icon || opt.msg)
+        var headHtml = (iconCls || opt.msg)
             ? '<div class="ems-prompt-head">' + iconHtml + msgHtml + '</div>'
             : '';
         return layer.open({
             type: 1,
             title: opt.title || '请输入',
-            skin: 'ems-layer ems-layer-prompt2',
+            skin: 'ems-layer ems-layer-prompt2' + (danger ? ' ems-danger' : ''),
             area: opt.area || ['420px', ''],
             btn: opt.btn || ['确定', '取消'],
             content: '<div class="ems-prompt-box">' + headHtml +

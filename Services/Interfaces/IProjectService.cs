@@ -52,7 +52,8 @@ public interface IProjectService
     Task<(string? filePath, string? fileName)> GetInvoiceFileAsync(long invoiceId, string fileType);
     // 文件
     Task<long>   AddFileAsync(long projectId, string category, string fileName,
-        string filePath, long fileSize, string? description, string? version, string operBy);
+        string filePath, long fileSize, string? description, string? version, string operBy,
+        decimal? constructionCost = null);
     Task         DeleteFileAsync(long fileId);
     Task<(string? filePath, string? fileName, string? fileExt)?> GetFileAsync(long fileId);
     // 操作日志（分页）

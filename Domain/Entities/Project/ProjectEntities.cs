@@ -169,6 +169,7 @@ public class ProjectFile : BaseEntity
     [Column("file_ext")]     public string?  FileExt     { get; set; }
     [Column("description")]  public string?  Description { get; set; }
     [Column("version")]      public string?  Version     { get; set; } // 版本号（成果文件用）
+    [Column("construction_cost")] public decimal? ConstructionCost { get; set; } // 建安费（万元，成果文件用）
     [Column("upload_by")]    public string   UploadBy    { get; set; } = "";
     public Project? Project { get; set; }
 }

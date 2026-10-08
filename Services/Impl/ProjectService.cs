@@ -691,7 +691,8 @@ public class ProjectService : IProjectService
 
     // ── 项目文件 ──────────────────────────────────────────────
     public async Task<long> AddFileAsync(long projectId, string category, string fileName,
-        string filePath, long fileSize, string? description, string? version, string operBy)
+        string filePath, long fileSize, string? description, string? version, string operBy,
+        decimal? constructionCost = null)
     {
         var file = new ProjectFile
         {
@@ -703,6 +704,7 @@ public class ProjectService : IProjectService
             FileExt = Path.GetExtension(fileName).TrimStart('.').ToLower(),
             Description = description,
             Version = version,
+            ConstructionCost = constructionCost,
             UploadBy = operBy,
             CreatedBy = operBy,
         };

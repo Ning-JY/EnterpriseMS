@@ -34,7 +34,7 @@
                         <span class="label">角色</span>
                         <span class="val">
                             @foreach (var r in Model.RoleNames)
-                            { <span class="layui-badge layui-bg-blue" style="margin-right:4px">@Html.Encode(r)</span> }
+                            { <span class="layui-badge layui-bg-blue" style="margin-right:4px">@System.Net.WebUtility.HtmlDecode(r)</span> }
                         </span>
                     </div>
                     <div class="ems-info-item"><span class="label">最后登录</span><span class="val">@(Model.LastLoginTime?.ToString("MM-dd HH:mm") ?? "首次登录")</span></div>

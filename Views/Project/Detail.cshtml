@@ -33,7 +33,7 @@
 
 <!-- 标题栏 + 面包屑 -->
 <div class="ems-page-head">
-    <div class="ems-page-title"><i class="layui-icon layui-icon-console"></i> 项目详情</div>
+    <div class="ems-page-title"><button type="button" class="layui-btn layui-btn-sm layui-btn-primary ems-back-btn" title="返回列表" onclick="ems.openTab('/project','项目台账')"><i class="layui-icon layui-icon-return"></i></button><i class="layui-icon layui-icon-console"></i> 项目详情</div>
     <div class="layui-breadcrumb" lay-separator="/">
         <a href="javascript:;">首页</a>
         <a href="javascript:ems.openTab('/project')">项目台账</a>
@@ -156,14 +156,14 @@
             <span class="layui-font-12 @(Math.Abs(totalR2 - 100) < 0.1m ?"layui-font-green" : "layui-font-orange")">已分配 @totalR2.ToString("N1")%</span>
         </div>
         <table class="layui-table ems-detail-tbl-sm" lay-skin="line">
-            <thead><tr><th>姓名</th><th>角色</th><th>占比</th><th>合同产值</th><th>已实现</th><th>操作</th></tr></thead>
+            <thead><tr><th>姓名</th><th>职责</th><th>占比</th><th>合同产值</th><th>已实现</th><th>操作</th></tr></thead>
             <tbody>
                 @foreach (var m in Model.Members.OrderByDescending(x => x.Status == 0))
                 {
                     <tr class="@(m.Status == 1 ? "layui-bg-gray" : "")">
-                        <td><strong>@m.EmployeeName</strong><br><span class="layui-font-12">@(m.DeptName ?? "")</span></td>
-                        <td><span class="layui-font-12">@m.Role</span></td>
-                        <td><strong class="@(m.Status == 0 ? "layui-font-teal" : "layui-font-gray")">@m.Ratio.ToString("N1")%</strong></td>
+                        <td><strong>@m.EmployeeName</strong>@if (m.Role == "项目负责人") { <span class="layui-badge layui-bg-blue">负责人</span> }<br><span class="layui-font-12">@(m.DeptName ?? "")</span></td>
+                        <td><span class="layui-font-12">@(string.IsNullOrWhiteSpace(m.DutyDesc) ? "-" : m.DutyDesc)</span></td>
+                        <td><strong class="@(m.Status == 0 ? "layui-font-teal" : "layui-font-gray")">@m.Ratio.ToString("N1")%</strong>@if (m.Ratio == 0 && m.Status == 0) { <br><span class="layui-font-12 layui-font-gray">不参与分摊</span> }</td>
                         <td class="layui-font-teal layui-font-12">@m.ContractValue.ToString("N2")</td>
                         <td class="layui-font-green layui-font-12">@m.ReceivedValue.ToString("N2")</td>
                         <td>
@@ -230,6 +230,18 @@
                                 @if (ct.Status == 1) { <span class="ems-tag ems-tag-green">生效</span> } else { <span class="ems-tag ems-tag-gray">无效</span> }
                                 @if (ct.SignDate.HasValue) { <span class="layui-font-12">签约：@ct.SignDate.Value.ToString("yyyy-MM-dd")</span> }
                                 <span class="layui-font-12">@ct.PartyA</span>
+                                @if (!string.IsNullOrEmpty(ct.FileName)) {
+                                    <span class="ems-contract-file" title="@ct.FileName">
+                                        <i class="layui-icon layui-icon-file"></i><a href="/project/contracts/download/@ct.Id">@ct.FileName</a>
+                                    </span>
+                                    <a class="ems-icon-btn" title="预览" onclick="ems.preview('/project/contracts/download/@ct.Id?inline=1')"><i class="layui-icon layui-icon-search"></i></a>
+                                    @if (canEdit) {
+                                        <label class="ems-icon-btn" title="重新上传"><i class="layui-icon layui-icon-upload"></i><input type="file" class="layui-hide" onchange="uploadContractFile(@ct.Id,this)"></label>
+                                        <a class="ems-icon-btn warn" data-id="@ct.Id" onclick="delContractFile(this)" title="删除附件"><i class="layui-icon layui-icon-close"></i></a>
+                                    }
+                                } else if (canEdit) {
+                                    <label class="ems-icon-btn" title="上传合同"><i class="layui-icon layui-icon-upload"></i><input type="file" class="layui-hide" onchange="uploadContractFile(@ct.Id,this)"></label>
+                                }
                                 <span style="margin-left:auto">
                                     @if (canEdit) {
                                         <a class="ems-icon-btn success" onclick="openAddReceipt(@ct.Id)" title="新增回款"><i class="layui-icon layui-icon-add-1"></i></a>
@@ -241,18 +253,6 @@
                                         </span>
                                     }
                                 </span>
-                            </div>
-                            <div class="ems-contract-row" style="margin-top:6px">
-                                @if (!string.IsNullOrEmpty(ct.FileName)) {
-                                    <a class="layui-font-12" href="/project/contracts/download/@ct.Id"><i class="layui-icon layui-icon-file"></i> @ct.FileName</a>
-                                    <a class="ems-icon-btn" title="预览" onclick="ems.preview('/project/contracts/download/@ct.Id?inline=1')"><i class="layui-icon layui-icon-search"></i></a>
-                                    @if (canEdit) {
-                                        <label class="ems-icon-btn" title="重新上传"><i class="layui-icon layui-icon-upload"></i><input type="file" class="layui-hide" onchange="uploadContractFile(@ct.Id,this)"></label>
-                                        <a class="ems-icon-btn warn" data-id="@ct.Id" onclick="delContractFile(this)" title="删除附件"><i class="layui-icon layui-icon-close"></i></a>
-                                    }
-                                } else if (canEdit) {
-                                    <label class="ems-icon-btn" title="上传合同"><i class="layui-icon layui-icon-upload"></i><input type="file" class="layui-hide" onchange="uploadContractFile(@ct.Id,this)"></label>
-                                }
                             </div>
                             @if (ctInvoices.Any())
                             {
@@ -424,6 +424,9 @@
                                 <div class="layui-inline"><label class="layui-form-label" style="width:auto">说明</label>
                                     <div class="layui-input-inline"><input type="text" id="uploadDesc" class="layui-input" placeholder="默认使用文件名"></div>
                                 </div>
+                                <div class="layui-inline" id="costWrap" style="display:none"><label class="layui-form-label" style="width:auto">建安费(万)</label>
+                                    <div class="layui-input-inline"><input type="number" id="uploadCost" class="layui-input" step="0.01" min="0" placeholder="成果文件填写"></div>
+                                </div>
                                 <div class="layui-inline">
                                     <label class="layui-btn layui-btn-sm layui-btn-primary"><i class="layui-icon layui-icon-folder"></i> 选择文件
                                         <input type="file" id="fileInput" class="layui-hide" onchange="onFileSelected(this)">
@@ -447,7 +450,7 @@
                 {
                     <h6 class="layui-font-12" style="margin:14px 0 6px">@grp.Key（@grp.Count() 个）</h6>
                     <table class="layui-table" lay-skin="line">
-                        <thead><tr><th>文件名</th><th>版本</th><th>大小</th><th>说明</th><th>上传人</th><th>上传时间</th><th>操作</th></tr></thead>
+                        <thead><tr><th>文件名</th><th>版本</th><th>大小</th>@if (grp.Key == "成果文件") { <th>建安费(万)</th> }<th>说明</th><th>上传人</th><th>上传时间</th><th>操作</th></tr></thead>
                         <tbody>
                             @foreach (var f in grp.OrderByDescending(x => x.CreatedAt))
                             {
@@ -455,6 +458,7 @@
                                     <td><i class="layui-icon layui-icon-file @GetFileIcon(f.FileExt)"></i> <a href="/project/files/download/@f.Id">@f.FileName</a></td>
                                     <td class="layui-font-12">@(f.Version ?? "-")</td>
                                     <td class="layui-font-12">@f.FileSizeText</td>
+                                    @if (grp.Key == "成果文件") { <td class="layui-font-12">@(f.ConstructionCost.HasValue ? f.ConstructionCost.Value.ToString("N2") : "-")</td> }
                                     <td class="layui-font-12">@(f.Description ?? "-")</td>
                                     <td class="layui-font-12">@f.UploadBy</td>
                                     <td class="layui-font-12">@f.CreatedAt.ToString("MM-dd HH:mm")</td>
@@ -561,7 +565,7 @@
         </div>
         <div class="layui-inline" style="width:48%">
             <label class="layui-form-label" style="width:auto">占比(%)</label>
-            <div class="layui-input-inline" style="width:60%"><input type="number" id="addRatio" class="layui-input" min="1" max="100" step="0.5"></div>
+            <div class="layui-input-inline" style="width:60%"><input type="number" id="addRatio" class="layui-input" min="0" max="100" step="0.5" placeholder="0=不参与产值分摊"></div>
         </div>
     </div>
     <div class="layui-form-item layui-form-text">
@@ -587,7 +591,7 @@
     </div>
     <div class="layui-form-item">
         <label class="layui-form-label">占比(%) <span class="layui-font-red">*</span></label>
-        <div class="layui-input-block"><input type="number" id="editMemberRatio" class="layui-input" min="1" max="100" step="0.5"></div>
+        <div class="layui-input-block"><input type="number" id="editMemberRatio" class="layui-input" min="0" max="100" step="0.5" placeholder="0=不参与产值分摊"></div>
     </div>
     <div class="layui-form-item layui-form-text">
         <label class="layui-form-label">职责</label>
@@ -658,27 +662,33 @@
 </div>
 
 <div class="ems-modal-box" id="addContractModal">
+    <div class="ems-form-group-title">合同信息</div>
     <div class="layui-form-item">
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">编号 <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:55%"><input type="text" id="ctNo" class="layui-input"></div></div>
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">类型</label><div class="layui-input-inline" style="width:55%"><select id="ctType" class="layui-input">@foreach (var t in contractTypes) { <option value="@t.DictValue" selected="@(t.IsDefault == 1)">@t.DictLabel</option> }</select></div></div>
-        <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">金额(万) <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:55%"><input type="number" id="ctAmount" class="layui-input" step="0.01"></div></div>
+        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">编号 <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:60%"><input type="text" id="ctNo" class="layui-input"></div></div>
+        <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">金额(万) <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:60%"><input type="number" id="ctAmount" class="layui-input" step="0.01" min="0"></div></div>
     </div>
     <div class="layui-form-item">
         <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">甲方 <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:60%"><input type="text" id="ctPartyA" class="layui-input" value="@Model.OwnerName"></div></div>
         <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">乙方</label><div class="layui-input-inline" style="width:60%"><input type="text" id="ctPartyB" class="layui-input" value="我方公司"></div></div>
     </div>
     <div class="layui-form-item">
+        <label class="layui-form-label">类型</label>
+        <div class="layui-input-block"><select id="ctType" class="layui-input">@foreach (var t in contractTypes) { <option value="@t.DictValue" selected="@(t.IsDefault == 1)">@t.DictLabel</option> }</select></div>
+    </div>
+    <div class="ems-form-group-title">合同期限</div>
+    <div class="layui-form-item">
         <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">签约</label><div class="layui-input-inline" style="width:55%"><input type="text" id="ctSignDate" class="layui-input" readonly placeholder="请选择日期" data-date></div></div>
         <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">开始</label><div class="layui-input-inline" style="width:55%"><input type="text" id="ctStartDate" class="layui-input" readonly placeholder="请选择日期" data-date></div></div>
         <div class="layui-inline" style="width:31%"><label class="layui-form-label" style="width:auto">结束</label><div class="layui-input-inline" style="width:55%"><input type="text" id="ctEndDate" class="layui-input" readonly placeholder="请选择日期" data-date></div></div>
     </div>
-    <div class="layui-form-item layui-form-text">
-        <label class="layui-form-label">备注</label>
-        <div class="layui-input-block"><textarea id="ctRemark" class="layui-textarea" rows="2"></textarea></div>
-    </div>
+    <div class="ems-form-group-title">附件</div>
     <div class="layui-form-item">
         <label class="layui-form-label">合同附件</label>
         <div class="layui-input-block"><input type="file" id="ctFile" class="layui-input"></div>
+    </div>
+    <div class="layui-form-item layui-form-text">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block"><textarea id="ctRemark" class="layui-textarea" rows="2"></textarea></div>
     </div>
     <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('addContractModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="saveContract()">保存</button></div>
 </div>
@@ -792,7 +802,7 @@ window.openModal = function (id, title, area) {
     window.saveMember = function () {
         var ratio = parseFloat($('#addRatio').val());
         if (!$('#addEmpId').val()) { ems.msg('请选择员工', { icon: 2 }); return; }
-        if (!ratio) { ems.msg('请填写占比', { icon: 2 }); return; }
+        if (isNaN(ratio) || ratio < 0) { ems.msg('请填写占比（0 表示不参与产值分摊）', { icon: 2 }); return; }
         $.ajax({
             url: '/project/' + projId + '/members', type: 'POST',
             contentType: 'application/json',
@@ -818,7 +828,7 @@ window.openModal = function (id, title, area) {
     };
     window.doEditMember = function () {
         var ratio = parseFloat($('#editMemberRatio').val());
-        if (!ratio) { ems.msg('请填写占比', { icon: 2 }); return; }
+        if (isNaN(ratio) || ratio < 0) { ems.msg('请填写占比（0 表示不参与产值分摊）', { icon: 2 }); return; }
         $.ajax({
             url: '/project/members/update', type: 'POST',
             contentType: 'application/json',
@@ -1056,6 +1066,10 @@ window.openModal = function (id, title, area) {
     };
 
     // ── 文件上传 ──
+    // 成果文件才显示建安费输入框
+    $('#uploadCategory').on('change', function () {
+        $('#costWrap').toggle($(this).val() === '成果文件');
+    });
     window.onFileSelected = function (input) {
         if (!input.files[0]) return;
         var file = input.files[0];
@@ -1077,13 +1091,15 @@ window.openModal = function (id, title, area) {
     window.confirmUpload = function () {
         var input = document.getElementById('fileInput');
         if (!input.files[0]) { ems.msg('请先选择文件', { icon: 2 }); return; }
+        var cost = $('#uploadCost').val();
         ems.uploadFile({
             url: '/project/' + projId + '/files',
             file: input.files[0], title: '上传项目文件',
             data: {
                 category: $('#uploadCategory').val(),
                 description: $('#uploadDesc').val(),
-                version: $('#uploadVersion').val()
+                version: $('#uploadVersion').val(),
+                constructionCost: cost === '' ? null : parseFloat(cost)
             },
             headers: { 'RequestVerificationToken': antiForgery },
             done: function () {

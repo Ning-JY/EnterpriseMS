@@ -155,6 +155,7 @@ public class ProjectFileDto
     public string? FileExt      { get; set; }
     public string? Description  { get; set; }
     public string? Version      { get; set; }
+    public decimal? ConstructionCost { get; set; } // 建安费（万元，成果文件用）
     public string  UploadBy     { get; set; } = "";
     public DateTime CreatedAt   { get; set; }
     public string FileSizeText  => FileSize < 1024 ? $"{FileSize}B"

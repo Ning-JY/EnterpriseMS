@@ -497,6 +497,12 @@ body .layui-layer.ems-layer.ems-layer-prompt2 .layui-layer-content {
 .ems-prompt-box .ems-prompt-field textarea:focus {
     border-color: #0d6b64;
 }
+/* 危险风格（删除/禁用/重置密码统一）：橙色警告图标 + 红色确认按钮 */
+.ems-layer.ems-danger .ems-prompt-head .ems-prompt-icon { color: #ff5722; }
+.ems-layer.ems-danger .layui-layer-btn .layui-layer-btn0 {
+    background: #ff5722; border-color: #ff5722; color: #fff;
+}
+.ems-layer.ems-danger .layui-layer-btn .layui-layer-btn0:hover { background: #f4511e; border-color: #f4511e; }
 
 /* ==========================================================================
    详情页（员工 / 项目等）：参考上传设计稿，统一收口此处，页面零内联样式
@@ -628,6 +634,9 @@ body .layui-layer.ems-layer.ems-layer-prompt2 .layui-layer-content {
 .ems-contract-group .ems-contract-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 13px; color:#555; }
 .ems-contract-group .ems-contract-name { font-weight: 600; color:#1f2d3d; }
 .ems-contract-group .ems-invoice-rows { margin-top: 8px; }
+/* 合同行附件名过长时截断 */
+.ems-contract-file { display: inline-flex; align-items: center; gap: 4px; max-width: 240px; font-size: 12px; color: #555; }
+.ems-contract-file a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── 角色徽标（项目成员角色） ─────────────────────────── */
 .ems-role-badge { display:inline-block; padding:1px 8px; border-radius:10px; font-size:11px; margin-left:4px; background:#e8f3f1; color:#0d6b64; }
@@ -658,3 +667,7 @@ body .layui-layer.ems-layer.ems-layer-prompt2 .layui-layer-content {
 
 /* layui 原生命名工具类（颜色，引号内 !important 与 layui 原生保持一致） */
 .layui-font-teal { color: #0d6b64 !important; }
+
+/* 详情页返回列表图标按钮（无文字，全站统一） */
+.ems-back-btn { padding: 0 9px !important; }
+.ems-page-title .ems-back-btn { margin-right: 10px; vertical-align: -2px; }

@@ -584,7 +584,7 @@ public class ProjectController : BaseAuthController
     [HttpPost("{projectId}/files")]
     [HasPermission("proj:project:edit")]
     public async Task<IActionResult> UploadFile(long projectId, IFormFile file,
-        string category, string? description, string? version)
+        string category, string? description, string? version, decimal? constructionCost = null)
     {
         if (file == null || file.Length == 0)
             return ApiFail("请选择文件");
@@ -597,7 +597,7 @@ public class ProjectController : BaseAuthController
 
         var fileId = await _projSvc.AddFileAsync(projectId, category,
             saved.Value.name, saved.Value.path, file.Length,
-            description, version, User.GetRealName());
+            description, version, User.GetRealName(), constructionCost);
 
         return ApiOk(new
         {
