@@ -27,10 +27,42 @@
     border: none;
 }
 
+/* ── 主框架：侧边栏全高，顶栏位于侧边栏右侧 ─────────────────── */
+.layui-layout-admin .layui-side { top: 0; display: flex; flex-direction: column; }
+.layui-layout-admin .layui-side .layui-logo {
+    flex: 0 0 60px; height: 60px; line-height: 60px;
+    text-align: center; color: #fff;
+    font-size: 16px; font-weight: 600;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    width: 200px; position: static;
+}
+.layui-layout-admin .layui-side .layui-side-scroll { flex: 1; height: auto; width: 200px; }
+.layui-layout-admin .layui-header { left: 200px; }
+/* ── 顶部通知下拉框：右对齐防视口遮挡 + 限高滚动 ─────────────── */
+.ems-notif-dropdown {
+    width: 340px !important;
+    left: auto !important; right: 0;
+    max-height: 420px; overflow-y: auto;
+}
+.ems-notif-dropdown dd a {
+    white-space: normal; line-height: 1.5;
+    padding-top: 8px; padding-bottom: 8px;
+}
+.layui-layout-admin .layui-side { top: 0; display: flex; flex-direction: column; }
+.layui-layout-admin .layui-side .layui-logo {
+    flex: 0 0 60px; height: 60px; line-height: 60px;
+    text-align: center; color: #fff;
+    font-size: 16px; font-weight: 600;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    width: 200px; position: static;
+}
+.layui-layout-admin .layui-side .layui-side-scroll { flex: 1; height: auto; width: 200px; }
+.layui-layout-admin .layui-header { left: 200px; }
 /* ── 主框架：侧边栏收起以腾出空间 ─────────────────────────── */
 .ems-side-hide .layui-side { left: -200px; }
 .ems-side-hide .layui-body,
 .ems-side-hide .layui-footer { left: 0; }
+.ems-side-hide .layui-header { left: 0; }
 .ems-side-hide .layui-logo { display: none; }
 /* 侧边栏收起时，顶部「首页」按钮贴合左边缘（随侧栏扩展/收起联动） */
 .ems-side-hide .layui-header .layui-layout-left { left: 0 !important; }

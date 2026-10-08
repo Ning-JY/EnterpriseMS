@@ -10,7 +10,7 @@
     };
     string BadgeText(int n) => n > 99 ? "99+" : n.ToString();
 }
-<li class="layui-nav-item">
+<li class="layui-nav-item ems-notif-bell">
     <a href="javascript:;" title="通知">
         <i class="layui-icon layui-icon-notice"></i>
         @if (Model.UnreadCount > 0)
@@ -18,7 +18,7 @@
             <span class="layui-badge">@BadgeText(Model.UnreadCount)</span>
         }
     </a>
-    <dl class="layui-nav-child" style="width:320px">
+    <dl class="layui-nav-child ems-notif-dropdown">
         <dd class="layui-nav-item-none">
             <a href="javascript:;">@Model.UnreadCount 条未读通知</a>
         </dd>
