@@ -31,3 +31,25 @@ public class TemplateField
     public string? HelpText { get; set; }
     public int Sort { get; set; }
 }
+
+/// <summary>模板使用留痕（用章申请/报告生成等）：谁、何时、用哪个模板、填了什么值、生成了什么文件。
+/// Status 预留审批流扩展（done=已完成，pending=待审批…），当前阶段仅记录 done。</summary>
+public class TemplateUsageRecord
+{
+    public long Id { get; set; }
+    public string TemplateId { get; set; } = "";
+    public string TemplateName { get; set; } = "";
+    /// <summary>模板分类（用章申请/报告/请假…），与模板 Category 对应。</summary>
+    public string Category { get; set; } = "";
+    public long? ProjectId { get; set; }
+    public string? ProjectName { get; set; }
+    public long? ApplicantId { get; set; }
+    public string? ApplicantName { get; set; }
+    /// <summary>填充字段快照（JSON：字段名 → 值）。</summary>
+    public string? FieldSnapshot { get; set; }
+    public string? FileName { get; set; }
+    /// <summary>状态：done=已完成（预留 pending=待审批等扩展）。</summary>
+    public string Status { get; set; } = "done";
+    public DateTime CreatedAt { get; set; }
+    public long? CreatedBy { get; set; }
+}

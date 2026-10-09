@@ -1,0 +1,244 @@
+@*
+  简化版模板配置：占位符式
+  流程：填写基本信息 → 上传含 {{占位符}} 的 Word → 自动扫描占位符 → 逐个映射数据源字段 → 保存
+*@
+@{
+    Layout = "_Layout";
+}
+@section Styles {
+<style>
+.tpl-simple-wrap { max-width: 1100px; margin: 0 auto; }
+.tpl-step { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.06); padding: 16px 20px; margin-bottom: 14px; }
+.tpl-step > h3 { margin: 0 0 12px; font-size: 15px; color: #0f172a; display: flex; align-items: center; gap: 8px; }
+.tpl-step > h3 .step-no { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #0d6b64; color: #fff; font-size: 12px; }
+.tpl-step > h3 small { font-weight: normal; color: #94a3b8; font-size: 12px; }
+.ph-tip { font-size: 12px; color: #64748b; background: #f8fafc; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; line-height: 1.7; }
+.ph-tip code { background: #e2e8f0; padding: 1px 6px; border-radius: 4px; font-family: Consolas, monospace; color: #0d6b64; }
+#phTable .layui-input, #phTable .layui-select { height: 34px; }
+.ph-name { font-family: Consolas, monospace; color: #0d6b64; font-weight: 600; }
+</style>
+}
+
+<div class="tpl-simple-wrap">
+    <div class="ems-page-head">
+        <div class="ems-page-title"><i class="layui-icon layui-icon-template"></i> 模板配置 <small style="color:#94a3b8;font-size:12px">占位符式</small></div>
+        <div class="layui-breadcrumb" lay-separator="/">
+            <a href="javascript:;">系统设置</a>
+            <a href="javascript:ems.openTab('/templatereport/manage','模板管理')">模板库</a>
+            <a><cite>配置模板</cite></a>
+        </div>
+    </div>
+
+    <!-- 步骤1：基本信息 -->
+    <div class="tpl-step">
+        <h3><span class="step-no">1</span> 基本信息</h3>
+        <div class="layui-form" lay-filter="tplBaseForm">
+            <div class="layui-row layui-col-space15">
+                <div class="layui-col-xs4">
+                    <label class="layui-form-label" style="width:auto;padding-left:0">模板名称 <span class="layui-font-red">*</span></label>
+                    <div class="layui-input-block" style="margin-left:0"><input type="text" id="tplName" class="layui-input" placeholder="如：用章申请单" /></div>
+                </div>
+                <div class="layui-col-xs4">
+                    <label class="layui-form-label" style="width:auto;padding-left:0">分类 <span class="layui-font-red">*</span></label>
+                    <div class="layui-input-block" style="margin-left:0">
+                        <input type="text" id="tplCategory" class="layui-input" list="categoryList" placeholder="请选择或输入" />
+                        <datalist id="categoryList">
+                            <option value="请假"></option><option value="用章申请"></option><option value="报告"></option>
+                            <option value="合同"></option><option value="证书"></option><option value="其他"></option>
+                        </datalist>
+                    </div>
+                </div>
+                <div class="layui-col-xs4">
+                    <label class="layui-form-label" style="width:auto;padding-left:0">说明</label>
+                    <div class="layui-input-block" style="margin-left:0"><input type="text" id="tplDesc" class="layui-input" placeholder="模板用途简介" /></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤2：上传并扫描 -->
+    <div class="tpl-step">
+        <h3><span class="step-no">2</span> 上传模板 <small>Word 中用 {{占位符}} 标记待填充位置</small></h3>
+        <div class="ph-tip">
+            在 Word 文档中需要填充的地方写上占位符，例如：<code>{{项目名称}}</code>、<code>{{合同金额}}</code>、<code>{{申请人}}</code>。
+            上传后系统会自动扫描出所有占位符，下一步为每个占位符选择数据来源。
+        </div>
+        <div class="layui-row layui-col-space15" style="align-items:flex-end">
+            <div class="layui-col-xs6">
+                <input type="file" id="tplFile" accept=".docx" class="layui-input" />
+            </div>
+            <div class="layui-col-xs6">
+                <button class="layui-btn layui-btn-normal" onclick="scanUpload()"><i class="layui-icon layui-icon-upload"></i> 上传并扫描占位符</button>
+                <span id="scanResult" class="layui-font-12" style="margin-left:10px;color:#64748b"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 步骤3：映射字段 -->
+    <div class="tpl-step" id="mapStep" style="display:none">
+        <h3><span class="step-no">3</span> 映射字段 <small>为每个占位符选择数据来源</small></h3>
+        <table class="layui-table" id="phTable" lay-skin="line">
+            <thead><tr><th style="width:180px">占位符</th><th style="width:160px">显示标签</th><th style="width:140px">数据源</th><th>字段</th><th style="width:70px">必填</th><th style="width:160px">默认值</th></tr></thead>
+            <tbody id="phBody"></tbody>
+        </table>
+    </div>
+
+    <div style="text-align:center;margin:20px 0 40px">
+        <button class="layui-btn layui-btn-lg layui-btn-normal" onclick="saveTemplate()"><i class="layui-icon layui-icon-ok"></i> 保存模板</button>
+        <button class="layui-btn layui-btn-lg layui-btn-primary" onclick="ems.openTab('/templatereport/manage','模板管理')">返回模板库</button>
+    </div>
+</div>
+
+<input type="hidden" id="tplId" value="" />
+
+@section Scripts {
+<script>
+var _sources = [];   // [{sourceId, displayName, fields:[{key,label}]}]
+var _placeholders = [];
+
+ems.ready(function () {
+    // 加载数据源
+    $.get('/templatereport/data-sources', function (r) {
+        if (r && r.code === 200) _sources = r.data || [];
+    });
+    // 编辑模式：从 URL 取 id 加载已有模板
+    var tid = new URLSearchParams(location.search).get('id');
+    if (tid) loadTemplate(tid);
+});
+
+function loadTemplate(tid) {
+    $.get('/templatereport/template/' + tid, function (r) {
+        if (!r || r.code !== 200) return;
+        var t = r.data;
+        $('#tplId').val(t.id);
+        $('#tplName').val(t.name);
+        $('#tplCategory').val(t.category || '');
+        $('#tplDesc').val(t.description || '');
+        // 已有字段直接渲染为占位符行
+        _placeholders = (t.fields || []).map(function (f) { return f.name; });
+        renderMappings(t.fields || []);
+        $('#mapStep').show();
+        $('#scanResult').text('已加载 ' + _placeholders.length + ' 个占位符（编辑模式）');
+    });
+}
+
+function scanUpload() {
+    var file = document.getElementById('tplFile').files[0];
+    if (!file) { ems.warn('请先选择 Word 模板文件'); return; }
+    var fd = new FormData();
+    fd.append('file', file);
+    var load = ems.loading('扫描中…');
+    $.ajax({
+        url: '/templatereport/scan-upload', type: 'POST', data: fd,
+        processData: false, contentType: false,
+        success: function (r) {
+            ems.close(load);
+            if (!r || r.code !== 200) { ems.error(r ? r.message : '扫描失败'); return; }
+            _placeholders = r.data || [];
+            if (!_placeholders.length) { ems.warn('未扫描到 {{占位符}}，请检查 Word 内容'); return; }
+            renderMappings(_placeholders.map(function (p) { return { name: p, label: p, source: 'manual', binding: '', required: false, defaultValue: '' }; }));
+            $('#mapStep').show();
+            $('#scanResult').text('扫描到 ' + _placeholders.length + ' 个占位符');
+            ems.msg('扫描到 ' + _placeholders.length + ' 个占位符', { icon: 1 });
+        },
+        error: function (xhr) { ems.close(load); ems.error('扫描失败'); }
+    });
+}
+
+function sourceOptions(selected) {
+    var html = '';
+    _sources.forEach(function (s) {
+        html += '<option value="' + s.sourceId + '"' + (s.sourceId === selected ? ' selected' : '') + '>' + ems.escapeHtml(s.displayName) + '</option>';
+    });
+    return html;
+}
+
+function fieldOptions(sourceId, selected) {
+    var src = _sources.find(function (s) { return s.sourceId === sourceId; });
+    var html = '<option value="">请选择字段</option>';
+    if (src && src.fields) {
+        src.fields.forEach(function (f) {
+            html += '<option value="' + ems.escapeHtml(f.key) + '"' + (f.key === selected ? ' selected' : '') + '>' + ems.escapeHtml(f.label) + '（' + ems.escapeHtml(f.key) + '）</option>';
+        });
+    }
+    return html;
+}
+
+function renderMappings(fields) {
+    var html = '';
+    fields.forEach(function (f, i) {
+        var src = f.source || 'manual';
+        html += '<tr data-idx="' + i + '">'
+            + '<td><span class="ph-name">{{' + ems.escapeHtml(f.name) + '}}</span></td>'
+            + '<td><input type="text" class="layui-input ph-label" value="' + ems.escapeHtml(f.label || f.name) + '" /></td>'
+            + '<td><select class="layui-input ph-source" onchange="onSourceChange(this)">' + sourceOptions(src) + '</select></td>'
+            + '<td><select class="layui-input ph-field">' + fieldOptions(src, f.binding) + '</select></td>'
+            + '<td style="text-align:center"><input type="checkbox" class="ph-required" lay-skin="primary"' + (f.required ? ' checked' : '') + ' /></td>'
+            + '<td><input type="text" class="layui-input ph-default" value="' + ems.escapeHtml(f.defaultValue || '') + '" placeholder="选填" /></td>'
+            + '</tr>';
+    });
+    $('#phBody').html(html);
+    layui.form.render();
+}
+
+function onSourceChange(sel) {
+    var tr = $(sel).closest('tr');
+    var fieldSel = tr.find('.ph-field');
+    fieldSel.html(fieldOptions($(sel).val(), ''));
+    layui.form.render('select');
+}
+
+function saveTemplate() {
+    var name = $('#tplName').val().trim();
+    var category = $('#tplCategory').val().trim();
+    if (!name) { ems.warn('请填写模板名称'); return; }
+    if (!category) { ems.warn('请选择模板分类'); return; }
+    var rows = $('#phBody tr');
+    if (!rows.length) { ems.warn('请先上传模板并扫描占位符'); return; }
+
+    var mappings = [];
+    var ok = true;
+    rows.each(function () {
+        var tr = $(this);
+        var ph = _placeholders[parseInt(tr.attr('data-idx'))];
+        var source = tr.find('.ph-source').val();
+        var binding = tr.find('.ph-field').val();
+        if (source !== 'manual' && !binding) {
+            ems.warn('占位符 {{' + ph + '}} 请选择字段'); ok = false; return false;
+        }
+        mappings.push({
+            placeholder: ph,
+            label: tr.find('.ph-label').val().trim() || ph,
+            source: source,
+            binding: binding || null,
+            required: tr.find('.ph-required').prop('checked'),
+            defaultValue: tr.find('.ph-default').val().trim() || null
+        });
+    });
+    if (!ok) return;
+
+    var fd = new FormData();
+    fd.append('TemplateId', $('#tplId').val());
+    fd.append('TemplateName', name);
+    fd.append('TemplateDescription', $('#tplDesc').val().trim());
+    fd.append('Category', category);
+    fd.append('mappingsJson', JSON.stringify(mappings));
+    var file = document.getElementById('tplFile').files[0];
+    if (file) fd.append('file', file);
+
+    var load = ems.loading('保存中…');
+    $.ajax({
+        url: '/templatereport/save-placeholder-template', type: 'POST', data: fd,
+        processData: false, contentType: false,
+        success: function (r) {
+            ems.close(load);
+            if (!r || r.code !== 200) { ems.error(r ? r.message : '保存失败'); return; }
+            ems.msg('模板保存成功', { icon: 1, time: 1500 }, function () {
+                ems.openTab('/templatereport/manage', '模板管理');
+            });
+        },
+        error: function () { ems.close(load); ems.error('保存失败'); }
+    });
+}
+</script>
+}

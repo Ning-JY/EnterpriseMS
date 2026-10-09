@@ -66,6 +66,7 @@ public class AppDbContext : DbContext
     // 模板化报告
     public DbSet<TemplateDefinition> TemplateDefinitions { get; set; }
     public DbSet<TemplateField> TemplateFields { get; set; }
+    public DbSet<TemplateUsageRecord> TemplateUsageRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder mb)
     {
@@ -152,6 +153,14 @@ public class AppDbContext : DbContext
         mb.Entity<TemplateField>().HasKey(f => f.Id);
         mb.Entity<TemplateField>().Property(f => f.Id).ValueGeneratedOnAdd();
         mb.Entity<TemplateField>().Property(f => f.TemplateId).HasMaxLength(100);
+
+        // 模板使用留痕
+        mb.Entity<TemplateUsageRecord>().HasKey(r => r.Id);
+        mb.Entity<TemplateUsageRecord>().Property(r => r.Id).ValueGeneratedOnAdd();
+        mb.Entity<TemplateUsageRecord>().Property(r => r.TemplateId).HasMaxLength(100);
+        mb.Entity<TemplateUsageRecord>().Property(r => r.TemplateName).HasMaxLength(200);
+        mb.Entity<TemplateUsageRecord>().Property(r => r.Category).HasMaxLength(50);
+        mb.Entity<TemplateUsageRecord>().Property(r => r.Status).HasMaxLength(20);
 
         // 全局软删除过滤器
         foreach (var entityType in mb.Model.GetEntityTypes())

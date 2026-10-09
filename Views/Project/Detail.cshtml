@@ -60,7 +60,7 @@
     <div class="ems-detail-actions">
         <a class="layui-btn layui-btn-sm layui-btn-normal" onclick="openReportModal()"><i class="layui-icon layui-icon-file"></i> 生成报告</a>
         <a class="layui-btn layui-btn-sm layui-btn-disabled" title="即将上线" onclick="return false;"><i class="layui-icon layui-icon-template"></i> 生成合同</a>
-        <a class="layui-btn layui-btn-sm layui-btn-disabled" title="即将上线" onclick="return false;"><i class="layui-icon layui-icon-auz"></i> 用章申请</a>
+        <a class="layui-btn layui-btn-sm layui-btn-normal" onclick="openSealModal()"><i class="layui-icon layui-icon-auz"></i> 用章申请</a>
         @if (canStatus && Model.ProgressStatus < 9) {
             <a class="layui-btn layui-btn-sm layui-btn-primary" onclick="openModal('statusModal','变更项目状态')"><i class="layui-icon layui-icon-next"></i> 变更状态</a>
         }
@@ -746,6 +746,29 @@
     <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('reportGenModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnConfirmGen" onclick="confirmReportGenerate()">生成并下载</button></div>
 </div>
 
+<!-- 用章申请：选择模板 → 自动填充 → 预览修改 → 生成留痕 -->
+<div class="ems-modal-box" id="sealApplyModal" style="display:none">
+    <div class="layui-form-item">
+        <label class="layui-form-label">申请模板</label>
+        <div class="layui-input-block">
+            <select id="sealTemplate" class="layui-input" onchange="loadSealPreview()">
+                <option value="">请选择模板...</option>
+            </select>
+        </div>
+    </div>
+    <div class="layui-row" style="margin-bottom:8px">
+        <div class="layui-col-xs6">
+            <div class="layui-font-12" style="margin-bottom:4px"><i class="layui-icon layui-icon-magic"></i> 自动带入（来自项目）</div>
+            <div id="sealAutoFields"><span class="layui-font-12">请选择模板</span></div>
+        </div>
+        <div class="layui-col-xs6">
+            <div class="layui-font-12" style="margin-bottom:4px"><i class="layui-icon layui-icon-edit"></i> 需补填</div>
+            <div id="sealManualFields"></div>
+        </div>
+    </div>
+    <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('sealApplyModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnConfirmSeal" onclick="confirmSealGenerate()">生成并下载</button></div>
+</div>
+
 @section Scripts {
 <script>
     var projId = @Model.Id;
@@ -1088,8 +1111,7 @@ window.openModal = function (id, title, area) {
     window.openReportModal = function () {
         openModal('reportGenModal', '生成成果报告', ['760px']);
         loadReportTemplates();
-    };
-    function loadReportTemplates() {
+    };    function loadReportTemplates() {
         fetch('/templatereport/templates', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) { return r.json(); })
             .then(function (res) {
@@ -1140,21 +1162,94 @@ window.openModal = function (id, title, area) {
         var btn = $('#btnConfirmGen');
         btn.prop('disabled', true).text('生成中...');
         var load = ems.loading();
-        fetch('/project/' + projId + '/report/generate', {
+        fetch('/templatereport/use-template', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': antiForgery, 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ templateId: tid, fields: fields })
+            body: JSON.stringify({ templateId: tid, projectId: projId, fieldOverrides: fields, saveToProjectFiles: true, fileCategory: '报告文件' })
         })
-            .then(function (r) { if (!r.ok) return r.text().then(function (t) { throw new Error(t || '生成失败'); }); return r.blob(); })
-            .then(function (blob) {
-                var tname = $('#reportTemplate option:selected').text() || '成果报告';
-                var fname = projName + '_' + tname + '.docx';
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a'); a.href = url; a.download = fname;
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res || res.code !== 200) throw new Error(res ? res.message : '生成失败');
+                var a = document.createElement('a');
+                a.href = 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,' + res.data.base64;
+                a.download = res.data.fileName;
                 document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
-                ems.msg('报告已生成，开始下载', { icon: 1, time: 1500 });
+                ems.msg('报告已生成并存入项目文件，开始下载', { icon: 1, time: 1500 });
                 closeModal('reportGenModal');
+            })
+            .catch(function (err) { ems.msg(err.message || '生成失败', { icon: 2 }); })
+            .finally(function () { ems.close(load); btn.prop('disabled', false).text('生成并下载'); });
+    };
+
+    // ── 用章申请：模板使用通用流程 ──
+    window.openSealModal = function () {
+        openModal('sealApplyModal', '用章申请', ['760px']);
+        loadSealTemplates();
+    };
+    function loadSealTemplates() {
+        fetch('/templatereport/templates', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                var $sel = $('#sealTemplate');
+                if (res.code === 200 && res.data && res.data.length) {
+                    var list = res.data.filter(function (t) { return (t.category || '') === '用章申请'; });
+                    if (!list.length) { $sel.html('<option value="">暂无「用章申请」分类模板，请先到模板库添加</option>'); return; }
+                    var opts = '<option value="">请选择用章申请模板...</option>';
+                    list.forEach(function (t) { opts += '<option value="' + ems.escapeHtml(t.id) + '">' + ems.escapeHtml(t.name) + (t.description ? '(' + ems.escapeHtml(t.description) + ')' : '') + '</option>'; });
+                    $sel.html(opts);
+                } else { $sel.html('<option value="">暂无模板，请先到「模板管理」添加</option>'); }
+            })
+            .catch(function () { $('#sealTemplate').html('<option value="">模板加载失败</option>'); });
+    }
+    window.loadSealPreview = function () {
+        var tid = $('#sealTemplate').val();
+        if (!tid) { $('#sealAutoFields').html('<span class="layui-font-12">请先选择模板</span>'); $('#sealManualFields').html(''); return; }
+        var load = ems.loading();
+        fetch('/project/' + projId + '/report/preview-fields?templateId=' + encodeURIComponent(tid), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                ems.close(load);
+                if (res.code !== 200 || !res.data) { ems.msg(res.message || '加载失败', { icon: 2 }); return; }
+                var d = res.data, ah = '';
+                (d.autoFields || []).forEach(function (f) { ah += '<div style="margin-bottom:4px"><span class="layui-font-12">' + ems.escapeHtml(f.label) + '：</span>' + ems.escapeHtml(f.value || '(空)') + '</div>'; });
+                $('#sealAutoFields').html(ah || '<span class="layui-font-12">无</span>');
+                var mh = '';
+                (d.manualFields || []).forEach(function (f) {
+                    var req = f.required ? ' <span class="layui-font-red">*</span>' : '';
+                    var val = f.defaultValue || '';
+                    mh += '<div class="layui-form-item" style="margin-bottom:8px"><label class="layui-form-label" style="width:auto">' + ems.escapeHtml(f.label) + req + '</label><div class="layui-input-block"><input type="text" class="layui-input" data-name="' + ems.escapeHtml(f.name) + '" data-required="' + (f.required ? '1' : '0') + '" value="' + ems.escapeHtml(val) + '"></div></div>';
+                });
+                $('#sealManualFields').html(mh);
+            })
+            .catch(function () { ems.close(load); ems.msg('加载失败', { icon: 2 }); });
+    };
+    window.confirmSealGenerate = function () {
+        var tid = $('#sealTemplate').val();
+        if (!tid) { ems.msg('请先选择模板', { icon: 2 }); return; }
+        var fields = {}, missing = [];
+        $('#sealManualFields [data-name]').each(function () {
+            var n = $(this).data('name'), v = $(this).val();
+            fields[n] = v;
+            if ($(this).attr('data-required') === '1' && !v) missing.push(n);
+        });
+        if (missing.length) { ems.msg('请填写必填项：' + missing.join('、'), { icon: 2 }); return; }
+        var btn = $('#btnConfirmSeal');
+        btn.prop('disabled', true).text('生成中...');
+        var load = ems.loading();
+        fetch('/templatereport/use-template', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': antiForgery, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ templateId: tid, projectId: projId, fieldOverrides: fields, saveToProjectFiles: false, fileCategory: '用章申请' })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res || res.code !== 200) throw new Error(res ? res.message : '生成失败');
+                var a = document.createElement('a');
+                a.href = 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,' + res.data.base64;
+                a.download = res.data.fileName;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                ems.msg('用章申请单已生成，开始下载（已留痕）', { icon: 1, time: 1500 });
+                closeModal('sealApplyModal');
             })
             .catch(function (err) { ems.msg(err.message || '生成失败', { icon: 2 }); })
             .finally(function () { ems.close(load); btn.prop('disabled', false).text('生成并下载'); });

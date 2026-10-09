@@ -119,6 +119,44 @@ public class ReportGenerateFromProjectRequest
     public Dictionary<string, string> Fields { get; set; } = new();
 }
 
+/// <summary>占位符映射：模板中的 {{占位符}} → 数据源字段。</summary>
+public class PlaceholderMappingDto
+{
+    /// <summary>占位符名（不含 {{}}）。</summary>
+    public string Placeholder { get; set; } = "";
+    /// <summary>显示标签。</summary>
+    public string Label { get; set; } = "";
+    /// <summary>数据源：manual=手填, project=项目, employee=员工, config=系统配置。</summary>
+    public string Source { get; set; } = "manual";
+    /// <summary>数据源字段绑定（实体属性名），Source=manual 时为空。</summary>
+    public string? Binding { get; set; }
+    public bool Required { get; set; }
+    public string? DefaultValue { get; set; }
+}
+
+/// <summary>简化模板保存请求：Word 已含 {{占位符}}，直接映射保存。</summary>
+public class SavePlaceholderTemplateRequest
+{
+    public string TemplateId { get; set; } = "";
+    public string TemplateName { get; set; } = "";
+    public string TemplateDescription { get; set; } = "";
+    public string Category { get; set; } = "";
+    public List<PlaceholderMappingDto> Mappings { get; set; } = new();
+}
+
+/// <summary>使用模板生成请求（项目详情页用章申请/生成报告）。</summary>
+public class TemplateUseRequest
+{
+    public string TemplateId { get; set; } = "";
+    public long ProjectId { get; set; }
+    /// <summary>手动填写/修改的字段值（覆盖自动填充）。</summary>
+    public Dictionary<string, string> FieldOverrides { get; set; } = new();
+    /// <summary>是否自动存到项目文件。</summary>
+    public bool SaveToProjectFiles { get; set; }
+    /// <summary>存到项目文件时的类别。</summary>
+    public string FileCategory { get; set; } = "报告文件";
+}
+
 public class MappedExcelColumnDto
 {
     public string FieldName { get; set; } = "";

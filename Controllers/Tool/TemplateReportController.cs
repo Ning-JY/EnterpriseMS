@@ -72,6 +72,9 @@ public class TemplateReportController : BaseAuthController
     [HttpGet("templateconfig")]
     public IActionResult TemplateConfig() => View();
 
+    [HttpGet("templateconfig-simple")]
+    public IActionResult TemplateConfigSimple() => View("TemplateConfigSimple");
+
     /// <summary>
     /// 模板列表（layui table 数据源）：返回 PagedResult&lt;object&gt;，
     /// 投影为扁平匿名对象，避免把 Fields 集合整包吐给前端。
@@ -486,6 +489,81 @@ public class TemplateReportController : BaseAuthController
             ie = ie.InnerException;
         }
         return msg;
+    }
+
+    // ── 简化流程：占位符式模板 ──────────────────────────────────
+
+    /// <summary>上传 docx 直接扫描 {{占位符}}（不落盘）。</summary>
+    [HttpPost("scan-upload")]
+    public IActionResult ScanUpload(IFormFile file)
+    {
+        try
+        {
+            var names = _reportService.ScanUploadedPlaceholders(file);
+            return ApiOk(names);
+        }
+        catch (Exception ex)
+        {
+            return ApiFail(FullErr(ex));
+        }
+    }
+
+    /// <summary>保存占位符式模板（Word 已含 {{}}）。</summary>
+    [HttpPost("save-placeholder-template")]
+    public IActionResult SavePlaceholderTemplate([FromForm] SavePlaceholderTemplateRequest request, IFormFile? file)
+    {
+        try
+        {
+            // mappings 以 JSON 字符串传入（FromForm + 文件上传）
+            if (Request.Form.TryGetValue("mappingsJson", out var mj) && !string.IsNullOrWhiteSpace(mj))
+            {
+                request.Mappings = System.Text.Json.JsonSerializer.Deserialize<List<PlaceholderMappingDto>>(mj!)
+                    ?? new();
+            }
+            var id = _reportService.SavePlaceholderTemplate(request, file);
+            return ApiOk(new { templateId = id }, "模板保存成功");
+        }
+        catch (Exception ex)
+        {
+            return ApiFail(FullErr(ex));
+        }
+    }
+
+    /// <summary>使用模板生成（项目详情页用章申请/生成报告）：填充 → 生成 → 存项目文件 → 留痕。</summary>
+    [HttpPost("use-template")]
+    public async Task<IActionResult> UseTemplate([FromBody] TemplateUseRequest request)
+    {
+        try
+        {
+            var userId = User.GetUserId();
+            var userName = User.GetRealName() ?? User.Identity?.Name ?? "";
+            var (bytes, fileName, recordId) = await _reportService.UseTemplateAsync(request, userId, userName);
+            return ApiOk(new
+            {
+                base64 = Convert.ToBase64String(bytes),
+                fileName,
+                recordId
+            }, "生成成功");
+        }
+        catch (Exception ex)
+        {
+            return ApiFail(FullErr(ex));
+        }
+    }
+
+    /// <summary>模板使用留痕列表。</summary>
+    [HttpGet("usage-records")]
+    public IActionResult GetUsageRecords(string? category, long? projectId, int page = 1, int size = 20)
+    {
+        try
+        {
+            var (total, items) = _reportService.GetUsageRecords(category, projectId, page, size);
+            return ApiOk(new { total, items });
+        }
+        catch (Exception ex)
+        {
+            return ApiFail(FullErr(ex));
+        }
     }
 }
 

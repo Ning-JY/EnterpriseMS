@@ -33,6 +33,14 @@ public interface IReportGeneratorService
     /// <summary>ad-hoc 渲染：标量 {{字段}} 文本替换 + 列表字段（值类型为 List&lt;Dictionary&gt;）表格行循环展开。
     /// 用于造价小工具等客户端 Excel 解析后把明细行生成到模板 Word（MiniWord 0.9.2 不支持 List&lt;Dictionary&gt; 行循环，故自行用 OpenXML 展开）。</summary>
     byte[] GenerateAdhocReport(string templateId, Dictionary<string, object> fieldValues);
+    /// <summary>简化流程：从上传的 docx 直接扫描 {{占位符}}（不落盘）。</summary>
+    List<string> ScanUploadedPlaceholders(IFormFile file);
+    /// <summary>简化流程：保存占位符式模板（Word 已含 {{}}，直接映射字段）。</summary>
+    string SavePlaceholderTemplate(SavePlaceholderTemplateRequest request, IFormFile? file);
+    /// <summary>使用模板生成：填充 → 生成文档 →（可选）存项目文件 → 写留痕。</summary>
+    Task<(byte[] Bytes, string FileName, long RecordId)> UseTemplateAsync(TemplateUseRequest request, long userId, string userName);
+    /// <summary>模板使用留痕列表。</summary>
+    (int Total, object Items) GetUsageRecords(string? category, long? projectId, int page, int size);
 }
 
 public class ReportGeneratorService : IReportGeneratorService
@@ -42,14 +50,16 @@ public class ReportGeneratorService : IReportGeneratorService
     private readonly string _docRoot;
     private readonly ILogger<ReportGeneratorService> _logger;
     private readonly IEnumerable<ITemplateDataSource> _sources;
+    private readonly IProjectService _projectService;
 
-    public ReportGeneratorService(AppDbContext db, IConfiguration config, ILogger<ReportGeneratorService> logger, IEnumerable<ITemplateDataSource> sources)
+    public ReportGeneratorService(AppDbContext db, IConfiguration config, ILogger<ReportGeneratorService> logger, IEnumerable<ITemplateDataSource> sources, IProjectService projectService)
     {
         _db = db;
         _templateRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "templates");
         _docRoot = Path.Combine(Directory.GetCurrentDirectory(), "doc", "模板文件");
         _logger = logger;
         _sources = sources;
+        _projectService = projectService;
 
         if (!Directory.Exists(_templateRoot))
             Directory.CreateDirectory(_templateRoot);
@@ -284,6 +294,197 @@ public class ReportGeneratorService : IReportGeneratorService
             HelpText = r.HelpText,
             Sort = i
         }).ToList();
+
+    // ── 简化流程：占位符式模板 ──────────────────────────────────
+
+    /// <summary>从上传的 docx 直接扫描 {{占位符}}（不落盘，供配置页映射用）。</summary>
+    public List<string> ScanUploadedPlaceholders(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            throw new BusinessException("请上传模板文件");
+        using var stream = new MemoryStream();
+        file.CopyTo(stream);
+        stream.Position = 0;
+        return ScanPlaceholdersFromStream(stream);
+    }
+
+    private static List<string> ScanPlaceholdersFromStream(Stream stream)
+    {
+        var names = new List<string>();
+        var pattern = new Regex(@"\{\{(.+?)\}\}");
+        using var doc = WordprocessingDocument.Open(stream, false);
+        var body = doc.MainDocumentPart?.Document?.Body;
+        if (body == null) return names;
+        foreach (var para in body.Descendants<Paragraph>())
+        {
+            var text = para.InnerText;
+            if (string.IsNullOrEmpty(text)) continue;
+            foreach (Match m in pattern.Matches(text))
+            {
+                var name = m.Groups[1].Value.Trim();
+                if (!string.IsNullOrEmpty(name) && !names.Contains(name))
+                    names.Add(name);
+            }
+        }
+        return names;
+    }
+
+    /// <summary>保存占位符式模板：Word 已含 {{}}，按映射直接建字段，不做文本替换。</summary>
+    public string SavePlaceholderTemplate(SavePlaceholderTemplateRequest request, IFormFile? file)
+    {
+        if (string.IsNullOrWhiteSpace(request.TemplateName))
+            throw new BusinessException("请填写模板名称");
+
+        var bindable = new[] { "project", "employee", "projcontract", "employeecontract" };
+        TemplateDefinition tpl;
+        string templateId;
+        string fileName;
+
+        // 编辑且未重新上传：只更新元数据与字段映射
+        if (!string.IsNullOrWhiteSpace(request.TemplateId))
+        {
+            tpl = _db.TemplateDefinitions.Include(t => t.Fields)
+                .FirstOrDefault(t => t.Id == request.TemplateId)
+                ?? throw new BusinessException("模板不存在");
+            templateId = tpl.Id;
+            fileName = tpl.FileName;
+
+            if (file != null && file.Length > 0)
+            {
+                fileName = $"{templateId}.docx";
+                using var ms = new MemoryStream();
+                file.CopyTo(ms);
+                File.WriteAllBytes(GetTemplateFilePath(fileName), ms.ToArray());
+            }
+
+            tpl.Name = request.TemplateName;
+            tpl.Description = request.TemplateDescription ?? "";
+            tpl.Category = request.Category ?? "";
+            _db.TemplateFields.RemoveRange(tpl.Fields);
+            tpl.Fields = request.Mappings.Select((m, i) => new TemplateField
+            {
+                TemplateId = templateId,
+                Name = m.Placeholder,
+                Label = string.IsNullOrWhiteSpace(m.Label) ? m.Placeholder : m.Label,
+                Required = m.Required,
+                Type = "text",
+                Source = string.IsNullOrWhiteSpace(m.Source) ? "manual" : m.Source,
+                Binding = (m.Source != "manual" && m.Source != "config") ? m.Binding : null,
+                DefaultValue = m.DefaultValue,
+                Sort = i
+            }).ToList();
+            tpl.ContextSource = tpl.Fields.Select(f => f.Source).FirstOrDefault(s => bindable.Contains(s));
+            _db.SaveChanges();
+            return templateId;
+        }
+
+        // 新建：必须上传文件
+        if (file == null || file.Length == 0)
+            throw new BusinessException("请上传模板文件");
+        templateId = GenerateTemplateId(request.TemplateName);
+        fileName = $"{templateId}.docx";
+        using (var ms = new MemoryStream())
+        {
+            file.CopyTo(ms);
+            File.WriteAllBytes(GetTemplateFilePath(fileName), ms.ToArray());
+        }
+
+        tpl = new TemplateDefinition
+        {
+            Id = templateId,
+            Name = request.TemplateName,
+            FileName = fileName,
+            Description = request.TemplateDescription ?? "",
+            Category = request.Category ?? "",
+            CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+            Fields = request.Mappings.Select((m, i) => new TemplateField
+            {
+                TemplateId = templateId,
+                Name = m.Placeholder,
+                Label = string.IsNullOrWhiteSpace(m.Label) ? m.Placeholder : m.Label,
+                Required = m.Required,
+                Type = "text",
+                Source = string.IsNullOrWhiteSpace(m.Source) ? "manual" : m.Source,
+                Binding = (m.Source != "manual" && m.Source != "config") ? m.Binding : null,
+                DefaultValue = m.DefaultValue,
+                Sort = i
+            }).ToList()
+        };
+        tpl.ContextSource = tpl.Fields.Select(f => f.Source).FirstOrDefault(s => bindable.Contains(s));
+        _db.TemplateDefinitions.Add(tpl);
+        _db.SaveChanges();
+        return templateId;
+    }
+
+    /// <summary>使用模板生成完整流程：自动填充 → 合并手改 → 生成文档 →（可选）存项目文件 → 写留痕。</summary>
+    public async Task<(byte[] Bytes, string FileName, long RecordId)> UseTemplateAsync(
+        TemplateUseRequest request, long userId, string userName)
+    {
+        var tpl = GetTemplate(request.TemplateId) ?? throw new BusinessException("模板不存在");
+        var project = _db.Projects.FirstOrDefault(p => p.Id == request.ProjectId)
+            ?? throw new BusinessException("项目不存在");
+
+        // 1. 自动填充（项目数据源）+ 手动覆盖
+        var manual = request.FieldOverrides?.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+        var values = await BuildReportFieldValuesAsync("project", request.ProjectId.ToString(), tpl, manual);
+        var fieldValues = values.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+
+        // 2. 生成文档
+        var bytes = GenerateDocument(request.TemplateId, fieldValues);
+        var fileName = $"{tpl.Name}_{project.ProjNo}_{DateTime.Now:yyyyMMddHHmmss}.docx";
+
+        // 3. 可选：存到项目文件
+        if (request.SaveToProjectFiles)
+        {
+            var dir = Path.Combine(Directory.GetCurrentDirectory(), "uploads", "project", project.Id.ToString());
+            if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            var saveName = $"{Guid.NewGuid():N}.docx";
+            var physicalPath = Path.Combine(dir, saveName);
+            await File.WriteAllBytesAsync(physicalPath, bytes);
+            await _projectService.AddFileAsync(project.Id, request.FileCategory, fileName,
+                $"project/{project.Id}/{saveName}", bytes.Length,
+                $"模板生成：{tpl.Name}", null, userName);
+        }
+
+        // 4. 写留痕
+        var record = new TemplateUsageRecord
+        {
+            TemplateId = tpl.Id,
+            TemplateName = tpl.Name,
+            Category = tpl.Category ?? "",
+            ProjectId = project.Id,
+            ProjectName = project.ProjName,
+            ApplicantId = userId,
+            ApplicantName = userName,
+            FieldSnapshot = System.Text.Json.JsonSerializer.Serialize(values),
+            FileName = fileName,
+            Status = "done",
+            CreatedAt = DateTime.Now,
+            CreatedBy = userId
+        };
+        _db.TemplateUsageRecords.Add(record);
+        await _db.SaveChangesAsync();
+
+        return (bytes, fileName, record.Id);
+    }
+
+    public (int Total, object Items) GetUsageRecords(string? category, long? projectId, int page, int size)
+    {
+        var q = _db.TemplateUsageRecords.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(category))
+            q = q.Where(r => r.Category == category);
+        if (projectId.HasValue)
+            q = q.Where(r => r.ProjectId == projectId.Value);
+        var total = q.Count();
+        var items = q.OrderByDescending(r => r.Id)
+            .Skip((page - 1) * size).Take(size)
+            .Select(r => new
+            {
+                r.Id, r.TemplateName, r.Category, r.ProjectId, r.ProjectName,
+                r.ApplicantName, r.FileName, r.Status, r.CreatedAt
+            }).ToList();
+        return (total, items);
+    }
 
     /// <summary>通用填充：按字段 Source 派发到对应 ITemplateDataSource 解析绑定值。</summary>
     public async Task<Dictionary<string, string>> BuildReportFieldValuesAsync(
