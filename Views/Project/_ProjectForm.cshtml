@@ -19,6 +19,8 @@
         <input type="hidden" id="ProjId" value="@m.Id">
         <input type="hidden" id="ProgressStatus" value="@m.ProgressStatus">
     }
+    @* 计划完成日期不在表单显示，后台保留原值防编辑时清空 *@
+    <input type="hidden" id="PlanEndDate" value="@(m.PlanEndDate?.ToString("yyyy-MM-dd") ?? "")">
     <div class="layui-row layui-col-space15" style="display:flex;flex-wrap:wrap">
         <div class="layui-col-md6" style="display:flex">
             <div class="layui-card ems-card" style="flex:1">
@@ -107,39 +109,14 @@
                             })
                         </div>
                     </div>
-                    <div class="layui-form-item" style="margin-bottom:0">
+                    <div class="layui-form-item">
                         <label class="layui-form-label">协作单位</label>
                         <div class="layui-input-block"><input type="text" id="CooperationUnit" class="layui-input" value="@(m.CooperationUnit ?? "")" maxlength="100" placeholder="合作编制单位"></div>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="layui-col-md6" style="display:flex">
-            <div class="layui-card ems-card" style="flex:1">
-                <div class="layui-card-header"><i class="layui-icon layui-icon-rmb"></i> 合同与金额</div>
-                <div class="layui-card-body">
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">预估造价(万)</label>
-                        <div class="layui-input-block"><input type="number" id="LimitPrice" class="layui-input" step="0.01" placeholder="0.00" value="@(m.LimitPrice?.ToString("N2") ?? "")"></div>
-                    </div>
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">合同金额(万) <span class="layui-font-red">*</span></label>
-                        <div class="layui-input-block"><input type="number" id="ContractAmount" class="layui-input" step="0.01" placeholder="0.00" value="@(m.ContractAmount == 0 ? "" : m.ContractAmount.ToString("N2"))"></div>
-                    </div>
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">签约日期</label>
-                        <div class="layui-input-block"><input type="text" id="SignDate" class="layui-input" placeholder="请选择日期" readonly data-date value="@(m.SignDate?.ToString("yyyy-MM-dd") ?? "")"></div>
-                    </div>
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">计划完成</label>
-                        <div class="layui-input-block"><input type="text" id="PlanEndDate" class="layui-input" placeholder="请选择日期" readonly data-date value="@(m.PlanEndDate?.ToString("yyyy-MM-dd") ?? "")"></div>
-                    </div>
-                    <div class="layui-form-item">
-                        <label class="layui-form-label">实际开始</label>
-                        <div class="layui-input-block"><input type="text" id="ActualStartDate" class="layui-input" placeholder="请选择日期" readonly data-date value="@(m.ActualStartDate?.ToString("yyyy-MM-dd") ?? "")"></div>
-                    </div>
                     <div class="layui-form-item" style="margin-bottom:0">
-                        <input type="checkbox" id="IsJointVenture" lay-filter="jointSwitch" lay-skin="primary" title="协作单位（联合体项目）" @(m.IsJointVenture ? "checked" : "")>
+                        <div class="layui-input-block" style="margin-left:0">
+                            <input type="checkbox" id="IsJointVenture" lay-filter="jointSwitch" lay-skin="primary" title="联合体项目" @(m.IsJointVenture ? "checked" : "")>
+                        </div>
                     </div>
                     <div id="jointBlock" style="@(m.IsJointVenture ? "" : "display:none")">
                         <div class="layui-form-item" style="margin-bottom:0;margin-top:10px">
@@ -152,13 +129,46 @@
                 </div>
             </div>
         </div>
-        <div class="layui-col-md6" style="display:flex">
-            <div class="layui-card ems-card" style="flex:1">
+        <div class="layui-col-md12">
+            <div class="layui-card ems-card">
+                <div class="layui-card-header"><i class="layui-icon layui-icon-rmb"></i> 合同与金额</div>
+                <div class="layui-card-body">
+                    <div class="layui-row layui-col-space15">
+                        <div class="layui-col-md6">
+                            <div class="layui-form-item" style="margin-bottom:0">
+                                <label class="layui-form-label">预估造价(万)</label>
+                                <div class="layui-input-block"><input type="number" id="LimitPrice" class="layui-input" step="0.01" placeholder="0.00" value="@(m.LimitPrice?.ToString("N2") ?? "")"></div>
+                            </div>
+                        </div>
+                        <div class="layui-col-md6">
+                            <div class="layui-form-item" style="margin-bottom:0">
+                                <label class="layui-form-label">合同金额(万) <span class="layui-font-red">*</span></label>
+                                <div class="layui-input-block"><input type="number" id="ContractAmount" class="layui-input" step="0.01" placeholder="0.00" value="@(m.ContractAmount == 0 ? "" : m.ContractAmount.ToString("N2"))"></div>
+                            </div>
+                        </div>
+                        <div class="layui-col-md6">
+                            <div class="layui-form-item" style="margin-bottom:0;margin-top:15px">
+                                <label class="layui-form-label">签约日期</label>
+                                <div class="layui-input-block"><input type="text" id="SignDate" class="layui-input" placeholder="请选择日期" readonly data-date value="@(m.SignDate?.ToString("yyyy-MM-dd") ?? "")"></div>
+                            </div>
+                        </div>
+                        <div class="layui-col-md6">
+                            <div class="layui-form-item" style="margin-bottom:0;margin-top:15px">
+                                <label class="layui-form-label">实际开始</label>
+                                <div class="layui-input-block"><input type="text" id="ActualStartDate" class="layui-input" placeholder="请选择日期" readonly data-date value="@(m.ActualStartDate?.ToString("yyyy-MM-dd") ?? "")"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-md12">
+            <div class="layui-card ems-card">
                 <div class="layui-card-header"><i class="layui-icon layui-icon-read"></i> 项目概况</div>
                 <div class="layui-card-body">
                     <div class="layui-form-item layui-form-text" style="margin-bottom:0">
                         <div class="layui-input-block" style="margin-left:0">
-                            <textarea id="ProjectOverview" class="layui-textarea" rows="8" placeholder="项目背景、范围、主要工作内容等">@(m.ProjectOverview ?? "")</textarea>
+                            <textarea id="ProjectOverview" class="layui-textarea" rows="6" placeholder="项目背景、范围、主要工作内容等">@(m.ProjectOverview ?? "")</textarea>
                         </div>
                     </div>
                 </div>
