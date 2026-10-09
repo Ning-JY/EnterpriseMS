@@ -137,10 +137,10 @@ public class PlaceholderMappingDto
 /// <summary>简化模板保存请求：Word 已含 {{占位符}}，直接映射保存。</summary>
 public class SavePlaceholderTemplateRequest
 {
-    public string TemplateId { get; set; } = "";
-    public string TemplateName { get; set; } = "";
-    public string TemplateDescription { get; set; } = "";
-    public string Category { get; set; } = "";
+    public string? TemplateId { get; set; }
+    public string? TemplateName { get; set; }
+    public string? TemplateDescription { get; set; }
+    public string? Category { get; set; }
     public List<PlaceholderMappingDto> Mappings { get; set; } = new();
 }
 

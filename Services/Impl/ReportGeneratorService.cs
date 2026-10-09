@@ -779,9 +779,9 @@ public class ReportGeneratorService : IReportGeneratorService
         return Path.Combine(_templateRoot, fileName);
     }
 
-    private string GenerateTemplateId(string name)
+    private string GenerateTemplateId(string? name)
     {
-        var sanitized = Regex.Replace(name, @"[^\w\u4e00-\u9fa5]", "-").ToLower();
+        var sanitized = Regex.Replace(name ?? "tpl", @"[^\w\u4e00-\u9fa5]", "-").ToLower();
         return $"{sanitized}-{DateTime.UtcNow:yyyyMMddHHmmss}";
     }
 
