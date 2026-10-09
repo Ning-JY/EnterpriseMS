@@ -114,10 +114,11 @@ public class ProjectController : BaseAuthController
         var tpl = _reportSvc.GetTemplate(templateId);
         if (tpl == null) return BadRequest("模板不存在");
 
-        // 用默认值预填 manual 字段，便于预览时计算字段也能显示
+        // 用默认值预填 manual 字段，便于预览时计算字段也能显示（按 Name 去重防旧数据重名）
         var defaults = tpl.Fields
             .Where(f => f.Source == "manual")
-            .ToDictionary(f => f.Name, f => f.DefaultValue ?? "");
+            .GroupBy(f => f.Name)
+            .ToDictionary(g => g.Key, g => g.First().DefaultValue ?? "");
         var all = await _projSvc.BuildReportFieldValuesAsync("project", proj.Id.ToString(), tpl, defaults);
 
         var autoFields = tpl.Fields

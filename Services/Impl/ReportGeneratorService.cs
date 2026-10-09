@@ -361,18 +361,25 @@ public class ReportGeneratorService : IReportGeneratorService
             tpl.Description = request.TemplateDescription ?? "";
             tpl.Category = request.Category ?? "";
             _db.TemplateFields.RemoveRange(tpl.Fields);
-            tpl.Fields = request.Mappings.Select((m, i) => new TemplateField
-            {
-                TemplateId = templateId,
-                Name = m.Placeholder,
-                Label = string.IsNullOrWhiteSpace(m.Label) ? m.Placeholder : m.Label,
-                Required = m.Required,
-                Type = "text",
-                Source = string.IsNullOrWhiteSpace(m.Source) ? "manual" : m.Source,
-                Binding = (m.Source != "manual" && m.Source != "config") ? m.Binding : null,
-                DefaultValue = m.DefaultValue,
-                Sort = i
-            }).ToList();
+            tpl.Fields = request.Mappings
+                .Where(m => !string.IsNullOrWhiteSpace(m.Placeholder))
+                .GroupBy(m => m.Placeholder!.Trim())
+                .Select((g, i) =>
+                {
+                    var m = g.First();
+                    return new TemplateField
+                    {
+                        TemplateId = templateId,
+                        Name = g.Key,
+                        Label = string.IsNullOrWhiteSpace(m.Label) ? g.Key : m.Label,
+                        Required = m.Required,
+                        Type = "text",
+                        Source = string.IsNullOrWhiteSpace(m.Source) ? "manual" : m.Source,
+                        Binding = (m.Source != "manual" && m.Source != "config") ? m.Binding : null,
+                        DefaultValue = m.DefaultValue,
+                        Sort = i
+                    };
+                }).ToList();
             tpl.ContextSource = tpl.Fields.Select(f => f.Source).FirstOrDefault(s => bindable.Contains(s));
             _db.SaveChanges();
             return templateId;
@@ -397,18 +404,25 @@ public class ReportGeneratorService : IReportGeneratorService
             Description = request.TemplateDescription ?? "",
             Category = request.Category ?? "",
             CreatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd"),
-            Fields = request.Mappings.Select((m, i) => new TemplateField
-            {
-                TemplateId = templateId,
-                Name = m.Placeholder,
-                Label = string.IsNullOrWhiteSpace(m.Label) ? m.Placeholder : m.Label,
-                Required = m.Required,
-                Type = "text",
-                Source = string.IsNullOrWhiteSpace(m.Source) ? "manual" : m.Source,
-                Binding = (m.Source != "manual" && m.Source != "config") ? m.Binding : null,
-                DefaultValue = m.DefaultValue,
-                Sort = i
-            }).ToList()
+            Fields = request.Mappings
+                .Where(m => !string.IsNullOrWhiteSpace(m.Placeholder))
+                .GroupBy(m => m.Placeholder!.Trim())
+                .Select((g, i) =>
+                {
+                    var m = g.First();
+                    return new TemplateField
+                    {
+                        TemplateId = templateId,
+                        Name = g.Key,
+                        Label = string.IsNullOrWhiteSpace(m.Label) ? g.Key : m.Label,
+                        Required = m.Required,
+                        Type = "text",
+                        Source = string.IsNullOrWhiteSpace(m.Source) ? "manual" : m.Source,
+                        Binding = (m.Source != "manual" && m.Source != "config") ? m.Binding : null,
+                        DefaultValue = m.DefaultValue,
+                        Sort = i
+                    };
+                }).ToList()
         };
         tpl.ContextSource = tpl.Fields.Select(f => f.Source).FirstOrDefault(s => bindable.Contains(s));
         _db.TemplateDefinitions.Add(tpl);
