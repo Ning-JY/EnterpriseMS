@@ -1109,7 +1109,7 @@ window.openModal = function (id, title, area) {
 
     // ── 成果报告 ──
     window.openReportModal = function () {
-        openModal('reportGenModal', '生成成果报告', ['760px']);
+        openModal('reportGenModal', '生成成果报告', ['860px']);
         loadReportTemplates();
     };    function loadReportTemplates() {
         fetch('/templatereport/templates', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
@@ -1183,7 +1183,7 @@ window.openModal = function (id, title, area) {
 
     // ── 用章申请：模板使用通用流程 ──
     window.openSealModal = function () {
-        openModal('sealApplyModal', '用章申请', ['760px']);
+        openModal('sealApplyModal', '用章申请', ['860px']);
         loadSealTemplates();
     };
     function loadSealTemplates() {
@@ -1223,15 +1223,15 @@ window.openModal = function (id, title, area) {
             })
             .catch(function () { ems.close(load); ems.msg('加载失败', { icon: 2 }); });
     };
-    // 通用预览：调 /templatereport/preview 生成后新标签页打开（不留痕不存文件）
-    function previewTemplateDoc(tid, manualFieldsSel) {
+    // 通用预览：调 /templatereport/preview-text 取填充后正文，弹窗内展示（不留痕不存文件）
+    function previewTemplateDoc(tid, manualFieldsSel, title) {
         if (!tid) { ems.msg('请先选择模板', { icon: 2 }); return; }
         var supplementary = {};
         $(manualFieldsSel + ' [data-name]').each(function () {
             supplementary[$(this).data('name')] = $(this).val();
         });
         var load = ems.loading('生成预览…');
-        fetch('/templatereport/preview', {
+        fetch('/templatereport/preview-text', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': antiForgery, 'X-Requested-With': 'XMLHttpRequest' },
             body: JSON.stringify({ templateId: tid, contextSource: 'project', instanceId: String(projId), supplementaryFields: supplementary })
@@ -1239,18 +1239,19 @@ window.openModal = function (id, title, area) {
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (!res || res.code !== 200) throw new Error(res ? res.message : '预览失败');
-                var blob = (function (b64) {
-                    var bin = atob(b64), arr = new Uint8Array(bin.length);
-                    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-                    return new Blob([arr], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-                })(res.data.base64);
-                window.open(URL.createObjectURL(blob), '_blank');
+                var txt = (res.data.text || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                $('#tplPreviewModal').remove();
+                var html = '<div class="ems-modal-box" id="tplPreviewModal" style="display:none">'
+                    + '<div class="ems-modal-body" style="max-height:60vh;overflow-y:auto;background:#fff;padding:20px 24px;white-space:pre-wrap;font-size:14px;line-height:1.8">' + (txt || '<span style="color:#999">（文档正文为空）</span>') + '</div>'
+                    + '<div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal(\'tplPreviewModal\')">关闭</button></div></div>';
+                $('body').append(html);
+                openModal('tplPreviewModal', (title || '文档') + ' - 填充预览', ['720px']);
             })
             .catch(function (err) { ems.msg(err.message || '预览失败', { icon: 2 }); })
             .finally(function () { ems.close(load); });
     }
-    window.previewReport = function () { previewTemplateDoc($('#reportTemplate').val(), '#manualFields'); };
-    window.previewSeal = function () { previewTemplateDoc($('#sealTemplate').val(), '#sealManualFields'); };
+    window.previewReport = function () { previewTemplateDoc($('#reportTemplate').val(), '#manualFields', '成果报告'); };
+    window.previewSeal = function () { previewTemplateDoc($('#sealTemplate').val(), '#sealManualFields', '用章申请'); };
 
     window.confirmSealGenerate = function () {
         var tid = $('#sealTemplate').val();

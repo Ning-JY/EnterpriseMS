@@ -304,6 +304,47 @@ public class TemplateReportController : BaseAuthController
         }
     }
 
+    /// <summary>文档文本预览：返回填充后文档的纯文本（段落换行），用于弹窗内预览。</summary>
+    [HttpPost("preview-text")]
+    public async Task<IActionResult> PreviewText([FromBody] ReportFillRequest request)
+    {
+        try
+        {
+            var fieldValues = BuildFieldValues(request);
+            await MergeAutoFields(request, fieldValues);
+            var base64 = _reportService.FillTemplate(request.TemplateId, fieldValues);
+            var bytes = Convert.FromBase64String(base64);
+            var sb = new System.Text.StringBuilder();
+            using (var ms = new MemoryStream(bytes))
+            using (var doc = Docx.WordprocessingDocument.Open(ms, false))
+            {
+                var body = doc.MainDocumentPart?.Document?.Body;
+                if (body != null)
+                {
+                    foreach (var p in body.Elements<Docx.Paragraph>())
+                    {
+                        sb.AppendLine(p.InnerText);
+                    }
+                    foreach (var tbl in body.Elements<Docx.Table>())
+                    {
+                        foreach (var row in tbl.Elements<Docx.TableRow>())
+                        {
+                            var cells = row.Elements<Docx.TableCell>()
+                                .Select(c => string.Join("", c.Descendants<Docx.Paragraph>().Select(pp => pp.InnerText)));
+                            sb.AppendLine(string.Join(" | ", cells));
+                        }
+                        sb.AppendLine();
+                    }
+                }
+            }
+            return ApiOk(new { text = sb.ToString() });
+        }
+        catch (Exception ex)
+        {
+            return ApiFail(FullErr(ex));
+        }
+    }
+
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] ReportFillRequest request)
     {
