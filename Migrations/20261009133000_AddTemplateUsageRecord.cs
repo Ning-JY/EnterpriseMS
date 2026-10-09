@@ -1,4 +1,6 @@
 using System;
+using EnterpriseMS.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -8,6 +10,7 @@ namespace EnterpriseMS.Migrations
 {
     /// <inheritdoc />
     [Migration("20261009133000_AddTemplateUsageRecord")]
+    [DbContext(typeof(AppDbContext))]
     public partial class AddTemplateUsageRecord : Migration
     {
         /// <inheritdoc />

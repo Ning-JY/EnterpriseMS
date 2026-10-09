@@ -27,6 +27,8 @@ public static class DictType
     // 与 HR 劳动合同的 ContractType 是两套互不相干的字典，不可合并：
     // contract_type 已被员工合同模块占用（固定期限 / 无固定期限 / 劳务合同 / 实习协议）。
     public const string ProjContractType = "proj_contract_type";
+    // 模板分类（用章申请 / 成果报告 / 请假申请…），由模板配置页的分类下拉消费。
+    public const string TemplateCategory = "template_category";
 
     /// <summary>
     /// 全部代码登记过的字典类型。字典管理中删除这些类型会破坏对应下拉/逻辑，
@@ -37,6 +39,6 @@ public static class DictType
         CertType, ContractType, MilestoneType, BizType, ProcurementType,
         ProjectStatus, Nationality, PoliticalStatus, Education,
         TechnicalTitle, TechnicalLevel, EmployeeStatus, ContractStatus, ProjNoPrefix,
-        ProjContractType
+        ProjContractType, TemplateCategory
     };
 }

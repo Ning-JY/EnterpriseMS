@@ -33,7 +33,9 @@ public static class DictSeeds
             new SysDictType { Id = 14, DictName = "合同状态",         DictType = "contract_status",  Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictType { Id = 15, DictName = "项目编号前缀",     DictType = "proj_no_prefix",   Status = 1, CreatedAt = dt, CreatedBy = "system" },
             // 项目合同类型（项目台账-项目详情的合同类型下拉；与 HR 的 contract_type 相互独立）
-            new SysDictType { Id = 16, DictName = "项目合同类型",     DictType = "proj_contract_type", Status = 1, CreatedAt = dt, CreatedBy = "system" }
+            new SysDictType { Id = 16, DictName = "项目合同类型",     DictType = "proj_contract_type", Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            // 模板分类（模板配置页的分类下拉；用章申请/成果报告/请假申请…）
+            new SysDictType { Id = 17, DictName = "模板分类",         DictType = "template_category",  Status = 1, CreatedAt = dt, CreatedBy = "system" }
         );
 
         // ── 字典数据 ──────────────────────────────────────────
@@ -139,7 +141,14 @@ public static class DictSeeds
             new SysDictData { Id = 1601, DictType = "proj_contract_type", DictLabel = "主合同",   DictValue = "主合同",   Sort = 1, IsDefault = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 1602, DictType = "proj_contract_type", DictLabel = "补充合同", DictValue = "补充合同", Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysDictData { Id = 1603, DictType = "proj_contract_type", DictLabel = "变更合同", DictValue = "变更合同", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
-            new SysDictData { Id = 1604, DictType = "proj_contract_type", DictLabel = "补充协议", DictValue = "补充协议", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" }
+            new SysDictData { Id = 1604, DictType = "proj_contract_type", DictLabel = "补充协议", DictValue = "补充协议", Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            // 模板分类（字典驱动：管理员可在字典管理中增删；用章申请为项目详情页弹窗过滤所用，改名需同步改代码）
+            new SysDictData { Id = 1701, DictType = "template_category", DictLabel = "用章申请", DictValue = "用章申请", Sort = 1, IsDefault = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1702, DictType = "template_category", DictLabel = "报告",     DictValue = "报告",     Sort = 2, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1703, DictType = "template_category", DictLabel = "请假申请", DictValue = "请假申请", Sort = 3, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1704, DictType = "template_category", DictLabel = "合同",     DictValue = "合同",     Sort = 4, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1705, DictType = "template_category", DictLabel = "证书",     DictValue = "证书",     Sort = 5, Status = 1, CreatedAt = dt, CreatedBy = "system" },
+            new SysDictData { Id = 1706, DictType = "template_category", DictLabel = "其他",     DictValue = "其他",     Sort = 6, Status = 1, CreatedAt = dt, CreatedBy = "system" }
         );
     }
 }

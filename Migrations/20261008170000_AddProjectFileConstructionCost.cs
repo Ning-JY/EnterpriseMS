@@ -1,3 +1,5 @@
+using EnterpriseMS.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -6,6 +8,7 @@ namespace EnterpriseMS.Migrations
 {
     /// <inheritdoc />
     [Migration("20261008170000_AddProjectFileConstructionCost")]
+    [DbContext(typeof(AppDbContext))]
     public partial class AddProjectFileConstructionCost : Migration
     {
         /// <inheritdoc />

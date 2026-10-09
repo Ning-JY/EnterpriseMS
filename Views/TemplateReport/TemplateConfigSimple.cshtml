@@ -41,11 +41,7 @@
                 <div class="layui-col-xs4">
                     <label class="layui-form-label" style="width:auto;padding-left:0">分类 <span class="layui-font-red">*</span></label>
                     <div class="layui-input-block" style="margin-left:0">
-                        <input type="text" id="tplCategory" class="layui-input" list="categoryList" placeholder="请选择或输入" />
-                        <datalist id="categoryList">
-                            <option value="请假"></option><option value="用章申请"></option><option value="报告"></option>
-                            <option value="合同"></option><option value="证书"></option><option value="其他"></option>
-                        </datalist>
+                        <select id="tplCategory" lay-filter="tplCategory"><option value="">请选择</option></select>
                     </div>
                 </div>
                 <div class="layui-col-xs4">
@@ -101,6 +97,19 @@ ems.ready(function () {
     $.get('/templatereport/data-sources', function (r) {
         if (r && r.code === 200) _sources = r.data || [];
     });
+    // 加载模板分类字典（template_category）
+    $.get('/dict/data/template_category', function (r) {
+        var list = (r && (r.data || r.Data)) || [];
+        var html = '<option value="">请选择</option>';
+        list.forEach(function (d) {
+            var label = d.dictLabel || d.DictLabel, value = d.dictValue || d.DictValue;
+            html += '<option value="' + ems.escapeHtml(value) + '">' + ems.escapeHtml(label) + '</option>';
+        });
+        $('#tplCategory').html(html);
+        layui.form.render('select');
+        // 编辑模式回填时可能先于字典加载完成，这里补一次
+        if (window._pendingCategory) { $('#tplCategory').val(window._pendingCategory); layui.form.render('select'); window._pendingCategory = null; }
+    });
     // 编辑模式：从 URL 取 id 加载已有模板
     var tid = new URLSearchParams(location.search).get('id');
     if (tid) loadTemplate(tid);
@@ -112,7 +121,9 @@ function loadTemplate(tid) {
         var t = r.data;
         $('#tplId').val(t.id);
         $('#tplName').val(t.name);
-        $('#tplCategory').val(t.category || '');
+        // 分类下拉可能还未加载完字典，先暂存，字典回来后回填
+        if ($('#tplCategory option').length > 1) { $('#tplCategory').val(t.category || ''); layui.form.render('select'); }
+        else window._pendingCategory = t.category || '';
         $('#tplDesc').val(t.description || '');
         // 已有字段直接渲染为占位符行
         _placeholders = (t.fields || []).map(function (f) { return f.name; });
