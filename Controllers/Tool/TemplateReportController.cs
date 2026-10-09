@@ -3,6 +3,8 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Sys = System;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EnterpriseMS.Common;
@@ -316,21 +318,21 @@ public class TemplateReportController : BaseAuthController
             var bytes = Convert.FromBase64String(base64);
             var sb = new System.Text.StringBuilder();
             using (var ms = new MemoryStream(bytes))
-            using (var doc = Docx.WordprocessingDocument.Open(ms, false))
+            using (var doc = WordprocessingDocument.Open(ms, false))
             {
                 var body = doc.MainDocumentPart?.Document?.Body;
                 if (body != null)
                 {
-                    foreach (var p in body.Elements<Docx.Paragraph>())
+                    foreach (var p in body.Elements<Paragraph>())
                     {
                         sb.AppendLine(p.InnerText);
                     }
-                    foreach (var tbl in body.Elements<Docx.Table>())
+                    foreach (var tbl in body.Elements<Table>())
                     {
-                        foreach (var row in tbl.Elements<Docx.TableRow>())
+                        foreach (var row in tbl.Elements<TableRow>())
                         {
-                            var cells = row.Elements<Docx.TableCell>()
-                                .Select(c => string.Join("", c.Descendants<Docx.Paragraph>().Select(pp => pp.InnerText)));
+                            var cells = row.Elements<TableCell>()
+                                .Select(c => string.Join("", c.Descendants<Paragraph>().Select(pp => pp.InnerText)));
                             sb.AppendLine(string.Join(" | ", cells));
                         }
                         sb.AppendLine();
