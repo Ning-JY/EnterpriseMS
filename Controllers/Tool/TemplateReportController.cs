@@ -6,6 +6,7 @@ using Sys = System;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using EnterpriseMS.Common;
+using EnterpriseMS.Common.Extensions;
 using EnterpriseMS.Services.DTOs.Report;
 using EnterpriseMS.Services.Impl;
 using EnterpriseMS.Services.Interfaces;
@@ -517,7 +518,7 @@ public class TemplateReportController : BaseAuthController
             // mappings 以 JSON 字符串传入（FromForm + 文件上传）
             if (Request.Form.TryGetValue("mappingsJson", out var mj) && !string.IsNullOrWhiteSpace(mj))
             {
-                request.Mappings = System.Text.Json.JsonSerializer.Deserialize<List<PlaceholderMappingDto>>(mj!)
+                request.Mappings = Sys.Text.Json.JsonSerializer.Deserialize<List<PlaceholderMappingDto>>(mj!)
                     ?? new();
             }
             var id = _reportService.SavePlaceholderTemplate(request, file);
