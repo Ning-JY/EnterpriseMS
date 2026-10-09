@@ -316,7 +316,7 @@ public class TemplateReportController : BaseAuthController
             await MergeAutoFields(request, fieldValues);
             var base64 = _reportService.FillTemplate(request.TemplateId, fieldValues);
             var bytes = Convert.FromBase64String(base64);
-            var sb = new System.Text.StringBuilder();
+            var sb = new global::System.Text.StringBuilder();
             using (var ms = new MemoryStream(bytes))
             using (var doc = WordprocessingDocument.Open(ms, false))
             {
