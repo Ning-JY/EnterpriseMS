@@ -10,7 +10,7 @@ namespace EnterpriseMS.Migrations
 {
     /// <inheritdoc />
     [Migration("20261009133000_AddTemplateUsageRecord")]
-    [DbContext(typeof(AppDbContext))]
+    [DbContextAttribute(typeof(AppDbContext))]
     public partial class AddTemplateUsageRecord : Migration
     {
         /// <inheritdoc />
