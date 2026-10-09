@@ -743,7 +743,7 @@
             <div id="manualFields"></div>
         </div>
     </div>
-    <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('reportGenModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnConfirmGen" onclick="confirmReportGenerate()">生成并下载</button></div>
+    <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('reportGenModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="previewReport()">预览</button> <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnConfirmGen" onclick="confirmReportGenerate()">生成并下载</button></div>
 </div>
 
 <!-- 用章申请：选择模板 → 自动填充 → 预览修改 → 生成留痕 -->
@@ -766,7 +766,7 @@
             <div id="sealManualFields"></div>
         </div>
     </div>
-    <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('sealApplyModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnConfirmSeal" onclick="confirmSealGenerate()">生成并下载</button></div>
+    <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('sealApplyModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="previewSeal()">预览</button> <button class="layui-btn layui-btn-sm layui-btn-normal" id="btnConfirmSeal" onclick="confirmSealGenerate()">生成并下载</button></div>
 </div>
 
 @section Scripts {
@@ -1223,6 +1223,35 @@ window.openModal = function (id, title, area) {
             })
             .catch(function () { ems.close(load); ems.msg('加载失败', { icon: 2 }); });
     };
+    // 通用预览：调 /templatereport/preview 生成后新标签页打开（不留痕不存文件）
+    function previewTemplateDoc(tid, manualFieldsSel) {
+        if (!tid) { ems.msg('请先选择模板', { icon: 2 }); return; }
+        var supplementary = {};
+        $(manualFieldsSel + ' [data-name]').each(function () {
+            supplementary[$(this).data('name')] = $(this).val();
+        });
+        var load = ems.loading('生成预览…');
+        fetch('/templatereport/preview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': antiForgery, 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ templateId: tid, contextSource: 'project', instanceId: String(projId), supplementaryFields: supplementary })
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res || res.code !== 200) throw new Error(res ? res.message : '预览失败');
+                var blob = (function (b64) {
+                    var bin = atob(b64), arr = new Uint8Array(bin.length);
+                    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                    return new Blob([arr], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+                })(res.data.base64);
+                window.open(URL.createObjectURL(blob), '_blank');
+            })
+            .catch(function (err) { ems.msg(err.message || '预览失败', { icon: 2 }); })
+            .finally(function () { ems.close(load); });
+    }
+    window.previewReport = function () { previewTemplateDoc($('#reportTemplate').val(), '#manualFields'); };
+    window.previewSeal = function () { previewTemplateDoc($('#sealTemplate').val(), '#sealManualFields'); };
+
     window.confirmSealGenerate = function () {
         var tid = $('#sealTemplate').val();
         if (!tid) { ems.msg('请先选择模板', { icon: 2 }); return; }
