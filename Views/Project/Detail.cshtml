@@ -277,7 +277,12 @@
             <!-- 合同与回款 -->
             <div class="layui-tab-item">
                 <div class="flex-between"><strong>合同与回款</strong>
-                    @if (canEdit) { <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="openModal('addContractModal','新增合同',['760px'])"><i class="layui-icon layui-icon-add-1"></i> 新增合同</button> }
+                    @if (canEdit) {
+                        <span>
+                            <button class="layui-btn layui-btn-sm" onclick="openLinkContractModal()"><i class="layui-icon layui-icon-link"></i> 关联已有合同</button>
+                            <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="openModal('addContractModal','新增合同',['760px'])"><i class="layui-icon layui-icon-add-1"></i> 新增合同</button>
+                        </span>
+                    }
                 </div>
                 @{
                     var unlinkedTop = Model.Invoices.Where(i => !i.ContractId.HasValue).ToList();
@@ -316,7 +321,7 @@
                                 <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px">
                                     @if (canEdit) {
                                         <a class="layui-btn layui-btn-xs layui-btn-normal" onclick="openAddReceipt(@ct.Id)" title="新增回款"><i class="layui-icon layui-icon-add-1"></i> 新增回款</a>
-                                        <a class="ems-icon-btn warn" title="删除合同" onclick="delContractById(@ct.Id,'@ct.ContractNo',@ctInvoices.Count)"><i class="layui-icon layui-icon-delete"></i></a>
+                                        <a class="ems-icon-btn warn" title="取消关联" onclick="unlinkContractById(@ct.Id,'@ct.ContractNo')"><i class="layui-icon layui-icon-unlink"></i></a>
                                     }
                                 </span>
                             </div>
@@ -683,6 +688,24 @@
     <div class="ems-modal-foot"><button class="layui-btn layui-btn-sm" onclick="closeModal('addContractModal')">取消</button> <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="saveContract()">保存</button></div>
 </div>
 
+<div class="ems-modal-box" id="linkContractModal" style="display:none">
+    <div class="ems-modal-body">
+        <div class="layui-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">选择合同</label>
+                <div class="layui-input-block">
+                    <select id="linkContractSelect" lay-search><option value="">加载中...</option></select>
+                </div>
+            </div>
+            <div class="layui-form-mid layui-word-aux" style="margin-left:110px">从合同库中选择已有合同关联到本项目（如框架合同）</div>
+        </div>
+    </div>
+    <div class="ems-modal-foot">
+        <button class="layui-btn layui-btn-sm" onclick="closeLinkContractModal()">取消</button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="confirmLinkContract()">确定关联</button>
+    </div>
+</div>
+
 <div class="ems-modal-box" id="addReceiptModal">
     <div class="ems-form-group-title">回款信息</div>
     <div class="layui-form-item">
@@ -970,7 +993,44 @@ window.openModal = function (id, title, area) {
         if (receiptCount > 0) tip += '<br><span class="layui-font-red">该合同下 ' + receiptCount + ' 笔回款记录将一并删除！</span>';
         ems.confirm(tip, { icon: 3, btn: ['确认删除', '取消'] }, function (i) {
             ems.close(i);
-            $.ajax({ url: '/project/' + projId + '/contracts/delete/' + id, type: 'POST', data: { __RequestVerificationToken: antiForgery }, success: function (r) { if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, reloadPage); } else ems.msg(r.message, { icon: 2 }); } });
+            $.ajax({ url: '/project/' + projId + '/contracts/delete/' + id, type: 'POST', data: { __RequestVerificationToken: antiForgery }, success: function (r) { if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, reloadPage); } else { ems.msg(r.message, { icon: 2 }); } } });
+        });
+    };
+    // 取消关联（多对多：不断删合同，只断开与本项目的关联）
+    window.unlinkContractById = function (id, no) {
+        ems.confirm('确定取消与合同 ' + ems.escapeHtml(no || '') + ' 的关联吗？<br><span class="layui-font-gray">合同本身保留，可在合同管理中查看。</span>', { icon: 3, btn: ['确认取消', '返回'] }, function (i) {
+            ems.close(i);
+            $.ajax({ url: '/project/' + projId + '/contracts/delete/' + id, type: 'POST', data: { __RequestVerificationToken: antiForgery }, success: function (r) { if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, reloadPage); } else { ems.msg(r.message, { icon: 2 }); } } });
+        });
+    };
+    // 关联已有合同
+    var _linkContractLayerIdx = null;
+    window.openLinkContractModal = function () {
+        $.getJSON('/project/contract/options', function (r) {
+            var items = r.data || [];
+            var html = '';
+            items.forEach(function (c) {
+                html += '<option value="' + c.id + '">' + ems.escapeHtml(c.contractNo) + ' - ' + ems.escapeHtml(c.contractName || '') + ' (' + ems.escapeHtml(c.partyA) + ')</option>';
+            });
+            $('#linkContractSelect').html(html || '<option value="">暂无可选合同</option>');
+            layui.form.render('select');
+        });
+        _linkContractLayerIdx = layer.open({
+            type: 1, title: '关联已有合同', area: ['520px'],
+            content: $('#linkContractModal'), shadeClose: false
+        });
+    };
+    window.closeLinkContractModal = function () { if (_linkContractLayerIdx) { layer.close(_linkContractLayerIdx); _linkContractLayerIdx = null; } };
+    window.confirmLinkContract = function () {
+        var cid = $('#linkContractSelect').val();
+        if (!cid) { ems.msg('请选择合同', { icon: 2 }); return; }
+        $.ajax({
+            url: '/project/' + projId + '/contracts/link/' + cid, type: 'POST',
+            data: { __RequestVerificationToken: antiForgery },
+            success: function (r) {
+                if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, function () { closeLinkContractModal(); reloadPage(); }); }
+                else { ems.msg(r.message, { icon: 2 }); }
+            }
         });
     };
     window.delContractFile = function (el) {

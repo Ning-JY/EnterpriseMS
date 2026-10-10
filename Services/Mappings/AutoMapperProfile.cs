@@ -82,6 +82,7 @@ public class AutoMapperProfile : Profile
             .ForMember(d => d.OwnerName, o => o.MapFrom(s => s.Owner != null ? WebUtility.HtmlDecode(s.Owner.RealName) : null));
         // 新增实体映射
         CreateMap<ProjectContract, ProjectContractDto>();
+        CreateMap<Contract, ProjectContractDto>();
         CreateMap<ProjectInvoice, ProjectInvoiceDto>();
         CreateMap<ProjectFile, ProjectFileDto>();
         CreateMap<CreateMilestoneDto, ProjectMilestone>();

@@ -1,0 +1,181 @@
+@using EnterpriseMS.Common.Extensions
+@using EnterpriseMS.Domain.Entities.Project
+@using EnterpriseMS.Services.DTOs.Project
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@model Contract
+@{
+    ViewData["Title"] = "合同详情";
+    var userId = User.GetUserId();
+    bool canEdit = await PermSvc.HasPermAsync(userId, "proj:project:list");
+    var linkedProjects = ViewBag.LinkedProjects as List<LinkedProjectDto> ?? new();
+}
+
+<div class="ems-page">
+    <div class="ems-page-head">
+        <div class="ems-page-title"><i class="layui-icon layui-icon-file-b"></i> 合同详情 <small class="layui-font-12 layui-font-gray">@Model.ContractNo</small></div>
+        <div class="layui-breadcrumb" lay-separator="/">
+            <a href="javascript:;">首页</a>
+            <a href="javascript:;">项目管理</a>
+            <a href="javascript:ems.openTab('/project/contract','合同管理')">合同管理</a>
+            <a><cite>合同详情</cite></a>
+        </div>
+    </div>
+
+    <div class="layui-card ems-card">
+        <div class="layui-card-header"><span>基本信息</span>
+            @if (canEdit)
+            {
+                <span style="float:right">
+                    <button class="layui-btn layui-btn-xs layui-btn-normal" onclick="editCurrentContract()"><i class="layui-icon layui-icon-edit"></i> 编辑</button>
+                </span>
+            }
+        </div>
+        <div class="layui-card-body">
+            <div class="ems-info-grid">
+                <div class="ems-info-item"><span class="label">合同编号</span><span class="val">@Model.ContractNo</span></div>
+                <div class="ems-info-item"><span class="label">合同类型</span><span class="val">@Model.ContractType</span></div>
+                <div class="ems-info-item"><span class="label">合同名称</span><span class="val">@(Model.ContractName ?? "-")</span></div>
+                <div class="ems-info-item"><span class="label">合同金额</span><span class="val">¥@Model.Amount.ToString("N2")</span></div>
+                <div class="ems-info-item"><span class="label">甲方</span><span class="val">@Model.PartyA</span></div>
+                <div class="ems-info-item"><span class="label">乙方</span><span class="val">@Model.PartyB</span></div>
+                <div class="ems-info-item"><span class="label">签约日期</span><span class="val">@(Model.SignDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+                <div class="ems-info-item"><span class="label">起止日期</span><span class="val">@(Model.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(Model.EndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+                <div class="ems-info-item"><span class="label">备注</span><span class="val">@(Model.Remark ?? "-")</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="layui-card ems-card">
+        <div class="layui-card-header"><span>关联项目 <span class="layui-badge layui-bg-blue">@linkedProjects.Count</span></span>
+            @if (canEdit)
+            {
+                <span style="float:right">
+                    <button class="layui-btn layui-btn-xs layui-btn-normal" onclick="openLinkProjectModal()"><i class="layui-icon layui-icon-add-1"></i> 关联项目</button>
+                </span>
+            }
+        </div>
+        <div class="layui-card-body">
+            @if (!linkedProjects.Any())
+            {
+                <div class="ems-empty">暂无关联项目</div>
+            }
+            else
+            {
+                <table class="layui-table">
+                    <thead><tr><th>项目编号</th><th>项目名称</th><th style="width:160px">操作</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in linkedProjects)
+                        {
+                            <tr>
+                                <td>@p.ProjNo</td>
+                                <td><a href="javascript:ems.openTab('/project/detail/@p.ProjectId','项目详情')">@p.ProjName</a></td>
+                                <td>
+                                    @if (canEdit)
+                                    {
+                                        <button class="layui-btn layui-btn-xs layui-btn-danger" onclick="unlinkProject(@p.ProjectId)">取消关联</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="ems-modal-box" id="linkProjectModal" style="display:none">
+    <div class="ems-modal-body">
+        <div class="layui-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">选择项目</label>
+                <div class="layui-input-block">
+                    <select id="linkProjectSelect" lay-search><option value="">搜索项目...</option></select>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="ems-modal-foot">
+        <button class="layui-btn layui-btn-sm" onclick="closeLinkModal()">取消</button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="confirmLinkProject()">确定关联</button>
+    </div>
+</div>
+
+<div class="ems-modal-box" id="contractEditModal" style="display:none">
+    <div class="ems-modal-body"><partial name="_ContractForm" /></div>
+    <div class="ems-modal-foot">
+        <button class="layui-btn layui-btn-sm" onclick="closeEditModal()">取消</button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="saveEditContract()">保存</button>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+var _linkLayerIdx = null, _editLayerIdx = null;
+var _contractId = @Model.Id;
+
+function openLinkProjectModal() {
+    $.getJSON('/project/list?size=200', function (r) {
+        var items = (r.data && r.data.items) || r.data || [];
+        var html = '<option value="">搜索项目...</option>';
+        items.forEach(function (p) {
+            html += '<option value="' + p.id + '">' + ems.escapeHtml(p.projName) + ' (' + ems.escapeHtml(p.projNo) + ')</option>';
+        });
+        $('#linkProjectSelect').html(html);
+        layui.form.render('select');
+    });
+    _linkLayerIdx = layer.open({ type: 1, title: '关联项目', area: ['480px'], content: $('#linkProjectModal'), shadeClose: false });
+}
+function closeLinkModal() { if (_linkLayerIdx) { layer.close(_linkLayerIdx); _linkLayerIdx = null; } }
+function confirmLinkProject() {
+    var pid = $('#linkProjectSelect').val();
+    if (!pid) { ems.msg('请选择项目', { icon: 2 }); return; }
+    $.ajax({
+        url: '/project/contract/' + _contractId + '/link', type: 'POST', contentType: 'application/json',
+        headers: { 'RequestVerificationToken': ems.antiForgery() },
+        data: JSON.stringify({ projectId: parseInt(pid) }),
+        success: function (r) {
+            if (r.code === 200) { ems.msg('关联成功', { icon: 1 }); closeLinkModal(); location.reload(); }
+            else ems.msg(r.message || '关联失败', { icon: 2 });
+        }
+    });
+}
+function unlinkProject(projectId) {
+    ems.confirm('确定取消该项目的关联吗？（合同本身保留）', function () {
+        $.ajax({
+            url: '/project/contract/' + _contractId + '/unlink/' + projectId, type: 'POST',
+            headers: { 'RequestVerificationToken': ems.antiForgery() },
+            success: function (r) {
+                if (r.code === 200) { ems.msg('已取消关联', { icon: 1 }); location.reload(); }
+                else ems.msg(r.message || '操作失败', { icon: 2 });
+            }
+        });
+    });
+}
+function editCurrentContract() {
+    $.getJSON('/project/contract/detail-json/' + _contractId, function (res) {
+        if (res.code !== 200) { ems.msg(res.message || '加载失败', { icon: 2 }); return; }
+        initContractForm(res.data);
+        _editLayerIdx = layer.open({
+            type: 1, title: '编辑合同', area: ['780px'], offset: '60px',
+            content: $('#contractEditModal'), shadeClose: false,
+            success: function () { if (layui.form) layui.form.render(); }
+        });
+    });
+}
+function closeEditModal() { if (_editLayerIdx) { layer.close(_editLayerIdx); _editLayerIdx = null; } }
+function saveEditContract() {
+    var dto = collectContractForm();
+    if (!dto.contractNo) { ems.msg('合同编号不能为空', { icon: 2 }); return; }
+    $.ajax({
+        url: '/project/contract/save', type: 'POST', contentType: 'application/json',
+        headers: { 'RequestVerificationToken': ems.antiForgery() },
+        data: JSON.stringify(dto),
+        success: function (r) {
+            if (r.code === 200) { ems.msg('保存成功', { icon: 1 }); closeEditModal(); location.reload(); }
+            else ems.msg(r.message || '保存失败', { icon: 2 });
+        }
+    });
+}
+</script>
+}

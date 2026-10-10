@@ -47,6 +47,8 @@ public class AppDbContext : DbContext
     public DbSet<ProjectOperLog> ProjLogs { get; set; }
     // 项目扩展
     public DbSet<ProjectContract> ProjContracts { get; set; }
+    public DbSet<Contract> Contracts { get; set; }
+    public DbSet<ProjectContractLink> ProjectContractLinks { get; set; }
     public DbSet<ProjectInvoice> ProjInvoices { get; set; }
     public DbSet<ProjectFile> ProjFiles { get; set; }
     // 公开信息
@@ -113,6 +115,11 @@ public class AppDbContext : DbContext
             .HasForeignKey(f => f.CategoryId).OnDelete(DeleteBehavior.Restrict);
         mb.Entity<ProjectContract>().HasOne(c => c.Project).WithMany(p => p.Contracts)
             .HasForeignKey(c => c.ProjectId);
+        mb.Entity<ProjectContractLink>().HasOne(l => l.Project).WithMany()
+            .HasForeignKey(l => l.ProjectId).OnDelete(DeleteBehavior.Cascade);
+        mb.Entity<ProjectContractLink>().HasOne(l => l.Contract).WithMany()
+            .HasForeignKey(l => l.ContractId).OnDelete(DeleteBehavior.Cascade);
+        mb.Entity<ProjectContractLink>().HasIndex(l => new { l.ProjectId, l.ContractId }).IsUnique();
         mb.Entity<ProjectInvoice>().HasOne(i => i.Project).WithMany(p => p.Invoices)
             .HasForeignKey(i => i.ProjectId);
         mb.Entity<ProjectFile>().HasOne(f => f.Project).WithMany(p => p.Files)

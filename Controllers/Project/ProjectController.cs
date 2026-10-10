@@ -460,10 +460,27 @@ public class ProjectController : BaseAuthController
 
     [HttpPost("{projectId}/contracts/delete/{contractId}")]
     [HasPermission("proj:project:edit")]
-    public async Task<IActionResult> DeleteContract(long contractId)
+    public async Task<IActionResult> DeleteContract(long projectId, long contractId)
     {
-        await _projSvc.DeleteContractAsync(contractId);
-        return ApiOk("合同已删除");
+        // 多对多下删除改为取消关联（合同本身保留，可在合同管理中彻底删除）
+        await _projSvc.UnlinkContractAsync(projectId, contractId, User.GetRealName());
+        return ApiOk("已取消关联");
+    }
+
+    // 关联已有合同
+    [HttpPost("{projectId}/contracts/link/{contractId}"), ValidateAntiForgeryToken]
+    [HasPermission("proj:project:edit")]
+    public async Task<IActionResult> LinkContract(long projectId, long contractId)
+    {
+        try
+        {
+            await _projSvc.LinkContractAsync(projectId, contractId, User.GetRealName());
+            return ApiOk("关联成功");
+        }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException or InvalidOperationException)
+        {
+            return ApiFail(ex.Message);
+        }
     }
 
     // ── 发票管理 ──────────────────────────────────────────────

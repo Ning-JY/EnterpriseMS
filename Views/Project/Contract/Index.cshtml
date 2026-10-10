@@ -1,0 +1,157 @@
+@using EnterpriseMS.Common.Extensions
+@inject EnterpriseMS.Services.Interfaces.IPermissionService PermSvc
+@{
+    ViewData["Title"] = "合同管理";
+    var userId = User.GetUserId();
+    bool canEdit = await PermSvc.HasPermAsync(userId, "proj:project:list");
+}
+
+<div class="ems-page">
+    <div class="ems-page-head">
+        <div class="ems-page-title"><i class="layui-icon layui-icon-file-b"></i> 合同管理</div>
+        <div class="layui-breadcrumb" lay-separator="/">
+            <a href="javascript:;">首页</a>
+            <a href="javascript:;">项目管理</a>
+            <a><cite>合同管理</cite></a>
+        </div>
+    </div>
+
+    <div class="layui-card ems-card ems-search">
+        <div class="layui-card-body">
+            <form class="layui-form" lay-filter="contractSearch">
+                <div class="layui-inline">
+                    <input type="text" name="keyword" placeholder="合同编号 / 名称 / 甲乙方" autocomplete="off" class="layui-input" style="width:260px">
+                </div>
+                <div class="layui-inline">
+                    <select name="contractType" id="searchContractType">
+                        <option value="">全部类型</option>
+                    </select>
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn" lay-submit lay-filter="contractSearch">
+                        <i class="layui-icon layui-icon-search"></i> 搜索
+                    </button>
+                    <button type="reset" class="layui-btn layui-btn-primary" style="margin-left:6px"><i class="layui-icon layui-icon-refresh"></i> 重置</button>
+                </div>
+                @if (canEdit)
+                {
+                    <div class="layui-inline" style="float:right">
+                        <button type="button" class="layui-btn layui-btn-normal" id="btnAddContract">
+                            <i class="layui-icon layui-icon-add-1"></i> 新增合同
+                        </button>
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+
+    <div class="layui-card ems-card">
+        <div class="layui-card-header"><span>合同列表</span></div>
+        <div class="layui-card-body">
+            <table id="contractTable" lay-filter="contractTable"></table>
+        </div>
+    </div>
+</div>
+
+<div class="ems-modal-box" id="contractModal" style="display:none">
+    <div class="ems-modal-body">
+        <partial name="_ContractForm" />
+    </div>
+    <div class="ems-modal-foot">
+        <button class="layui-btn layui-btn-sm" onclick="closeContractModal()">取消</button>
+        <button class="layui-btn layui-btn-sm layui-btn-normal" onclick="saveContract()">保存</button>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+var _contractLayerIdx = null;
+ems.ready(function () {
+    $.get('/system/dict/data/proj_contract_type', function (r) {
+        var list = (r && (r.data || r.Data)) || [];
+        var html = '<option value="">全部类型</option>';
+        list.forEach(function (d) {
+            html += '<option value="' + ems.escapeHtml(d.dictValue || d.DictValue) + '">' + ems.escapeHtml(d.dictLabel || d.DictLabel) + '</option>';
+        });
+        $('#searchContractType').html(html);
+        layui.form.render('select');
+    });
+
+    layui.table.render({
+        elem: '#contractTable',
+        url: '/project/contract/list',
+        page: true,
+        limit: 15,
+        cols: [[
+            { field: 'contractNo', title: '合同编号', width: 160 },
+            { field: 'contractName', title: '合同名称', minWidth: 180 },
+            { field: 'contractType', title: '类型', width: 100 },
+            { field: 'partyA', title: '甲方', width: 140 },
+            { field: 'partyB', title: '乙方', width: 140 },
+            { field: 'amount', title: '金额(元)', width: 130, align: 'right', templet: function (d) { return ems.fmtMoney(d.amount); } },
+            { field: 'linkedCount', title: '关联项目', width: 100, align: 'center', templet: function (d) { return d.linkedCount > 0 ? '<span class="layui-badge layui-bg-blue">' + d.linkedCount + '</span>' : '<span class="layui-font-gray">0</span>'; } },
+            { field: 'signDate', title: '签约日期', width: 120, templet: function (d) { return d.signDate ? d.signDate.substring(0, 10) : '-'; } },
+            { title: '操作', width: 200, fixed: 'right', templet: function (d) {
+                var html = '<a class="layui-btn layui-btn-xs" href="javascript:viewContract(' + d.id + ')">查看</a> ';
+                @if (canEdit) {
+                    <text>html += '<a class="layui-btn layui-btn-xs layui-btn-normal" href="javascript:editContract(' + d.id + ')">编辑</a> ';
+                    html += '<a class="layui-btn layui-btn-xs layui-btn-danger" href="javascript:delContract(' + d.id + ')">删除</a>';</text>
+                }
+                return html;
+            } }
+        ]]
+    });
+
+    layui.form.on('submit(contractSearch)', function (data) {
+        layui.table.reloadData('contractTable', { where: data.field, page: { curr: 1 } });
+        return false;
+    });
+
+    $('#btnAddContract').on('click', function () { openContractModal(null); });
+});
+
+function openContractModal(contract) {
+    initContractForm(contract);
+    _contractLayerIdx = layer.open({
+        type: 1, title: contract ? '编辑合同' : '新增合同',
+        area: ['780px'], offset: '60px',
+        content: $('#contractModal'), shadeClose: false,
+        success: function () { if (layui.form) layui.form.render(); }
+    });
+}
+function closeContractModal() { if (_contractLayerIdx) { layer.close(_contractLayerIdx); _contractLayerIdx = null; } }
+
+window.editContract = function (id) {
+    $.getJSON('/project/contract/detail-json/' + id, function (res) {
+        if (res.code === 200) openContractModal(res.data);
+        else ems.msg(res.message || '加载失败', { icon: 2 });
+    });
+};
+window.viewContract = function (id) { ems.openTab('/project/contract/' + id, '合同详情'); };
+window.delContract = function (id) {
+    ems.confirm('确定删除该合同吗？（仅当未关联任何项目时可删除）', function () {
+        $.ajax({
+            url: '/project/contract/delete/' + id, type: 'POST',
+            headers: { 'RequestVerificationToken': ems.antiForgery() },
+            success: function (r) {
+                if (r.code === 200) { ems.msg('删除成功', { icon: 1 }); layui.table.reloadData('contractTable'); }
+                else ems.msg(r.message || '删除失败', { icon: 2 });
+            }
+        });
+    });
+};
+window.saveContract = function () {
+    var dto = collectContractForm();
+    if (!dto.contractNo) { ems.msg('合同编号不能为空', { icon: 2 }); return; }
+    $.ajax({
+        url: '/project/contract/save', type: 'POST', contentType: 'application/json',
+        headers: { 'RequestVerificationToken': ems.antiForgery() },
+        data: JSON.stringify(dto),
+        success: function (r) {
+            if (r.code === 200) { ems.msg('保存成功', { icon: 1 }); closeContractModal(); layui.table.reloadData('contractTable'); }
+            else ems.msg(r.message || '保存失败', { icon: 2 });
+        }
+    });
+};
+</script>
+}

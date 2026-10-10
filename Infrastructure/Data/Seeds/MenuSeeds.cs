@@ -100,6 +100,11 @@ public static class MenuSeeds
             new SysMenu { Id = 322, MenuName = "编辑回款", ParentId = 32, MenuType = "F", Sort = 2, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 323, MenuName = "删除回款", ParentId = 32, MenuType = "F", Sort = 3, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 324, MenuName = "确认收款", ParentId = 32, MenuType = "F", Sort = 4, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
+            // 合同管理（独立聚合页，多对多关联项目）
+            new SysMenu { Id = 33,  MenuName = "合同管理", ParentId = 3, MenuType = "C", Icon = "fa-file-contract", Path = "/project/contract", Sort = 3, Visible = 1, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 331, MenuName = "新增合同", ParentId = 33, MenuType = "F", Sort = 1, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 332, MenuName = "编辑合同", ParentId = 33, MenuType = "F", Sort = 2, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
+            new SysMenu { Id = 333, MenuName = "删除合同", ParentId = 33, MenuType = "F", Sort = 3, Visible = 0, Status = 1, Perms = "proj:project:list", CreatedAt = dt, CreatedBy = "system" },
             // ── 投标管理 ──────────────────────────────────────
             new SysMenu { Id = 9, MenuName = "投标管理", ParentId = 0, MenuType = "M", Icon = "fa-file-signature", Path = "/bid", Sort = 9, Visible = 1, Status = 1, CreatedAt = dt, CreatedBy = "system" },
             new SysMenu { Id = 91, MenuName = "投标台账", ParentId = 9, MenuType = "C", Icon = "fa-clipboard-list", Path = "/bid", Sort = 1, Visible = 1, Status = 1, Perms = "bid:project:list", CreatedAt = dt, CreatedBy = "system" },

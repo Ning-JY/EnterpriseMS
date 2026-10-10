@@ -31,6 +31,8 @@ public interface IUnitOfWork : IDisposable
     IRepository<ProjectAcceptance> Acceptances   { get; }
     IRepository<ProjectOperLog>    ProjLogs      { get; }
     IRepository<ProjectContract>   ProjContracts { get; }
+    IRepository<Contract>          ProjectContractsNew { get; }
+    IRepository<ProjectContractLink> ProjectContractLinks { get; }
     IRepository<ProjectInvoice>    ProjInvoices  { get; }
     IRepository<ProjectFile>       ProjFiles     { get; }
     // 公开信息

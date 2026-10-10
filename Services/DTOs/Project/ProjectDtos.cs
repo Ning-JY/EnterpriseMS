@@ -124,6 +124,50 @@ public class ProjectContractDto
     public string?  Remark       { get; set; }
 }
 
+/// <summary>合同主数据 DTO（含关联项目）</summary>
+public class ContractDto
+{
+    public long     Id           { get; set; }
+    public string   ContractNo   { get; set; } = "";
+    public string   ContractType { get; set; } = "";
+    public string?  ContractName { get; set; }
+    public string   PartyA       { get; set; } = "";
+    public string   PartyB       { get; set; } = "";
+    public decimal  Amount       { get; set; }
+    public DateTime? SignDate    { get; set; }
+    public DateTime? StartDate   { get; set; }
+    public DateTime? EndDate     { get; set; }
+    public string?  FilePath     { get; set; }
+    public string?  FileName     { get; set; }
+    public int      Status       { get; set; }
+    public string?  Remark       { get; set; }
+    public List<LinkedProjectDto> LinkedProjects { get; set; } = new();
+    public int LinkedProjectCount { get; set; }
+}
+
+public class LinkedProjectDto
+{
+    public long   ProjectId { get; set; }
+    public string ProjNo    { get; set; } = "";
+    public string ProjName  { get; set; } = "";
+}
+
+public class SaveContractDto
+{
+    public long?    Id           { get; set; }
+    public string   ContractNo   { get; set; } = "";
+    public string   ContractType { get; set; } = "主合同";
+    public string?  ContractName { get; set; }
+    public string   PartyA       { get; set; } = "";
+    public string   PartyB       { get; set; } = "";
+    public decimal  Amount       { get; set; }
+    public DateTime? SignDate    { get; set; }
+    public DateTime? StartDate   { get; set; }
+    public DateTime? EndDate     { get; set; }
+    public string?  Remark       { get; set; }
+    public List<long> ProjectIds { get; set; } = new();
+}
+
 public class ProjectInvoiceDto
 {
     public long     Id              { get; set; }

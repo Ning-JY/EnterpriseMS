@@ -77,6 +77,8 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<ProjectAcceptance>?   _acceptances;
     private IRepository<ProjectOperLog>?      _projLogs;
     private IRepository<ProjectContract>?     _projContracts;
+    private IRepository<Contract>?            _contractsNew;
+    private IRepository<ProjectContractLink>? _projectContractLinks;
     private IRepository<ProjectInvoice>?      _projInvoices;
     private IRepository<ProjectFile>?         _projFiles;
     private IRepository<InfoArticle>?         _infoArticles;
@@ -112,6 +114,8 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<ProjectAcceptance>   Acceptances    => _acceptances    ??= new Repository<ProjectAcceptance>(_db);
     public IRepository<ProjectOperLog>      ProjLogs       => _projLogs       ??= new Repository<ProjectOperLog>(_db);
     public IRepository<ProjectContract>     ProjContracts  => _projContracts  ??= new Repository<ProjectContract>(_db);
+    public IRepository<Contract>            ProjectContractsNew => _contractsNew ??= new Repository<Contract>(_db);
+    public IRepository<ProjectContractLink> ProjectContractLinks => _projectContractLinks ??= new Repository<ProjectContractLink>(_db);
     public IRepository<ProjectInvoice>      ProjInvoices   => _projInvoices   ??= new Repository<ProjectInvoice>(_db);
     public IRepository<ProjectFile>         ProjFiles      => _projFiles      ??= new Repository<ProjectFile>(_db);
     public IRepository<InfoArticle>         InfoArticles   => _infoArticles   ??= new Repository<InfoArticle>(_db);

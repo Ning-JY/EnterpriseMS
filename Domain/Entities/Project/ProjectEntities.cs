@@ -130,6 +130,35 @@ public class ProjectContract : BaseEntity
     public Project? Project { get; set; }
 }
 
+/// <summary>合同主数据（独立管理，可与多个项目关联，如框架合同）</summary>
+[Table("contract")]
+public class Contract : BaseEntity
+{
+    [Column("contract_no")]     public string   ContractNo    { get; set; } = "";
+    [Column("contract_type")]   public string   ContractType  { get; set; } = "主合同";
+    [Column("contract_name")]   public string?  ContractName  { get; set; }
+    [Column("party_a")]         public string   PartyA        { get; set; } = "";
+    [Column("party_b")]         public string   PartyB        { get; set; } = "";
+    [Column("amount")]          public decimal  Amount        { get; set; }
+    [Column("sign_date")]       public DateTime? SignDate     { get; set; }
+    [Column("start_date")]      public DateTime? StartDate    { get; set; }
+    [Column("end_date")]        public DateTime? EndDate      { get; set; }
+    [Column("file_path")]       public string?  FilePath      { get; set; }
+    [Column("file_name")]       public string?  FileName      { get; set; }
+    [Column("status")]          public int      Status        { get; set; } = 1;
+    [Column("remark")]          public string?  Remark        { get; set; }
+}
+
+/// <summary>项目-合同关联（多对多）</summary>
+[Table("proj_contract_link")]
+public class ProjectContractLink : BaseEntity
+{
+    [Column("project_id")]  public long ProjectId  { get; set; }
+    [Column("contract_id")] public long ContractId { get; set; }
+    public Project? Project { get; set; }
+    public Contract? Contract { get; set; }
+}
+
 /// <summary>项目发票</summary>
 /// <summary>
 /// 回款管理（原发票+验收合并）

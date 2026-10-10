@@ -1,0 +1,156 @@
+@* 项目合同表单共享 partial（合同管理页 / 项目详情页复用）。调用方需提供：ViewBag.ContractTypes（字典）, ViewBag.AllProjects（项目列表） *@
+@using EnterpriseMS.Services.DTOs.System
+@{
+    var contractTypes = ViewBag.ContractTypes as List<DictDataDto> ?? new();
+    var allProjects = ViewBag.AllProjects as List<EnterpriseMS.Domain.Entities.Project.Project> ?? new();
+    var linkedIds = ViewBag.LinkedProjectIds as List<long> ?? new();
+}
+<div class="layui-form" lay-filter="contractForm">
+    <input type="hidden" id="contractId" value="" />
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-xs6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">合同编号 <span class="layui-font-red">*</span></label>
+                <div class="layui-input-block">
+                    <input type="text" id="contractNo" class="layui-input" placeholder="请输入合同编号" />
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">合同类型</label>
+                <div class="layui-input-block">
+                    <select id="contractType">
+                        @foreach (var t in contractTypes)
+                        {
+                            <option value="@t.DictValue">@t.DictLabel</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">合同名称</label>
+        <div class="layui-input-block">
+            <input type="text" id="contractName" class="layui-input" placeholder="请输入合同名称" />
+        </div>
+    </div>
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-xs6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">甲方</label>
+                <div class="layui-input-block">
+                    <input type="text" id="partyA" class="layui-input" placeholder="甲方单位" />
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">乙方</label>
+                <div class="layui-input-block">
+                    <input type="text" id="partyB" class="layui-input" placeholder="乙方单位" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-xs6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">合同金额</label>
+                <div class="layui-input-block">
+                    <input type="number" id="contractAmount" class="layui-input" placeholder="0.00" step="0.01" />
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">签约日期</label>
+                <div class="layui-input-block">
+                    <input type="text" id="signDate" class="layui-input" placeholder="选择日期" readonly />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-xs6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">开始日期</label>
+                <div class="layui-input-block">
+                    <input type="text" id="startDate" class="layui-input" placeholder="选择日期" readonly />
+                </div>
+            </div>
+        </div>
+        <div class="layui-col-xs6">
+            <div class="layui-form-item">
+                <label class="layui-form-label">结束日期</label>
+                <div class="layui-input-block">
+                    <input type="text" id="endDate" class="layui-input" placeholder="选择日期" readonly />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">关联项目</label>
+        <div class="layui-input-block">
+            <div id="projectCheckboxList" style="max-height:180px;overflow-y:auto;border:1px solid #e6e6e6;border-radius:4px;padding:8px 12px">
+                @foreach (var p in allProjects)
+                {
+                    <input type="checkbox" name="linkProjects" value="@p.Id" title="@p.ProjName (@p.ProjNo)"
+                           lay-skin="primary" @(linkedIds.Contains(p.Id) ? "checked" : "") />
+                }
+            </div>
+            <div class="layui-form-mid layui-word-aux">框架合同可勾选多个项目</div>
+        </div>
+    </div>
+    <div class="layui-form-item">
+        <label class="layui-form-label">备注</label>
+        <div class="layui-input-block">
+            <textarea id="contractRemark" class="layui-textarea" placeholder="备注信息"></textarea>
+        </div>
+    </div>
+</div>
+<script>
+function initContractForm(contract) {
+    var c = contract || {};
+    $('#contractId').val(c.id || '');
+    $('#contractNo').val(c.contractNo || '');
+    $('#contractType').val(c.contractType || '主合同');
+    $('#contractName').val(c.contractName || '');
+    $('#partyA').val(c.partyA || '');
+    $('#partyB').val(c.partyB || '');
+    $('#contractAmount').val(c.amount || '');
+    $('#signDate').val(c.signDate ? c.signDate.substring(0, 10) : '');
+    $('#startDate').val(c.startDate ? c.startDate.substring(0, 10) : '');
+    $('#endDate').val(c.endDate ? c.endDate.substring(0, 10) : '');
+    $('#contractRemark').val(c.remark || '');
+    var linkedIds = (c.linkedProjects || []).map(function (p) { return String(p.projectId); });
+    $('input[name="linkProjects"]').each(function () {
+        $(this).prop('checked', linkedIds.indexOf($(this).val()) >= 0);
+    });
+    if (window.layui && layui.form) layui.form.render();
+    if (window.layui && layui.laydate) {
+        ['signDate', 'startDate', 'endDate'].forEach(function (id) {
+            layui.laydate.render({ elem: '#' + id, type: 'date' });
+        });
+    }
+}
+function collectContractForm() {
+    var projectIds = [];
+    $('input[name="linkProjects"]:checked').each(function () { projectIds.push(parseInt($(this).val())); });
+    return {
+        id: $('#contractId').val() ? parseInt($('#contractId').val()) : null,
+        contractNo: $('#contractNo').val().trim(),
+        contractType: $('#contractType').val(),
+        contractName: $('#contractName').val().trim(),
+        partyA: $('#partyA').val().trim(),
+        partyB: $('#partyB').val().trim(),
+        amount: parseFloat($('#contractAmount').val()) || 0,
+        signDate: $('#signDate').val() || null,
+        startDate: $('#startDate').val() || null,
+        endDate: $('#endDate').val() || null,
+        remark: $('#contractRemark').val().trim(),
+        projectIds: projectIds
+    };
+}
+</script>

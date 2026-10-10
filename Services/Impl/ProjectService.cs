@@ -59,9 +59,9 @@ public class ProjectService : IProjectService
         // 是否关联合同：一次查询本页所有项目的合同归属，避免 N+1
         var pageIds = list.Select(p => p.Id).ToList();
         var contractedIds = pageIds.Count > 0
-            ? await _uow.ProjContracts.Query()
-                      .Where(c => !c.IsDeleted && pageIds.Contains(c.ProjectId))
-                      .Select(c => c.ProjectId)
+            ? await _uow.ProjectContractLinks.Query()
+                      .Where(l => !l.IsDeleted && pageIds.Contains(l.ProjectId))
+                      .Select(l => l.ProjectId)
                       .Distinct()
                       .ToListAsync()
             : new List<long>();
@@ -106,8 +106,14 @@ public class ProjectService : IProjectService
         dto.ProgressText = Common.ProjectProgress.GetProgressText(proj.ProgressStatus);
         dto.TotalReceived = await GetTotalReceivedAsync(id);
         dto.StatusUpdatedAt = proj.StatusUpdatedAt;
-        dto.Contracts = _mapper.Map<List<ProjectContractDto>>(
-                                proj.Contracts.OrderByDescending(x => x.CreatedAt).ToList());
+        // 合同改为多对多：通过关联表加载
+        var contractIds = await _uow.ProjectContractLinks.Query()
+            .Where(l => l.ProjectId == id && !l.IsDeleted)
+            .Select(l => l.ContractId).ToListAsync();
+        var contracts = await _uow.ProjectContractsNew.Query()
+            .Where(c => !c.IsDeleted && contractIds.Contains(c.Id))
+            .OrderByDescending(c => c.CreatedAt).ToListAsync();
+        dto.Contracts = _mapper.Map<List<ProjectContractDto>>(contracts);
         dto.Invoices = _mapper.Map<List<ProjectInvoiceDto>>(
                                 proj.Invoices.OrderByDescending(x => x.InvoiceDate).ToList());
         dto.Files = _mapper.Map<List<ProjectFileDto>>(
@@ -493,12 +499,11 @@ public class ProjectService : IProjectService
         return accTotal + invTotal;
     }
 
-    // ── 合同 ──────────────────────────────────────────────────
+    // ── 合同（多对多：通过 proj_contract_link 关联）──────────────────
     public async Task<long> AddContractAsync(CreateContractDto dto, string operBy)
     {
-        var contract = new ProjectContract
+        var contract = new Contract
         {
-            ProjectId = dto.ProjectId,
             ContractNo = dto.ContractNo,
             ContractType = dto.ContractType,
             ContractName = dto.ContractName,
@@ -512,17 +517,55 @@ public class ProjectService : IProjectService
             Status = 1,
             CreatedBy = operBy,
         };
-        await _uow.ProjContracts.AddAsync(contract);
+        await _uow.ProjectContractsNew.AddAsync(contract);
+        await _uow.SaveChangesAsync();
+        // 建立关联
+        await _uow.ProjectContractLinks.AddAsync(new ProjectContractLink
+        {
+            ProjectId = dto.ProjectId,
+            ContractId = contract.Id,
+            CreatedBy = operBy,
+        });
         await _uow.SaveChangesAsync();
         await WriteLogAsync(dto.ProjectId, "新增合同",
             $"合同编号：{dto.ContractNo}，金额：{dto.Amount}万", operBy);
         return contract.Id;
     }
 
+    /// <summary>关联已有合同到项目</summary>
+    public async Task LinkContractAsync(long projectId, long contractId, string operBy)
+    {
+        var exists = await _uow.ProjectContractLinks.Query()
+            .AnyAsync(l => l.ProjectId == projectId && l.ContractId == contractId && !l.IsDeleted);
+        if (exists) throw new InvalidOperationException("已关联该合同");
+        var contract = await _uow.ProjectContractsNew.GetByIdAsync(contractId)
+            ?? throw new NotFoundException("合同不存在");
+        await _uow.ProjectContractLinks.AddAsync(new ProjectContractLink
+        {
+            ProjectId = projectId,
+            ContractId = contractId,
+            CreatedBy = operBy,
+        });
+        await _uow.SaveChangesAsync();
+        await WriteLogAsync(projectId, "关联合同", $"合同编号：{contract.ContractNo}", operBy);
+    }
+
+    /// <summary>取消项目与合同的关联（合同本身保留）</summary>
+    public async Task UnlinkContractAsync(long projectId, long contractId, string operBy)
+    {
+        var link = await _uow.ProjectContractLinks.Query()
+            .FirstOrDefaultAsync(l => l.ProjectId == projectId && l.ContractId == contractId && !l.IsDeleted)
+            ?? throw new NotFoundException("关联不存在");
+        _uow.ProjectContractLinks.SoftDelete(link);
+        await _uow.SaveChangesAsync();
+        var contract = await _uow.ProjectContractsNew.GetByIdAsync(contractId);
+        await WriteLogAsync(projectId, "取消关联合同", $"合同编号：{contract?.ContractNo}", operBy);
+    }
+
     // #13 新增：编辑合同
     public async Task UpdateContractAsync(UpdateContractDto dto, string operBy)
     {
-        var contract = await _uow.ProjContracts.GetByIdAsync(dto.Id)
+        var contract = await _uow.ProjectContractsNew.GetByIdAsync(dto.Id)
             ?? throw new NotFoundException("合同不存在");
         contract.ContractNo = dto.ContractNo;
         contract.ContractType = dto.ContractType;
@@ -535,17 +578,22 @@ public class ProjectService : IProjectService
         contract.EndDate = dto.EndDate;
         contract.Remark = dto.Remark;
         contract.UpdatedBy = operBy;
-        _uow.ProjContracts.Update(contract);
+        _uow.ProjectContractsNew.Update(contract);
         await _uow.SaveChangesAsync();
-        await WriteLogAsync(contract.ProjectId, "修改合同",
-            $"合同编号：{dto.ContractNo}，金额：{dto.Amount}万", operBy);
+        // 取第一个关联项目写日志（合同可能关联多个项目）
+        var link = await _uow.ProjectContractLinks.Query()
+            .Where(l => l.ContractId == dto.Id && !l.IsDeleted)
+            .OrderBy(l => l.Id).FirstOrDefaultAsync();
+        if (link != null)
+            await WriteLogAsync(link.ProjectId, "修改合同",
+                $"合同编号：{dto.ContractNo}，金额：{dto.Amount}万", operBy);
     }
 
     public async Task DeleteContractAsync(long contractId)
     {
-        var c = await _uow.ProjContracts.GetByIdAsync(contractId)
+        var c = await _uow.ProjectContractsNew.GetByIdAsync(contractId)
             ?? throw new NotFoundException("合同不存在");
-        _uow.ProjContracts.SoftDelete(c);
+        _uow.ProjectContractsNew.SoftDelete(c);
         await _uow.SaveChangesAsync();
     }
 
@@ -553,35 +601,35 @@ public class ProjectService : IProjectService
     public async Task UploadContractFileAsync(long contractId, string fileName,
         string filePath, string operBy)
     {
-        var contract = await _uow.ProjContracts.GetByIdAsync(contractId)
+        var contract = await _uow.ProjectContractsNew.GetByIdAsync(contractId)
             ?? throw new NotFoundException("合同不存在");
         if (!string.IsNullOrEmpty(contract.FilePath) && File.Exists(contract.FilePath))
             File.Delete(contract.FilePath);
         contract.FilePath = filePath;
         contract.FileName = fileName;
         contract.UpdatedBy = operBy;
-        _uow.ProjContracts.Update(contract);
+        _uow.ProjectContractsNew.Update(contract);
         await _uow.SaveChangesAsync();
     }
 
     // #18 新增：合同附件删除（从 Controller 迁移到 Service）
     public async Task DeleteContractFileAsync(long contractId, string operBy)
     {
-        var contract = await _uow.ProjContracts.GetByIdAsync(contractId)
+        var contract = await _uow.ProjectContractsNew.GetByIdAsync(contractId)
             ?? throw new NotFoundException("合同不存在");
         if (!string.IsNullOrEmpty(contract.FilePath) && File.Exists(contract.FilePath))
             File.Delete(contract.FilePath);
         contract.FilePath = null;
         contract.FileName = null;
         contract.UpdatedBy = operBy;
-        _uow.ProjContracts.Update(contract);
+        _uow.ProjectContractsNew.Update(contract);
         await _uow.SaveChangesAsync();
     }
 
     // #18 新增：合同文件下载路径获取
     public async Task<(string? filePath, string? fileName)> GetContractFileAsync(long contractId)
     {
-        var contract = await _uow.ProjContracts.GetByIdAsync(contractId);
+        var contract = await _uow.ProjectContractsNew.GetByIdAsync(contractId);
         if (contract == null || string.IsNullOrEmpty(contract.FilePath) || !File.Exists(contract.FilePath))
             return (null, null);
         return (contract.FilePath, contract.FileName);
