@@ -186,6 +186,7 @@ public class ProjectController : BaseAuthController
         ViewBag.Depts   = depts;
         ViewBag.Members = members;
         ViewBag.BizTypes = await _dictSvc.GetDataByTypeAsync(DictType.BizType);
+        ViewBag.ProcurementTypes = await _dictSvc.GetDataByTypeAsync(DictType.ProcurementType);
         ViewBag.IsEdit  = true;
         return View(proj);
     }
@@ -207,6 +208,8 @@ public class ProjectController : BaseAuthController
         ViewBag.ProjNoPrefix   = defaultPrefix;
         // 业务类型改为字典驱动（biz_type 已种子化，可在字典管理中动态维护）
         ViewBag.BizTypes = await _dictSvc.GetDataByTypeAsync(DictType.BizType);
+        // 采购方式改为字典驱动（procurement_type）
+        ViewBag.ProcurementTypes = await _dictSvc.GetDataByTypeAsync(DictType.ProcurementType);
         ViewBag.GeneratedNo    = suffix;
         ViewBag.IsEdit = false;   // _ProjectForm partial 据此区分新建/编辑（ViewData 透传）
         // 直接访问 /project/create 或经 iframe 弹窗均渲染完整表单页（新 layui 标准）。

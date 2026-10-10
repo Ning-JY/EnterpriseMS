@@ -7,7 +7,7 @@
 @{
     bool isEdit = ViewBag.IsEdit == true;
     var bizTypes = ViewBag.BizTypes as List<DictDataDto> ?? new();
-    string[] procTypes = { "竞争性磋商", "询价", "公开招标", "邀请招标", "公开招选", "框架协议采购", "单一来源" };
+    var procTypes = ViewBag.ProcurementTypes as List<DictDataDto> ?? new();
     string[] buildTypes = { "建筑", "安装", "水利", "交通", "市政", "环保", "电力", "通信", "其他" };
     var m = Model ?? new EnterpriseMS.Services.DTOs.Project.ProjectDetailDto();
     string projNoDefault = isEdit ? m.ProjNo : ((ViewBag.ProjNoPrefix ?? "") + (ViewBag.GeneratedNo ?? ""));
@@ -63,7 +63,7 @@
                                 <option value="">请选择</option>
                                 @foreach (var t in procTypes)
                                 {
-                                    <option value="@t" selected="@(m.ProcurementType == t ? "selected" : null)">@t</option>
+                                    <option value="@t.DictValue" selected="@(m.ProcurementType == t.DictValue ? "selected" : null)">@t.DictLabel</option>
                                 }
                             </select>
                         </div>
