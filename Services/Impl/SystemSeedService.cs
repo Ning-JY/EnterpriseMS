@@ -108,7 +108,7 @@ public class SystemSeedService : ISystemSeedService
 
     // ── 只写入菜单 / 权限 / 字典（常用：补新菜单不重建数据库）──
     // 数据来源已统一收敛到 Seeds/ 下的 HasData 种子文件（MenuSeeds / DictSeeds / SystemSeeds），
-    // 此处仅触发与 SeedAllAsync 一致的幂等 upsert（按主键跳过已存在行），不再硬编码菜单/字典数据。
+    // 此处触发与 SeedAllAsync 一致的幂等 upsert（已存在按种子数据更新），不再硬编码菜单/字典数据。
     public async Task<List<string>> SeedMenuAndDictsAsync()
     {
         var results = new List<string>();
