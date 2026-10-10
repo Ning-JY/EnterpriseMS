@@ -40,6 +40,8 @@ public interface IProjectService
     Task<long>   AddContractAsync(CreateContractDto dto, string operBy);
     Task         UpdateContractAsync(UpdateContractDto dto, string operBy);
     Task         DeleteContractAsync(long contractId);
+    Task         LinkContractAsync(long projectId, long contractId, string operBy);
+    Task         UnlinkContractAsync(long projectId, long contractId, string operBy);
     Task         UploadContractFileAsync(long contractId, string fileName, string filePath, string operBy);
     Task         DeleteContractFileAsync(long contractId, string operBy);
     Task<(string? filePath, string? fileName)> GetContractFileAsync(long contractId);

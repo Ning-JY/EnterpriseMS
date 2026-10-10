@@ -99,15 +99,21 @@ public class ContractController : BaseAuthController
             q = q.Where(c => c.ContractType == contractType);
 
         var total = await q.CountAsync();
-        var items = await q.OrderByDescending(c => c.Id)
-            .Skip((page - 1) * size).Take(size)
-            .Select(c => new
-            {
-                c.Id, c.ContractNo, c.ContractType, c.ContractName,
-                c.PartyA, c.PartyB, c.Amount, c.SignDate, c.Status,
-                linkedCount = _uow.ProjectContractLinks.Query()
-                    .Count(l => l.ContractId == c.Id && !l.IsDeleted)
-            }).ToListAsync();
+        var pageItems = await q.OrderByDescending(c => c.Id)
+            .Skip((page - 1) * size).Take(size).ToListAsync();
+        var pageIds = pageItems.Select(c => c.Id).ToList();
+        var linkCounts = await _uow.ProjectContractLinks.Query()
+            .Where(l => !l.IsDeleted && pageIds.Contains(l.ContractId))
+            .GroupBy(l => l.ContractId)
+            .Select(g => new { contractId = g.Key, count = g.Count() })
+            .ToListAsync();
+        var countMap = linkCounts.ToDictionary(x => x.contractId, x => x.count);
+        var items = pageItems.Select(c => new
+        {
+            c.Id, c.ContractNo, c.ContractType, c.ContractName,
+            c.PartyA, c.PartyB, c.Amount, c.SignDate, c.Status,
+            linkedCount = countMap.TryGetValue(c.Id, out var n) ? n : 0
+        }).ToList();
         return ApiOk(new { total, items });
     }
 
@@ -181,7 +187,7 @@ public class ContractController : BaseAuthController
         c.IsDeleted = true;
         c.UpdatedAt = DateTime.UtcNow;
         await _uow.SaveChangesAsync();
-        return ApiOk();
+        return ApiOk(new { });
     }
 
     // 关联项目
@@ -199,7 +205,7 @@ public class ContractController : BaseAuthController
             CreatedAt = DateTime.UtcNow, CreatedBy = User.GetUserId().ToString()
         });
         await _uow.SaveChangesAsync();
-        return ApiOk();
+        return ApiOk(new { });
     }
 
     // 取消关联项目
@@ -212,7 +218,7 @@ public class ContractController : BaseAuthController
         link.IsDeleted = true;
         link.UpdatedAt = DateTime.UtcNow;
         await _uow.SaveChangesAsync();
-        return ApiOk();
+        return ApiOk(new { });
     }
 
     // 供项目页"关联已有合同"下拉用
