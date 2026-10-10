@@ -47,7 +47,7 @@ public class AppDbContext : DbContext
     public DbSet<ProjectOperLog> ProjLogs { get; set; }
     // 项目扩展
     public DbSet<ProjectContract> ProjContracts { get; set; }
-    public DbSet<Contract> Contracts { get; set; }
+    public DbSet<Contract> ProjContractsNew { get; set; }
     public DbSet<ProjectContractLink> ProjectContractLinks { get; set; }
     public DbSet<ProjectInvoice> ProjInvoices { get; set; }
     public DbSet<ProjectFile> ProjFiles { get; set; }
