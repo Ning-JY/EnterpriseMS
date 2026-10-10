@@ -7,7 +7,6 @@
 }
 @section Styles {
 <style>
-.tpl-simple-wrap { max-width: 1100px; }
 .tpl-step { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.06); padding: 16px 20px; margin-bottom: 14px; }
 .tpl-step > h3 { margin: 0 0 12px; font-size: 15px; color: #0f172a; display: flex; align-items: center; gap: 8px; }
 .tpl-step > h3 .step-no { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #0d6b64; color: #fff; font-size: 12px; }
@@ -20,7 +19,6 @@
 }
 
 <div class="ems-page">
-<div class="tpl-simple-wrap">
     <div class="ems-page-head">
         <div class="ems-page-title"><i class="layui-icon layui-icon-template"></i> 模板配置 <small style="color:#94a3b8;font-size:12px">占位符式</small></div>
         <div class="layui-breadcrumb" lay-separator="/">
@@ -85,7 +83,6 @@
         <button class="layui-btn layui-btn-lg layui-btn-primary" onclick="ems.openTab('/templatereport/manage','模板管理')">返回模板库</button>
     </div>
 </div>
-</div>
 
 <input type="hidden" id="tplId" value="" />
 
@@ -100,7 +97,7 @@ ems.ready(function () {
         if (r && r.code === 200) _sources = r.data || [];
     });
     // 加载模板分类字典（template_category）
-    $.get('/dict/data/template_category', function (r) {
+    $.get('/system/dict/data/template_category', function (r) {
         var list = (r && (r.data || r.Data)) || [];
         var html = '<option value="">请选择</option>';
         list.forEach(function (d) {

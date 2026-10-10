@@ -254,7 +254,30 @@ public class AppDbContext : DbContext
 
             var existing = await dbSet.FindAsync(keyValues);
             if (existing == null)
+            {
                 await dbSet.AddAsync(entity);
+            }
+            else
+            {
+                // 已存在则按种子数据更新（使改名、移位置等种子变更能生效）
+                foreach (var kv in seed)
+                {
+                    if (kv.Value == null) continue;
+                    var pi = typeof(T).GetProperty(kv.Key);
+                    if (pi == null || !pi.CanWrite) continue;
+                    // 主键不更新
+                    if (keyProps.Any(k => k.Name == kv.Key)) continue;
+                    try
+                    {
+                        var targetType = Nullable.GetUnderlyingType(pi.PropertyType) ?? pi.PropertyType;
+                        pi.SetValue(existing, Convert.ChangeType(kv.Value, targetType));
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warning(ex, "种子字段更新失败：{Entity}.{Property}", typeof(T).Name, pi?.Name);
+                    }
+                }
+            }
         }
         await SaveChangesAsync();
     }
