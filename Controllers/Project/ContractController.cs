@@ -58,6 +58,10 @@ public class ContractController : BaseAuthController
                 ProjNo = l.Project!.ProjNo ?? "",
                 ProjName = l.Project!.ProjName ?? ""
             }).ToList();
+        // 编辑弹窗的 partial 需要
+        ViewBag.ContractTypes = await _dictSvc.GetDataByTypeAsync(DictType.ProjContractType);
+        ViewBag.AllProjects = await _uow.Projects.Query().Where(p => !p.IsDeleted)
+            .OrderByDescending(p => p.Id).Take(200).ToListAsync();
         return View("~/Views/Project/Contract/Detail.cshtml", c);
     }
 
