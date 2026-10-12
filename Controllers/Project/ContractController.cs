@@ -266,6 +266,20 @@ public class ContractController : BaseAuthController
         return FileServingHelper.ServePhysicalFile(c.FilePath, c.FileName ?? "合同扫描件", null, inline);
     }
 
+    // 删除合同扫描件
+    [HttpDelete("{id}/scan"), ValidateAntiForgeryToken, HasPermission("proj:project:list")]
+    public async Task<IActionResult> DeleteScan(long id)
+    {
+        var c = await _uow.ProjectContractsNew.GetByIdAsync(id);
+        if (c == null || c.IsDeleted) return ApiFail("合同不存在");
+        c.FilePath = null;
+        c.FileName = null;
+        c.UpdatedAt = DateTime.UtcNow;
+        c.UpdatedBy = User.GetUserId().ToString();
+        await _uow.SaveChangesAsync();
+        return ApiOk(new { }, "已删除");
+    }
+
     public class LinkProjectDto
     {
         public long ProjectId { get; set; }

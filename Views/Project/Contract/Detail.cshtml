@@ -12,9 +12,7 @@
 
 <div class="ems-page">
     <div class="ems-page-head">
-        <div class="ems-page-title"><i class="layui-icon layui-icon-file-b"></i> 合同详情 <small class="layui-font-12 layui-font-gray">@Model.ContractNo</small>
-            <button class="layui-btn layui-btn-xs layui-btn-primary" onclick="history.back()" style="margin-left:12px"><i class="layui-icon layui-icon-return"></i> 返回</button>
-        </div>
+        <div class="ems-page-title"><button type="button" class="layui-btn layui-btn-sm layui-btn-primary ems-back-btn" title="返回" onclick="ems.openTab('/project/contract','合同管理')"><i class="layui-icon layui-icon-return"></i></button><i class="layui-icon layui-icon-file-b"></i> 合同详情 <small class="layui-font-12 layui-font-gray">@Model.ContractNo</small></div>
         <div class="layui-breadcrumb" lay-separator="/">
             <a href="javascript:;">首页</a>
             <a href="javascript:;">项目管理</a>
@@ -47,10 +45,21 @@
                     @if (!string.IsNullOrEmpty(Model.FilePath))
                     {
                         <a href="/project/contract/@Model.Id/download" target="_blank" class="layui-btn layui-btn-xs"><i class="layui-icon layui-icon-file"></i> @(Model.FileName ?? "查看附件")</a>
+                        @if (canEdit)
+                        {
+                            <button class="layui-btn layui-btn-xs layui-btn-normal" onclick="document.getElementById('rescanFile').click()"><i class="layui-icon layui-icon-upload"></i> 重新上传</button>
+                            <button class="layui-btn layui-btn-xs layui-btn-danger" onclick="deleteContractScan()"><i class="layui-icon layui-icon-delete"></i> 删除</button>
+                            <input type="file" id="rescanFile" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="rescanUpload(this)" />
+                        }
                     }
                     else
                     {
                         <span class="layui-font-gray">未上传</span>
+                        @if (canEdit)
+                        {
+                            <button class="layui-btn layui-btn-xs layui-btn-normal" onclick="document.getElementById('rescanFile').click()"><i class="layui-icon layui-icon-upload"></i> 上传</button>
+                            <input type="file" id="rescanFile" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="rescanUpload(this)" />
+                        }
                     }
                 </span></div>
             </div>
@@ -127,7 +136,9 @@ var _linkLayerIdx = null, _editLayerIdx = null;
 var _contractId = @Model.Id;
 
 function openLinkProjectModal() {
+    var load = ems.loading();
     $.getJSON('/project/list?size=200', function (r) {
+        ems.close(load);
         var items = (r.data && (r.data.Items || r.data.items)) || [];
         var html = '<option value="">搜索项目...</option>';
         items.forEach(function (p) {
@@ -135,8 +146,11 @@ function openLinkProjectModal() {
         });
         $('#linkProjectSelect').html(html);
         layui.form.render('select');
+        _linkLayerIdx = layer.open({ type: 1, title: '关联项目', area: ['480px'], content: $('#linkProjectModal'), shadeClose: false });
+    }).fail(function () {
+        ems.close(load);
+        ems.msg('加载项目列表失败', { icon: 2 });
     });
-    _linkLayerIdx = layer.open({ type: 1, title: '关联项目', area: ['480px'], content: $('#linkProjectModal'), shadeClose: false });
 }
 function closeLinkModal() { if (_linkLayerIdx) { layer.close(_linkLayerIdx); _linkLayerIdx = null; } }
 function confirmLinkProject() {
@@ -157,7 +171,7 @@ function unlinkProject(projectId) {
     if (!confirm('确定取消该项目的关联吗？（合同本身保留）')) return;
     $.ajax({
         url: '/project/contract/' + _contractId + '/unlink/' + projectId, type: 'POST',
-        headers: { 'RequestVerificationToken': ems.antiForgery() },
+        data: { __RequestVerificationToken: ems.antiForgery() },
         success: function (r) {
             if (r.code === 200) { ems.msg('已取消关联', { icon: 1 }); location.reload(); }
             else ems.msg(r.message || '操作失败', { icon: 2 });
@@ -211,6 +225,28 @@ function uploadContractScan(contractId, file, cb) {
         data: fd, processData: false, contentType: false,
         success: function (r) { if (r.code !== 200) ems.msg(r.message || '附件上传失败', { icon: 2 }); if (cb) cb(); },
         error: function () { ems.msg('附件上传失败', { icon: 2 }); if (cb) cb(); }
+    });
+}
+function rescanUpload(input) {
+    if (!input.files[0]) return;
+    var load = ems.loading();
+    uploadContractScan(_contractId, input.files[0], function () {
+        ems.close(load);
+        ems.msg('上传成功', { icon: 1 });
+        location.reload();
+    });
+}
+function deleteContractScan() {
+    ems.confirm('确定删除合同扫描件吗？', function () {
+        $.ajax({
+            url: '/project/contract/' + _contractId + '/scan', type: 'DELETE',
+            data: { __RequestVerificationToken: ems.antiForgery() },
+            success: function (r) {
+                if (r.code === 200) { ems.msg('已删除', { icon: 1 }); location.reload(); }
+                else ems.msg(r.message || '删除失败', { icon: 2 });
+            },
+            error: function (xhr) { ems.msg('删除失败：' + (xhr.responseJSON && xhr.responseJSON.message || '网络错误'), { icon: 2 }); }
+        });
     });
 }
 </script>

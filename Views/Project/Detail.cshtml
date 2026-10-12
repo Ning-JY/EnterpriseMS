@@ -663,6 +663,10 @@
         <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">金额(万) <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:60%"><input type="number" id="ctAmount" class="layui-input" step="0.01" min="0"></div></div>
     </div>
     <div class="layui-form-item">
+        <label class="layui-form-label">合同名称</label>
+        <div class="layui-input-block"><input type="text" id="ctName" class="layui-input" value="@Model.ProjName" placeholder="默认与项目名称一致"></div>
+    </div>
+    <div class="layui-form-item">
         <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">甲方 <span class="layui-font-red">*</span></label><div class="layui-input-inline" style="width:60%"><input type="text" id="ctPartyA" class="layui-input" value="@Model.OwnerName"></div></div>
         <div class="layui-inline" style="width:48%"><label class="layui-form-label" style="width:auto">乙方</label><div class="layui-input-inline" style="width:60%"><input type="text" id="ctPartyB" class="layui-input" value="我方公司"></div></div>
     </div>
@@ -972,6 +976,7 @@ window.openModal = function (id, title, area) {
         fd.append('ProjectId', projId);
         fd.append('ContractNo', $('#ctNo').val());
         fd.append('ContractType', $('#ctType').val());
+        fd.append('ContractName', $('#ctName').val());
         fd.append('PartyA', $('#ctPartyA').val());
         fd.append('PartyB', $('#ctPartyB').val());
         fd.append('Amount', $('#ctAmount').val());
