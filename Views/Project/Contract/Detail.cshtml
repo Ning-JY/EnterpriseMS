@@ -146,7 +146,13 @@ function openLinkProjectModal() {
         });
         $('#linkProjectSelect').html(html);
         layui.form.render('select');
-        _linkLayerIdx = layer.open({ type: 1, title: '关联项目', area: ['480px'], content: $('#linkProjectModal'), shadeClose: false });
+        _linkLayerIdx = layer.open({
+            type: 1, title: '关联项目', area: ['480px', '280px'],
+            content: $('#linkProjectModal'), shadeClose: false,
+            success: function (layero) {
+                layero.find('.ems-modal-body').css({ 'max-height': '180px', 'overflow-y': 'auto' });
+            }
+        });
     }).fail(function () {
         ems.close(load);
         ems.msg('加载项目列表失败', { icon: 2 });
