@@ -198,6 +198,10 @@
     ems.success = function (m, cb) { return layer.msg(m || '操作成功', { icon: 1, time: 1200 }, cb); };
     ems.error   = function (m, cb) { return layer.msg(m || '操作失败', { icon: 2, time: 2000 }, cb); };
     ems.warn    = function (m, cb) { return layer.msg(m, { icon: 0, time: 2000 }, cb); };
+    ems.antiForgery = function () {
+        var el = document.querySelector('input[name="__RequestVerificationToken"]');
+        return el ? el.value : '';
+    };
     ems.alert   = function (m, cb) { return layer.alert(m, { icon: 0, title: '提示', skin: 'ems-layer' }, cb); };
     ems.loading = function () { return layer.load(2, { shade: [0.1, '#fff'] }); };
     ems.close   = function (i) { if (i !== null && i !== undefined) layer.close(i); };
