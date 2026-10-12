@@ -113,18 +113,18 @@
 <script>
 function initContractForm(contract) {
     var c = contract || {};
-    $('#contractId').val(c.id || '');
-    $('#contractNo').val(c.contractNo || '');
-    $('#contractType').val(c.contractType || '主合同');
-    $('#contractName').val(c.contractName || '');
-    $('#partyA').val(c.partyA || '');
-    $('#partyB').val(c.partyB || '');
-    $('#contractAmount').val(c.amount || '');
-    $('#signDate').val(c.signDate ? c.signDate.substring(0, 10) : '');
-    $('#startDate').val(c.startDate ? c.startDate.substring(0, 10) : '');
-    $('#endDate').val(c.endDate ? c.endDate.substring(0, 10) : '');
-    $('#contractRemark').val(c.remark || '');
-    var linkedIds = (c.linkedProjects || []).map(function (p) { return String(p.projectId); });
+    $('#contractId').val(c.Id || '');
+    $('#contractNo').val(c.ContractNo || '');
+    $('#contractType').val(c.ContractType || '主合同');
+    $('#contractName').val(c.ContractName || '');
+    $('#partyA').val(c.PartyA || '');
+    $('#partyB').val(c.PartyB || '');
+    $('#contractAmount').val(c.Amount || '');
+    $('#signDate').val(c.SignDate ? c.SignDate.substring(0, 10) : '');
+    $('#startDate').val(c.StartDate ? c.StartDate.substring(0, 10) : '');
+    $('#endDate').val(c.EndDate ? c.EndDate.substring(0, 10) : '');
+    $('#contractRemark').val(c.Remark || '');
+    var linkedIds = (c.LinkedProjects || []).map(function (p) { return String(p.ProjectId); });
     $('input[name="linkProjects"]').each(function () {
         $(this).prop('checked', linkedIds.indexOf($(this).val()) >= 0);
     });

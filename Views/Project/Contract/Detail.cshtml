@@ -119,7 +119,7 @@ function openLinkProjectModal() {
         var items = (r.data && r.data.items) || r.data || [];
         var html = '<option value="">搜索项目...</option>';
         items.forEach(function (p) {
-            html += '<option value="' + p.id + '">' + ems.escapeHtml(p.projName) + ' (' + ems.escapeHtml(p.projNo) + ')</option>';
+            html += '<option value="' + p.Id + '">' + ems.escapeHtml(p.ProjName) + ' (' + ems.escapeHtml(p.ProjNo) + ')</option>';
         });
         $('#linkProjectSelect').html(html);
         layui.form.render('select');

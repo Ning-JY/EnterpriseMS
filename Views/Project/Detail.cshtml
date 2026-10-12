@@ -1010,7 +1010,7 @@ window.openModal = function (id, title, area) {
             var items = r.data || [];
             var html = '';
             items.forEach(function (c) {
-                html += '<option value="' + c.id + '">' + ems.escapeHtml(c.contractNo) + ' - ' + ems.escapeHtml(c.contractName || '') + ' (' + ems.escapeHtml(c.partyA) + ')</option>';
+                html += '<option value="' + c.Id + '">' + ems.escapeHtml(c.ContractNo) + ' - ' + ems.escapeHtml(c.ContractName || '') + ' (' + ems.escapeHtml(c.PartyA) + ')</option>';
             });
             $('#linkContractSelect').html(html || '<option value="">暂无可选合同</option>');
             layui.form.render('select');

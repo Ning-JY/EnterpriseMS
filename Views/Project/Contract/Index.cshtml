@@ -92,19 +92,19 @@ ems.ready(function () {
             };
         },
         cols: [[
-            { field: 'contractNo', title: '合同编号', width: 160 },
-            { field: 'contractName', title: '合同名称', minWidth: 180 },
-            { field: 'contractType', title: '类型', width: 100 },
-            { field: 'partyA', title: '甲方', width: 140 },
-            { field: 'partyB', title: '乙方', width: 140 },
-            { field: 'amount', title: '金额(元)', width: 130, align: 'right', templet: function (d) { return ems.fmtMoney(d.amount); } },
-            { field: 'linkedCount', title: '关联项目', width: 100, align: 'center', templet: function (d) { return d.linkedCount > 0 ? '<span class="layui-badge layui-bg-blue">' + d.linkedCount + '</span>' : '<span class="layui-font-gray">0</span>'; } },
-            { field: 'signDate', title: '签约日期', width: 120, templet: function (d) { return d.signDate ? d.signDate.substring(0, 10) : '-'; } },
+            { field: 'ContractNo', title: '合同编号', width: 160 },
+            { field: 'ContractName', title: '合同名称', minWidth: 180 },
+            { field: 'ContractType', title: '类型', width: 100 },
+            { field: 'PartyA', title: '甲方', width: 140 },
+            { field: 'PartyB', title: '乙方', width: 140 },
+            { field: 'Amount', title: '金额(元)', width: 130, align: 'right', templet: function (d) { return ems.fmtMoney(d.Amount); } },
+            { field: 'LinkedCount', title: '关联项目', width: 100, align: 'center', templet: function (d) { return d.LinkedCount > 0 ? '<span class="layui-badge layui-bg-blue">' + d.LinkedCount + '</span>' : '<span class="layui-font-gray">0</span>'; } },
+            { field: 'SignDate', title: '签约日期', width: 120, templet: function (d) { return d.SignDate ? d.SignDate.substring(0, 10) : '-'; } },
             { title: '操作', width: 200, fixed: 'right', templet: function (d) {
-                var html = '<a class="layui-btn layui-btn-xs" href="javascript:viewContract(' + d.id + ')">查看</a> ';
+                var html = '<a class="layui-btn layui-btn-xs" href="javascript:viewContract(' + d.Id + ')">查看</a> ';
                 @if (canEdit) {
-                    <text>html += '<a class="layui-btn layui-btn-xs layui-btn-normal" href="javascript:editContract(' + d.id + ')">编辑</a> ';
-                    html += '<a class="layui-btn layui-btn-xs layui-btn-danger" href="javascript:delContract(' + d.id + ')">删除</a>';</text>
+                    <text>html += '<a class="layui-btn layui-btn-xs layui-btn-normal" href="javascript:editContract(' + d.Id + ')">编辑</a> ';
+                    html += '<a class="layui-btn layui-btn-xs layui-btn-danger" href="javascript:delContract(' + d.Id + ')">删除</a>';</text>
                 }
                 return html;
             } }
