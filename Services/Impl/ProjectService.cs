@@ -307,13 +307,19 @@ public class ProjectService : IProjectService
     {
         // 项目编号前缀已改为字典可配置（如 造价/设计），前缀不再含年份，
         // 故直接取全部编号尾部序号的最大值 +1，保证不重复（不同前缀可区分）。
+        // 兼容 ZJ001（无分隔符）与 PRJ-2026-001（短横线分隔）两种格式：取尾部连续数字。
         var all = await _uow.Projects.Query().Select(p => p.ProjNo).ToListAsync();
         var maxSeq = 0;
         foreach (var no in all)
         {
             if (string.IsNullOrWhiteSpace(no)) continue;
-            var dashIdx = no.LastIndexOf('-');
-            var tail = dashIdx >= 0 ? no[(dashIdx + 1)..] : no;
+            // 从尾部提取连续数字
+            var tail = "";
+            for (var i = no.Length - 1; i >= 0; i--)
+            {
+                if (char.IsDigit(no[i])) tail = no[i] + tail;
+                else break;
+            }
             if (int.TryParse(tail, out var seq) && seq > maxSeq)
                 maxSeq = seq;
         }
