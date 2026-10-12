@@ -263,7 +263,7 @@ public class ContractController : BaseAuthController
         if (c == null || string.IsNullOrEmpty(c.FilePath) || !global::System.IO.File.Exists(c.FilePath))
             return NotFound("文件不存在");
         var inline = FileServingHelper.IsInlineRequested(Request);
-        return FileServingHelper.ServeFile(c.FilePath, c.FileName ?? "合同扫描件", inline);
+        return FileServingHelper.ServePhysicalFile(c.FilePath, c.FileName ?? "合同扫描件", null, inline);
     }
 
     public class LinkProjectDto
