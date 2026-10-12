@@ -154,9 +154,9 @@ public class ContractController : BaseAuthController
         c.UpdatedBy = User.GetUserId().ToString();
         await _uow.SaveChangesAsync();
 
-        // 同步关联项目（含软删除恢复：唯一索引不区分软删除，需IgnoreQueryFilters查出已删记录）
+        // 同步关联项目（含软删除恢复：唯一索引不区分软删除，需IgnoreQueryFilters查出已删记录；Query(false)保证跟踪）
         var wantIds = dto.ProjectIds?.Distinct().ToList() ?? new();
-        var allLinks = await _uow.ProjectContractLinks.Query()
+        var allLinks = await _uow.ProjectContractLinks.Query(false)
             .IgnoreQueryFilters()
             .Where(l => l.ContractId == c.Id).ToListAsync();
         var activeIds = allLinks.Where(l => !l.IsDeleted).Select(l => l.ProjectId).ToHashSet();
@@ -211,7 +211,7 @@ public class ContractController : BaseAuthController
     {
         var c = await _uow.ProjectContractsNew.GetByIdAsync(id);
         if (c == null || c.IsDeleted) return ApiFail("合同不存在");
-        var link = await _uow.ProjectContractLinks.Query()
+        var link = await _uow.ProjectContractLinks.Query(false)
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(l => l.ContractId == id && l.ProjectId == projectId);
         if (link != null)
