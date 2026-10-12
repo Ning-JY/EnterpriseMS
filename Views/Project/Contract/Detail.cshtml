@@ -12,7 +12,9 @@
 
 <div class="ems-page">
     <div class="ems-page-head">
-        <div class="ems-page-title"><i class="layui-icon layui-icon-file-b"></i> 合同详情 <small class="layui-font-12 layui-font-gray">@Model.ContractNo</small></div>
+        <div class="ems-page-title"><i class="layui-icon layui-icon-file-b"></i> 合同详情 <small class="layui-font-12 layui-font-gray">@Model.ContractNo</small>
+            <button class="layui-btn layui-btn-xs layui-btn-primary" onclick="history.back()" style="margin-left:12px"><i class="layui-icon layui-icon-return"></i> 返回</button>
+        </div>
         <div class="layui-breadcrumb" lay-separator="/">
             <a href="javascript:;">首页</a>
             <a href="javascript:;">项目管理</a>
@@ -41,6 +43,16 @@
                 <div class="ems-info-item"><span class="label">签约日期</span><span class="val">@(Model.SignDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
                 <div class="ems-info-item"><span class="label">起止日期</span><span class="val">@(Model.StartDate?.ToString("yyyy-MM-dd") ?? "-") ~ @(Model.EndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
                 <div class="ems-info-item"><span class="label">备注</span><span class="val">@(Model.Remark ?? "-")</span></div>
+                <div class="ems-info-item"><span class="label">合同扫描件</span><span class="val">
+                    @if (!string.IsNullOrEmpty(Model.FilePath))
+                    {
+                        <a href="/project/contract/@Model.Id/download" target="_blank" class="layui-btn layui-btn-xs"><i class="layui-icon layui-icon-file"></i> @(Model.FileName ?? "查看附件")</a>
+                    }
+                    else
+                    {
+                        <span class="layui-font-gray">未上传</span>
+                    }
+                </span></div>
             </div>
         </div>
     </div>
@@ -116,7 +128,7 @@ var _contractId = @Model.Id;
 
 function openLinkProjectModal() {
     $.getJSON('/project/list?size=200', function (r) {
-        var items = (r.data && r.data.items) || r.data || [];
+        var items = (r.data && (r.data.Items || r.data.items)) || [];
         var html = '<option value="">搜索项目...</option>';
         items.forEach(function (p) {
             html += '<option value="' + p.Id + '">' + ems.escapeHtml(p.ProjName) + ' (' + ems.escapeHtml(p.ProjNo) + ')</option>';
@@ -137,7 +149,8 @@ function confirmLinkProject() {
         success: function (r) {
             if (r.code === 200) { ems.msg('关联成功', { icon: 1 }); closeLinkModal(); location.reload(); }
             else ems.msg(r.message || '关联失败', { icon: 2 });
-        }
+        },
+        error: function (xhr) { ems.msg('关联失败：' + (xhr.responseJSON && xhr.responseJSON.message || xhr.statusText || '网络错误'), { icon: 2 }); }
     });
 }
 function unlinkProject(projectId) {
@@ -148,7 +161,8 @@ function unlinkProject(projectId) {
             success: function (r) {
                 if (r.code === 200) { ems.msg('已取消关联', { icon: 1 }); location.reload(); }
                 else ems.msg(r.message || '操作失败', { icon: 2 });
-            }
+            },
+            error: function (xhr) { ems.msg('操作失败：' + (xhr.responseJSON && xhr.responseJSON.message || xhr.statusText || '网络错误'), { icon: 2 }); }
         });
     });
 }
@@ -172,9 +186,32 @@ function saveEditContract() {
         headers: { 'RequestVerificationToken': ems.antiForgery() },
         data: JSON.stringify(dto),
         success: function (r) {
-            if (r.code === 200) { ems.msg('保存成功', { icon: 1 }); closeEditModal(); location.reload(); }
+            if (r.code === 200) {
+                // 如有选择扫描件，保存后上传
+                var fileInput = document.getElementById('contractScanFile');
+                var contractId = (r.data && (r.data.Id || r.data.id)) || _contractId;
+                if (fileInput && fileInput.files[0] && contractId) {
+                    uploadContractScan(contractId, fileInput.files[0], function () {
+                        ems.msg('保存成功', { icon: 1 }); closeEditModal(); location.reload();
+                    });
+                } else {
+                    ems.msg('保存成功', { icon: 1 }); closeEditModal(); location.reload();
+                }
+            }
             else ems.msg(r.message || '保存失败', { icon: 2 });
-        }
+        },
+        error: function (xhr) { ems.msg('保存失败：' + (xhr.responseJSON && xhr.responseJSON.message || xhr.statusText || '网络错误'), { icon: 2 }); }
+    });
+}
+function uploadContractScan(contractId, file, cb) {
+    var fd = new FormData();
+    fd.append('__RequestVerificationToken', ems.antiForgery());
+    fd.append('file', file);
+    $.ajax({
+        url: '/project/contract/' + contractId + '/upload', type: 'POST',
+        data: fd, processData: false, contentType: false,
+        success: function (r) { if (r.code !== 200) ems.msg(r.message || '附件上传失败', { icon: 2 }); if (cb) cb(); },
+        error: function () { ems.msg('附件上传失败', { icon: 2 }); if (cb) cb(); }
     });
 }
 </script>

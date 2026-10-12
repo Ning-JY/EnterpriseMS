@@ -237,6 +237,35 @@ public class ContractController : BaseAuthController
         return ApiOk(items);
     }
 
+    // 上传合同扫描件
+    [HttpPost("{id}/upload"), ValidateAntiForgeryToken, HasPermission("proj:project:list")]
+    public async Task<IActionResult> UploadScan(long id, IFormFile file)
+    {
+        if (file == null || file.Length == 0) return ApiFail("请选择文件");
+        var c = await _uow.ProjectContractsNew.GetByIdAsync(id);
+        if (c == null || c.IsDeleted) return ApiFail("合同不存在");
+        var saved = await FileUploadHelper.SaveUploadFile(file, "project/contracts");
+        if (!saved.HasValue)
+            return ApiFail(FileUploadHelper.RejectExtMessage);
+        c.FilePath = saved.Value.path;
+        c.FileName = saved.Value.name;
+        c.UpdatedAt = DateTime.UtcNow;
+        c.UpdatedBy = User.GetUserId().ToString();
+        await _uow.SaveChangesAsync();
+        return ApiOk(new { fileName = saved.Value.name }, "上传成功");
+    }
+
+    // 下载合同扫描件
+    [HttpGet("{id}/download"), HasPermission("proj:project:list")]
+    public async Task<IActionResult> DownloadScan(long id)
+    {
+        var c = await _uow.ProjectContractsNew.GetByIdAsync(id);
+        if (c == null || string.IsNullOrEmpty(c.FilePath) || !global::System.IO.File.Exists(c.FilePath))
+            return NotFound("文件不存在");
+        var inline = FileServingHelper.IsInlineRequested(Request);
+        return FileServingHelper.ServeFile(c.FilePath, c.FileName ?? "合同扫描件", inline);
+    }
+
     public class LinkProjectDto
     {
         public long ProjectId { get; set; }

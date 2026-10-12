@@ -157,9 +157,27 @@ window.saveContract = function () {
         headers: { 'RequestVerificationToken': ems.antiForgery() },
         data: JSON.stringify(dto),
         success: function (r) {
-            if (r.code === 200) { ems.msg('保存成功', { icon: 1 }); closeContractModal(); layui.table.reloadData('contractTable'); }
+            if (r.code === 200) {
+                var fileInput = document.getElementById('contractScanFile');
+                var contractId = r.data && (r.data.Id || r.data.id);
+                if (fileInput && fileInput.files[0] && contractId) {
+                    var fd = new FormData();
+                    fd.append('__RequestVerificationToken', ems.antiForgery());
+                    fd.append('file', fileInput.files[0]);
+                    $.ajax({
+                        url: '/project/contract/' + contractId + '/upload', type: 'POST',
+                        data: fd, processData: false, contentType: false,
+                        success: function (ur) { if (ur.code !== 200) ems.msg(ur.message || '附件上传失败', { icon: 2 }); },
+                        error: function () { ems.msg('附件上传失败', { icon: 2 }); },
+                        complete: function () { ems.msg('保存成功', { icon: 1 }); closeContractModal(); layui.table.reloadData('contractTable'); }
+                    });
+                } else {
+                    ems.msg('保存成功', { icon: 1 }); closeContractModal(); layui.table.reloadData('contractTable');
+                }
+            }
             else ems.msg(r.message || '保存失败', { icon: 2 });
-        }
+        },
+        error: function (xhr) { ems.msg('保存失败：' + (xhr.responseJSON && xhr.responseJSON.message || xhr.statusText || '网络错误'), { icon: 2 }); }
     });
 };
 </script>
