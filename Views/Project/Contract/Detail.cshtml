@@ -154,16 +154,15 @@ function confirmLinkProject() {
     });
 }
 function unlinkProject(projectId) {
-    ems.confirm('确定取消该项目的关联吗？（合同本身保留）', function () {
-        $.ajax({
-            url: '/project/contract/' + _contractId + '/unlink/' + projectId, type: 'POST',
-            headers: { 'RequestVerificationToken': ems.antiForgery() },
-            success: function (r) {
-                if (r.code === 200) { ems.msg('已取消关联', { icon: 1 }); location.reload(); }
-                else ems.msg(r.message || '操作失败', { icon: 2 });
-            },
-            error: function (xhr) { ems.msg('操作失败：' + (xhr.responseJSON && xhr.responseJSON.message || xhr.statusText || '网络错误'), { icon: 2 }); }
-        });
+    if (!confirm('确定取消该项目的关联吗？（合同本身保留）')) return;
+    $.ajax({
+        url: '/project/contract/' + _contractId + '/unlink/' + projectId, type: 'POST',
+        headers: { 'RequestVerificationToken': ems.antiForgery() },
+        success: function (r) {
+            if (r.code === 200) { ems.msg('已取消关联', { icon: 1 }); location.reload(); }
+            else ems.msg(r.message || '操作失败', { icon: 2 });
+        },
+        error: function (xhr) { ems.msg('操作失败：' + (xhr.responseJSON && xhr.responseJSON.message || xhr.statusText || '网络错误'), { icon: 2 }); }
     });
 }
 function editCurrentContract() {
