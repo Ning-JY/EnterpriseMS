@@ -163,9 +163,8 @@ function confirmLinkProject() {
     var pid = $('#linkProjectSelect').val();
     if (!pid) { ems.msg('请选择项目', { icon: 2 }); return; }
     $.ajax({
-        url: '/project/contract/' + _contractId + '/link', type: 'POST', contentType: 'application/json',
-        headers: { 'RequestVerificationToken': ems.antiForgery() },
-        data: JSON.stringify({ projectId: parseInt(pid) }),
+        url: '/project/contract/' + _contractId + '/link', type: 'POST',
+        data: { __RequestVerificationToken: ems.antiForgery(), projectId: pid },
         success: function (r) {
             if (r.code === 200) { ems.msg('关联成功', { icon: 1 }); closeLinkModal(); location.reload(); }
             else ems.msg(r.message || '关联失败', { icon: 2 });

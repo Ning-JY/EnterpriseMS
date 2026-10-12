@@ -196,16 +196,16 @@ public class ContractController : BaseAuthController
 
     // 关联项目
     [HttpPost("{id}/link"), ValidateAntiForgeryToken, HasPermission("proj:project:list")]
-    public async Task<IActionResult> LinkProject(long id, [FromBody] LinkProjectDto dto)
+    public async Task<IActionResult> LinkProject(long id, [FromForm] long projectId)
     {
         var c = await _uow.ProjectContractsNew.GetByIdAsync(id);
         if (c == null || c.IsDeleted) return ApiFail("合同不存在");
         var exists = await _uow.ProjectContractLinks.Query()
-            .AnyAsync(l => l.ContractId == id && l.ProjectId == dto.ProjectId && !l.IsDeleted);
+            .AnyAsync(l => l.ContractId == id && l.ProjectId == projectId && !l.IsDeleted);
         if (exists) return ApiFail("已关联该项目");
         await _uow.ProjectContractLinks.AddAsync(new ProjectContractLink
         {
-            ProjectId = dto.ProjectId, ContractId = id,
+            ProjectId = projectId, ContractId = id,
             CreatedAt = DateTime.UtcNow, CreatedBy = User.GetUserId().ToString()
         });
         await _uow.SaveChangesAsync();
