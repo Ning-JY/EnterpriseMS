@@ -154,21 +154,31 @@ public class ContractController : BaseAuthController
         c.UpdatedBy = User.GetUserId().ToString();
         await _uow.SaveChangesAsync();
 
-        // 同步关联项目
+        // 同步关联项目（含软删除恢复：唯一索引不区分软删除）
         var wantIds = dto.ProjectIds?.Distinct().ToList() ?? new();
-        var existing = await _uow.ProjectContractLinks.Query()
-            .Where(l => l.ContractId == c.Id && !l.IsDeleted).ToListAsync();
-        var existingIds = existing.Select(l => l.ProjectId).ToHashSet();
+        var allLinks = await _uow.ProjectContractLinks.Query()
+            .Where(l => l.ContractId == c.Id).ToListAsync();
+        var activeIds = allLinks.Where(l => !l.IsDeleted).Select(l => l.ProjectId).ToHashSet();
+        var deletedMap = allLinks.Where(l => l.IsDeleted).ToDictionary(l => l.ProjectId, l => l);
 
-        foreach (var pid in wantIds.Where(p => !existingIds.Contains(p)))
+        foreach (var pid in wantIds.Where(p => !activeIds.Contains(p)))
         {
-            await _uow.ProjectContractLinks.AddAsync(new ProjectContractLink
+            if (deletedMap.TryGetValue(pid, out var deletedLink))
             {
-                ProjectId = pid, ContractId = c.Id,
-                CreatedAt = DateTime.UtcNow, CreatedBy = User.GetUserId().ToString()
-            });
+                deletedLink.IsDeleted = false;
+                deletedLink.UpdatedAt = DateTime.UtcNow;
+                deletedLink.UpdatedBy = User.GetUserId().ToString();
+            }
+            else
+            {
+                await _uow.ProjectContractLinks.AddAsync(new ProjectContractLink
+                {
+                    ProjectId = pid, ContractId = c.Id,
+                    CreatedAt = DateTime.UtcNow, CreatedBy = User.GetUserId().ToString()
+                });
+            }
         }
-        foreach (var link in existing.Where(l => !wantIds.Contains(l.ProjectId)))
+        foreach (var link in allLinks.Where(l => !l.IsDeleted && !wantIds.Contains(l.ProjectId)))
         {
             link.IsDeleted = true;
             link.UpdatedAt = DateTime.UtcNow;
@@ -200,14 +210,24 @@ public class ContractController : BaseAuthController
     {
         var c = await _uow.ProjectContractsNew.GetByIdAsync(id);
         if (c == null || c.IsDeleted) return ApiFail("合同不存在");
-        var exists = await _uow.ProjectContractLinks.Query()
-            .AnyAsync(l => l.ContractId == id && l.ProjectId == projectId && !l.IsDeleted);
-        if (exists) return ApiFail("已关联该项目");
-        await _uow.ProjectContractLinks.AddAsync(new ProjectContractLink
+        var link = await _uow.ProjectContractLinks.Query()
+            .FirstOrDefaultAsync(l => l.ContractId == id && l.ProjectId == projectId);
+        if (link != null)
         {
-            ProjectId = projectId, ContractId = id,
-            CreatedAt = DateTime.UtcNow, CreatedBy = User.GetUserId().ToString()
-        });
+            if (!link.IsDeleted) return ApiFail("已关联该项目");
+            // 恢复软删除的关联（唯一索引不区分软删除，直接INSERT会冲突）
+            link.IsDeleted = false;
+            link.UpdatedAt = DateTime.UtcNow;
+            link.UpdatedBy = User.GetUserId().ToString();
+        }
+        else
+        {
+            await _uow.ProjectContractLinks.AddAsync(new ProjectContractLink
+            {
+                ProjectId = projectId, ContractId = id,
+                CreatedAt = DateTime.UtcNow, CreatedBy = User.GetUserId().ToString()
+            });
+        }
         await _uow.SaveChangesAsync();
         return ApiOk(new { });
     }
