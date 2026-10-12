@@ -116,7 +116,7 @@ public class ContractController : BaseAuthController
         {
             c.Id, c.ContractNo, c.ContractType, c.ContractName,
             c.PartyA, c.PartyB, c.Amount, c.SignDate, c.Status,
-            linkedCount = countMap.TryGetValue(c.Id, out var n) ? n : 0
+            LinkedCount = countMap.TryGetValue(c.Id, out var n) ? n : 0
         }).ToList();
         return ApiOk(new { total, items });
     }
