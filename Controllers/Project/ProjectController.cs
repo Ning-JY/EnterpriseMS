@@ -577,7 +577,7 @@ public class ProjectController : BaseAuthController
     [HasPermission("proj:project:list")]
     public async Task<IActionResult> DownloadContractFile(long contractId)
     {
-        var contract = await _uow.ProjContracts.GetByIdAsync(contractId);
+        var contract = await _uow.ProjectContractsNew.GetByIdAsync(contractId);
         if (contract == null || string.IsNullOrEmpty(contract.FilePath)
             || !global::System.IO.File.Exists(contract.FilePath))
             return NotFound("文件不存在");
