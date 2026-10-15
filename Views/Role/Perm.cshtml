@@ -49,6 +49,7 @@ ems.ready(function () {
             return {
                 title: n.MenuName,
                 id: n.Id,
+                menuType: n.MenuType,
                 spread: true,
                 checked: menuIds.indexOf(n.Id) > -1,
                 children: mapTree(n.Children)
@@ -65,16 +66,18 @@ ems.ready(function () {
         accordion: false
     });
 
-    // 递归收集所有「勾选且为叶子节点」的 id（不收集父节点）。
-    // 原因：layui.tree 勾选子节点会向上级联勾选父节点，保存父节点 id 后，
-    // 重新打开时 setChecked 会再次点击父节点 → 向下级联勾选其全部子节点，
-    // 造成「只选一个子节点却保存整组」的 bug。只存叶子节点可彻底规避。
+    // 递归收集所有勾选的 C(菜单)/F(按钮) id，不收集 M(目录)。
+    // M 目录无 Perms，后端按"有可见子菜单则显示"自动处理，无需保存。
+    // 原因：layui.tree 勾选子节点会向上级联勾选父节点，若保存 M 目录 id，
+    // 重新打开时 setChecked 会向下级联勾选其全部子节点，造成「只选一个子节点却保存整组」的 bug。
+    // 注意：不能只存叶子——C 菜单有按钮子节点时不是叶子，若跳过则该菜单永不显示（2026-10-15 实锤）。
     function collect(nodes, arr) {
         (nodes || []).forEach(function (n) {
             var hasChild = n.children && n.children.length;
-            if (!hasChild) {
+            if (n.menuType !== 'M') {
                 arr.push(n.id);
-            } else {
+            }
+            if (hasChild) {
                 collect(n.children, arr);
             }
         });

@@ -20,11 +20,23 @@ public class PermissionService : IPermissionService
         var cached = await _cache.GetUserPermsAsync(userId);
         if (cached != null) return cached;
 
-        var perms = await _uow.UserRoles.Query()
+        var menuIds = await _uow.UserRoles.Query()
             .Where(ur => ur.UserId == userId)
             .Join(_uow.RoleMenus.Query(), ur => ur.RoleId, rm => rm.RoleId, (ur, rm) => rm.MenuId)
-            .Join(_uow.Menus.Query().Where(m => m.Status == 1 && !m.IsDeleted),
-                  mid => mid, m => m.Id, (mid, m) => m.Perms)
+            .Distinct()
+            .ToListAsync();
+
+        // 兼容历史数据：补齐已分配节点的父级菜单 ID，确保菜单自身的 Perms（如 proj:project:list）也被纳入
+        var parentIds = await _uow.Menus.Query()
+            .Where(m => menuIds.Contains(m.Id) && m.ParentId != 0)
+            .Select(m => m.ParentId)
+            .Distinct()
+            .ToListAsync();
+        menuIds = menuIds.Concat(parentIds).Distinct().ToList();
+
+        var perms = await _uow.Menus.Query()
+            .Where(m => menuIds.Contains(m.Id) && m.Status == 1 && !m.IsDeleted)
+            .Select(m => m.Perms)
             .Where(p => p != null)
             .Distinct()
             .ToListAsync();
@@ -70,6 +82,15 @@ public class PermissionService : IPermissionService
                 .Join(_uow.RoleMenus.Query(), ur => ur.RoleId, rm => rm.RoleId, (ur, rm) => rm.MenuId)
                 .Distinct()
                 .ToListAsync();
+
+            // 兼容历史数据：2026-10-15 前分配页只保存了按钮(F)ID 未保存菜单(C)ID，
+            // 此处自动补齐已分配节点的父级菜单 ID，保证菜单正常显示。M 目录靠 Perms==null 自动可见。
+            var parentIds = await _uow.Menus.Query()
+                .Where(m => roleMenuIds.Contains(m.Id) && m.ParentId != 0)
+                .Select(m => m.ParentId)
+                .Distinct()
+                .ToListAsync();
+            roleMenuIds = roleMenuIds.Concat(parentIds).Distinct().ToList();
 
             menus = await _uow.Menus.Query()
                 .Where(m => m.MenuType != "F" && m.Visible == 1 && m.Status == 1 && !m.IsDeleted

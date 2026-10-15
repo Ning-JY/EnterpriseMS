@@ -21,6 +21,10 @@ services:
       - 1panel-network
     ports:
       - "5090:8080"
+    volumes:
+      # 上传附件持久化：应用将文件存到 {CurrentDirectory}/uploads（容器内 /app/uploads）。
+      # 无此卷时每次 docker compose up -d --build 重建容器都会清空历史附件（2026-10-15 实锤）。
+      - ./uploads:/app/uploads
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       DB_HOST: ${DB_HOST}
