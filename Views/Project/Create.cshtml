@@ -47,7 +47,7 @@ ems.ready(function () {
                         if (continueNew) {
                             // 清空表单（保留新生成的编号逻辑：编号清空由后端自动生成）
                             document.getElementById('projForm').reset();
-                            document.getElementById('jointBlock').style.display = 'none';
+                            var jb = document.getElementById('jointBlock'); if (jb) jb.style.display = 'none';
                             layui.form.render();
                         } else {
                             ems.closeSelf('projTable');

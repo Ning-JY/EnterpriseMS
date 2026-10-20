@@ -77,6 +77,10 @@ public class ProjectController : BaseAuthController
         if (proj == null) return NotFound();
         ViewBag.AllMembers        = await _empQrySvc.GetAllOnJobAsync();
         ViewBag.DictMilestoneType = await _dictSvc.GetDataByTypeAsync(DictType.MilestoneType);
+        // 详情页卡片就地编辑用：业务类型/采购方式字典 + 部门树
+        ViewBag.BizTypes          = await _dictSvc.GetDataByTypeAsync(DictType.BizType);
+        ViewBag.ProcurementTypes  = await _dictSvc.GetDataByTypeAsync(DictType.ProcurementType);
+        ViewBag.DeptTree          = await _deptSvc.GetTreeAsync();
         // 项目合同类型：改为字典驱动（proj_contract_type），管理员可在「系统管理 → 字典管理」自定义
         ViewBag.ProjContractTypes = await _dictSvc.GetDataByTypeAsync(DictType.ProjContractType);
         return View(proj);

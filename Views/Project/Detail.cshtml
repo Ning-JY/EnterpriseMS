@@ -29,6 +29,28 @@
     // 默认项排到最前 —— 不显式输出 selected，由浏览器默认选中第一项，
     // 规避 Razor 条件属性在 false 时仍渲染 selected 导致"最后一项被选中"的坑。
     contractTypes = contractTypes.OrderByDescending(t => t.IsDefault).ThenBy(t => t.Sort).ToList();
+
+    // ── 改版：资料完整度（补录字段填充率）+ 进度步骤条（10 状态合并 7 主节点）──
+    var fillChecks = new List<bool>
+    {
+        !string.IsNullOrEmpty(Model.BizType), !string.IsNullOrEmpty(Model.ProcurementType),
+        !string.IsNullOrEmpty(Model.ProjectCategory), !string.IsNullOrEmpty(Model.OwnerContact),
+        !string.IsNullOrEmpty(Model.OwnerPhone), Model.ProjectLeaderId.HasValue,
+        !string.IsNullOrEmpty(Model.CooperationUnit), Model.LimitPrice.HasValue && Model.LimitPrice > 0,
+        Model.ContractAmount > 0, Model.SignDate.HasValue, Model.ActualStartDate.HasValue,
+        !string.IsNullOrEmpty(Model.ProjectOverview)
+    };
+    int fillPct  = (int)Math.Round(fillChecks.Count(x => x) * 100.0 / fillChecks.Count);
+    int fillTodo = fillChecks.Count(x => !x);
+    string[] stepNames = { "前期商务", "标书制作", "投标/磋商", "已签合同", "执行中", "成果提交", "已完成" };
+    int stepNow = Model.ProgressStatus switch
+    {
+        0 or 1 => 0, 2 => 1, 3 => 2, 4 or 5 => 3, 6 => 4, 7 => 5, 8 => 6, _ => -1
+    };
+    var bizTypes  = ViewBag.BizTypes as List<DictDataDto> ?? new();
+    var procTypes = ViewBag.ProcurementTypes as List<DictDataDto> ?? new();
+    var deptTree  = ViewBag.DeptTree as object ?? new object();
+    string[] buildTypes = { "建筑", "安装", "水利", "交通", "市政", "环保", "电力", "通信", "其他" };
 }
 
 <!-- 标题栏 + 面包屑 -->
@@ -53,10 +75,15 @@
             <h2>@Model.ProjName <span class="ems-tag ems-tag-@statusTag[Model.ProgressStatus]">@statusText[Model.ProgressStatus]</span></h2>
             <div class="ems-detail-meta">
                 <span>编号：@Model.ProjNo</span>
+                <span>业主：@Model.OwnerName</span>
+                <span>承接：@(Model.DeptName ?? "-")</span>
+                <span>负责人：@(Model.ProjectLeaderName ?? "-")</span>
                 @if (Model.StatusUpdatedAt.HasValue) { <span>状态更新：@Model.StatusUpdatedAt.Value.ToString("yyyy-MM-dd HH:mm")</span> }
             </div>
         </div>
     </div>
+    <div class="ems-ring" style="--p:@fillPct"><span class="ems-ring-text">@fillPct%</span></div>
+    <div class="ems-ring-label">资料<br>完整度@if (fillTodo > 0) { <br><span class="layui-font-orange">@fillTodo 项待补</span> }</div>
     <div class="ems-detail-actions">
         <a class="layui-btn layui-btn-sm layui-btn-normal" onclick="openReportModal()"><i class="layui-icon layui-icon-file"></i> 生成报告</a>
         <a class="layui-btn layui-btn-sm layui-btn-disabled" title="即将上线" onclick="return false;"><i class="layui-icon layui-icon-template"></i> 生成合同</a>
@@ -66,6 +93,17 @@
         }
     </div>
 </div>
+
+<!-- 进度步骤条（已终止时不展示） -->
+@if (Model.ProgressStatus != 9)
+{
+    <div class="ems-stepper">
+        @for (int i = 0; i < stepNames.Length; i++)
+        {
+            <div class="ems-step @(i < stepNow ? "done" : i == stepNow ? "now" : "")"><div class="dot"></div>@stepNames[i]</div>
+        }
+    </div>
+}
 
 <!-- 四张统计卡片 + 风险卡片 -->
 <div class="ems-stat-cards six-cols">
@@ -79,6 +117,7 @@
         <div class="value layui-font-green">¥@Model.TotalReceived.ToString("N2")<span class="layui-font-12">万</span></div>
         @{ var recvRate = Model.ActualAmount > 0 ? Model.TotalReceived / Model.ActualAmount * 100 : 0; }
         <div class="label">收款率 @recvRate.ToString("N1")%</div>
+        <div class="ems-stat-bar"><i style="width:@string.Format("{0:F1}", Math.Min(recvRate, 100))%"></i></div>
     </div>
     @{
         var pendingRecv = Model.ActualAmount - Model.TotalReceived;
@@ -107,45 +146,59 @@
     </div>
 </div>
 
-<!-- 基本信息 + 服务团队 -->
+<!-- 三卡片：基本信息 / 业主与团队 / 合同与金额（各自就地编辑补录） -->
 <div class="ems-card-row">
-    <div class="ems-info-card ems-col-main">
+    <div class="ems-info-card">
         <div class="ems-info-card-title">
             基本信息
-            @if (canEdit)
-            {
-                <a class="ems-icon-btn edit" style="float:right" title="编辑" onclick="ems.openEdit({ title: '编辑项目 - ' + @System.Text.Json.JsonSerializer.Serialize(Model.ProjName), url: '/project/edit/@Model.Id' })"><i class="layui-icon layui-icon-edit"></i></a>
-            }
+            @if (canEdit) { <a class="ems-card-edit-link" onclick="openProjCard('basic')"><i class="layui-icon layui-icon-edit"></i>编辑</a> }
         </div>
-        <div class="ems-info-grid">
-            <div class="ems-info-item"><span class="label">业务类型</span><span class="val">@Model.BizType</span></div>
-            <div class="ems-info-item"><span class="label">采购方式</span><span class="val">@(Model.ProcurementType ?? "-")</span></div>
-            <div class="ems-info-item"><span class="label">项目业主</span><span class="val"><strong>@Model.OwnerName</strong></span></div>
-            <div class="ems-info-item"><span class="label">业主联系人</span><span class="val">
-                @if (!string.IsNullOrEmpty(Model.OwnerContact) && !string.IsNullOrEmpty(Model.OwnerPhone))
-                { @($"{Model.OwnerContact}（{Model.OwnerPhone}）") }
-                else if (!string.IsNullOrEmpty(Model.OwnerContact))
-                { @Model.OwnerContact }
-                else if (!string.IsNullOrEmpty(Model.OwnerPhone))
-                { @Model.OwnerPhone }
-                else
-                { @("-") }
-            </span></div>
+        <div class="ems-info-list">
+            <div class="ems-info-item"><span class="label">业务类型</span><span class="val">@if (string.IsNullOrEmpty(Model.BizType)) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.BizType }</span></div>
+            <div class="ems-info-item"><span class="label">采购方式</span><span class="val">@if (string.IsNullOrEmpty(Model.ProcurementType)) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ProcurementType }</span></div>
+            <div class="ems-info-item"><span class="label">建设类型</span><span class="val">@if (string.IsNullOrEmpty(Model.ProjectCategory)) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ProjectCategory }</span></div>
             <div class="ems-info-item"><span class="label">承接部门</span><span class="val">@(Model.DeptName ?? "-")</span></div>
-            <div class="ems-info-item"><span class="label">项目负责人</span><span class="val">@(Model.ProjectLeaderName ?? "-")</span></div>
-            <div class="ems-info-item"><span class="label">签约日期</span><span class="val">@(Model.SignDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">承接日期</span><span class="val">@if (!Model.ActualStartDate.HasValue) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ActualStartDate.Value.ToString("yyyy-MM-dd") }</span></div>
             <div class="ems-info-item"><span class="label">计划完成</span><span class="val">@(Model.PlanEndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
-            <div class="ems-info-item"><span class="label">实际开始</span><span class="val">@(Model.ActualStartDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">实际完成</span><span class="val">@(Model.ActualEndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
-            <div class="ems-info-item"><span class="label">协作单位</span><span class="val">@(Model.CooperationUnit ?? "-")</span></div>
-            <div class="ems-info-item" style="grid-column: 1 / -1;"><span class="label">项目概况</span><span class="val">@(Model.ProjectOverview ?? "-")</span></div>
+            <div class="ems-info-item"><span class="label">项目概况</span><span class="val">@if (string.IsNullOrEmpty(Model.ProjectOverview)) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ProjectOverview }</span></div>
         </div>
-        @if (!string.IsNullOrEmpty(Model.Remark)) {
-            <div class="ems-alert teal" style="margin-top:12px"><i class="layui-icon layui-icon-about"></i> @Model.Remark</div>
-        }
     </div>
+    <div class="ems-info-card">
+        <div class="ems-info-card-title">
+            业主与团队
+            @if (canEdit) { <a class="ems-card-edit-link" onclick="openProjCard('team')"><i class="layui-icon layui-icon-edit"></i>编辑</a> }
+        </div>
+        <div class="ems-info-list">
+            <div class="ems-info-item"><span class="label">项目业主</span><span class="val"><strong>@Model.OwnerName</strong></span></div>
+            <div class="ems-info-item"><span class="label">业主联系人</span><span class="val">@if (string.IsNullOrEmpty(Model.OwnerContact)) { <i class="ems-fill-hint" onclick="openProjCard('team')">未填写，点击补充 +</i> } else { @Model.OwnerContact }</span></div>
+            <div class="ems-info-item"><span class="label">联系人手机</span><span class="val">@if (string.IsNullOrEmpty(Model.OwnerPhone)) { <i class="ems-fill-hint" onclick="openProjCard('team')">未填写，点击补充 +</i> } else { @Model.OwnerPhone }</span></div>
+            <div class="ems-info-item"><span class="label">项目负责人</span><span class="val">@if (string.IsNullOrEmpty(Model.ProjectLeaderName)) { <i class="ems-fill-hint" onclick="openProjCard('team')">未填写，点击补充 +</i> } else { @Model.ProjectLeaderName }</span></div>
+            <div class="ems-info-item"><span class="label">协作单位</span><span class="val">@if (string.IsNullOrEmpty(Model.CooperationUnit)) { <i class="ems-fill-hint" onclick="openProjCard('team')">未填写，点击补充 +</i> } else { @Model.CooperationUnit }</span></div>
+            <div class="ems-info-item"><span class="label">联合体</span><span class="val">@(Model.IsJointVenture ? $"是 · 我方 {(Model.OurRatio.HasValue ? Model.OurRatio.Value.ToString("N1") + "%" : "-")}" : "否")</span></div>
+        </div>
+    </div>
+    <div class="ems-info-card">
+        <div class="ems-info-card-title">
+            合同与金额
+            @if (canEdit) { <a class="ems-card-edit-link" onclick="openProjCard('money')"><i class="layui-icon layui-icon-edit"></i>编辑</a> }
+        </div>
+        <div class="ems-info-list">
+            <div class="ems-info-item"><span class="label">预估造价</span><span class="val">@if (!Model.LimitPrice.HasValue) { <i class="ems-fill-hint" onclick="openProjCard('money')">未填写，点击补充 +</i> } else { <text>¥@Model.LimitPrice.Value.ToString("N2") 万</text> }</span></div>
+            <div class="ems-info-item"><span class="label">合同金额</span><span class="val">@if (Model.ContractAmount <= 0) { <i class="ems-fill-hint" onclick="openProjCard('money')">未填写，点击补充 +</i> } else { <text><span class="layui-font-teal"><strong>¥@Model.ContractAmount.ToString("N2") 万</strong></span>@if (Model.Contracts.Any()) { <span class="layui-badge layui-bg-green">已关联合同</span> }</text> }</span></div>
+            <div class="ems-info-item"><span class="label">签约日期</span><span class="val">@if (!Model.SignDate.HasValue) { <i class="ems-fill-hint" onclick="openProjCard('money')">未填写，点击补充 +</i> } else { @Model.SignDate.Value.ToString("yyyy-MM-dd") }</span></div>
+            <div class="ems-info-item"><span class="label">已收款</span><span class="val"><span class="layui-font-green">¥@Model.TotalReceived.ToString("N2") 万</span></span></div>
+            <div class="ems-info-item"><span class="label">待收款</span><span class="val"><span class="@(pendingRecv > 0 ? "layui-font-orange" : "layui-font-green")">¥@pendingRecv.ToString("N2") 万</span><span class="layui-font-12 layui-font-gray">（我方折算）</span></span></div>
+        </div>
+    </div>
+</div>
+@if (!string.IsNullOrEmpty(Model.Remark)) {
+    <div class="ems-alert teal" style="margin-bottom:14px"><i class="layui-icon layui-icon-about"></i> @Model.Remark</div>
+}
 
-    <div class="ems-info-card ems-col-side">
+<!-- 服务团队与产值 -->
+<div class="ems-card-row">
+    <div class="ems-info-card">
         <div class="ems-info-card-title">
             服务团队与产值
             @{ var totalR2 = Model.Members.Where(m => m.Status == 0).Sum(m => m.Ratio); }
@@ -816,6 +869,126 @@ window.openModal = function (id, title, area) {
     });
 };
     window.closeModal = function (id) { if (_layerIdx[id]) { layer.close(_layerIdx[id]); _layerIdx[id] = null; } };
+
+    // ── 卡片就地编辑（基本信息 / 业主与团队 / 合同与金额）────────────
+    // 提交字段集与完整编辑表单 collectProjectForm 完全一致，未编辑字段原样带回，不清空其他数据。
+    var projData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
+    {
+        Id = Model.Id, ProjNo = Model.ProjNo, ProjName = Model.ProjName,
+        DeptId = Model.DeptId, BizType = Model.BizType,
+        OwnerName = Model.OwnerName, OwnerContact = Model.OwnerContact, OwnerPhone = Model.OwnerPhone,
+        ProcurementType = Model.ProcurementType, LimitPrice = Model.LimitPrice,
+        ContractAmount = Model.ContractAmount, IsJointVenture = Model.IsJointVenture, OurRatio = Model.OurRatio,
+        ProjectLeaderId = Model.ProjectLeaderId, ProjectCategory = Model.ProjectCategory,
+        CooperationUnit = Model.CooperationUnit, ProjectOverview = Model.ProjectOverview,
+        SignDate = Model.SignDate?.ToString("yyyy-MM-dd"), PlanEndDate = Model.PlanEndDate?.ToString("yyyy-MM-dd"),
+        ActualStartDate = Model.ActualStartDate?.ToString("yyyy-MM-dd"), ProgressStatus = Model.ProgressStatus
+    }));
+    var pcBizTypes  = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(bizTypes));
+    var pcProcTypes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(procTypes));
+    var pcDeptTree  = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(deptTree));
+    var pcMembers   = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(members));
+    var pcBuildTypes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(buildTypes));
+
+    function pcEsc(s) { return ems.escapeHtml(s == null ? '' : s); }
+    function pcItem(label, ctl) {
+        return '<div class="layui-form-item"><label class="layui-form-label">' + label + '</label><div class="layui-input-block">' + ctl + '</div></div>';
+    }
+    function pcOpts(list, valKey, lblKey, cur, emptyText) {
+        var h = '<option value="">' + (emptyText || '请选择') + '</option>';
+        (list || []).forEach(function (o) {
+            h += '<option value="' + pcEsc(o[valKey]) + '"' + (String(o[valKey]) === String(cur == null ? '' : cur) ? ' selected' : '') + '>' + pcEsc(o[lblKey]) + '</option>';
+        });
+        return h;
+    }
+    function pcFlattenDepts(tree, prefix) {
+        var out = [];
+        (Array.isArray(tree) ? tree : []).forEach(function (n) {
+            out.push({ Id: n.Id, Name: (prefix ? prefix + ' / ' : '') + n.DeptName });
+            if (n.Children && n.Children.length) out = out.concat(pcFlattenDepts(n.Children, (prefix ? prefix + ' / ' : '') + n.DeptName));
+        });
+        return out;
+    }
+    var pcLayerIdx = null;
+    window.openProjCard = function (card) {
+        if (!@canEdit.ToString().ToLower()) return;
+        var d = projData, html, title;
+        if (card === 'basic') {
+            title = '编辑基本信息';
+            html = '<form class="layui-form" style="padding:15px;">'
+                + pcItem('业务类型', '<select id="pc_BizType">' + pcOpts(pcBizTypes, 'DictValue', 'DictLabel', d.BizType) + '</select>')
+                + pcItem('采购方式', '<select id="pc_ProcurementType">' + pcOpts(pcProcTypes, 'DictValue', 'DictLabel', d.ProcurementType) + '</select>')
+                + pcItem('建设类型', '<select id="pc_ProjectCategory">' + pcOpts(pcBuildTypes.map(function (b) { return { v: b }; }), 'v', 'v', d.ProjectCategory) + '</select>')
+                + pcItem('承接部门', '<select id="pc_DeptId">' + pcOpts(pcFlattenDepts(pcDeptTree), 'Id', 'Name', d.DeptId) + '</select>')
+                + pcItem('承接日期', '<input type="date" class="layui-input" id="pc_ActualStartDate" value="' + pcEsc(d.ActualStartDate) + '">')
+                + pcItem('项目概况', '<textarea class="layui-textarea" id="pc_ProjectOverview" rows="4" placeholder="项目背景、范围、主要工作内容等">' + pcEsc(d.ProjectOverview) + '</textarea>')
+                + '</form>';
+        } else if (card === 'team') {
+            title = '编辑业主与团队';
+            html = '<form class="layui-form" style="padding:15px;">'
+                + pcItem('项目业主', '<input class="layui-input" id="pc_OwnerName" value="' + pcEsc(d.OwnerName) + '">')
+                + pcItem('业主联系人', '<input class="layui-input" id="pc_OwnerContact" value="' + pcEsc(d.OwnerContact) + '">')
+                + pcItem('联系人手机', '<input class="layui-input" id="pc_OwnerPhone" value="' + pcEsc(d.OwnerPhone) + '">')
+                + pcItem('项目负责人', '<select id="pc_ProjectLeaderId">' + pcOpts(pcMembers, 'Id', 'RealName', d.ProjectLeaderId) + '</select>')
+                + pcItem('协作单位', '<input class="layui-input" id="pc_CooperationUnit" value="' + pcEsc(d.CooperationUnit) + '">')
+                + pcItem('联合体', '<input type="checkbox" id="pc_IsJointVenture" lay-skin="primary" title="联合体项目"' + (d.IsJointVenture ? ' checked' : '') + '>')
+                + pcItem('我方占比(%)', '<input type="number" class="layui-input" id="pc_OurRatio" step="0.5" min="1" max="99" placeholder="1-99" value="' + (d.OurRatio == null ? '' : d.OurRatio) + '">')
+                + '</form>';
+        } else {
+            title = '编辑合同与金额';
+            html = '<form class="layui-form" style="padding:15px;">'
+                + pcItem('预估造价(万)', '<input type="number" class="layui-input" id="pc_LimitPrice" step="0.01" value="' + (d.LimitPrice == null ? '' : d.LimitPrice) + '">')
+                + pcItem('合同金额(万)', '<input type="number" class="layui-input" id="pc_ContractAmount" step="0.01" value="' + (d.ContractAmount || '') + '">')
+                + pcItem('签约日期', '<input type="date" class="layui-input" id="pc_SignDate" value="' + pcEsc(d.SignDate) + '">')
+                + '</form>';
+        }
+        pcLayerIdx = layer.open({
+            type: 1, title: title, skin: 'ems-layer', area: ['560px', 'auto'],
+            btn: ['保存', '取消'], content: html,
+            success: function () { if (layui.form) layui.form.render(); },
+            yes: function () { pcSubmitCard(card); }
+        });
+    };
+    function pcVal(id) { var e = document.getElementById(id); return e ? e.value : null; }
+    function pcNum(id) { var v = parseFloat(pcVal(id)); return isNaN(v) ? null : v; }
+    function pcSubmitCard(card) {
+        var data = Object.assign({}, projData, { Members: [], Milestones: [] });
+        if (card === 'basic') {
+            data.BizType = pcVal('pc_BizType') || null;
+            data.ProcurementType = pcVal('pc_ProcurementType') || null;
+            data.ProjectCategory = pcVal('pc_ProjectCategory') || null;
+            data.DeptId = pcVal('pc_DeptId') ? parseInt(pcVal('pc_DeptId'), 10) : null;
+            data.ActualStartDate = pcVal('pc_ActualStartDate') || null;
+            data.ProjectOverview = pcVal('pc_ProjectOverview') || null;
+        } else if (card === 'team') {
+            data.OwnerName = (pcVal('pc_OwnerName') || '').trim();
+            if (!data.OwnerName) { ems.error('请填写项目业主'); return; }
+            data.OwnerContact = pcVal('pc_OwnerContact') || null;
+            data.OwnerPhone = pcVal('pc_OwnerPhone') || null;
+            data.ProjectLeaderId = pcVal('pc_ProjectLeaderId') ? parseInt(pcVal('pc_ProjectLeaderId'), 10) : null;
+            data.CooperationUnit = pcVal('pc_CooperationUnit') || null;
+            var jv = document.getElementById('pc_IsJointVenture');
+            data.IsJointVenture = jv ? jv.checked : false;
+            data.OurRatio = pcNum('pc_OurRatio');   // 库里存百分数本身（50 = 50%），与完整编辑表单口径一致
+            if (data.IsJointVenture && !data.OurRatio) { ems.error('联合体项目请填写我方占比'); return; }
+        } else {
+            data.LimitPrice = pcNum('pc_LimitPrice');
+            data.ContractAmount = pcNum('pc_ContractAmount') || 0;
+            data.SignDate = pcVal('pc_SignDate') || null;
+        }
+        var load = ems.loading();
+        $.ajax({
+            url: '/project/update', type: 'POST', contentType: 'application/json',
+            headers: { 'RequestVerificationToken': antiForgery },
+            data: JSON.stringify(data),
+            success: function (r) {
+                ems.close(load);
+                if (r.success) { layer.close(pcLayerIdx); ems.msg(r.message || '保存成功', { icon: 1, time: 1200 }, reloadPage); }
+                else ems.error(r.message || '保存失败');
+            },
+            error: function (xhr, textStatus) { ems.close(load); ems.error(ems._httpErrorMsg(xhr, '保存失败', textStatus)); }
+        });
+    }
     // 刷新前记住当前 tab 与滚动位置，加载后恢复（避免每次操作都跳回首 tab）
     window.reloadPage = function () {
         try {

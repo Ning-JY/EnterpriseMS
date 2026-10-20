@@ -65,12 +65,12 @@
                            autocomplete="off" class="layui-input">
                 </div>
                 <div class="layui-inline">
-                    <input type="text" name="StartDateFrom" placeholder="起始时间起" readonly
+                    <input type="text" name="StartDateFrom" placeholder="承接日期起" readonly
                            autocomplete="off" class="layui-input" data-date style="width:130px">
                 </div>
                 <div class="layui-inline" style="margin-left:-4px;margin-right:-4px;color:#999">—</div>
                 <div class="layui-inline">
-                    <input type="text" name="StartDateTo" placeholder="起始时间止" readonly
+                    <input type="text" name="StartDateTo" placeholder="承接日期止" readonly
                            autocomplete="off" class="layui-input" data-date style="width:130px">
                 </div>
                 <div class="layui-inline">
@@ -174,7 +174,7 @@ ems.ready(function () {
               6: ['执行中', 'green'], 7: ['成果提交', 'green'], 8: ['已完成', 'green'], 9: ['已终止', 'red']
           }) },
         { field: 'ProjectLeaderName', title: '项目负责人', width: 110, sort: true, templet: ems.tpl.text('ProjectLeaderName') },
-        { field: 'ActualStartDate', title: '实际开始时间', width: 130, align: 'center', sort: true,
+        { field: 'ActualStartDate', title: '承接日期', width: 130, align: 'center', sort: true,
           templet: function (d) {
               return d.ActualStartDate ? d.ActualStartDate.substring(0, 10) : '<span class="layui-font-gray">-</span>';
           } },
@@ -198,7 +198,7 @@ ems.ready(function () {
     });
 
     $('#btnAdd').on('click', function () {
-        ems.openAdd({ title: '新建项目', url: '/project/create', area: ['860px', '92%'] });
+        ems.openAdd({ title: '新建项目', url: '/project/create', area: ['680px', '92%'] });
     });
 
     $('#btnImport').on('click', function () {
