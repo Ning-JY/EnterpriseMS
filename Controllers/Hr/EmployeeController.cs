@@ -37,13 +37,16 @@ public class EmployeeController : BaseAuthController
     // ── AJAX 列表数据（新标准 layui 表格）──
     [HttpGet("list")]
     [HasPermission("hr:employee:list")]
-    public async Task<IActionResult> List(string? keyword, long? deptId, int? status, int page = 1, int size = 15)
+    public async Task<IActionResult> List(string? keyword, long? deptId, int? status,
+        string? sortField, string? sortOrder, int page = 1, int size = 15)
     {
         var query = new EmployeeQueryDto
         {
             Keyword = keyword,
             DeptId = deptId,
             Status = status,
+            SortField = sortField,
+            SortOrder = sortOrder,
             Page = page,
             Size = size
         };

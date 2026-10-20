@@ -47,7 +47,9 @@ public class ProjectController : BaseAuthController
     [HttpGet("list")]
     [HasPermission("proj:project:list")]
     public async Task<IActionResult> List(string? keyword, long? deptId,
-        int? progressStatus, string? bizType, int page = 1, int size = 15)
+        int? progressStatus, string? bizType, string? leaderKeyword,
+        DateTime? startDateFrom, DateTime? startDateTo,
+        string? sortField, string? sortOrder, int page = 1, int size = 15)
     {
         var query = new ProjectQueryDto
         {
@@ -55,6 +57,11 @@ public class ProjectController : BaseAuthController
             DeptId         = deptId,
             ProgressStatus = progressStatus,
             BizType        = bizType,
+            LeaderKeyword  = leaderKeyword,
+            StartDateFrom  = startDateFrom,
+            StartDateTo    = startDateTo,
+            SortField      = sortField,
+            SortOrder      = sortOrder,
             Page           = page,
             Size           = size
         };
