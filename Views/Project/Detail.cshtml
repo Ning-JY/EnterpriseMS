@@ -83,7 +83,12 @@
         </div>
     </div>
     <div class="ems-ring" style="--p:@fillPct"><span class="ems-ring-text">@fillPct%</span></div>
-    <div class="ems-ring-label">资料<br>完整度@if (fillTodo > 0) { <br><span class="layui-font-orange">@fillTodo 项待补</span> }</div>
+    <div class="ems-ring-label">资料<br>完整度
+        @if (fillTodo > 0)
+        {
+            <br><span class="layui-font-orange">@fillTodo 项待补</span>
+        }
+    </div>
     <div class="ems-detail-actions">
         <a class="layui-btn layui-btn-sm layui-btn-normal" onclick="openReportModal()"><i class="layui-icon layui-icon-file"></i> 生成报告</a>
         <a class="layui-btn layui-btn-sm layui-btn-disabled" title="即将上线" onclick="return false;"><i class="layui-icon layui-icon-template"></i> 生成合同</a>
