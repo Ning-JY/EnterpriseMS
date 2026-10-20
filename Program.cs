@@ -105,6 +105,7 @@ try
     builder.Services.AddScoped<IEducationService,      EducationService>();
     builder.Services.AddScoped<IWorkExpService,        WorkExpService>();
     builder.Services.AddScoped<IEmployeeAttachmentService, EmployeeAttachmentService>();
+    builder.Services.AddScoped<IEmployeeExtraService, EmployeeExtraService>();
     builder.Services.AddScoped<IKbService,             KbService>();
     builder.Services.AddScoped<IHangfireService, HangfireService>();
     builder.Services.AddScoped<INotificationService, NotificationService>();

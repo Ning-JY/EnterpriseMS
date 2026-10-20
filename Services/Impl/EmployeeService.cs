@@ -32,8 +32,19 @@ public class EmployeeService : IEmployeeService
         if (query.DeptId.HasValue) q = q.Where(e => e.DeptId == query.DeptId);
         if (query.Status.HasValue)  q = q.Where(e => e.Status == query.Status);
 
-        return await q.OrderByDescending(e => e.CreatedAt)
-                      .ToPagedAsync(query.Page, query.Size);
+        // 表头点击排序（白名单字段，未指定/非法字段回退默认创建时间倒序）
+        bool asc = string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        q = query.SortField switch
+        {
+            "EmpNo"     => asc ? q.OrderBy(e => e.EmpNo) : q.OrderByDescending(e => e.EmpNo),
+            "RealName"  => asc ? q.OrderBy(e => e.RealName) : q.OrderByDescending(e => e.RealName),
+            "DeptName"  => asc ? q.OrderBy(e => e.Dept != null ? e.Dept.DeptName : "") : q.OrderByDescending(e => e.Dept != null ? e.Dept.DeptName : ""),
+            "Status"    => asc ? q.OrderBy(e => e.Status) : q.OrderByDescending(e => e.Status),
+            "EntryDate" => asc ? q.OrderBy(e => e.EntryDate) : q.OrderByDescending(e => e.EntryDate),
+            _           => q.OrderByDescending(e => e.CreatedAt)
+        };
+
+        return await q.ToPagedAsync(query.Page, query.Size);
     }
 
     /// <summary>已绑定登录账号的员工ID列表（用于列表标记）</summary>

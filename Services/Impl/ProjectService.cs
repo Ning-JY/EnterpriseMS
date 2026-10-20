@@ -47,13 +47,28 @@ public class ProjectService : IProjectService
             q = q.Where(p => p.ProgressStatus == query.ProgressStatus);
         if (!string.IsNullOrWhiteSpace(query.BizType))
             q = q.Where(p => p.BizType == query.BizType);
+        if (!string.IsNullOrWhiteSpace(query.LeaderKeyword))
+            q = q.Where(p => p.ProjectLeader != null && p.ProjectLeader.RealName.Contains(query.LeaderKeyword));
         if (query.StartDateFrom.HasValue)
             q = q.Where(p => p.ActualStartDate >= query.StartDateFrom.Value);
         if (query.StartDateTo.HasValue)
             q = q.Where(p => p.ActualStartDate <= query.StartDateTo.Value);
 
-        var paged = await q.OrderByDescending(p => p.CreatedAt)
-                           .ToPagedAsync(query.Page, query.Size);
+        // 表头点击排序（白名单字段，未指定/非法字段回退默认创建时间倒序）
+        bool asc = string.Equals(query.SortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        q = query.SortField switch
+        {
+            "ProjNo"            => asc ? q.OrderBy(p => p.ProjNo) : q.OrderByDescending(p => p.ProjNo),
+            "ProjName"          => asc ? q.OrderBy(p => p.ProjName) : q.OrderByDescending(p => p.ProjName),
+            "DeptName"          => asc ? q.OrderBy(p => p.Dept != null ? p.Dept.DeptName : "") : q.OrderByDescending(p => p.Dept != null ? p.Dept.DeptName : ""),
+            "ContractAmount"    => asc ? q.OrderBy(p => p.ContractAmount) : q.OrderByDescending(p => p.ContractAmount),
+            "ProgressStatus"    => asc ? q.OrderBy(p => p.ProgressStatus) : q.OrderByDescending(p => p.ProgressStatus),
+            "ProjectLeaderName" => asc ? q.OrderBy(p => p.ProjectLeader != null ? p.ProjectLeader.RealName : "") : q.OrderByDescending(p => p.ProjectLeader != null ? p.ProjectLeader.RealName : ""),
+            "ActualStartDate"   => asc ? q.OrderBy(p => p.ActualStartDate) : q.OrderByDescending(p => p.ActualStartDate),
+            _                   => q.OrderByDescending(p => p.CreatedAt)
+        };
+
+        var paged = await q.ToPagedAsync(query.Page, query.Size);
         var list  = paged.Items;
 
         // 是否关联合同：一次查询本页所有项目的合同归属，避免 N+1

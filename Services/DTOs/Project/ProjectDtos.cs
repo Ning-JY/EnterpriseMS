@@ -214,8 +214,11 @@ public class ProjectQueryDto
     public long?   DeptId         { get; set; }
     public int?    ProgressStatus { get; set; }
     public string? BizType        { get; set; }
+    public string? LeaderKeyword  { get; set; }   // 项目负责人姓名（模糊）
     public DateTime? StartDateFrom { get; set; }   // 项目起始时间（实际开始）起
     public DateTime? StartDateTo   { get; set; }   // 项目起始时间（实际开始）止
+    public string? SortField      { get; set; }   // 表头排序字段（前端字段名）
+    public string? SortOrder      { get; set; }   // asc / desc
     public int     Page           { get; set; } = 1;
     public int     Size           { get; set; } = 15;
 }

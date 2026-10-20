@@ -27,50 +27,74 @@
 <div class="layui-card ems-card ems-search">
     <div class="layui-card-body">
         <form class="layui-form" lay-filter="projSearch">
-            <div class="layui-inline">
-                <input type="text" name="Keyword" placeholder="项目名称 / 业主 / 编号"
-                       autocomplete="off" class="layui-input">
+            <!-- 第一行：关键字 / 部门 / 状态 / 业务类型 -->
+            <div>
+                <div class="layui-inline">
+                    <input type="text" name="Keyword" placeholder="项目名称 / 业主 / 编号"
+                           autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-inline">
+                    @await Component.InvokeAsync("DeptSelect", new {
+                        id = "DeptId", name = "DeptId", selectedId = 0L,
+                        emptyText = "全部部门", cssClass = ""
+                    })
+                </div>
+                <div class="layui-inline">
+                    <select name="ProgressStatus">
+                        <option value="">全部状态</option>
+                        @for (int i = 0; i <= 9; i++)
+                        {
+                            <option value="@i">@statusText[i]</option>
+                        }
+                    </select>
+                </div>
+                <div class="layui-inline">
+                    <select name="BizType">
+                        <option value="">全部业务类型</option>
+                        @foreach (var bt in bizTypes)
+                        {
+                            <option value="@bt.DictValue">@bt.DictLabel</option>
+                        }
+                    </select>
+                </div>
             </div>
-            <div class="layui-inline">
-                @await Component.InvokeAsync("DeptSelect", new {
-                    id = "DeptId", name = "DeptId", selectedId = 0L,
-                    emptyText = "全部部门", cssClass = ""
-                })
-            </div>
-            <div class="layui-inline">
-                <select name="ProgressStatus">
-                    <option value="">全部状态</option>
-                    @for (int i = 0; i <= 9; i++)
+            <!-- 第二行：负责人 / 起始时间 / 搜索重置 + 新增按钮 -->
+            <div>
+                <div class="layui-inline">
+                    <input type="text" name="LeaderKeyword" placeholder="项目负责人"
+                           autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-inline">
+                    <input type="text" name="StartDateFrom" placeholder="起始时间起" readonly
+                           autocomplete="off" class="layui-input" data-date style="width:130px">
+                </div>
+                <div class="layui-inline" style="margin-left:-4px;margin-right:-4px;color:#999">—</div>
+                <div class="layui-inline">
+                    <input type="text" name="StartDateTo" placeholder="起始时间止" readonly
+                           autocomplete="off" class="layui-input" data-date style="width:130px">
+                </div>
+                <div class="layui-inline">
+                    <button class="layui-btn" lay-submit lay-filter="projSearch">
+                        <i class="layui-icon layui-icon-search"></i> 搜索
+                    </button>
+                    <button type="reset" class="layui-btn layui-btn-primary ems-reset">
+                        <i class="layui-icon layui-icon-refresh"></i> 重置
+                    </button>
+                </div>
+                <div class="layui-inline ems-search-actions">
+                    @if (canAdd)
                     {
-                        <option value="@i">@statusText[i]</option>
+                        <button type="button" class="layui-btn layui-btn-normal" id="btnAdd">
+                            <i class="layui-icon layui-icon-add-1"></i> 新建项目
+                        </button>
                     }
-                </select>
-            </div>
-            <div class="layui-inline">
-                <select name="BizType">
-                    <option value="">全部业务类型</option>
-                    @foreach (var bt in bizTypes)
+                    @if (await PermSvc.HasPermAsync(userId, "proj:project:import"))
                     {
-                        <option value="@bt.DictValue">@bt.DictLabel</option>
+                        <button type="button" class="layui-btn" id="btnImport">
+                            <i class="layui-icon layui-icon-upload-circle"></i> 批量导入
+                        </button>
                     }
-                </select>
-            </div>
-            <div class="layui-inline">
-                <input type="text" name="StartDateFrom" placeholder="起始时间起" readonly
-                       autocomplete="off" class="layui-input" data-date style="width:130px">
-            </div>
-            <div class="layui-inline" style="margin-left:-4px;margin-right:-4px;color:#999">—</div>
-            <div class="layui-inline">
-                <input type="text" name="StartDateTo" placeholder="起始时间止" readonly
-                       autocomplete="off" class="layui-input" data-date style="width:130px">
-            </div>
-            <div class="layui-inline">
-                <button class="layui-btn" lay-submit lay-filter="projSearch">
-                    <i class="layui-icon layui-icon-search"></i> 搜索
-                </button>
-                <button type="reset" class="layui-btn layui-btn-primary ems-reset">
-                    <i class="layui-icon layui-icon-refresh"></i> 重置
-                </button>
+                </div>
             </div>
         </form>
     </div>
@@ -81,18 +105,6 @@
     <div class="layui-card-header">
         <span>项目列表</span>
         <div class="ems-card-tools">
-            @if (canAdd)
-            {
-                <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnAdd">
-                    <i class="layui-icon layui-icon-add-1"></i> 新建项目
-                </button>
-            }
-            @if (await PermSvc.HasPermAsync(userId, "proj:project:import"))
-            {
-                <button type="button" class="layui-btn layui-btn-sm" id="btnImport">
-                    <i class="layui-icon layui-icon-upload-circle"></i> 批量导入
-                </button>
-            }
             <button type="button" class="layui-btn layui-btn-sm layui-btn-normal" id="btnFilter">
                 <i class="layui-icon layui-icon-cols"></i> 筛选列
             </button>
@@ -131,22 +143,22 @@
 ems.ready(function () {
 
     var colsConfig = [
-        { field: 'ProjNo',    title: '编号', width: 140,
+        { field: 'ProjNo',    title: '编号', width: 140, sort: true,
           templet: function (d) { return '<span class="layui-font-12">' + ems.escapeHtml(d.ProjNo) + '</span>'; } },
-        { field: 'ProjName',  title: '项目名称', minWidth: 220,
+        { field: 'ProjName',  title: '项目名称', minWidth: 220, sort: true,
           templet: function (d) {
               var html = '<a class="layui-link" lay-event="detail">' + ems.escapeHtml(d.ProjName) + '</a>';
               if (d.BizType) html += ' <span class="layui-badge-rim">' + ems.escapeHtml(d.BizType) + '</span>';
               return html;
           } },
-        { field: 'DeptName',  title: '承接部门', width: 130, templet: ems.tpl.text('DeptName') },
+        { field: 'DeptName',  title: '承接部门', width: 130, sort: true, templet: ems.tpl.text('DeptName') },
         { field: 'OwnerName', title: '项目业主', width: 140,
           templet: function (d) {
               var html = ems.escapeHtml(d.OwnerName || '-');
               if (d.OwnerPhone) html += '<br><span class="layui-font-12 layui-font-gray">' + ems.escapeHtml(d.OwnerPhone) + '</span>';
               return html;
           } },
-        { field: 'ContractAmount', title: '合同金额(万)', width: 150,
+        { field: 'ContractAmount', title: '合同金额(万)', width: 150, sort: true,
           templet: function (d) {
               var html = '<span class="layui-font-teal ">¥' + (d.ContractAmount || 0).toFixed(2) + '</span>';
               html += d.HasContract
@@ -155,14 +167,14 @@ ems.ready(function () {
               if (d.IsJointVenture && d.OurRatio) html += '<br><span class="layui-font-12 layui-font-gray">我方 ' + (d.OurRatio * 100).toFixed(1) + '%</span>';
               return html;
           } },
-        { field: 'ProgressStatus', title: '进度状态', width: 110, align: 'center',
+        { field: 'ProgressStatus', title: '进度状态', width: 110, align: 'center', sort: true,
           templet: ems.tpl.badge('ProgressStatus', {
               0: ['前期商务', 'gray'], 1: ['预计启动', 'blue'], 2: ['标书制作中', 'orange'],
               3: ['投标/磋商中', 'orange'], 4: ['已中标·签合同', 'teal'], 5: ['已签回合同', 'teal'],
               6: ['执行中', 'green'], 7: ['成果提交', 'green'], 8: ['已完成', 'green'], 9: ['已终止', 'red']
           }) },
-        { field: 'ProjectLeaderName', title: '项目负责人', width: 110, templet: ems.tpl.text('ProjectLeaderName') },
-        { field: 'ActualStartDate', title: '实际开始时间', width: 130, align: 'center',
+        { field: 'ProjectLeaderName', title: '项目负责人', width: 110, sort: true, templet: ems.tpl.text('ProjectLeaderName') },
+        { field: 'ActualStartDate', title: '实际开始时间', width: 130, align: 'center', sort: true,
           templet: function (d) {
               return d.ActualStartDate ? d.ActualStartDate.substring(0, 10) : '<span class="layui-font-gray">-</span>';
           } },
@@ -175,6 +187,7 @@ ems.ready(function () {
         url:  '/project/list',
         cols: [colsConfig],
         saveState: true,          // 记住查询条件与页码：进详情再返回不丢失
+        serverSort: true,         // 表头点击排序走服务端（全量数据排序）
         searchFilter: 'projSearch',
 
         tool: {

@@ -131,6 +131,19 @@
     </div>
 </div>
 
+<!-- 其他信息：自定义字段（可手动新增，如 锁号：1236542） -->
+<div class="ems-card-row">
+    <div class="ems-info-card">
+        <div class="ems-info-card-title">
+            其他信息
+            @if (canEdit) { <a class="ems-card-edit" id="btnAddExtra" title="新增字段"><i class="layui-icon layui-icon-add-1"></i>新增字段</a> }
+        </div>
+        <div id="extraList" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 28px">
+            <span class="layui-font-gray">加载中…</span>
+        </div>
+    </div>
+</div>
+
 <!-- Tabs：合同 / 证书 / 教育 / 工作 / 附件 -->
 <div class="ems-detail-tabs">
     <div class="layui-tab layui-tab-brief">
@@ -441,6 +454,57 @@ ems.ready(function () {
             del: function (d) { ems.del({ url: '/hr/employee/archive/attach/delete/' + d.Id, name: d.FileName, table: 'attachTable' }); }
         }
     });
+
+    /* ===== 其他信息（自定义字段） ===== */
+    function loadExtra() {
+        ems.get('/hr/employee/archive/extra/list/' + EMP_ID, function (list) {
+            var $box = $('#extraList');
+            if (!list || !list.length) {
+                $box.html('<span class="layui-font-gray">暂无其他信息' + (canEdit ? '，点右上角“新增字段”添加' : '') + '</span>');
+                return;
+            }
+            $box.html(list.map(function (x) {
+                var ops = canEdit
+                    ? ' <a class="extra-edit" data-id="' + x.Id + '" title="编辑" style="cursor:pointer;color:#1e9fff"><i class="layui-icon layui-icon-edit"></i></a>'
+                    + ' <a class="extra-del" data-id="' + x.Id + '" data-name="' + esc(x.FieldName) + '" title="删除" style="cursor:pointer;color:#ff5722"><i class="layui-icon layui-icon-delete"></i></a>'
+                    : '';
+                return '<div class="ems-info-item"><span class="label">' + esc(x.FieldName) + '</span><span class="val">' + esc(x.FieldValue || '-') + ops + '</span></div>';
+            }).join(''));
+            $box.data('list', list);
+        });
+    }
+    loadExtra();
+
+    $('#btnAddExtra').on('click', function () { openExtraForm(null); });
+    $('#extraList').on('click', '.extra-edit', function () {
+        var id = $(this).data('id');
+        var item = ($('#extraList').data('list') || []).find(function (x) { return x.Id == id; });
+        if (item) openExtraForm(item);
+    });
+    $('#extraList').on('click', '.extra-del', function () {
+        var id = $(this).data('id'), name = $(this).data('name');
+        layer.confirm('确定删除字段“' + name + '”吗？', { icon: 3, title: '提示' }, function (idx) {
+            layer.close(idx);
+            postFormData('/hr/employee/archive/extra/delete/' + id, new FormData(), function () { loadExtra(); });
+        });
+    });
+
+    function openExtraForm(d) {
+        d = d || {};
+        var html = '<form class="layui-form ems-archive-form" id="extraForm" style="padding:15px;">'
+            + '<input type="hidden" name="Id" value="' + (d.Id || 0) + '">'
+            + '<input type="hidden" name="EmployeeId" value="' + EMP_ID + '">'
+            + fItem('字段名', '<input class="layui-input" name="FieldName" value="' + esc(d.FieldName) + '" placeholder="如：锁号" lay-verify="required">')
+            + fItem('内容', '<input class="layui-input" name="FieldValue" value="' + esc(d.FieldValue) + '" placeholder="如：1236542">')
+            + '</form>';
+        var idx = layer.open({ type: 1, title: d.Id ? '编辑字段' : '新增字段', skin: 'ems-layer', area: ['480px', 'auto'],
+            btn: ['保存', '取消'], content: html, success: function () { form.render(); },
+            yes: function () {
+                if (!$('#extraForm input[name=FieldName]').val()) { ems.error('请填写字段名'); return; }
+                var fd = new FormData(document.getElementById('extraForm'));
+                postFormData('/hr/employee/archive/extra/save', fd, function () { loadExtra(); }, idx);
+            } });
+    }
 
     /* ===== Tab 新增按钮 ===== */
     $('#btnAddContract').on('click', function () { openContractForm(null); });

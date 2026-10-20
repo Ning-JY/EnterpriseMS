@@ -71,6 +71,7 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<EmployeeEducation>?   _educations;
     private IRepository<EmployeeWorkExp>?     _workExps;
     private IRepository<EmployeeAttachment>?   _attachments;
+    private IRepository<EmployeeExtraField>?   _employeeExtras;
     private IRepository<Project>?             _projects;
     private IRepository<ProjectMember>?       _projMembers;
     private IRepository<ProjectMilestone>?    _milestones;
@@ -108,6 +109,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<EmployeeEducation>   Educations     => _educations     ??= new Repository<EmployeeEducation>(_db);
     public IRepository<EmployeeWorkExp>     WorkExperiences=> _workExps       ??= new Repository<EmployeeWorkExp>(_db);
     public IRepository<EmployeeAttachment>  Attachments   => _attachments    ??= new Repository<EmployeeAttachment>(_db);
+    public IRepository<EmployeeExtraField>  EmployeeExtras => _employeeExtras ??= new Repository<EmployeeExtraField>(_db);
     public IRepository<Project>             Projects       => _projects       ??= new Repository<Project>(_db);
     public IRepository<ProjectMember>       ProjMembers    => _projMembers    ??= new Repository<ProjectMember>(_db);
     public IRepository<ProjectMilestone>    Milestones     => _milestones     ??= new Repository<ProjectMilestone>(_db);

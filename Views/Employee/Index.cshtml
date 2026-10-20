@@ -105,16 +105,16 @@
 ems.ready(function () {
 
     var colsConfig = [
-        { field: 'EmpNo',    title: '工号', width: 110 },
-        { field: 'RealName', title: '姓名', templet: function (d) {
+        { field: 'EmpNo',    title: '工号', width: 110, sort: true },
+        { field: 'RealName', title: '姓名', sort: true, templet: function (d) {
             return '<a class="layui-link" lay-event="detail">' + (d.RealName || '') + '</a>'
                  + ' <span class="layui-badge-rim">' + (d.Gender === 1 ? '男' : '女') + '</span>';
         } },
-        { field: 'DeptName', title: '部门', templet: ems.tpl.text('DeptName') },
+        { field: 'DeptName', title: '部门', sort: true, templet: ems.tpl.text('DeptName') },
         { field: 'Phone',    title: '手机', templet: ems.tpl.text('Phone') },
-        { field: 'Status',   title: '状态', align: 'center', width: 90,
+        { field: 'Status',   title: '状态', align: 'center', width: 90, sort: true,
           templet: ems.tpl.badge('Status', { 0: ['试用期', 'orange'], 1: ['在职', 'green'], 2: ['离职', 'gray'] }) },
-        { field: 'EntryDate', title: '入职日期', width: 120,
+        { field: 'EntryDate', title: '入职日期', width: 120, sort: true,
           templet: function (d) { return d.EntryDate ? ems.fmtDate(d.EntryDate) : '-'; } },
         { title: '操作', width: 150, align: 'center', toolbar: '#empBar' }
     ];
@@ -124,7 +124,7 @@ ems.ready(function () {
         id:   'empTable',
         url:  '/hr/employee/list',
         cols: [colsConfig],
-        saveState: true, searchFilter: 'empSearch',
+        saveState: true, searchFilter: 'empSearch', serverSort: true,
 
         tool: {
             detail: function (d) { ems.openTab('/hr/employee/detail/' + d.Id, '员工详情 - ' + d.RealName); },

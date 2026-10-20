@@ -348,6 +348,8 @@
         }, opt.extend || {});
 
         conf.cols = opt.cols;
+        // 服务端排序：关掉 layui 本地排序（本地只排当前页会误导），改由 sort 事件回后端排全量
+        if (opt.serverSort) conf.autoSort = false;
         if (opt.where)  conf.where  = opt.where;
         if (opt.height) conf.height = opt.height;
         // 默认不强制高度：卡片高度随内容自适应，配合「去掉水平滚动条」要求
@@ -407,6 +409,19 @@
             if (!fn) return;
             fn(table.checkStatus(id), obj);
         });
+
+        // 表头点击排序（服务端）：把 SortField/SortOrder 合并进当前查询条件重查第一页
+        if (opt.serverSort) {
+            ems._sortState = ems._sortState || {};
+            table.on('sort(' + id + ')', function (obj) {
+                if (obj.type) ems._sortState[id] = { SortField: obj.field, SortOrder: obj.type };
+                else delete ems._sortState[id];
+                var cur = (ems._loadTblState(id) || {}).where || {};
+                var w = $.extend({}, cur, ems._sortState[id] || {});
+                if (!obj.type) { delete w.SortField; delete w.SortOrder; }
+                ems.reloadTable(id, w);
+            });
+        }
 
         // 单元格编辑 / 行双击等透传
         if (opt.onEdit) {
@@ -693,6 +708,7 @@
             form.render(null, opt.form);
         }
         ems._clearTblState(opt.table);
+        if (ems._sortState) delete ems._sortState[opt.table];
         ems.reloadTable(opt.table, {});
     };
 
@@ -704,7 +720,9 @@
      */
     ems.bindSearch = function (filter, tableId, extra) {
         form.on('submit(' + filter + ')', function (data) {
-            ems.reloadTable(tableId, $.extend({}, data.field, extra || {}));
+            // 保留该表当前的表头排序（服务端排序状态），搜索不冲掉排序
+            var sort = (ems._sortState || {})[tableId] || {};
+            ems.reloadTable(tableId, $.extend({}, data.field, extra || {}, sort));
             return false;
         });
 

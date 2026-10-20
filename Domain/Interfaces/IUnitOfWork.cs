@@ -24,6 +24,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<EmployeeEducation>    Educations     { get; }
     IRepository<EmployeeWorkExp>      WorkExperiences{ get; }
     IRepository<EmployeeAttachment>   Attachments   { get; }
+    IRepository<EmployeeExtraField>   EmployeeExtras { get; }
     // 项目
     IRepository<Project>           Projects      { get; }
     IRepository<ProjectMember>     ProjMembers   { get; }

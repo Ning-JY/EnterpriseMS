@@ -19,14 +19,17 @@ public class EmployeeArchiveController : BaseAuthController
     private readonly IEducationService           _eduSvc;
     private readonly IWorkExpService             _workSvc;
     private readonly IEmployeeAttachmentService  _attachSvc;
+    private readonly IEmployeeExtraService       _extraSvc;
 
     public EmployeeArchiveController(IContractService contractSvc, ICertificateService certSvc,
         IEducationService eduSvc, IWorkExpService workSvc, IEmployeeAttachmentService attachSvc,
+        IEmployeeExtraService extraSvc,
         IPermissionService permSvc)
         : base(permSvc)
     {
         _contractSvc = contractSvc; _certSvc = certSvc;
         _eduSvc = eduSvc; _workSvc = workSvc; _attachSvc = attachSvc;
+        _extraSvc = extraSvc;
     }
 
     /* ========== 合同 ========== */
@@ -319,6 +322,38 @@ public class EmployeeArchiveController : BaseAuthController
     public async Task<IActionResult> AttachDelete(long id)
     {
         try { await _attachSvc.DeleteAsync(id); return ApiOk("附件已删除"); }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        { return ApiFail(ex.Message); }
+    }
+
+    /* ========== 其他信息（自定义字段） ========== */
+    [HttpGet("extra/list/{empId}")]
+    [HasPermission("hr:employee:list")]
+    public async Task<IActionResult> ExtraList(long empId)
+    {
+        var list = await _extraSvc.GetListAsync(empId);
+        return ApiOk(list.Select(x => new { x.Id, x.EmployeeId, x.FieldName, x.FieldValue, x.Sort }).ToList());
+    }
+
+    [HttpPost("extra/save")]
+    [HasPermission("hr:employee:edit")]
+    public async Task<IActionResult> ExtraSave([FromForm] EmployeeExtraDto dto)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(dto.FieldName)) return ApiFail("请填写字段名");
+            await _extraSvc.SaveAsync(dto, User.GetRealName());
+            return ApiOk(dto.Id > 0 ? "已更新" : "已添加");
+        }
+        catch (Exception ex) when (ex is BusinessException or NotFoundException)
+        { return ApiFail(ex.Message); }
+    }
+
+    [HttpPost("extra/delete/{id}")]
+    [HasPermission("hr:employee:edit")]
+    public async Task<IActionResult> ExtraDelete(long id)
+    {
+        try { await _extraSvc.DeleteAsync(id); return ApiOk("已删除"); }
         catch (Exception ex) when (ex is BusinessException or NotFoundException)
         { return ApiFail(ex.Message); }
     }

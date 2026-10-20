@@ -173,6 +173,18 @@ public class EmployeeQueryDto
     public string? Keyword { get; set; }
     public long?  DeptId  { get; set; }
     public int?   Status  { get; set; }
+    public string? SortField { get; set; }   // 表头排序字段（前端字段名）
+    public string? SortOrder { get; set; }   // asc / desc
+}
+
+// ── 自定义字段（其他信息） ────────────────────────────────
+public class EmployeeExtraDto
+{
+    public long    Id         { get; set; }
+    public long    EmployeeId { get; set; }
+    public string  FieldName  { get; set; } = "";
+    public string? FieldValue { get; set; }
+    public int     Sort       { get; set; }
 }
 
 // ── 合同子 DTO ─────────────────────────────────────────────

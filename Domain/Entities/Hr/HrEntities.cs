@@ -49,6 +49,7 @@ public class Employee : BaseEntity
     [JsonIgnore] public ICollection<EmployeeEducation>   EducationList  { get; set; } = new List<EmployeeEducation>();
     [JsonIgnore] public ICollection<EmployeeWorkExp>     WorkExperiences{ get; set; } = new List<EmployeeWorkExp>();
     [JsonIgnore] public ICollection<EmployeeAttachment>  Attachments   { get; set; } = new List<EmployeeAttachment>();
+    [JsonIgnore] public ICollection<EmployeeExtraField>  ExtraFields   { get; set; } = new List<EmployeeExtraField>();
 }
 
 [Table("hr_education")]
@@ -119,5 +120,16 @@ public class EmployeeAttachment : BaseEntity, IFileEntity
     [Column("file_size")]   public long     FileSize   { get; set; }
     [Column("file_type")]   public string?  FileType   { get; set; }
     [Column("remark")]      public string?  Remark     { get; set; }
+    public Employee? Employee { get; set; }
+}
+
+/// <summary>员工自定义字段（详情页"其他信息"栏，字段名/内容均可手动新增，如 锁号：1236542）</summary>
+[Table("hr_employee_extra")]
+public class EmployeeExtraField : BaseEntity
+{
+    [Column("employee_id")] public long    EmployeeId { get; set; }
+    [Column("field_name")]  public string  FieldName  { get; set; } = "";
+    [Column("field_value")] public string? FieldValue { get; set; }
+    [Column("sort")]        public int     Sort       { get; set; }
     public Employee? Employee { get; set; }
 }
