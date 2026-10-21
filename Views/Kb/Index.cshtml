@@ -70,17 +70,17 @@ ems.ready(function () {
     var $ = layui.jquery;
     layui.form.render();
 
-    // 文件类型彩色小标（不依赖 FontAwesome）
+    // 文件类型图标（按类型着色，悬停显示扩展名）
     function extChip(ext) {
         ext = (ext || '').toLowerCase();
-        var color = 'gray';
+        var color = 'gray', icon = 'file';
         if (ext === 'pdf') color = 'red';
         else if (ext === 'doc' || ext === 'docx') color = 'blue';
         else if (ext === 'xls' || ext === 'xlsx') color = 'green';
         else if (ext === 'ppt' || ext === 'pptx') color = 'orange';
-        else if (ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'gif' || ext === 'bmp') color = 'cyan';
+        else if (ext === 'jpg' || ext === 'jpeg' || ext === 'png' || ext === 'gif' || ext === 'bmp') { color = 'cyan'; icon = 'picture'; }
         else if (ext === 'zip' || ext === 'rar' || ext === '7z') color = 'gray';
-        return '<span class="layui-badge layui-bg-' + color + '">' + (ext || '?').toUpperCase() + '</span>';
+        return '<i class="layui-icon layui-icon-' + icon + ' layui-font-' + color + '" style="font-size:18px;vertical-align:-3px" title="' + (ext ? ext.toUpperCase() : '文件') + '"></i>';
     }
 
     function fileCell(d) {

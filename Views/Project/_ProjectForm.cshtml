@@ -24,7 +24,10 @@
     <div class="layui-row layui-col-space15" style="display:flex;flex-wrap:wrap">
         <div class="layui-col-xs6" style="display:flex">
             <div class="layui-card ems-card" style="flex:1">
+                @if (isEdit)
+                {
                 <div class="layui-card-header"><span><i class="layui-icon layui-icon-file-b"></i> 基本信息</span></div>
+                }
                 <div class="layui-card-body">
                     <div class="layui-form-item">
                         <label class="layui-form-label">项目编号</label>
@@ -34,8 +37,6 @@
                         <label class="layui-form-label">项目名称 <span class="layui-font-red">*</span></label>
                         <div class="layui-input-block"><input type="text" id="ProjName" class="layui-input" value="@(m.ProjName ?? "")" maxlength="200" placeholder="请输入项目名称"></div>
                     </div>
-                    @if (isEdit)
-                    {
                     <div class="layui-form-item">
                         <label class="layui-form-label">业务类型</label>
                         <div class="layui-input-block">
@@ -48,7 +49,6 @@
                             </select>
                         </div>
                     </div>
-                    }
                     <div class="layui-form-item">
                         <label class="layui-form-label">承接部门</label>
                         <div class="layui-input-block">
@@ -99,7 +99,10 @@
         </div>
         <div class="layui-col-xs6" style="display:flex">
             <div class="layui-card ems-card" style="flex:1">
+                @if (isEdit)
+                {
                 <div class="layui-card-header"><span><i class="layui-icon layui-icon-username"></i> 业主与团队</span></div>
+                }
                 <div class="layui-card-body">
                     <div class="layui-form-item">
                         <label class="layui-form-label">项目业主 <span class="layui-font-red">*</span></label>

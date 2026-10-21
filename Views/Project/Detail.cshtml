@@ -164,6 +164,7 @@
             <div class="ems-info-item"><span class="label">建设类型</span><span class="val">@if (string.IsNullOrEmpty(Model.ProjectCategory)) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ProjectCategory }</span></div>
             <div class="ems-info-item"><span class="label">承接部门</span><span class="val">@(Model.DeptName ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">承接日期</span><span class="val">@if (!Model.ActualStartDate.HasValue) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ActualStartDate.Value.ToString("yyyy-MM-dd") }</span></div>
+            <div class="ems-info-item"><span class="label">完成日期</span><span class="val">@(Model.ActualEndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">项目概况</span><span class="val">@if (string.IsNullOrEmpty(Model.ProjectOverview)) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ProjectOverview }</span></div>
         </div>
     </div>
