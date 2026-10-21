@@ -12,7 +12,7 @@
 
 <div class="ems-page">
     <div class="ems-page-head">
-        <div class="ems-page-title"><button type="button" class="layui-btn layui-btn-sm layui-btn-primary ems-back-btn" title="返回" onclick="ems.openTab('/project/contract','合同管理')"><i class="layui-icon layui-icon-return"></i></button><i class="layui-icon layui-icon-file-b"></i> 合同详情 <small class="layui-font-12 layui-font-gray">@Model.ContractNo</small></div>
+        <div class="ems-page-title"><button type="button" class="layui-btn layui-btn-sm layui-btn-primary ems-back-btn" title="返回" onclick="if (window.history.length > 1) { window.history.back(); } else { ems.openTab('/project/contract','合同管理'); }"><i class="layui-icon layui-icon-return"></i></button><i class="layui-icon layui-icon-file-b"></i> 合同详情 <small class="layui-font-12 layui-font-gray">@Model.ContractNo</small></div>
         <div class="layui-breadcrumb" lay-separator="/">
             <a href="javascript:;">首页</a>
             <a href="javascript:;">项目管理</a>
@@ -35,7 +35,7 @@
                 <div class="ems-info-item"><span class="label">合同编号</span><span class="val">@Model.ContractNo</span></div>
                 <div class="ems-info-item"><span class="label">合同类型</span><span class="val">@Model.ContractType</span></div>
                 <div class="ems-info-item"><span class="label">合同名称</span><span class="val">@(Model.ContractName ?? "-")</span></div>
-                <div class="ems-info-item"><span class="label">合同金额</span><span class="val">¥@Model.Amount.ToString("N2")</span></div>
+                <div class="ems-info-item"><span class="label">合同金额</span><span class="val">¥@Model.Amount.ToString("N2")万</span></div>
                 <div class="ems-info-item"><span class="label">甲方</span><span class="val">@Model.PartyA</span></div>
                 <div class="ems-info-item"><span class="label">乙方</span><span class="val">@Model.PartyB</span></div>
                 <div class="ems-info-item"><span class="label">签约日期</span><span class="val">@(Model.SignDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
