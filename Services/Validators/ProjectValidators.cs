@@ -44,7 +44,8 @@ public class ChangeStatusDtoValidator : AbstractValidator<ChangeStatusDto>
     public ChangeStatusDtoValidator()
     {
         RuleFor(x => x.Id).GreaterThan(0).WithMessage("项目ID不合法");
-        RuleFor(x => x.NewStatus).InclusiveBetween(0, 5).WithMessage("项目状态不合法");
+        // 状态已扩展到 10 个（0-9，含已终止），旧的 0-5 上限会把执行中/成果提交/已完成/已终止全部拦掉
+        RuleFor(x => x.NewStatus).InclusiveBetween(0, 9).WithMessage("项目状态不合法");
     }
 }
 
