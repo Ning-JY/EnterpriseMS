@@ -614,8 +614,10 @@
         <label class="layui-form-label">新状态 <span class="layui-font-red">*</span></label>
         <div class="layui-input-block">
             <select id="newStatus" class="layui-input">
-                @for (int i = 0; i <= 9; i++) { if (i != Model.ProgressStatus) { <option value="@i">@statusText[i]</option> } }
+                @* 仅列当前之后的阶段（后端同样只允许向前推进，选低状态点确认必报错），且预计启动已取消不列出 *@
+                @for (int i = 0; i <= 9; i++) { if (i > Model.ProgressStatus && i != 1) { <option value="@i">@statusText[i]</option> } }
             </select>
+            <div class="layui-form-mid layui-word-aux">只能选择当前之后的阶段</div>
         </div>
     </div>
     <div class="layui-form-item">
@@ -804,7 +806,7 @@
     <div class="layui-form-item">
         <label class="layui-form-label">关联合同</label>
         <div class="layui-input-block">
-            <select id="rcpContract" class="layui-input">
+            <select id="rcpContract" class="layui-input" lay-search>
                 <option value="">不关联(项目级回款)</option>
                 @foreach (var ct in Model.Contracts) { <option value="@ct.Id">@ct.ContractNo (@ct.ContractType)</option> }
             </select>
@@ -1224,21 +1226,23 @@ window.openModal = function (id, title, area) {
             $.ajax({ url: '/project/' + projId + '/contracts/delete/' + id, type: 'POST', data: { __RequestVerificationToken: antiForgery }, success: function (r) { if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, reloadPage); } else { ems.msg(r.message, { icon: 2 }); } } });
         });
     };
-    // 关联已有合同
+    // 关联已有合同（弹层打开后再加载选项并渲染，否则搜索框不生效）
     var _linkContractLayerIdx = null;
     window.openLinkContractModal = function () {
-        $.getJSON('/project/contract/options', function (r) {
-            var items = r.data || [];
-            var html = '';
-            items.forEach(function (c) {
-                html += '<option value="' + c.Id + '">' + ems.escapeHtml(c.ContractNo) + ' - ' + ems.escapeHtml(c.ContractName || '') + ' (' + ems.escapeHtml(c.PartyA) + ')</option>';
-            });
-            $('#linkContractSelect').html(html || '<option value="">暂无可选合同</option>');
-            layui.form.render('select');
-        });
         _linkContractLayerIdx = layer.open({
             type: 1, title: '关联已有合同', area: ['520px'],
-            content: $('#linkContractModal'), shadeClose: false
+            content: $('#linkContractModal'), shadeClose: false,
+            success: function () {
+                $.getJSON('/project/contract/options', function (r) {
+                    var items = r.data || [];
+                    var html = '';
+                    items.forEach(function (c) {
+                        html += '<option value="' + c.Id + '">' + ems.escapeHtml(c.ContractNo) + ' - ' + ems.escapeHtml(c.ContractName || '') + ' (' + ems.escapeHtml(c.PartyA) + ')</option>';
+                    });
+                    $('#linkContractSelect').html(html || '<option value="">暂无可选合同</option>');
+                    layui.form.render('select');
+                });
+            }
         });
     };
     window.closeLinkContractModal = function () { if (_linkContractLayerIdx) { layer.close(_linkContractLayerIdx); _linkContractLayerIdx = null; } };

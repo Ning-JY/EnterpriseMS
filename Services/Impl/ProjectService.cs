@@ -265,6 +265,8 @@ public class ProjectService : IProjectService
         var proj = await _uow.Projects.GetByIdAsync(dto.Id)
             ?? throw new NotFoundException("项目不存在");
         // #5 修复：不允许变更到相同状态
+        if (dto.NewStatus == 1)
+            throw new BusinessException("“预计启动”已取消，请选择其他阶段");
         if (dto.NewStatus < proj.ProgressStatus)
             throw new BusinessException("状态只能向前推进，不可回退");
         if (dto.NewStatus == proj.ProgressStatus)

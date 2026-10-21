@@ -22,7 +22,8 @@
     @* 计划完成日期不在表单显示，后台保留原值防编辑时清空 *@
     <input type="hidden" id="PlanEndDate" value="@(m.PlanEndDate?.ToString("yyyy-MM-dd") ?? "")">
     <div class="layui-row layui-col-space15" style="display:flex;flex-wrap:wrap">
-        <div class="layui-col-xs6" style="display:flex">
+        @* 新建弹窗一列显示（编辑页保持两栏） *@
+        <div class="@(isEdit ? "layui-col-xs6" : "layui-col-xs12")" style="display:flex">
             <div class="layui-card ems-card" style="flex:1">
                 @if (isEdit)
                 {
@@ -97,7 +98,7 @@
                 </div>
             </div>
         </div>
-        <div class="layui-col-xs6" style="display:flex">
+        <div class="@(isEdit ? "layui-col-xs6" : "layui-col-xs12")" style="display:flex">
             <div class="layui-card ems-card" style="flex:1">
                 @if (isEdit)
                 {
