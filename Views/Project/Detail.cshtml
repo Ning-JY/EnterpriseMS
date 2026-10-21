@@ -164,8 +164,6 @@
             <div class="ems-info-item"><span class="label">建设类型</span><span class="val">@if (string.IsNullOrEmpty(Model.ProjectCategory)) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ProjectCategory }</span></div>
             <div class="ems-info-item"><span class="label">承接部门</span><span class="val">@(Model.DeptName ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">承接日期</span><span class="val">@if (!Model.ActualStartDate.HasValue) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ActualStartDate.Value.ToString("yyyy-MM-dd") }</span></div>
-            <div class="ems-info-item"><span class="label">计划完成</span><span class="val">@(Model.PlanEndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
-            <div class="ems-info-item"><span class="label">实际完成</span><span class="val">@(Model.ActualEndDate?.ToString("yyyy-MM-dd") ?? "-")</span></div>
             <div class="ems-info-item"><span class="label">项目概况</span><span class="val">@if (string.IsNullOrEmpty(Model.ProjectOverview)) { <i class="ems-fill-hint" onclick="openProjCard('basic')">未填写，点击补充 +</i> } else { @Model.ProjectOverview }</span></div>
         </div>
     </div>
@@ -194,6 +192,38 @@
             <div class="ems-info-item"><span class="label">签约日期</span><span class="val">@if (!Model.SignDate.HasValue) { <i class="ems-fill-hint" onclick="openProjCard('money')">未填写，点击补充 +</i> } else { @Model.SignDate.Value.ToString("yyyy-MM-dd") }</span></div>
             <div class="ems-info-item"><span class="label">已收款</span><span class="val"><span class="layui-font-green">¥@Model.TotalReceived.ToString("N2") 万</span></span></div>
             <div class="ems-info-item"><span class="label">待收款</span><span class="val"><span class="@(pendingRecv > 0 ? "layui-font-orange" : "layui-font-green")">¥@pendingRecv.ToString("N2") 万</span><span class="layui-font-12 layui-font-gray">（我方折算）</span></span></div>
+            <div class="ems-info-item"><span class="label">关联合同</span><span class="val">
+                @if (!Model.Contracts.Any())
+                {
+                    if (canEdit)
+                    {
+                        <a class="layui-btn layui-btn-xs layui-btn-normal" onclick="openLinkContractModal()"><i class="layui-icon layui-icon-link"></i> 关联合同</a>
+                    }
+                    else
+                    {
+                        <span class="layui-font-gray">暂无关联合同</span>
+                    }
+                }
+                else
+                {
+                    foreach (var ct in Model.Contracts)
+                    {
+                        <div style="margin-bottom:3px">
+                            <a href="/project/contract/@ct.Id" title="查看合同详情">@(string.IsNullOrEmpty(ct.ContractName) ? ct.ContractNo : ct.ContractName)</a>
+                            <span class="layui-font-12 layui-font-gray">（@ct.ContractNo · ¥@ct.Amount.ToString("N2")万）</span>
+                            @if (!string.IsNullOrEmpty(ct.FileName))
+                            {
+                                <a class="ems-icon-btn" title="预览合同文件" onclick="ems.preview('/project/contracts/download/@ct.Id?inline=1')"><i class="layui-icon layui-icon-search"></i></a>
+                                <a class="ems-icon-btn" title="下载合同文件" href="/project/contracts/download/@ct.Id"><i class="layui-icon layui-icon-download-circle"></i></a>
+                            }
+                            else
+                            {
+                                <span class="layui-font-12 layui-font-gray">暂无附件</span>
+                            }
+                        </div>
+                    }
+                }
+            </span></div>
         </div>
     </div>
 </div>
@@ -1005,14 +1035,21 @@ window.openModal = function (id, title, area) {
     };
 
     // ── 状态变更 ──
+    // 修复：后端接口是 [FromBody] JSON，之前用表单格式提交会被 415 拒绝且无失败回调，
+    // 表现为“点击确认后没有更新”。改成与本页其他提交一致的 JSON + 令牌头，并补失败提示。
     window.saveStatus = function () {
+        var load = ems.loading();
         $.ajax({
             url: '/project/status', type: 'POST',
-            data: { Id: projId, NewStatus: parseInt($('#newStatus').val()), StatusDate: $('#statusDate').val(), Remark: $('#statusRemark').val(), __RequestVerificationToken: antiForgery },
+            contentType: 'application/json',
+            headers: { 'RequestVerificationToken': antiForgery },
+            data: JSON.stringify({ Id: projId, NewStatus: parseInt($('#newStatus').val()), StatusDate: $('#statusDate').val() || null, Remark: $('#statusRemark').val() || null }),
             success: function (r) {
+                ems.close(load);
                 if (r.success) { ems.msg(r.message, { icon: 1, time: 1200 }, reloadPage); }
                 else ems.msg(r.message, { icon: 2 });
-            }
+            },
+            error: function () { ems.close(load); ems.msg('请求失败，请重试', { icon: 2 }); }
         });
     };
 

@@ -34,6 +34,8 @@
                         <label class="layui-form-label">项目名称 <span class="layui-font-red">*</span></label>
                         <div class="layui-input-block"><input type="text" id="ProjName" class="layui-input" value="@(m.ProjName ?? "")" maxlength="200" placeholder="请输入项目名称"></div>
                     </div>
+                    @if (isEdit)
+                    {
                     <div class="layui-form-item">
                         <label class="layui-form-label">业务类型</label>
                         <div class="layui-input-block">
@@ -46,6 +48,7 @@
                             </select>
                         </div>
                     </div>
+                    }
                     <div class="layui-form-item">
                         <label class="layui-form-label">承接部门</label>
                         <div class="layui-input-block">
