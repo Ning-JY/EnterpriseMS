@@ -19,12 +19,13 @@ public class EmployeeController : BaseAuthController
     private readonly IEmployeeService _empSvc;
     private readonly IDeptService _deptSvc;
     private readonly IDictService _dictSvc;
+    private readonly IEmployeeExtraService _extraSvc;
 
     public EmployeeController(IEmployeeService empSvc, IDeptService deptSvc,
-        IDictService dictSvc, IPermissionService permSvc)
+        IDictService dictSvc, IPermissionService permSvc, IEmployeeExtraService extraSvc)
         : base(permSvc)
     {
-        _empSvc = empSvc; _deptSvc = deptSvc; _dictSvc = dictSvc;
+        _empSvc = empSvc; _deptSvc = deptSvc; _dictSvc = dictSvc; _extraSvc = extraSvc;
     }
 
     [HasPermission("hr:employee:list")]
@@ -51,6 +52,8 @@ public class EmployeeController : BaseAuthController
             Size = size
         };
         var paged = await _empSvc.GetPagedAsync(query);
+        // 其他信息一页一次批量取，不按人逐条查
+        var summaries = await _extraSvc.GetSummariesAsync(paged.Items.Select(e => e.Id));
         var items = paged.Items.Select(e => new EmployeeListDto
         {
             Id = e.Id,
@@ -62,7 +65,8 @@ public class EmployeeController : BaseAuthController
             DeptName = e.Dept?.DeptName,
             Status = e.Status,
             EntryDate = e.EntryDate,
-            Avatar = e.ProfilePhoto
+            Avatar = e.ProfilePhoto,
+            ExtraInfo = summaries.TryGetValue(e.Id, out var s) ? s : null
         }).ToList();
         return ApiOk(new PagedResult<EmployeeListDto>
         {

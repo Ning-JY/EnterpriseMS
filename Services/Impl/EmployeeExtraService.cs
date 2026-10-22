@@ -25,6 +25,22 @@ public class EmployeeExtraService : IEmployeeExtraService
         }).ToList();
     }
 
+    public async Task<Dictionary<long, string>> GetSummariesAsync(IEnumerable<long> employeeIds)
+    {
+        var ids = employeeIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<long, string>();
+        var list = await _uow.EmployeeExtras.GetListAsync(x => ids.Contains(x.EmployeeId));
+        return list
+            .GroupBy(x => x.EmployeeId)
+            .ToDictionary(
+                g => g.Key,
+                g => string.Join("；", g
+                    .OrderBy(x => x.Sort).ThenBy(x => x.CreatedAt)
+                    .Select(x => string.IsNullOrWhiteSpace(x.FieldValue)
+                        ? x.FieldName
+                        : $"{x.FieldName}：{x.FieldValue}")));
+    }
+
     public async Task<long> SaveAsync(EmployeeExtraDto dto, string? operBy)
     {
         if (string.IsNullOrWhiteSpace(dto.FieldName)) throw new BusinessException("请填写字段名");

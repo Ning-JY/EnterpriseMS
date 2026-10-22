@@ -38,6 +38,8 @@ public class EmployeeListDto
     public DateTime? FormalDate { get; set; }
     public DateTime? LeaveDate  { get; set; }
     public string?   Avatar     { get; set; }
+    /// <summary>其他信息合并文本（详情页自定义字段按顺序拼成“字段名：值；字段名：值”，列表展示用，无则 null）。</summary>
+    public string?   ExtraInfo  { get; set; }
 }
 
 // ── 详情展示 ───────────────────────────────────────────────

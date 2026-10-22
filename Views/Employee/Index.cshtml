@@ -116,6 +116,11 @@ ems.ready(function () {
           templet: ems.tpl.badge('Status', { 0: ['试用期', 'orange'], 1: ['在职', 'green'], 2: ['离职', 'gray'] }) },
         { field: 'EntryDate', title: '入职日期', width: 120, sort: true,
           templet: function (d) { return d.EntryDate ? ems.fmtDate(d.EntryDate) : '-'; } },
+        { field: 'ExtraInfo', title: '其他信息', templet: function (d) {
+            if (!d.ExtraInfo) return '-';
+            var t = ems.escapeHtml(d.ExtraInfo);
+            return '<span title="' + t + '">' + t + '</span>';
+        } },
         { title: '操作', width: 150, align: 'center', toolbar: '#empBar' }
     ];
 
